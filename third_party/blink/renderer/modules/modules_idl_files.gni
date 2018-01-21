@@ -222,7 +222,7 @@ modules_idl_files =
           "ml/execution.idl",
           "ml/ml.idl",
           "ml/model.idl",
-          "ml/neural_network.idl",
+          "ml/neural_network_context.idl",
           "native_file_system/native_file_system_directory_iterator.idl",
           "native_file_system/file_system_directory_handle.idl",
           "native_file_system/file_system_file_handle.idl",
