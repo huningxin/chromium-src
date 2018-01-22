@@ -117,6 +117,7 @@ const service_manager::Manifest& GetContentBrowserManifest() {
           .RequireCapability("shape_detection", "barcode_detection")
           .RequireCapability("shape_detection", "face_detection")
           .RequireCapability("shape_detection", "text_detection")
+          .RequireCapability("ml", "neuralnetwork")
           .RequireCapability("file", "file:filesystem")
           .RequireCapability("file", "file:leveldb")
           .RequireCapability("network", "network_service")
@@ -171,7 +172,8 @@ const service_manager::Manifest& GetContentBrowserManifest() {
                   "blink.mojom.NativeFileSystemManager",
                   "blink.mojom.NotificationService",
                   "blink.mojom.QuotaDispatcherHost",
-                  "blink.mojom.WebSocketConnector"})
+                  "blink.mojom.WebSocketConnector",
+                  "ml::mojom::NeuralNetwork"})
           .ExposeInterfaceFilterCapability_Deprecated(
               "navigation:dedicated_worker", "renderer",
               std::set<const char*>{
@@ -180,7 +182,8 @@ const service_manager::Manifest& GetContentBrowserManifest() {
                   "blink.mojom.NativeFileSystemManager",
                   "blink.mojom.NotificationService",
                   "blink.mojom.QuotaDispatcherHost",
-                  "blink.mojom.WebSocketConnector"})
+                  "blink.mojom.WebSocketConnector",
+                  "ml::mojom::NeuralNetwork"})
           .ExposeInterfaceFilterCapability_Deprecated(
               "navigation:service_worker", "renderer",
               std::set<const char*>{
@@ -189,7 +192,8 @@ const service_manager::Manifest& GetContentBrowserManifest() {
                   "blink.mojom.NotificationService",
                   "blink.mojom.QuotaDispatcherHost",
                   "network.mojom.RestrictedCookieManager",
-                  "blink.mojom.WebSocketConnector"})
+                  "blink.mojom.WebSocketConnector",
+                  "ml::mojom::NeuralNetwork"})
           .ExposeInterfaceFilterCapability_Deprecated(
               "navigation:frame", "renderer",
               std::set<const char*>{
@@ -219,6 +223,7 @@ const service_manager::Manifest& GetContentBrowserManifest() {
                   "media.mojom.RemoterFactory",
                   "media.mojom.Renderer",
                   "mojom.ProcessInternalsHandler",
+                  "ml::mojom::NeuralNetwork",
                   "network.mojom.RestrictedCookieManager",
                   "blink.mojom.WebSocketConnector",
                   "performance_manager.mojom.DocumentCoordinationUnit",
