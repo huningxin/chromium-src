@@ -36,6 +36,8 @@
 #include "third_party/blink/public/mojom/cache_storage/cache_storage.mojom.h"
 #include "third_party/blink/public/mojom/native_file_system/native_file_system_manager.mojom.h"
 #include "third_party/blink/public/mojom/notifications/notification_service.mojom.h"
+#include "services/ml/public/interfaces/constants.mojom.h"
+#include "services/ml/public/interfaces/neuralnetwork.mojom.h"
 #include "url/origin.h"
 
 namespace content {
@@ -92,6 +94,10 @@ class RendererInterfaceBinders {
 // interface requests from frames, binders registered on the frame itself
 // override binders registered here.
 void RendererInterfaceBinders::InitializeParameterizedBinderRegistry() {
+  parameterized_binder_registry_.AddInterface(base::Bind(
+      &ForwardServiceRequest<ml::mojom::NeuralNetwork>,
+      ml::mojom::kServiceName));
+
   // Used for shared workers and service workers to create a websocket.
   // In other cases, RenderFrameHostImpl for documents or DedicatedWorkerHost
   // for dedicated workers handles interface requests in order to associate

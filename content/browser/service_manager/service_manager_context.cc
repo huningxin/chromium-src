@@ -84,6 +84,8 @@
 #include "ui/base/buildflags.h"
 #include "ui/base/ui_base_features.h"
 
+#include "services/ml/ml_service.h"
+
 #if defined(OS_ANDROID)
 #include "base/android/jni_android.h"
 #include "base/android/scoped_java_ref.h"
@@ -563,6 +565,11 @@ ServiceManagerContext::ServiceManagerContext(
   RegisterInProcessService(metrics::mojom::kMetricsServiceName,
                            service_manager_thread_task_runner_,
                            base::BindRepeating(&metrics::CreateMetricsService));
+
+  RegisterInProcessService(packaged_services_connection_.get(),
+                           ml::mojom::kServiceName,
+                           service_manager_thread_task_runner_,
+                           base::BindRepeating(&ml::MLService::Create));
 
   if (base::FeatureList::IsEnabled(
           media_session::features::kMediaSessionService)) {
