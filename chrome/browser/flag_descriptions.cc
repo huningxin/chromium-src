@@ -2313,6 +2313,10 @@ const char kWebXrPlaneDetectionName[] = "WebXR Plane Detection";
 const char kWebXrPlaneDetectionDescription[] =
     "Enables access to planes detected in the user's environment.";
 
+const char kWebMlName[] = "WebML";
+const char kWebMlDescription[] =
+    "Allow web applications to access experimental WebML APIs";
+
 const char kZeroCopyName[] = "Zero-copy rasterizer";
 const char kZeroCopyDescription[] =
     "Raster threads write directly to GPU memory associated with tiles.";

@@ -751,6 +751,8 @@ const base::Feature kBrowserUseDisplayThreadPriority{
     "BrowserUseDisplayThreadPriority", base::FEATURE_DISABLED_BY_DEFAULT};
 #endif
 
+const base::Feature kWebMl{"WebML", base::FEATURE_DISABLED_BY_DEFAULT};
+
 #if defined(OS_ANDROID)
 // Autofill Accessibility in Android.
 // crbug.com/627860

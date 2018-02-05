@@ -1356,6 +1356,9 @@ extern const char kWebXrAnchorsDescription[];
 extern const char kWebXrPlaneDetectionName[];
 extern const char kWebXrPlaneDetectionDescription[];
 
+extern const char kWebMlName[];
+extern const char kWebMlDescription[];
+
 extern const char kZeroCopyName[];
 extern const char kZeroCopyDescription[];
 

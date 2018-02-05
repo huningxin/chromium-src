@@ -482,6 +482,10 @@ void WebRuntimeFeatures::EnableWebXrGamepadModule(bool enable) {
   RuntimeEnabledFeatures::SetWebXrGamepadModuleEnabled(enable);
 }
 
+void WebRuntimeFeatures::EnableWebML(bool enable) {
+  RuntimeEnabledFeatures::SetWebMLEnabled(enable);
+}
+
 void WebRuntimeFeatures::EnableWebXRHitTest(bool enable) {
   RuntimeEnabledFeatures::SetWebXRHitTestEnabled(enable);
 }
