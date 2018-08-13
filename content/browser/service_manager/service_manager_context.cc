@@ -566,10 +566,10 @@ ServiceManagerContext::ServiceManagerContext(
                            service_manager_thread_task_runner_,
                            base::BindRepeating(&metrics::CreateMetricsService));
 
-  RegisterInProcessService(packaged_services_connection_.get(),
-                           ml::mojom::kServiceName,
-                           service_manager_thread_task_runner_,
-                           base::BindRepeating(&ml::MLService::Create));
+  // RegisterInProcessService(packaged_services_connection_.get(),
+  //                         ml::mojom::kServiceName,
+  //                         service_manager_thread_task_runner_,
+  //                         base::BindRepeating(&ml::MLService::Create));
 
   if (base::FeatureList::IsEnabled(
           media_session::features::kMediaSessionService)) {

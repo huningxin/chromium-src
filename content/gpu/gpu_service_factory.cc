@@ -11,6 +11,9 @@
 #include "build/build_config.h"
 #include "media/media_buildflags.h"
 
+#include "services/ml/ml_service.h"
+#include "services/ml/public/interfaces/constants.mojom.h"
+
 #if BUILDFLAG(ENABLE_MOJO_MEDIA_IN_GPU_PROCESS)
 #include "base/bind.h"
 #include "media/mojo/mojom/constants.mojom.h"      // nogncheck
@@ -85,6 +88,12 @@ void GpuServiceFactory::RunService(
     return;
   }
 #endif  // BUILDFLAG(ENABLE_MOJO_MEDIA_IN_GPU_PROCESS)
+
+  if (service_name == ml::mojom::kServiceName) {
+    service_manager::Service::RunAsyncUntilTermination(
+        std::make_unique<ml::MLService>(std::move(request)));
+    return;
+  }
 }
 
 }  // namespace content
