@@ -209,6 +209,11 @@ stage_install_common() {
       -exec chmod ${SHLIB_PERMS} '{}' \;
   fi
 
+  # clDNN.
+  if [ -f "${BUILDDIR}/libclDNN64.so" ]; then
+    install -m ${SHLIB_PERMS} "${BUILDDIR}/libclDNN64.so" "${STAGEDIR}/${INSTALLDIR}/"
+  fi
+
   # ANGLE
   if [ -f "${BUILDDIR}/libEGL.so" ]; then
     if [ "${CHANNEL}" != "stable" ]; then
@@ -351,8 +356,10 @@ stage_install_common() {
     RPATH_BINS=
     for elf in $(find "${STAGEDIR}/${INSTALLDIR}/" -type f | xargs file |
                    grep ELF | awk '{print $1;}' | sed 's/:$//'); do
+      if [ "$(basename ${elf})" != "libclDNN64.so" ]; then
       if readelf -d ${elf} | grep "(RPATH)" >/dev/null; then
         RPATH_BINS="${RPATH_BINS} $(basename ${elf})"
+      fi
       fi
     done
     if [ -n "${RPATH_BINS}" ]; then
