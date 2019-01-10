@@ -399,6 +399,13 @@ BASE_EXPORT extern NSAppearanceName const NSAppearanceNameDarkAqua;
            resultImageIsNeeded:(BOOL)resultIsNeeded;
 @end
 
+@interface MPSCNNUpsamplingBilinearNode (HighSierraSDK)
+- (instancetype)initWithSource:(MPSNNImageNode*)sourceNode
+           integerScaleFactorX:(NSUInteger)integerScaleFactorX
+           integerScaleFactorY:(NSUInteger)integerScaleFactorY
+                  alignCorners:(BOOL)alignCorners;
+@end
+
 #endif  // MAC_OS_X_VERSION_10_13_4
 
 // ----------------------------------------------------------------------------
