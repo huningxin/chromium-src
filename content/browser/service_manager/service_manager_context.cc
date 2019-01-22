@@ -85,6 +85,7 @@
 #include "ui/base/ui_base_features.h"
 
 #include "services/ml/ml_service.h"
+#include "services/ml/public/mojom/constants.mojom.h"
 
 #if defined(OS_ANDROID)
 #include "base/android/jni_android.h"

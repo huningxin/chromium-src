@@ -12,7 +12,7 @@
 #include "media/media_buildflags.h"
 
 #include "services/ml/ml_service.h"
-#include "services/ml/public/interfaces/constants.mojom.h"
+#include "services/ml/public/mojom/constants.mojom.h"
 
 #if BUILDFLAG(ENABLE_MOJO_MEDIA_IN_GPU_PROCESS)
 #include "base/bind.h"
