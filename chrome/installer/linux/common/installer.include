@@ -219,6 +219,11 @@ stage_install_common() {
     install -m ${SHLIB_PERMS} "${BUILDDIR}/libmkldnn.so" "${STAGEDIR}/${INSTALLDIR}/"
   fi
 
+  # Intel OpenMP runtime required by MKLDNN
+  if [ -f "${BUILDDIR}/libiomp5.so" ]; then
+    install -m ${SHLIB_PERMS} "${BUILDDIR}/libiomp5.so" "${STAGEDIR}/${INSTALLDIR}/"
+  fi
+
   # ANGLE
   if [ -f "${BUILDDIR}/libEGL.so" ]; then
     if [ "${CHANNEL}" != "stable" ]; then
