@@ -224,6 +224,17 @@ stage_install_common() {
     install -m ${SHLIB_PERMS} "${BUILDDIR}/libiomp5.so" "${STAGEDIR}/${INSTALLDIR}/"
   fi
 
+  # Inference Engine
+  if [ -f "${BUILDDIR}/libinference_engine.so" ]; then
+    for file in libinference_engine.so libMKLDNNPlugin.so; do
+      buildfile="${BUILDDIR}/${file}"
+      strippedfile="${buildfile}.stripped"
+      debugfile="${buildfile}.debug"
+      "${BUILDDIR}/installer/common/eu-strip" -o "${strippedfile}" -f "${debugfile}" "${buildfile}"
+      install -m ${SHLIB_PERMS} "${strippedfile}" "${STAGEDIR}/${INSTALLDIR}/${file}"
+    done
+  fi
+
   # ANGLE
   if [ -f "${BUILDDIR}/libEGL.so" ]; then
     if [ "${CHANNEL}" != "stable" ]; then

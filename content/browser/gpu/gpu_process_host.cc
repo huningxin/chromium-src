@@ -83,6 +83,8 @@
 #include "ui/gl/gl_switches.h"
 #include "ui/latency/latency_info.h"
 
+#include "services/ml/ml_switches.h"
+
 #if defined(OS_WIN)
 #include "sandbox/win/src/sandbox_policy.h"
 #include "sandbox/win/src/window.h"
@@ -254,6 +256,9 @@ static const char* const kSwitchNames[] = {
     switches::kForceVideoOverlays,
 #if defined(OS_ANDROID)
     switches::kEnableReachedCodeProfiler,
+#endif
+#if defined(OS_LINUX)
+    ml::switches::kUseInferenceEngine,
 #endif
 };
 
