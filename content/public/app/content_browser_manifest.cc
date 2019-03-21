@@ -117,7 +117,7 @@ const service_manager::Manifest& GetContentBrowserManifest() {
           .RequireCapability("shape_detection", "barcode_detection")
           .RequireCapability("shape_detection", "face_detection")
           .RequireCapability("shape_detection", "text_detection")
-          .RequireCapability("ml", "neuralnetwork")
+          .RequireCapability("ml", "neural_network")
           .RequireCapability("file", "file:filesystem")
           .RequireCapability("file", "file:leveldb")
           .RequireCapability("network", "network_service")

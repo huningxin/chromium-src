@@ -103,6 +103,23 @@ base::LazyInstance<std::unique_ptr<service_manager::Connector>>::Leaky
 base::LazyInstance<std::map<std::string, base::WeakPtr<UtilityProcessHost>>>::
     Leaky g_active_process_groups;
 
+<<<<<<< HEAD
+=======
+// If enabled, network service will run in it's own thread when running
+// in-process, otherwise it is run on the IO thread.
+// On ChromeOS the network service has to run on the IO thread because
+// ProfileIOData and NetworkContext both try to set up NSS, which has has to be
+// called from the IO thread.
+const base::Feature kNetworkServiceDedicatedThread {
+  "NetworkServiceDedicatedThread",
+#if defined(OS_CHROMEOS)
+      base::FEATURE_DISABLED_BY_DEFAULT
+#else
+      base::FEATURE_ENABLED_BY_DEFAULT
+#endif
+};
+
+>>>>>>> Rebase webml to Chromium 75.0.3739.0
 service_manager::Manifest GetContentSystemManifest() {
   // TODO(https://crbug.com/961869): This is a bit of a temporary hack so that
   // we can make the global service instance a singleton. For now we just mirror
