@@ -31,13 +31,18 @@
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
+<<<<<<< HEAD
+=======
+#include "services/device/public/mojom/constants.mojom.h"
+#include "services/device/public/mojom/vibration_manager.mojom.h"
+#include "services/ml/public/mojom/constants.mojom.h"
+#include "services/ml/public/mojom/neuralnetwork.mojom.h"
+>>>>>>> [Rebase] Rebase WebML to Chromium Upstream 78.0.3891.0
 #include "services/service_manager/public/cpp/binder_registry.h"
 #include "third_party/blink/public/common/features.h"
 #include "third_party/blink/public/mojom/cache_storage/cache_storage.mojom.h"
 #include "third_party/blink/public/mojom/native_file_system/native_file_system_manager.mojom.h"
 #include "third_party/blink/public/mojom/notifications/notification_service.mojom.h"
-#include "services/ml/public/interfaces/constants.mojom.h"
-#include "services/ml/public/interfaces/neuralnetwork.mojom.h"
 #include "url/origin.h"
 
 namespace content {

@@ -223,7 +223,7 @@ const service_manager::Manifest& GetContentBrowserManifest() {
                   "media.mojom.RemoterFactory",
                   "media.mojom.Renderer",
                   "mojom.ProcessInternalsHandler",
-                  "ml::mojom::NeuralNetwork",
+                  "ml.mojom.NeuralNetwork",
                   "network.mojom.RestrictedCookieManager",
                   "blink.mojom.WebSocketConnector",
                   "performance_manager.mojom.DocumentCoordinationUnit",

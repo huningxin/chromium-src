@@ -27,6 +27,8 @@
 #include "services/service_manager/public/cpp/manifest_builder.h"
 #include "services/tracing/manifest.h"
 
+#include "services/ml/public/cpp/manifest.h"
+
 namespace content {
 
 namespace {
@@ -63,6 +65,7 @@ const std::vector<service_manager::Manifest>& GetBuiltinServiceManifests() {
 #endif
           media::GetMediaManifest(),
           media::GetMediaRendererManifest(),
+          ml::GetManifest(),
           data_decoder::GetManifest(),
           device::GetManifest(),
           media_session::GetManifest(),
