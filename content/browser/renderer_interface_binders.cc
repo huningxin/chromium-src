@@ -36,9 +36,10 @@
 #include "third_party/blink/public/mojom/cache_storage/cache_storage.mojom.h"
 #include "third_party/blink/public/mojom/native_file_system/native_file_system_manager.mojom.h"
 #include "third_party/blink/public/mojom/notifications/notification_service.mojom.h"
-#include "services/ml/public/interfaces/constants.mojom.h"
-#include "services/ml/public/interfaces/neuralnetwork.mojom.h"
 #include "url/origin.h"
+
+#include "services/ml/public/mojom/constants.mojom.h"
+#include "services/ml/public/mojom/neuralnetwork.mojom.h"
 
 namespace content {
 namespace {
