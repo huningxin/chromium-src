@@ -23,6 +23,8 @@ class GPURenderPassEncoder;
 class GPUTextureCopyView;
 class UnsignedLongSequenceOrGPUExtent3DDict;
 
+class Execution;
+
 class GPUCommandEncoder : public DawnObject<WGPUCommandEncoder> {
   DEFINE_WRAPPERTYPEINFO();
 
@@ -40,6 +42,13 @@ class GPUCommandEncoder : public DawnObject<WGPUCommandEncoder> {
       ExceptionState& exception_state);
   GPUComputePassEncoder* beginComputePass(
       const GPUComputePassDescriptor* descriptor);
+  void setNnGraphInput(GPUBuffer* buffer,
+                       uint32_t index,
+                       Execution* graph);
+  void setNnGraphOutput(GPUBuffer* buffer,
+                        uint32_t index,
+                        Execution* graph);
+  void executeNnGraph(Execution* graph);
   void copyBufferToBuffer(GPUBuffer* src,
                           uint64_t src_offset,
                           GPUBuffer* dst,

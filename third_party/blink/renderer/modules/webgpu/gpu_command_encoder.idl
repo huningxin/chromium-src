@@ -10,6 +10,20 @@
     [RaisesException] GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
 
+    void setNnGraphInput(
+        GPUBuffer buffer,
+        unsigned long index,
+        Execution graph
+    );
+
+    void setNnGraphOutput(
+        GPUBuffer buffer,
+        unsigned long index,
+        Execution graph
+    );
+
+    void executeNnGraph(Execution graph);
+
     void copyBufferToBuffer(
         GPUBuffer src,
         GPUBufferSize srcOffset,
