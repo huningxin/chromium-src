@@ -4,6 +4,7 @@
 
 interface Compilation {
   [RaisesException] void setPreference(long preference);
+  [RaisesException] void setGPUDevice(GPUDevice device);
   [CallWith=ScriptState] Promise<long> finish();
   [CallWith=ScriptState] Promise<Execution> createExecution();
 };

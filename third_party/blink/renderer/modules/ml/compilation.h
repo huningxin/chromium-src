@@ -14,6 +14,8 @@
 
 namespace blink {
 
+class GPUDevice;
+
 class Compilation final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
@@ -22,6 +24,7 @@ class Compilation final : public ScriptWrappable {
   ~Compilation() override;
 
   void setPreference(int32_t, ExceptionState&);
+  void setGPUDevice(GPUDevice*, ExceptionState&);
   ScriptPromise finish(ScriptState*);
   ScriptPromise createExecution(ScriptState*);
 

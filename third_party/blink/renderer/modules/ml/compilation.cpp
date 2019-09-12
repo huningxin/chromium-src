@@ -14,6 +14,8 @@
 #include "third_party/blink/renderer/platform/bindings/exception_code.h"
 #include "third_party/blink/renderer/platform/wtf/functional.h"
 
+#include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
+
 namespace blink {
 
 Compilation::Compilation(ml::mojom::blink::CompilationPtrInfo info)
@@ -34,6 +36,12 @@ void Compilation::setPreference(int32_t preference,
   }
 
   preference_ = preference;
+}
+
+void Compilation::setGPUDevice(GPUDevice* device, ExceptionState& exception_state) {
+  DLOG(INFO) << "gpu device handle: " << device->GetHandle();
+
+  return;
 }
 
 ScriptPromise Compilation::finish(ScriptState* script_state) {
