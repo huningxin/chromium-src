@@ -51,6 +51,8 @@ source_set("ie") {
 }
 
 source_set("lib") {
+  defines = ["SERVICES_ML_IMPLEMENTATION"]
+  
   sources = [
     "common.cc",
     "common.h",

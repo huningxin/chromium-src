@@ -18,6 +18,7 @@
 #include "base/memory/weak_ptr.h"
 #include "mojo/public/cpp/system/buffer.h"
 #include "services/ml/common.h"
+#include "services/ml/export.h"
 // #include "services/ml/compilation_impl_mac.h"
 #include "services/ml/compilation_delegate_mps.h"
 #include "services/ml/public/mojom/execution.mojom.h"
@@ -30,13 +31,19 @@ namespace ml {
 class CompilationDelegateMPS;
 class CompiledModelMPS;
 
-class API_AVAILABLE(macosx(10.13)) ExecutionImplMPS : public mojom::Execution {
+class ML_EXPORT API_AVAILABLE(macosx(10.13)) ExecutionImplMPS : public mojom::Execution {
  public:
   ExecutionImplMPS(scoped_refptr<CompiledModelMPS> compiled_model,
                    mojom::ExecutionInitParamsPtr params);
   ~ExecutionImplMPS() override;
 
   void StartCompute(StartComputeCallback callback) override;
+
+  // WebGPU execution POC
+  static ExecutionImplMacMPS* getInstance(uint32_t id);
+  API_AVAILABLE(macos(10_13)) void setInputMtlBuffer(const id<MTLBuffer>&, uint32_t);
+  API_AVAILABLE(macos(10_13)) void setOutputMtlBuffer(const id<MTLBuffer>&, uint32_t);
+  API_AVAILABLE(macos(10_13)) bool encodeToCommandBuffer(const id<MTLCommandBuffer>&, bool cpu_data = false);
 
  private:
   mojom::ExecutionInitParamsPtr params_;
@@ -54,8 +61,8 @@ class API_AVAILABLE(macosx(10.13)) ExecutionImplMPS : public mojom::Execution {
   void API_AVAILABLE(macos(10_13)) UploadToMPSImage(const MPSImage*,
                                                     const id<MTLBuffer>&,
                                                     const id<MTLCommandBuffer>&,
-                                                    const void*,
-                                                    size_t);
+                                                    const void* cpu_buffer = nullptr,
+                                                    size_t length = 0);
   API_AVAILABLE(macos(10_13))
   std::vector<base::scoped_nsobject<MPSImage>> input_mpsimages_;
   API_AVAILABLE(macos(10_13)) std::vector<id<MTLBuffer>> input_mtlbuffers_;
@@ -63,6 +70,8 @@ class API_AVAILABLE(macosx(10.13)) ExecutionImplMPS : public mojom::Execution {
   API_AVAILABLE(macos(10_13))
   std::vector<base::scoped_nsobject<MPSImage>> constant_mpsimages_;
   API_AVAILABLE(macos(10_13)) std::vector<id<MTLBuffer>> constant_mtlbuffers_;
+
+  static ExecutionImplMPS* instance_;
 
   DISALLOW_COPY_AND_ASSIGN(ExecutionImplMPS);
 };
