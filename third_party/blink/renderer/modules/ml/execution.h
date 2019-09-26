@@ -23,6 +23,9 @@
 
 namespace blink {
 
+class GPUBuffer;
+class GPUDevice;
+
 struct OperandInfo {
   OperandInfo(uint32_t offset,
               uint32_t length,
@@ -37,11 +40,13 @@ class Execution final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  explicit Execution(ml::mojom::blink::ExecutionInitParamsPtr);
+  explicit Execution(ml::mojom::blink::ExecutionInitParamsPtr, GPUDevice* gpu_device = nullptr);
   ~Execution() override;
 
   void setInput(uint32_t, MaybeShared<DOMArrayBufferView>, ExceptionState&);
   void setOutput(uint32_t, MaybeShared<DOMArrayBufferView>, ExceptionState&);
+  void setInputGPUBuffer(uint32_t, GPUBuffer* buffer, ExceptionState&);
+  void setOutputGPUBuffer(uint32_t, GPUBuffer* buffer, ExceptionState&);
   ScriptPromise startCompute(ScriptState*);
 
   void Trace(blink::Visitor*) override;
@@ -60,6 +65,9 @@ class Execution final : public ScriptWrappable {
   std::map<uint32_t, mojo::ScopedSharedBufferHandle> input_shared_buffers_;
   std::map<uint32_t, mojo::ScopedSharedBufferHandle> output_shared_buffers_;
   HeapVector<Member<DOMArrayBufferView>> output_buffer_views_;
+  HeapVector<Member<GPUBuffer>> input_gpu_buffers_;
+  HeapVector<Member<GPUBuffer>> output_gpu_buffers_;
+  Member<GPUDevice> gpu_device_;
 };
 
 }  // namespace blink

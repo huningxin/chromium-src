@@ -41,6 +41,7 @@ class Compilation final : public ScriptWrappable {
   int32_t preference_;
   ml::mojom::blink::CompilationPtr compilation_;
   HeapHashSet<Member<ScriptPromiseResolver>> requests_;
+  Member<GPUDevice> gpu_device_;
 };
 
 }  // namespace blink

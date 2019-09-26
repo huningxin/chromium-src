@@ -5,5 +5,7 @@
 interface Execution {
   [RaisesException] void setInput(unsigned long index, [AllowShared] ArrayBufferView data);
   [RaisesException] void setOutput(unsigned long index, [AllowShared] ArrayBufferView data);
+  [RaisesException] void setInputGPUBuffer(unsigned long index, GPUBuffer buffer);
+  [RaisesException] void setOutputGPUBuffer(unsigned long index, GPUBuffer buffer);
   [CallWith=ScriptState] Promise<long> startCompute();
 };

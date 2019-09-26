@@ -11,6 +11,14 @@
 #include "third_party/blink/renderer/platform/bindings/exception_code.h"
 #include "third_party/blink/renderer/platform/wtf/functional.h"
 
+#include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
+#include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
+#include "third_party/blink/renderer/modules/webgpu/gpu_command_buffer.h"
+#include "third_party/blink/renderer/modules/webgpu/gpu_command_encoder.h"
+#include "third_party/blink/renderer/modules/webgpu/gpu_command_encoder_descriptor.h"
+#include "third_party/blink/renderer/modules/webgpu/gpu_queue.h"
+#include "gpu/command_buffer/client/webgpu_interface.h"
+
 namespace blink {
 
 namespace {
@@ -46,7 +54,9 @@ uint32_t requiredSize(int32_t type, const WTF::Vector<uint32_t>& dimensions) {
 
 }  // namespace
 
-Execution::Execution(ml::mojom::blink::ExecutionInitParamsPtr init_params) {
+Execution::Execution(ml::mojom::blink::ExecutionInitParamsPtr init_params,
+                     GPUDevice* gpu_device) {
+  gpu_device_ = gpu_device;
   execution_.Bind(std::move(init_params->execution));
   execution_.set_connection_error_handler(
       WTF::Bind(&Execution::OnConnectionError, WrapWeakPersistent(this)));
@@ -72,6 +82,8 @@ Execution::Execution(ml::mojom::blink::ExecutionInitParamsPtr init_params) {
   }
 
   output_buffer_views_.resize(init_params->outputs.size());
+  output_gpu_buffers_.resize(init_params->outputs.size());
+  input_gpu_buffers_.resize(init_params->inputs.size());
 }
 
 Execution::~Execution() = default;
@@ -117,6 +129,27 @@ void Execution::setOutput(uint32_t index,
   output_buffer_views_[index] = data.View();
 }
 
+void Execution::setInputGPUBuffer(uint32_t index, GPUBuffer* buffer, ExceptionState& exception_state) {
+  if (index >= input_gpu_buffers_.size()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
+                                      "Invalid index");
+    return;
+  }
+
+  input_gpu_buffers_[index] = buffer;
+}
+
+void Execution::setOutputGPUBuffer(uint32_t index, GPUBuffer* buffer, ExceptionState& exception_state) {
+  if (index >= output_gpu_buffers_.size()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
+                                      "Invalid index");
+    return;
+  }
+
+  output_gpu_buffers_[index] = buffer;
+}
+
+
 ScriptPromise Execution::startCompute(ScriptState* script_state) {
   auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
   ScriptPromise promise = resolver->Promise();
@@ -127,11 +160,24 @@ ScriptPromise Execution::startCompute(ScriptState* script_state) {
     return promise;
   }
 
-  requests_.insert(resolver);
+  if (!gpu_device_) {
+    requests_.insert(resolver);
 
-  execution_->StartCompute(WTF::Bind(&Execution::OnStartCompute,
-                                     WrapPersistent(this),
-                                     WrapPersistent(resolver)));
+    execution_->StartCompute(WTF::Bind(&Execution::OnStartCompute,
+                                       WrapPersistent(this),
+                                       WrapPersistent(resolver)));
+  } else {
+    GPUCommandEncoderDescriptor* desc = GPUCommandEncoderDescriptor::Create();
+    GPUCommandEncoder* encoder = gpu_device_->createCommandEncoder(desc);
+    for (wtf_size_t i = 0; i < input_gpu_buffers_.size(); ++i) {
+      encoder->setNnGraphInput(input_gpu_buffers_.at(i), i, this);
+    }
+    for (wtf_size_t i = 0; i < output_gpu_buffers_.size(); ++i) {
+      encoder->setNnGraphOutput(output_gpu_buffers_.at(i), i, this);
+    }
+    encoder->executeNnGraph(this);
+    gpu_device_->getQueue()->submit({encoder->finish()});
+  }
   return promise;
 }
 
@@ -176,6 +222,9 @@ void Execution::OnResultCode(ScriptPromiseResolver* resolver,
 void Execution::Trace(blink::Visitor* visitor) {
   visitor->Trace(requests_);
   visitor->Trace(output_buffer_views_);
+  visitor->Trace(input_gpu_buffers_);
+  visitor->Trace(output_gpu_buffers_);
+  visitor->Trace(gpu_device_);
   ScriptWrappable::Trace(visitor);
 }
 

@@ -40,7 +40,7 @@ void Compilation::setPreference(int32_t preference,
 
 void Compilation::setGPUDevice(GPUDevice* device, ExceptionState& exception_state) {
   DLOG(INFO) << "gpu device handle: " << device->GetHandle();
-
+  gpu_device_ = device;
   return;
 }
 
@@ -93,6 +93,7 @@ ScriptPromise Compilation::createExecution(ScriptState* script_state) {
 
 void Compilation::Trace(blink::Visitor* visitor) {
   visitor->Trace(requests_);
+  visitor->Trace(gpu_device_);
   ScriptWrappable::Trace(visitor);
 }
 
@@ -119,7 +120,7 @@ void Compilation::OnCreateExecution(
   requests_.erase(resolver);
 
   if (result_code == ml::mojom::blink::NOT_ERROR) {
-    resolver->Resolve(MakeGarbageCollected<Execution>(std::move(init_params)));
+    resolver->Resolve(MakeGarbageCollected<Execution>(std::move(init_params), gpu_device_.Get()));
   } else {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         DOMExceptionCode::kInvalidStateError,
