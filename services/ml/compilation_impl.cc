@@ -84,10 +84,17 @@ void CompilationImpl::Finish(int32_t preference, FinishCallback callback) {
   std::move(callback).Run(result);
 }
 
+// WebGPU execution POC
+static uint32_t graph_id = 0;
+
 void CompilationImpl::CreateExecution(CreateExecutionCallback callback) {
   DLOG(INFO) << "CompilationImpl::CreateExecution";
   auto init_params = mojom::ExecutionInitParams::New();
   auto remote_init_params = mojom::ExecutionInitParams::New();
+
+  // WebGPU execution POC
+  init_params->id = graph_id++;
+  remote_init_params->id = init_params->id;
 
   uint32_t input_memory_size = 0;
   for (size_t i = 0; i < model_info_->inputs.size(); ++i) {

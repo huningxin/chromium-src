@@ -40,7 +40,8 @@ class Execution final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  explicit Execution(ml::mojom::blink::ExecutionInitParamsPtr, GPUDevice* gpu_device = nullptr);
+  explicit Execution(ml::mojom::blink::ExecutionInitParamsPtr,
+                     GPUDevice* gpu_device = nullptr);
   ~Execution() override;
 
   void setInput(uint32_t, MaybeShared<DOMArrayBufferView>, ExceptionState&);
@@ -49,12 +50,16 @@ class Execution final : public ScriptWrappable {
   void setOutputGPUBuffer(uint32_t, GPUBuffer* buffer, ExceptionState&);
   ScriptPromise startCompute(ScriptState*);
 
+  uint32_t id() { return id_; }
+
   void Trace(blink::Visitor*) override;
 
  private:
   void OnResultCode(ScriptPromiseResolver*, const String&, int32_t);
   void OnStartCompute(ScriptPromiseResolver*, int32_t);
   void OnConnectionError();
+
+  uint32_t id_;
 
   ml::mojom::blink::ExecutionPtr execution_;
   mojo::ScopedSharedBufferHandle memory_;

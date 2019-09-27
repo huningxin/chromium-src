@@ -272,21 +272,21 @@ void GPUCommandEncoder::setNnGraphInput(GPUBuffer* buffer,
                                         uint32_t index,
                                         Execution* graph) {
   DCHECK(buffer);
-  // TODO: get graph id
-  GetProcs().commandEncoderSetNnGraphInput(GetHandle(), buffer->GetHandle(), index, 0);
+  DCHECK(graph);
+  GetProcs().commandEncoderSetNnGraphInput(GetHandle(), buffer->GetHandle(), index, graph->id());
 }
 
 void GPUCommandEncoder::setNnGraphOutput(GPUBuffer* buffer,
                                          uint32_t index,
                                          Execution* graph) {
   DCHECK(buffer);
-  // TODO: get graph id
-  GetProcs().commandEncoderSetNnGraphOutput(GetHandle(), buffer->GetHandle(), index, 0);
+  DCHECK(graph);
+  GetProcs().commandEncoderSetNnGraphOutput(GetHandle(), buffer->GetHandle(), index, graph->id());
 }
 
 void GPUCommandEncoder::executeNnGraph(Execution* graph) {
-  // TODO: get graph id
-  GetProcs().commandEncoderExecuteNnGraph(GetHandle(), 0);
+  DCHECK(graph);
+  GetProcs().commandEncoderExecuteNnGraph(GetHandle(), graph->id());
 }
 
 void GPUCommandEncoder::copyBufferToBuffer(GPUBuffer* src,

@@ -34,13 +34,14 @@ class CompiledModelMPS;
 class ML_EXPORT API_AVAILABLE(macosx(10.13)) ExecutionImplMPS : public mojom::Execution {
  public:
   ExecutionImplMPS(scoped_refptr<CompiledModelMPS> compiled_model,
-                   mojom::ExecutionInitParamsPtr params);
+                   mojom::ExecutionInitParamsPtr params,
+                   uint32_t id);
   ~ExecutionImplMPS() override;
 
   void StartCompute(StartComputeCallback callback) override;
 
   // WebGPU execution POC
-  static ExecutionImplMacMPS* getInstance(uint32_t id);
+  static ExecutionImplMPS* getInstance(uint32_t id);
   API_AVAILABLE(macos(10_13)) void setInputMtlBuffer(const id<MTLBuffer>&, uint32_t);
   API_AVAILABLE(macos(10_13)) void setOutputMtlBuffer(const id<MTLBuffer>&, uint32_t);
   API_AVAILABLE(macos(10_13)) bool encodeToCommandBuffer(const id<MTLCommandBuffer>&, bool cpu_data = false);
@@ -71,7 +72,7 @@ class ML_EXPORT API_AVAILABLE(macosx(10.13)) ExecutionImplMPS : public mojom::Ex
   std::vector<base::scoped_nsobject<MPSImage>> constant_mpsimages_;
   API_AVAILABLE(macos(10_13)) std::vector<id<MTLBuffer>> constant_mtlbuffers_;
 
-  static ExecutionImplMPS* instance_;
+  static std::map<uint32_t, ExecutionImplMPS*> instances_;
 
   DISALLOW_COPY_AND_ASSIGN(ExecutionImplMPS);
 };

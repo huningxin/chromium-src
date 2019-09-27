@@ -125,7 +125,7 @@ int32_t CompilationDelegateMPS::CreateExecution(
     std::unique_ptr<mojom::Execution>& execution,
     mojom::ExecutionInitParamsPtr params) {
   execution =
-      std::make_unique<ExecutionImplMPS>(compiled_model_, std::move(params));
+      std::make_unique<ExecutionImplMPS>(compiled_model_, std::move(params), params->id);
   return mojom::NOT_ERROR;
 }
 
@@ -305,14 +305,14 @@ bool CompilationDelegateMPS::CompileConv2DOrDepthwiseConv2D(
 
   const mojom::OperandValueInfoPtr& weights_value_info =
       model->values[base::NumberToString(operation->inputs[1])];
-  LOG(ERROR) << "weights size " << weights_value_info->length;
+  DLOG(INFO) << "weights size " << weights_value_info->length;
   float* weights = (float*)malloc(weights_value_info->length);
   auto mapping = compilation_->MapMemory(operation->inputs[1]);
   memcpy(weights, mapping.get(), weights_value_info->length);
 
   const mojom::OperandValueInfoPtr& bias_value_info =
       model->values[base::NumberToString(operation->inputs[2])];
-  LOG(ERROR) << "bias size " << bias_value_info->length;
+  DLOG(INFO) << "bias size " << bias_value_info->length;
   float* bias = (float*)malloc(bias_value_info->length);
   mapping = compilation_->MapMemory(operation->inputs[2]);
   memcpy(bias, mapping.get(), bias_value_info->length);

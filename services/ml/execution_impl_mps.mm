@@ -92,14 +92,15 @@ void SaveTemporaryImages(std::map<uint32_t, MPSImage*>& temporary_images,
 
 }  // namespace
 
-ExecutionImplMPS* ExecutionImplMPS::instance_ = nullptr;
+std::map<uint32_t, ExecutionImplMPS*> ExecutionImplMPS::instances_;
 
 API_AVAILABLE(macosx(10.13))
 ExecutionImplMPS::ExecutionImplMPS(
     scoped_refptr<CompiledModelMPS> compiled_model,
-    mojom::ExecutionInitParamsPtr params)
+    mojom::ExecutionInitParamsPtr params,
+    uint32_t id)
     : params_(std::move(params)), compiled_model_(std::move(compiled_model)) {
-  ExecutionImplMPS::instance_ = this;
+  ExecutionImplMPS::instances_[id] = this;
   uint32_t mapped_length = 0;
   SetupOperandInfoForOperands(inputs_info_, compiled_model_->operands_,
                               compiled_model_->inputs_, params_->memory,
@@ -153,8 +154,8 @@ void ExecutionImplMPS::CreateOutputMTLBuffer() {
 }
 
 ExecutionImplMPS* ExecutionImplMPS::getInstance(uint32_t id) {
-  // TODO: support instance id
-  return ExecutionImplMPS::instance_;
+  DCHECK(ExecutionImplMPS::instances_[id]);
+  return ExecutionImplMPS::instances_[id];
 }
 
 API_AVAILABLE(macosx(10.13))

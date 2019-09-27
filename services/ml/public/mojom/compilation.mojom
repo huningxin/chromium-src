@@ -13,6 +13,7 @@ struct OperandInfo {
 };
 
 struct ExecutionInitParams {
+  uint32 id;
   Execution execution;
   array<OperandInfo> inputs;
   array<OperandInfo> outputs;

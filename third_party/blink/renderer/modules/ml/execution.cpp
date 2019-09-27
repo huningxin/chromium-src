@@ -14,6 +14,7 @@
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_command_buffer.h"
+#include "third_party/blink/renderer/modules/webgpu/gpu_command_buffer_descriptor.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_command_encoder.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_command_encoder_descriptor.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_queue.h"
@@ -56,6 +57,7 @@ uint32_t requiredSize(int32_t type, const WTF::Vector<uint32_t>& dimensions) {
 
 Execution::Execution(ml::mojom::blink::ExecutionInitParamsPtr init_params,
                      GPUDevice* gpu_device) {
+  id_ = init_params->id;
   gpu_device_ = gpu_device;
   execution_.Bind(std::move(init_params->execution));
   execution_.set_connection_error_handler(
@@ -176,7 +178,8 @@ ScriptPromise Execution::startCompute(ScriptState* script_state) {
       encoder->setNnGraphOutput(output_gpu_buffers_.at(i), i, this);
     }
     encoder->executeNnGraph(this);
-    gpu_device_->getQueue()->submit({encoder->finish()});
+    GPUCommandBufferDescriptor cb_desc = {};
+    gpu_device_->getQueue()->submit({encoder->finish(&cb_desc)});
   }
   return promise;
 }
