@@ -397,8 +397,8 @@ int32_t CompilationDelegateClDnn::CldnnAddReorder(
   cldnn_reorder_desc reorder_desc = {
       .type = type_id,
       .id = output_name.c_str(),
-      .output_format = cldnn_format_type(target_format),
       .output_data_type = {target_data_type, 1},
+      .output_format = cldnn_format_type(target_format),
   };
   // Setup inputs.
   std::vector<cldnn_primitive_id> input_ids_array(1);
