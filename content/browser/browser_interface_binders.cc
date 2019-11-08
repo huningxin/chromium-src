@@ -40,6 +40,8 @@
 #include "services/device/public/mojom/constants.mojom.h"
 #include "services/device/public/mojom/sensor_provider.mojom.h"
 #include "services/device/public/mojom/vibration_manager.mojom.h"
+#include "services/ml/public/mojom/constants.mojom.h"
+#include "services/ml/public/mojom/neuralnetwork.mojom.h"
 #include "services/service_manager/public/cpp/connector.h"
 #include "services/shape_detection/public/mojom/barcodedetection_provider.mojom.h"
 #include "services/shape_detection/public/mojom/facedetection_provider.mojom.h"
@@ -227,6 +229,10 @@ void PopulateFrameBinders(RenderFrameHostImpl* host,
   map->Add<device::mojom::VibrationManager>(base::BindRepeating(
       &ForwardServiceReceiver<device::mojom::VibrationManager>,
       device::mojom::kServiceName, base::Unretained(host)));
+
+  map->Add<ml::mojom::NeuralNetwork>(
+      base::BindRepeating(&ForwardServiceReceiver<ml::mojom::NeuralNetwork>,
+                          ml::mojom::kServiceName, base::Unretained(host)));
 
   map->Add<payments::mojom::PaymentManager>(base::BindRepeating(
       &RenderFrameHostImpl::CreatePaymentManager, base::Unretained(host)));

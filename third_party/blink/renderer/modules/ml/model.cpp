@@ -85,7 +85,7 @@ bool InvalidOperandValue(
     return InvalidState("Data type is invalid.", exception_state);
 
   int32_t operand_type = operands[index]->type;
-  WTF::ArrayBufferView::ViewType data_type = data->GetType();
+  DOMArrayBufferView::ViewType data_type = data->GetType();
 
   bool invalid = false;
   switch (operand_type) {
@@ -94,7 +94,7 @@ bool InvalidOperandValue(
         invalid = true;
       FALLTHROUGH;
     case NeuralNetworkContext::kTensorFloat32:
-      if (data_type != WTF::ArrayBufferView::kTypeFloat32)
+      if (data_type != DOMArrayBufferView::kTypeFloat32)
         invalid = true;
       break;
     case NeuralNetworkContext::kInt32:
@@ -102,16 +102,16 @@ bool InvalidOperandValue(
         invalid = true;
       FALLTHROUGH;
     case NeuralNetworkContext::kTensorInt32:
-      if (data_type != WTF::ArrayBufferView::kTypeInt32)
+      if (data_type != DOMArrayBufferView::kTypeInt32)
         invalid = true;
       break;
     case NeuralNetworkContext::kUint32:
-      if (data_type != WTF::ArrayBufferView::kTypeUint32 ||
+      if (data_type != DOMArrayBufferView::kTypeUint32 ||
           data->byteLength() / data->TypeSize() > 1)
         invalid = true;
       break;
     case NeuralNetworkContext::kTensorQuant8Asymm:
-      if (data_type != WTF::ArrayBufferView::kTypeUint8)
+      if (data_type != DOMArrayBufferView::kTypeUint8)
         invalid = true;
       break;
     default:

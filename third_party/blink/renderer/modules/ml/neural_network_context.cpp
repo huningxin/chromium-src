@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "services/ml/public/mojom/constants.mojom-blink.h"
-#include "services/service_manager/public/cpp/interface_provider.h"
+#include "third_party/blink/public/common/browser_interface_broker_proxy.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/core/frame/local_frame.h"
@@ -19,8 +19,10 @@ namespace blink {
 
 NeuralNetworkContext::NeuralNetworkContext(NavigatorML* navigator_ml)
     : ContextLifecycleObserver(navigator_ml->GetDocument()) {
-  navigator_ml->GetDocument()->GetFrame()->GetInterfaceProvider().GetInterface(
-      mojo::MakeRequest(&neural_network_));
+  navigator_ml->GetDocument()
+      ->GetFrame()
+      ->GetBrowserInterfaceBroker()
+      .GetInterface(mojo::MakeRequest(&neural_network_));
   neural_network_.set_connection_error_handler(WTF::Bind(
       &NeuralNetworkContext::OnConnectionError, WrapWeakPersistent(this)));
 }
