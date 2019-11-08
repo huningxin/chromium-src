@@ -6,7 +6,6 @@
 
 #include "mojo/public/cpp/bindings/interface_ptr.h"
 #include "services/ml/public/mojom/constants.mojom-blink.h"
-#include "services/service_manager/public/cpp/interface_provider.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/platform/bindings/exception_code.h"
