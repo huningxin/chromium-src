@@ -338,7 +338,7 @@ bool CompilationDelegateMPS::CompileConv2DOrDepthwiseConv2D(
         1 * params.filter_height * params.filter_width * params.output_channel;
     std::vector<float> depthwise_weights(depthwise_weights_length);
     DLOG_IF(FATAL, depthwise_weights.size() * sizeof(float) !=
-                       weights_value_info.length)
+                       weights_value_info->length)
         << "depthwise weigths length is incorrect";
     for (uint32_t h = 0; h < params.filter_height; ++h) {
       for (uint32_t w = 0; w < params.filter_width; ++w) {
