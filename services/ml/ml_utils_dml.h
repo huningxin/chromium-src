@@ -85,8 +85,8 @@ class CompiledModelDML : public base::RefCounted<CompiledModelDML> {
   D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(size_t index) const;
 
   void CreateFormatData();
-  void FormatInputData();
-  void FormatOutputData();
+  void FormatInputData(ID3D12GraphicsCommandList* command_list = nullptr);
+  void FormatOutputData(ID3D12GraphicsCommandList* command_list = nullptr);
 
   ComPtr<ID3D12Device> d3d12_device_;
   ComPtr<IDMLDevice> dml_device_;

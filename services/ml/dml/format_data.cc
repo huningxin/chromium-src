@@ -204,17 +204,22 @@ FormatData::FormatData(CompiledModelDML* dml) {
 
 FormatData::~FormatData() = default;
 
-HRESULT FormatData::FormatInputData(CompiledModelDML* dml) {
+HRESULT FormatData::FormatInputData(CompiledModelDML* dml, ID3D12GraphicsCommandList* cl) {
   if (!input_pipline_state_.Get())
     return E_FAIL;
 
+  ID3D12GraphicsCommandList* command_list = dml->command_list_.Get();
+  if (cl) {
+    command_list = cl;
+  }
+
   ID3D12DescriptorHeap* descriptor_heaps[] = {descriptor_heap_.Get()};
-  dml->command_list_->SetDescriptorHeaps(_countof(descriptor_heaps),
+  command_list->SetDescriptorHeaps(_countof(descriptor_heaps),
                                          descriptor_heaps);
 
   const std::vector<uint32_t>& inputs = dml->inputs_;
   for (size_t i = 0; i < inputs.size(); ++i) {
-    dml->command_list_->SetComputeRootSignature(root_signature_.Get());
+    command_list->SetComputeRootSignature(root_signature_.Get());
     const OperandDML* operand = dml->operand_map_[inputs[i]].get();
     Dimension dimension = {};
     dimension.num = operand->dimensions_[0];
@@ -224,39 +229,44 @@ HRESULT FormatData::FormatInputData(CompiledModelDML* dml) {
     // 3 is the number of constants to set in the root signature.
     // 0 is the offset, in 32-bit values, to set the first constant of the group
     // in the root signature.
-    dml->command_list_->SetComputeRoot32BitConstants(CONSTANT_BUFFER, 3,
-                                                     &dimension, 0);
+    command_list->SetComputeRoot32BitConstants(CONSTANT_BUFFER, 3,
+                                               &dimension, 0);
     // FIRST_UNORDERED_VIEW is the slot number for binding.
     // A GPU_descriptor_handle object for the base descriptor to set.
-    dml->command_list_->SetComputeRootDescriptorTable(
+    command_list->SetComputeRootDescriptorTable(
         FIRST_UNORDERED_VIEW,
         GetGpuHandle(dml->d3d12_device_.Get(), descriptor_heap_.Get(), 2 * i));
-    dml->command_list_->SetComputeRootDescriptorTable(
+    command_list->SetComputeRootDescriptorTable(
         SECOND_UNORDERED_VIEW, GetGpuHandle(dml->d3d12_device_.Get(),
                                             descriptor_heap_.Get(), 2 * i + 1));
 
-    dml->command_list_->SetPipelineState(input_pipline_state_.Get());
+    command_list->SetPipelineState(input_pipline_state_.Get());
     // 512 is the number of threads to be executed in a single group.
     // dimensions / 512 is the number of groups dispatched in the x direction.
-    dml->command_list_->Dispatch(product(operand->dimensions_) / 512 + 1, 1, 1);
+    command_list->Dispatch(product(operand->dimensions_) / 512 + 1, 1, 1);
   }
   CD3DX12_RESOURCE_BARRIER uav_barrier = CD3DX12_RESOURCE_BARRIER::UAV(nullptr);
-  dml->command_list_->ResourceBarrier(1, &uav_barrier);
+  command_list->ResourceBarrier(1, &uav_barrier);
   return S_OK;
 }
 
-HRESULT FormatData::FormatOutputData(CompiledModelDML* dml) {
+HRESULT FormatData::FormatOutputData(CompiledModelDML* dml, ID3D12GraphicsCommandList* cl) {
   if (!output_pipline_state_.Get())
     return E_FAIL;
 
+  ID3D12GraphicsCommandList* command_list = dml->command_list_.Get();
+  if (cl) {
+    command_list = cl;
+  }
+
   ID3D12DescriptorHeap* descriptor_heaps[] = {descriptor_heap_.Get()};
-  dml->command_list_->SetDescriptorHeaps(_countof(descriptor_heaps),
-                                         descriptor_heaps);
+  command_list->SetDescriptorHeaps(_countof(descriptor_heaps),
+                                   descriptor_heaps);
 
   size_t output_heap_index = dml->inputs_.size() * 2;
   const std::vector<uint32_t>& outputs = dml->outputs_;
   for (size_t i = 0; i < outputs.size(); ++i) {
-    dml->command_list_->SetComputeRootSignature(root_signature_.Get());
+    command_list->SetComputeRootSignature(root_signature_.Get());
     const OperandDML* operand = dml->operand_map_[outputs[i]].get();
     Dimension dimension = {};
     dimension.num = operand->dimensions_[0];
@@ -266,28 +276,28 @@ HRESULT FormatData::FormatOutputData(CompiledModelDML* dml) {
     // 3 is the number of constants to set in the root signature.
     // 0 is the offset, in 32-bit values, to set the first constant of the group
     // in the root signature.
-    dml->command_list_->SetComputeRoot32BitConstants(CONSTANT_BUFFER, 3,
-                                                     &dimension, 0);
-    // dml->command_list_->SetComputeRoot32BitConstants(CONSTANT_BUFFER, 1,
+    command_list->SetComputeRoot32BitConstants(CONSTANT_BUFFER, 3,
+                                               &dimension, 0);
+    // command_list->SetComputeRoot32BitConstants(CONSTANT_BUFFER, 1,
     //                                                  &dimension, 12);
     // FIRST_UNORDERED_VIEW is the slot number for binding.
     // A GPU_descriptor_handle object for the base descriptor to set.
-    dml->command_list_->SetComputeRootDescriptorTable(
+    command_list->SetComputeRootDescriptorTable(
         FIRST_UNORDERED_VIEW,
         GetGpuHandle(dml->d3d12_device_.Get(), descriptor_heap_.Get(),
                      2 * i + output_heap_index));
-    dml->command_list_->SetComputeRootDescriptorTable(
+    command_list->SetComputeRootDescriptorTable(
         SECOND_UNORDERED_VIEW,
         GetGpuHandle(dml->d3d12_device_.Get(), descriptor_heap_.Get(),
                      2 * i + 1 + output_heap_index));
 
-    dml->command_list_->SetPipelineState(output_pipline_state_.Get());
+    command_list->SetPipelineState(output_pipline_state_.Get());
     // 512 is the number of threads to be executed in a single group.
     // dimensions / 512 is the number of groups dispatched in the x direction.
-    dml->command_list_->Dispatch(product(operand->dimensions_) / 512 + 1, 1, 1);
+    command_list->Dispatch(product(operand->dimensions_) / 512 + 1, 1, 1);
   }
   CD3DX12_RESOURCE_BARRIER uav_barrier = CD3DX12_RESOURCE_BARRIER::UAV(nullptr);
-  dml->command_list_->ResourceBarrier(1, &uav_barrier);
+  command_list->ResourceBarrier(1, &uav_barrier);
   return S_OK;
 }
 

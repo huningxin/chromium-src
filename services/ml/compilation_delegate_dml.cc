@@ -578,7 +578,7 @@ int32_t CompilationDelegateDML::Compile() {
 int32_t CompilationDelegateDML::CreateExecution(
     std::unique_ptr<mojom::Execution>& execution,
     mojom::ExecutionInitParamsPtr params) {
-  execution = std::make_unique<ExecutionImplDML>(dml_, std::move(params));
+  execution = std::make_unique<ExecutionImplDML>(dml_, std::move(params), params->id);
 
   return mojom::NOT_ERROR;
 }

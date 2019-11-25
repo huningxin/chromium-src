@@ -22,8 +22,8 @@ class FormatData {
   explicit FormatData(CompiledModelDML* dml);
   ~FormatData();
 
-  HRESULT FormatInputData(CompiledModelDML* dml);
-  HRESULT FormatOutputData(CompiledModelDML* dml);
+  HRESULT FormatInputData(CompiledModelDML* dml, ID3D12GraphicsCommandList* command_list = nullptr);
+  HRESULT FormatOutputData(CompiledModelDML* dml, ID3D12GraphicsCommandList* command_list = nullptr);
 
  private:
   ComPtr<ID3D12DescriptorHeap> descriptor_heap_;

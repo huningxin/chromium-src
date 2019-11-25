@@ -143,12 +143,12 @@ void CompiledModelDML::CreateFormatData() {
   format_data_ = std::make_unique<FormatData>(this);
 }
 
-void CompiledModelDML::FormatInputData() {
-  format_data_->FormatInputData(this);
+void CompiledModelDML::FormatInputData(ID3D12GraphicsCommandList* command_list) {
+  format_data_->FormatInputData(this, command_list);
 }
 
-void CompiledModelDML::FormatOutputData() {
-  format_data_->FormatOutputData(this);
+void CompiledModelDML::FormatOutputData(ID3D12GraphicsCommandList* command_list) {
+  format_data_->FormatOutputData(this, command_list);
 }
 
 UINT64 DMLCalcBufferTensorSize(DML_TENSOR_DATA_TYPE dataType,
