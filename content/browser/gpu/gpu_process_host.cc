@@ -262,7 +262,7 @@ static const char* const kSwitchNames[] = {
 #if defined(OS_ANDROID)
     switches::kEnableReachedCodeProfiler,
 #endif
-#if defined(OS_LINUX)
+#if defined(OS_LINUX) || defined(OS_CHROMEOS)
     ml::switches::kUseInferenceEngine,
 #endif
 #if defined(OS_WIN)
