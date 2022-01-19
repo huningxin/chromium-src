@@ -38,7 +38,11 @@
   X(ShaderModule, shaderModule)               \
   X(Surface, surface)                         \
   X(Texture, texture)                         \
-  X(TextureView, textureView)
+  X(TextureView, textureView)                 \
+  X(Graph, graph)                             \
+  X(GraphBuilder, graphBuilder)               \
+  X(Operand, operand)                         \
+  X(FusionOperator, fusionOperator)
 
 namespace gpu {
 namespace webgpu {
