@@ -1,0 +1,22 @@
+typedef record<DOMString, MLOperand> MLNamedOperands;
+
+dictionary MLBufferResourceView {
+  required GPUBuffer resource;
+  unsigned long long offset = 0;
+  unsigned long long size;
+};
+
+typedef MLBufferResourceView MLBufferView;
+
+[Exposed(Window WebGPU, Worker WebGPU)]
+interface MLGraphBuilder {
+  constructor(MLContext context);
+
+  MLOperand input(DOMString name, MLOperandDescriptor desc);
+
+  MLOperand constant(MLOperandDescriptor desc, MLBufferView bufferView);
+
+  MLOperand relu(MLOperand input);
+
+  MLGraph build(MLNamedOperands outputs);
+};

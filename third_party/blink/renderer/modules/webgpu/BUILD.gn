@@ -83,6 +83,10 @@ blink_modules_sources("webgpu") {
     "gpu_uncaptured_error_event.h",
     "gpu_validation_error.cc",
     "gpu_validation_error.h",
+    "ml.cc",
+    "ml.h",
+    "ml_context.cc",
+    "ml_context.h",
   ]
   deps = [
     "//gpu/command_buffer/client:webgpu_interface",
