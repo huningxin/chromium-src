@@ -1,0 +1,7 @@
+typedef MLBufferView MLResource;
+typedef record<DOMString, MLResource> MLNamedResources;
+
+[Exposed(Window WebGPU, Worker WebGPU)]
+interface MLGraph {
+  void compute(MLNamedResources inputs, MLNamedResources outputs);
+};
