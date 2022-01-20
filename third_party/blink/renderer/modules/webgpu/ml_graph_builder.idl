@@ -1,11 +1,5 @@
 typedef record<DOMString, MLOperand> MLNamedOperands;
 
-dictionary MLBufferResourceView {
-  required GPUBuffer resource;
-  unsigned long long offset = 0;
-  unsigned long long size;
-};
-
 typedef MLBufferResourceView MLBufferView;
 
 [Exposed(Window WebGPU, Worker WebGPU)]

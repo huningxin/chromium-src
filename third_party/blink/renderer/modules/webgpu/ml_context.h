@@ -17,6 +17,10 @@ class MLContext : public DawnObjectImpl {
 
   MLContext(const MLContext&) = delete;
   MLContext& operator=(const MLContext&) = delete;
+
+  void Trace(Visitor* visitor) const override;
+
+  GPUDevice* GetDevice() const;
 };
 
 }  // namespace blink

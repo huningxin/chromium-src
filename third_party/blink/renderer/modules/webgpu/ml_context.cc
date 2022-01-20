@@ -8,4 +8,12 @@ namespace blink {
 
 MLContext::MLContext(GPUDevice* device) : DawnObjectImpl(device) {}
 
+void MLContext::Trace(Visitor* visitor) const {
+  DawnObjectImpl::Trace(visitor);
+}
+
+GPUDevice* MLContext::GetDevice() const {
+  return device_.Get();
+}
+
 }  // namespace blink
