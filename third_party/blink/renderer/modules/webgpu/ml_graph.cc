@@ -22,7 +22,6 @@ void MLGraph::compute(const MLNamedResources& inputs, const MLNamedResources& ou
     WGPUNamedResources dawn_inputs = CreateAndPopulateDawnNamedResources(inputs);
     WGPUNamedResources dawn_outputs = CreateAndPopulateDawnNamedResources(outputs);
     GetProcs().graphCompute(GetHandle(), dawn_inputs, dawn_outputs);
-    EnsureFlush();
 }
 
 WGPUNamedResources MLGraph::CreateAndPopulateDawnNamedResources(const MLNamedResources& resources) {

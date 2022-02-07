@@ -39,7 +39,6 @@ MLOperand* MLGraphBuilder::input(String name, const MLOperandDescriptor* desc) {
   WGPUOperandDescriptor dawn_desc = AsDawnType(desc);
   std::string name_str = name.Utf8();
   WGPUOperand dawn_input = GetProcs().graphBuilderInput(GetHandle(), name_str.c_str(), &dawn_desc);
-  EnsureFlush();
   MLOperand* input = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_input);
   return input;
 }
@@ -48,14 +47,12 @@ MLOperand* MLGraphBuilder::constant(const MLOperandDescriptor* desc, const MLBuf
   WGPUOperandDescriptor dawn_desc = AsDawnType(desc);
   WGPUBufferResourceView dawn_buffer_view = AsDawnType(buffer_view);
   WGPUOperand dawn_constant = GetProcs().graphBuilderConstant(GetHandle(), &dawn_desc, &dawn_buffer_view);
-  EnsureFlush();
   MLOperand* constant = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_constant);
   return constant;
 }
 
 MLOperand* MLGraphBuilder::relu(const MLOperand* input) {
   WGPUOperand dawn_output = GetProcs().graphBuilderRelu(GetHandle(), input->GetHandle());
-  EnsureFlush();
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
   return output;
 }
@@ -68,7 +65,6 @@ MLGraph* MLGraphBuilder::build(const MLNamedOperands& outputs) {
       GetProcs().namedOperandsSet(dawn_outputs, name.c_str(), dawn_operand);
   }
   WGPUGraph dawn_graph = GetProcs().graphBuilderBuild(GetHandle(), dawn_outputs);
-  EnsureFlush();
   MLGraph* graph = MakeGarbageCollected<MLGraph>(GetDevice(), dawn_graph);
   return graph;
 }
