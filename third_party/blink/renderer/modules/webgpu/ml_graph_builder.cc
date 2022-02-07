@@ -51,6 +51,12 @@ MLOperand* MLGraphBuilder::constant(const MLOperandDescriptor* desc, const MLBuf
   return constant;
 }
 
+MLOperand* MLGraphBuilder::add(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderAdd(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
 MLOperand* MLGraphBuilder::relu(const MLOperand* input) {
   WGPUOperand dawn_output = GetProcs().graphBuilderRelu(GetHandle(), input->GetHandle());
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);

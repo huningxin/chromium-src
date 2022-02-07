@@ -43,6 +43,8 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperand* constant(const MLOperandDescriptor* desc, const MLBufferResourceView* buffer_view);
 
+  MLOperand* add(const MLOperand* a, const MLOperand* b);
+
   MLOperand* relu(const MLOperand* input);
 
   MLGraph* build(const MLNamedOperands& outputs);

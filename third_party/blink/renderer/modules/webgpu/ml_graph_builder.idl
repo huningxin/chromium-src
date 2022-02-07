@@ -10,6 +10,8 @@ interface MLGraphBuilder {
 
   MLOperand constant(MLOperandDescriptor desc, MLBufferView bufferView);
 
+  MLOperand add(MLOperand a, MLOperand b);
+
   MLOperand relu(MLOperand input);
 
   MLGraph build(MLNamedOperands outputs);
