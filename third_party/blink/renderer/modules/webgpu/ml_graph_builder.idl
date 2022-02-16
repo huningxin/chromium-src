@@ -32,6 +32,15 @@ dictionary MLConv2dOptions {
   MLOperator activation;
 };
 
+dictionary MLClampOptions {
+  float minValue;
+  float maxValue;
+};
+
+dictionary MLLeakyReluOptions {
+  float alpha = 0.01;
+};
+
 [Exposed(Window WebGPU, Worker WebGPU)]
 interface MLGraphBuilder {
   constructor(MLContext context);
@@ -42,10 +51,21 @@ interface MLGraphBuilder {
 
   MLOperand add(MLOperand a, MLOperand b);
 
+  MLOperand clamp(MLOperand x, optional MLClampOptions options = {});
+  MLOperator clamp(optional MLClampOptions options = {});
+
   MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
+
+  MLOperand leakyRelu(MLOperand x, optional MLLeakyReluOptions options = {});
+  MLOperator leakyRelu(optional MLLeakyReluOptions options = {});
 
   MLOperand relu(MLOperand input);
   MLOperator relu();
+
+  MLOperand reshape(MLOperand input, sequence<long> newShape);
+
+  MLOperand sigmoid(MLOperand x);
+  MLOperator sigmoid();
 
   MLGraph build(MLNamedOperands outputs);
 };

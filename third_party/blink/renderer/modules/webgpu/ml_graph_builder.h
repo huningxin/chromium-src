@@ -13,8 +13,10 @@ namespace blink {
 
 class GPUDevice;
 class MLBufferResourceView;
+class MLClampOptions;
 class MLContext;
 class MLConv2dOptions;
+class MLLeakyReluOptions;
 class MLOperand;
 class MLOperandDescriptor;
 class MLOperator;
@@ -47,11 +49,25 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperand* add(const MLOperand* a, const MLOperand* b);
 
+  MLOperand* clamp(const MLOperand* input, const MLClampOptions* options);
+
+  MLOperator* clamp(const MLClampOptions* options);
+
   MLOperand* conv2d(const MLOperand* input, const MLOperand* filter, const MLConv2dOptions* options);
+
+  MLOperand* leakyRelu(const MLOperand* input, const MLLeakyReluOptions* options);
+
+  MLOperator* leakyRelu(const MLLeakyReluOptions* options);
 
   MLOperand* relu(const MLOperand* input);
 
   MLOperator* relu();
+
+  MLOperand* reshape(const MLOperand* input, const Vector<int32_t>& new_shape);
+
+  MLOperand* sigmoid(const MLOperand* input);
+
+  MLOperator* sigmoid();
 
   MLGraph* build(const MLNamedOperands& outputs);
 };

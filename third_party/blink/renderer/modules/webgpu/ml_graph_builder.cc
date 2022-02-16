@@ -7,7 +7,9 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_buffer_resource_view.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_type.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
 #include "third_party/blink/renderer/modules/webgpu/ml_context.h"
@@ -159,11 +161,45 @@ MLOperand* MLGraphBuilder::add(const MLOperand* a, const MLOperand* b) {
   return output;
 }
 
+MLOperand* MLGraphBuilder::clamp(const MLOperand* input, const MLClampOptions* options) {
+  WGPUClampOptions dawn_clamp_options;
+  dawn_clamp_options.minValue = options->getMinValueOr(std::numeric_limits<float>::lowest());
+  dawn_clamp_options.maxValue = options->getMaxValueOr(std::numeric_limits<float>::max());
+  WGPUOperand dawn_output = GetProcs().graphBuilderClamp(GetHandle(), input->GetHandle(), &dawn_clamp_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperator* MLGraphBuilder::clamp(const MLClampOptions* options) {
+  WGPUClampOptions dawn_clamp_options;
+  dawn_clamp_options.minValue = options->getMinValueOr(std::numeric_limits<float>::lowest());
+  dawn_clamp_options.maxValue = options->getMaxValueOr(std::numeric_limits<float>::max());
+  WGPUFusionOperator dawn_operator = GetProcs().graphBuilderClampOperator(GetHandle(), &dawn_clamp_options);
+  MLOperator* ml_operator = MakeGarbageCollected<MLOperator>(GetDevice(), dawn_operator);
+  return ml_operator;
+}
+
 MLOperand* MLGraphBuilder::conv2d(const MLOperand* input, const MLOperand* filter, const MLConv2dOptions* options) {
   WGPUConv2dOptions dawn_conv2d_options = AsDawnType(options);
   WGPUOperand dawn_output = GetProcs().graphBuilderConv2d(GetHandle(), input->GetHandle(), filter->GetHandle(), &dawn_conv2d_options);
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
   return output;
+}
+
+MLOperand* MLGraphBuilder::leakyRelu(const MLOperand* input, const MLLeakyReluOptions* options) {
+  WGPULeakyReluOptions dawn_leaky_relu_options;
+  dawn_leaky_relu_options.alpha = options->alpha();
+  WGPUOperand dawn_output = GetProcs().graphBuilderLeakyRelu(GetHandle(), input->GetHandle(), &dawn_leaky_relu_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperator* MLGraphBuilder::leakyRelu(const MLLeakyReluOptions* options) {
+  WGPULeakyReluOptions dawn_leaky_relu_options;
+  dawn_leaky_relu_options.alpha = options->alpha();
+  WGPUFusionOperator dawn_operator = GetProcs().graphBuilderLeakyReluOperator(GetHandle(), &dawn_leaky_relu_options);
+  MLOperator* ml_operator = MakeGarbageCollected<MLOperator>(GetDevice(), dawn_operator);
+  return ml_operator;
 }
 
 MLOperand* MLGraphBuilder::relu(const MLOperand* input) {
@@ -174,6 +210,24 @@ MLOperand* MLGraphBuilder::relu(const MLOperand* input) {
 
 MLOperator* MLGraphBuilder::relu() {
   WGPUFusionOperator dawn_operator = GetProcs().graphBuilderReluOperator(GetHandle());
+  MLOperator* ml_operator = MakeGarbageCollected<MLOperator>(GetDevice(), dawn_operator);
+  return ml_operator;
+}
+
+MLOperand* MLGraphBuilder::reshape(const MLOperand* input, const Vector<int32_t>& new_shape) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderReshape(GetHandle(), input->GetHandle(), new_shape.data(), static_cast<uint32_t>(new_shape.size()));
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::sigmoid(const MLOperand* input) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderSigmoid(GetHandle(), input->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperator* MLGraphBuilder::sigmoid() {
+  WGPUFusionOperator dawn_operator = GetProcs().graphBuilderSigmoidOperator(GetHandle());
   MLOperator* ml_operator = MakeGarbageCollected<MLOperator>(GetDevice(), dawn_operator);
   return ml_operator;
 }
