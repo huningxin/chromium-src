@@ -14,8 +14,10 @@ namespace blink {
 class GPUDevice;
 class MLBufferResourceView;
 class MLContext;
+class MLConv2dOptions;
 class MLOperand;
 class MLOperandDescriptor;
+class MLOperator;
 class MLGraph;
 
 WGPUBufferResourceView AsDawnType(const MLBufferResourceView* buffer_view);
@@ -45,7 +47,11 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperand* add(const MLOperand* a, const MLOperand* b);
 
+  MLOperand* conv2d(const MLOperand* input, const MLOperand* filter, const MLConv2dOptions* options);
+
   MLOperand* relu(const MLOperand* input);
+
+  MLOperator* relu();
 
   MLGraph* build(const MLNamedOperands& outputs);
 };

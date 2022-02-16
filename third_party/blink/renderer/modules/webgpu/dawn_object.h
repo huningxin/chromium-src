@@ -40,7 +40,8 @@
   X(TextureView, textureView)                 \
   X(Graph, graph)                             \
   X(GraphBuilder, graphBuilder)               \
-  X(Operand, operand)
+  X(Operand, operand)                         \
+  X(FusionOperator, fusionOperator)
 
 namespace gpu {
 namespace webgpu {

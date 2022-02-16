@@ -1033,6 +1033,7 @@ static_idl_files_in_modules = get_path_info(
           "//third_party/blink/renderer/modules/webgpu/ml_graph.idl",
           "//third_party/blink/renderer/modules/webgpu/ml_operand_descriptor.idl",
           "//third_party/blink/renderer/modules/webgpu/ml_operand.idl",
+          "//third_party/blink/renderer/modules/webgpu/ml_operator.idl",
           "//third_party/blink/renderer/modules/webgpu/navigator_gpu.idl",
           "//third_party/blink/renderer/modules/webgpu/navigator_ml.idl",
           "//third_party/blink/renderer/modules/webgpu/worker_navigator_gpu.idl",

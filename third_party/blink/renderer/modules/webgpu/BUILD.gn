@@ -93,6 +93,8 @@ blink_modules_sources("webgpu") {
     "ml_graph.h",
     "ml_operand.cc",
     "ml_operand.h",
+    "ml_operator.cc",
+    "ml_operator.h",
   ]
   deps = [
     "//gpu/command_buffer/client:webgpu_interface",

@@ -2,6 +2,36 @@ typedef record<DOMString, MLOperand> MLNamedOperands;
 
 typedef MLBufferResourceView MLBufferView;
 
+enum MLInputOperandLayout {
+  "nchw",
+  "nhwc"
+};
+
+enum MLConv2dFilterOperandLayout {
+  "oihw",
+  "hwio",
+  "ohwi",
+  "ihwo"
+};
+
+enum MLAutoPad {
+  "explicit",
+  "same-upper",
+  "same-lower"
+};
+
+dictionary MLConv2dOptions {
+  sequence<long> padding;
+  sequence<long> strides;
+  sequence<long> dilations;
+  MLAutoPad autoPad = "explicit";
+  long groups = 1;
+  MLInputOperandLayout inputLayout = "nchw";
+  MLConv2dFilterOperandLayout filterLayout = "oihw";
+  MLOperand bias;
+  MLOperator activation;
+};
+
 [Exposed(Window WebGPU, Worker WebGPU)]
 interface MLGraphBuilder {
   constructor(MLContext context);
@@ -12,7 +42,10 @@ interface MLGraphBuilder {
 
   MLOperand add(MLOperand a, MLOperand b);
 
+  MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
+
   MLOperand relu(MLOperand input);
+  MLOperator relu();
 
   MLGraph build(MLNamedOperands outputs);
 };
