@@ -16,6 +16,7 @@ class MLBufferResourceView;
 class MLClampOptions;
 class MLContext;
 class MLConv2dOptions;
+class MLGemmOptions;
 class MLLeakyReluOptions;
 class MLOperand;
 class MLOperandDescriptor;
@@ -55,9 +56,13 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperand* conv2d(const MLOperand* input, const MLOperand* filter, const MLConv2dOptions* options);
 
+  MLOperand* gemm(const MLOperand* a, const MLOperand* b, const MLGemmOptions* options);
+
   MLOperand* leakyRelu(const MLOperand* input, const MLLeakyReluOptions* options);
 
   MLOperator* leakyRelu(const MLLeakyReluOptions* options);
+
+  MLOperand* matmul(const MLOperand* a, const MLOperand* b);
 
   MLOperand* relu(const MLOperand* input);
 

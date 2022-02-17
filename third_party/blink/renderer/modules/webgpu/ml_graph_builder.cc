@@ -9,6 +9,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_type.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
@@ -119,6 +120,16 @@ WGPUConv2dOptions AsDawnType(const MLConv2dOptions* conv2d_options) {
   return dawn_conv2d_options;
 }
 
+WGPUGemmOptions AsDawnType(const MLGemmOptions* gemm_options) {
+  WGPUGemmOptions dawn_gemm_options;
+  dawn_gemm_options.c = gemm_options->hasC() ? gemm_options->c()->GetHandle() : nullptr;
+  dawn_gemm_options.alpha = gemm_options->alpha();
+  dawn_gemm_options.beta = gemm_options->beta();
+  dawn_gemm_options.aTranspose = gemm_options->aTranspose();
+  dawn_gemm_options.bTranspose = gemm_options->bTranspose();
+  return dawn_gemm_options;
+}
+
 //static
 MLGraphBuilder* MLGraphBuilder::Create(const MLContext* context) {
   GPUDevice* device = context->GetDevice();
@@ -186,6 +197,13 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input, const MLOperand* filte
   return output;
 }
 
+MLOperand* MLGraphBuilder::gemm(const MLOperand* a, const MLOperand* b, const MLGemmOptions* options) {
+  WGPUGemmOptions dawn_gemm_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderGemm(GetHandle(), a->GetHandle(), b->GetHandle(), &dawn_gemm_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
 MLOperand* MLGraphBuilder::leakyRelu(const MLOperand* input, const MLLeakyReluOptions* options) {
   WGPULeakyReluOptions dawn_leaky_relu_options;
   dawn_leaky_relu_options.alpha = options->alpha();
@@ -200,6 +218,12 @@ MLOperator* MLGraphBuilder::leakyRelu(const MLLeakyReluOptions* options) {
   WGPUFusionOperator dawn_operator = GetProcs().graphBuilderLeakyReluOperator(GetHandle(), &dawn_leaky_relu_options);
   MLOperator* ml_operator = MakeGarbageCollected<MLOperator>(GetDevice(), dawn_operator);
   return ml_operator;
+}
+
+MLOperand* MLGraphBuilder::matmul(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderMatmul(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
 }
 
 MLOperand* MLGraphBuilder::relu(const MLOperand* input) {

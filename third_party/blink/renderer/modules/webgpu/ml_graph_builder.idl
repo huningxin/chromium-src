@@ -37,6 +37,14 @@ dictionary MLClampOptions {
   float maxValue;
 };
 
+dictionary MLGemmOptions {
+  MLOperand c;
+  float alpha = 1.0;
+  float beta = 1.0;
+  boolean aTranspose = false;
+  boolean bTranspose = false;
+};
+
 dictionary MLLeakyReluOptions {
   float alpha = 0.01;
 };
@@ -56,8 +64,12 @@ interface MLGraphBuilder {
 
   MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
 
+  MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
+
   MLOperand leakyRelu(MLOperand x, optional MLLeakyReluOptions options = {});
   MLOperator leakyRelu(optional MLLeakyReluOptions options = {});
+
+  MLOperand matmul(MLOperand a, MLOperand b);
 
   MLOperand relu(MLOperand input);
   MLOperator relu();
