@@ -67,5 +67,7 @@ interface MLGraphBuilder {
   MLOperand sigmoid(MLOperand x);
   MLOperator sigmoid();
 
+  MLOperand softmax(MLOperand x);
+
   MLGraph build(MLNamedOperands outputs);
 };

@@ -232,6 +232,12 @@ MLOperator* MLGraphBuilder::sigmoid() {
   return ml_operator;
 }
 
+MLOperand* MLGraphBuilder::softmax(const MLOperand* input) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderSoftmax(GetHandle(), input->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
 MLGraph* MLGraphBuilder::build(const MLNamedOperands& outputs) {
   WGPUNamedOperands dawn_outputs = GetProcs().graphBuilderCreateNamedOperands(GetHandle());
   for (wtf_size_t i = 0; i < outputs.size(); ++i) {

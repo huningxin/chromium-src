@@ -69,6 +69,8 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperator* sigmoid();
 
+  MLOperand* softmax(const MLOperand* input);
+
   MLGraph* build(const MLNamedOperands& outputs);
 };
 
