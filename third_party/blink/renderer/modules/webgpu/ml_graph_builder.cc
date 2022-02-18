@@ -11,6 +11,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
 #include "third_party/blink/renderer/modules/webgpu/ml_context.h"
@@ -130,6 +131,21 @@ WGPUGemmOptions AsDawnType(const MLGemmOptions* gemm_options) {
   return dawn_gemm_options;
 }
 
+WGPUPool2dOptions AsDawnType(const MLPool2dOptions* pool2d_options) {
+  WGPUPool2dOptions dawn_pool2d_options;
+  dawn_pool2d_options.windowDimensions = pool2d_options->hasWindowDimensions() ? pool2d_options->windowDimensions().data() : nullptr;
+  dawn_pool2d_options.windowDimensionsCount = pool2d_options->hasWindowDimensions() ? pool2d_options->windowDimensions().size(): 0;
+  dawn_pool2d_options.padding = pool2d_options->hasPadding() ? pool2d_options->padding().data() : nullptr;
+  dawn_pool2d_options.paddingCount = pool2d_options->hasPadding() ? pool2d_options->padding().size(): 0;
+  dawn_pool2d_options.strides = pool2d_options->hasStrides() ? pool2d_options->strides().data() : nullptr;
+  dawn_pool2d_options.stridesCount = pool2d_options->hasStrides() ? pool2d_options->strides().size(): 0;
+  dawn_pool2d_options.dilations = pool2d_options->hasDilations() ? pool2d_options->dilations().data() : nullptr;
+  dawn_pool2d_options.dilationsCount = pool2d_options->hasDilations() ? pool2d_options->dilations().size(): 0;
+  dawn_pool2d_options.autoPad = AsDawnType(pool2d_options->autoPad());
+  dawn_pool2d_options.layout = AsDawnType(pool2d_options->layout());
+  return dawn_pool2d_options;
+}
+
 //static
 MLGraphBuilder* MLGraphBuilder::Create(const MLContext* context) {
   GPUDevice* device = context->GetDevice();
@@ -222,6 +238,20 @@ MLOperator* MLGraphBuilder::leakyRelu(const MLLeakyReluOptions* options) {
 
 MLOperand* MLGraphBuilder::matmul(const MLOperand* a, const MLOperand* b) {
   WGPUOperand dawn_output = GetProcs().graphBuilderMatmul(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::averagePool2d(const MLOperand* input, const MLPool2dOptions* options) {
+  WGPUPool2dOptions dawn_pool2d_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderAveragePool2d(GetHandle(), input->GetHandle(), &dawn_pool2d_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::maxPool2d(const MLOperand* input, const MLPool2dOptions* options) {
+  WGPUPool2dOptions dawn_pool2d_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderMaxPool2d(GetHandle(), input->GetHandle(), &dawn_pool2d_options);
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
   return output;
 }

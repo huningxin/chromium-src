@@ -18,6 +18,7 @@ class MLContext;
 class MLConv2dOptions;
 class MLGemmOptions;
 class MLLeakyReluOptions;
+class MLPool2dOptions;
 class MLOperand;
 class MLOperandDescriptor;
 class MLOperator;
@@ -63,6 +64,9 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
   MLOperator* leakyRelu(const MLLeakyReluOptions* options);
 
   MLOperand* matmul(const MLOperand* a, const MLOperand* b);
+
+  MLOperand* averagePool2d(const MLOperand* input, const MLPool2dOptions* options);
+  MLOperand* maxPool2d(const MLOperand* input, const MLPool2dOptions* options);
 
   MLOperand* relu(const MLOperand* input);
 

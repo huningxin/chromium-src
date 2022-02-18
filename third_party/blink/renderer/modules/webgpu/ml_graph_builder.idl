@@ -49,6 +49,15 @@ dictionary MLLeakyReluOptions {
   float alpha = 0.01;
 };
 
+dictionary MLPool2dOptions {
+  sequence<long> windowDimensions;
+  sequence<long> padding;
+  sequence<long> strides;
+  sequence<long> dilations;
+  MLAutoPad autoPad = "explicit";
+  MLInputOperandLayout layout = "nchw";
+};
+
 [Exposed(Window WebGPU, Worker WebGPU)]
 interface MLGraphBuilder {
   constructor(MLContext context);
@@ -70,6 +79,9 @@ interface MLGraphBuilder {
   MLOperator leakyRelu(optional MLLeakyReluOptions options = {});
 
   MLOperand matmul(MLOperand a, MLOperand b);
+
+  MLOperand averagePool2d(MLOperand input, optional MLPool2dOptions options = {});
+  MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
 
   MLOperand relu(MLOperand input);
   MLOperator relu();
