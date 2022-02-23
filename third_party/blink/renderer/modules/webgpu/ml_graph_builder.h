@@ -55,6 +55,8 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperator* clamp(const MLClampOptions* options);
 
+  MLOperand* concat(const HeapVector<Member<MLOperand>>& inputs, int32_t axis);
+
   MLOperand* conv2d(const MLOperand* input, const MLOperand* filter, const MLConv2dOptions* options);
 
   MLOperand* gemm(const MLOperand* a, const MLOperand* b, const MLGemmOptions* options);

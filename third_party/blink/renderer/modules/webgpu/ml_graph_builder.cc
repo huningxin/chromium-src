@@ -206,6 +206,16 @@ MLOperator* MLGraphBuilder::clamp(const MLClampOptions* options) {
   return ml_operator;
 }
 
+MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs, int32_t axis) {
+  std::vector<WGPUOperand> dawn_operands;
+  for (unsigned int i = 0; i < inputs.size(); ++i) {
+    dawn_operands.push_back(inputs[i]->GetHandle());
+  }
+  WGPUOperand dawn_output = GetProcs().graphBuilderConcat(GetHandle(), static_cast<uint32_t>(dawn_operands.size()), dawn_operands.data(), axis);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
 MLOperand* MLGraphBuilder::conv2d(const MLOperand* input, const MLOperand* filter, const MLConv2dOptions* options) {
   WGPUConv2dOptions dawn_conv2d_options = AsDawnType(options);
   WGPUOperand dawn_output = GetProcs().graphBuilderConv2d(GetHandle(), input->GetHandle(), filter->GetHandle(), &dawn_conv2d_options);
