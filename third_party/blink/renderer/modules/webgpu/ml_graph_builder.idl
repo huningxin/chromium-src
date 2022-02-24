@@ -2,6 +2,14 @@ typedef record<DOMString, MLOperand> MLNamedOperands;
 
 typedef MLBufferResourceView MLBufferView;
 
+dictionary MLBatchNormalizationOptions {
+  MLOperand scale;
+  MLOperand bias;
+  long axis = 1;
+  float epsilon = 1e-5;
+  MLOperator activation;
+};
+
 enum MLInputOperandLayout {
   "nchw",
   "nhwc"
@@ -58,6 +66,18 @@ dictionary MLPool2dOptions {
   MLInputOperandLayout layout = "nchw";
 };
 
+enum MLPaddingMode {
+  "constant",
+  "edge",
+  "reflection",
+  "symmetric"
+};
+
+dictionary MLPadOptions {
+  MLPaddingMode mode = "constant";
+  float value = 0;
+};
+
 [Exposed(Window WebGPU, Worker WebGPU)]
 interface MLGraphBuilder {
   constructor(MLContext context);
@@ -67,6 +87,15 @@ interface MLGraphBuilder {
   MLOperand constant(MLOperandDescriptor desc, MLBufferView bufferView);
 
   MLOperand add(MLOperand a, MLOperand b);
+  MLOperand sub(MLOperand a, MLOperand b);
+  MLOperand mul(MLOperand a, MLOperand b);
+  MLOperand div(MLOperand a, MLOperand b);
+  MLOperand max(MLOperand a, MLOperand b);
+  MLOperand min(MLOperand a, MLOperand b);
+  MLOperand pow(MLOperand a, MLOperand b);
+
+  MLOperand batchNormalization(MLOperand input, MLOperand mean, MLOperand variance,
+                               optional MLBatchNormalizationOptions options = {});
 
   MLOperand clamp(MLOperand x, optional MLClampOptions options = {});
   MLOperator clamp(optional MLClampOptions options = {});
@@ -84,6 +113,8 @@ interface MLGraphBuilder {
 
   MLOperand averagePool2d(MLOperand input, optional MLPool2dOptions options = {});
   MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
+
+  MLOperand pad(MLOperand input, sequence<unsigned long> padding, optional MLPadOptions options = {});
 
   MLOperand relu(MLOperand input);
   MLOperator relu();

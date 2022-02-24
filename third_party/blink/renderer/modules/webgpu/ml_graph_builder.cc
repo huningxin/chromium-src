@@ -5,12 +5,14 @@
 #include "third_party/blink/renderer/modules/webgpu/ml_graph_builder.h"
 
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_buffer_resource_view.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_batch_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_type.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pad_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
@@ -146,6 +148,36 @@ WGPUPool2dOptions AsDawnType(const MLPool2dOptions* pool2d_options) {
   return dawn_pool2d_options;
 }
 
+WGPUBatchNormOptions AsDawnType(const MLBatchNormalizationOptions* batch_norm_options) {
+  WGPUBatchNormOptions dawn_batch_norm_options;
+  dawn_batch_norm_options.scale = batch_norm_options->hasScale() ? batch_norm_options->scale()->GetHandle() : nullptr;
+  dawn_batch_norm_options.bias = batch_norm_options->hasBias() ? batch_norm_options->bias()->GetHandle() : nullptr;
+  dawn_batch_norm_options.axis = batch_norm_options->axis();
+  dawn_batch_norm_options.epsilon = batch_norm_options->epsilon();
+  dawn_batch_norm_options.activation = batch_norm_options->hasActivation() ? batch_norm_options->activation()->GetHandle() : nullptr;
+  return dawn_batch_norm_options;
+}
+
+WGPUPadOptions AsDawnType(const MLPadOptions* pad_options) {
+  WGPUPadOptions dawn_pad_options;
+  switch(pad_options->mode().AsEnum()) {
+    case V8MLPaddingMode::Enum::kConstant:
+      dawn_pad_options.mode = WGPUPaddingMode_Constant;
+      break;
+    case V8MLPaddingMode::Enum::kEdge:
+      dawn_pad_options.mode = WGPUPaddingMode_Edge;
+      break;
+    case V8MLPaddingMode::Enum::kReflection:
+      dawn_pad_options.mode = WGPUPaddingMode_Reflection;
+      break;
+    case V8MLPaddingMode::Enum::kSymmetric:
+      dawn_pad_options.mode = WGPUPaddingMode_Symmetric;
+      break;
+  }
+  dawn_pad_options.value = pad_options->value();
+  return dawn_pad_options;
+}
+
 //static
 MLGraphBuilder* MLGraphBuilder::Create(const MLContext* context) {
   GPUDevice* device = context->GetDevice();
@@ -184,6 +216,51 @@ MLOperand* MLGraphBuilder::constant(const MLOperandDescriptor* desc, const MLBuf
 
 MLOperand* MLGraphBuilder::add(const MLOperand* a, const MLOperand* b) {
   WGPUOperand dawn_output = GetProcs().graphBuilderAdd(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::sub(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderSub(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::mul(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderMul(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::div(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderDiv(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::max(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderMax(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::min(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderMin(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::pow(const MLOperand* a, const MLOperand* b) {
+  WGPUOperand dawn_output = GetProcs().graphBuilderPow(GetHandle(), a->GetHandle(), b->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::batchNormalization(const MLOperand* input, const MLOperand* mean, const MLOperand* variance,
+                                              const MLBatchNormalizationOptions* options) {
+  WGPUBatchNormOptions dawn_batch_norm_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderBatchNorm(
+      GetHandle(), input->GetHandle(), mean->GetHandle(), variance->GetHandle(), &dawn_batch_norm_options);
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
   return output;
 }
@@ -262,6 +339,13 @@ MLOperand* MLGraphBuilder::averagePool2d(const MLOperand* input, const MLPool2dO
 MLOperand* MLGraphBuilder::maxPool2d(const MLOperand* input, const MLPool2dOptions* options) {
   WGPUPool2dOptions dawn_pool2d_options = AsDawnType(options);
   WGPUOperand dawn_output = GetProcs().graphBuilderMaxPool2d(GetHandle(), input->GetHandle(), &dawn_pool2d_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::pad(const MLOperand* input, const Vector<uint32_t>& padding, const MLPadOptions* options) {
+  WGPUPadOptions dawn_pad_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderPad(GetHandle(), input->GetHandle(), padding.data(), static_cast<uint32_t>(padding.size()), &dawn_pad_options);
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
   return output;
 }

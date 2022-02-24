@@ -13,11 +13,13 @@ namespace blink {
 
 class GPUDevice;
 class MLBufferResourceView;
+class MLBatchNormalizationOptions;
 class MLClampOptions;
 class MLContext;
 class MLConv2dOptions;
 class MLGemmOptions;
 class MLLeakyReluOptions;
+class MLPadOptions;
 class MLPool2dOptions;
 class MLOperand;
 class MLOperandDescriptor;
@@ -50,6 +52,15 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
   MLOperand* constant(const MLOperandDescriptor* desc, const MLBufferResourceView* buffer_view);
 
   MLOperand* add(const MLOperand* a, const MLOperand* b);
+  MLOperand* sub(const MLOperand* a, const MLOperand* b);
+  MLOperand* mul(const MLOperand* a, const MLOperand* b);
+  MLOperand* div(const MLOperand* a, const MLOperand* b);
+  MLOperand* max(const MLOperand* a, const MLOperand* b);
+  MLOperand* min(const MLOperand* a, const MLOperand* b);
+  MLOperand* pow(const MLOperand* a, const MLOperand* b);
+
+  MLOperand* batchNormalization(const MLOperand* input, const MLOperand* mean, const MLOperand* variance,
+                                const MLBatchNormalizationOptions* options);
 
   MLOperand* clamp(const MLOperand* input, const MLClampOptions* options);
 
@@ -69,6 +80,8 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperand* averagePool2d(const MLOperand* input, const MLPool2dOptions* options);
   MLOperand* maxPool2d(const MLOperand* input, const MLPool2dOptions* options);
+
+  MLOperand* pad(const MLOperand* input, const Vector<uint32_t>& padding, const MLPadOptions* options);
 
   MLOperand* relu(const MLOperand* input);
 
