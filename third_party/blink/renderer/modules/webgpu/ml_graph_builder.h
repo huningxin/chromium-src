@@ -25,6 +25,7 @@ class MLOperand;
 class MLOperandDescriptor;
 class MLOperator;
 class MLGraph;
+class MLTransposeOptions;
 
 WGPUBufferResourceView AsDawnType(const MLBufferResourceView* buffer_view);
 WGPUOperandDescriptor AsDawnType(const MLOperandDescriptor* desc);
@@ -94,6 +95,8 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
   MLOperator* sigmoid();
 
   MLOperand* softmax(const MLOperand* input);
+
+  MLOperand* transpose(const MLOperand* input, const MLTransposeOptions* options);
 
   MLGraph* build(const MLNamedOperands& outputs);
 };

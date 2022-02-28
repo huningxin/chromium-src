@@ -14,6 +14,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pad_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
 #include "third_party/blink/renderer/modules/webgpu/ml_context.h"
@@ -382,6 +383,15 @@ MLOperator* MLGraphBuilder::sigmoid() {
 
 MLOperand* MLGraphBuilder::softmax(const MLOperand* input) {
   WGPUOperand dawn_output = GetProcs().graphBuilderSoftmax(GetHandle(), input->GetHandle());
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::transpose(const MLOperand* input, const MLTransposeOptions* options) {
+  WGPUTransposeOptions dawn_transpose_options;
+  dawn_transpose_options.permutationCount = options->hasPermutation() ? options->permutation().size() : 0;
+  dawn_transpose_options.permutation = options->hasPermutation() ? options->permutation().data() : nullptr;
+  WGPUOperand dawn_output = GetProcs().graphBuilderTranspose(GetHandle(), input->GetHandle(), &dawn_transpose_options);
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
   return output;
 }

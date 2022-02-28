@@ -78,6 +78,10 @@ dictionary MLPadOptions {
   float value = 0;
 };
 
+dictionary MLTransposeOptions {
+  sequence<long> permutation;
+};
+
 [Exposed(Window WebGPU, Worker WebGPU)]
 interface MLGraphBuilder {
   constructor(MLContext context);
@@ -125,6 +129,8 @@ interface MLGraphBuilder {
   MLOperator sigmoid();
 
   MLOperand softmax(MLOperand x);
+
+  MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
 
   MLGraph build(MLNamedOperands outputs);
 };

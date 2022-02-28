@@ -1763,6 +1763,8 @@ generated_interface_sources_in_modules = [
   "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_ml_padding_mode.h",
   "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.cc",
   "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h",
+  "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.cc",
+  "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h",
   "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_gpu_adapter.cc",
   "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_gpu_adapter.h",
   "$root_gen_dir/third_party/blink/renderer/bindings/modules/v8/v8_gpu_bind_group.cc",
