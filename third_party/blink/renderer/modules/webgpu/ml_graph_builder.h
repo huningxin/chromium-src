@@ -25,6 +25,7 @@ class MLOperand;
 class MLOperandDescriptor;
 class MLOperator;
 class MLGraph;
+class MLResample2dOptions;
 class MLTransposeOptions;
 
 WGPUBufferResourceView AsDawnType(const MLBufferResourceView* buffer_view);
@@ -87,6 +88,8 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
   MLOperand* relu(const MLOperand* input);
 
   MLOperator* relu();
+
+  MLOperand* resample2d(const MLOperand* input, const MLResample2dOptions* options);
 
   MLOperand* reshape(const MLOperand* input, const Vector<int32_t>& new_shape);
 

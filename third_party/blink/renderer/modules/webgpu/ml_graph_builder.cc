@@ -14,6 +14,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pad_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_resample_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_buffer.h"
@@ -177,6 +178,25 @@ WGPUPadOptions AsDawnType(const MLPadOptions* pad_options) {
   }
   dawn_pad_options.value = pad_options->value();
   return dawn_pad_options;
+}
+
+WGPUResample2dOptions AsDawnType(const MLResample2dOptions* options) {
+  WGPUResample2dOptions dawn_options;
+  switch(options->mode().AsEnum()) {
+    case V8MLInterpolationMode::Enum::kNearestNeighbor:
+      dawn_options.mode = WGPUInterpolationMode_NearestNeighbor;
+      break;
+    case V8MLInterpolationMode::Enum::kLinear:
+      dawn_options.mode = WGPUInterpolationMode_Linear;
+      break;
+  }
+  dawn_options.scalesCount = options->hasScales() ? options->scales().size() : 0;
+  dawn_options.scales = options->hasScales() ? options->scales().data() : nullptr;
+  dawn_options.sizesCount = options->hasSizes() ? options->sizes().size() : 0;
+  dawn_options.sizes = options->hasSizes() ? options->sizes().data() : nullptr;
+  dawn_options.axesCount = options->hasAxes() ? options->axes().size() : 0;
+  dawn_options.axes = options->hasAxes() ? options->axes().data() : nullptr;
+  return dawn_options;
 }
 
 //static
@@ -361,6 +381,13 @@ MLOperator* MLGraphBuilder::relu() {
   WGPUFusionOperator dawn_operator = GetProcs().graphBuilderReluOperator(GetHandle());
   MLOperator* ml_operator = MakeGarbageCollected<MLOperator>(GetDevice(), dawn_operator);
   return ml_operator;
+}
+
+MLOperand* MLGraphBuilder::resample2d(const MLOperand* input, const MLResample2dOptions* options) {
+  WGPUResample2dOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderResample2d(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
 }
 
 MLOperand* MLGraphBuilder::reshape(const MLOperand* input, const Vector<int32_t>& new_shape) {

@@ -82,6 +82,18 @@ dictionary MLTransposeOptions {
   sequence<long> permutation;
 };
 
+enum MLInterpolationMode {
+  "nearest-neighbor",
+  "linear"
+};
+
+dictionary MLResample2dOptions {
+  MLInterpolationMode mode = "nearest-neighbor";
+  sequence<float> scales;
+  sequence<long> sizes;
+  sequence<long> axes;
+};
+
 [Exposed(Window WebGPU, Worker WebGPU)]
 interface MLGraphBuilder {
   constructor(MLContext context);
@@ -122,6 +134,8 @@ interface MLGraphBuilder {
 
   MLOperand relu(MLOperand input);
   MLOperator relu();
+
+  MLOperand resample2d(MLOperand input, optional MLResample2dOptions options = {});
 
   MLOperand reshape(MLOperand input, sequence<long> newShape);
 
