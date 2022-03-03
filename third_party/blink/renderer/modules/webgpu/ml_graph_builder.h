@@ -25,6 +25,7 @@ class MLOperand;
 class MLOperandDescriptor;
 class MLOperator;
 class MLGraph;
+class MLReduceOptions;
 class MLResample2dOptions;
 class MLTransposeOptions;
 
@@ -85,8 +86,17 @@ class MLGraphBuilder : public DawnObject<WGPUGraphBuilder> {
 
   MLOperand* pad(const MLOperand* input, const Vector<uint32_t>& padding, const MLPadOptions* options);
 
-  MLOperand* relu(const MLOperand* input);
+  MLOperand* reduceArgMax(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceArgMin(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceL1(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceL2(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceMax(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceMean(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceMin(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceProduct(const MLOperand* input, const MLReduceOptions* options);
+  MLOperand* reduceSum(const MLOperand* input, const MLReduceOptions* options);
 
+  MLOperand* relu(const MLOperand* input);
   MLOperator* relu();
 
   MLOperand* resample2d(const MLOperand* input, const MLResample2dOptions* options);

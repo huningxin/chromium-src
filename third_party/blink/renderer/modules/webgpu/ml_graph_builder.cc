@@ -14,6 +14,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pad_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_reduce_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_resample_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
@@ -199,6 +200,14 @@ WGPUResample2dOptions AsDawnType(const MLResample2dOptions* options) {
   return dawn_options;
 }
 
+WGPUReduceOptions AsDawnType(const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options;
+  dawn_options.axesCount = options->hasAxes() ? options->axes().size() : 0;
+  dawn_options.axes = options->hasAxes() ? options->axes().data() : nullptr;
+  dawn_options.keepDimensions = options->keepDimensions();
+  return dawn_options;
+}
+
 //static
 MLGraphBuilder* MLGraphBuilder::Create(const MLContext* context) {
   GPUDevice* device = context->GetDevice();
@@ -367,6 +376,69 @@ MLOperand* MLGraphBuilder::maxPool2d(const MLOperand* input, const MLPool2dOptio
 MLOperand* MLGraphBuilder::pad(const MLOperand* input, const Vector<uint32_t>& padding, const MLPadOptions* options) {
   WGPUPadOptions dawn_pad_options = AsDawnType(options);
   WGPUOperand dawn_output = GetProcs().graphBuilderPad(GetHandle(), input->GetHandle(), padding.data(), static_cast<uint32_t>(padding.size()), &dawn_pad_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceArgMax(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceArgMax(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceArgMin(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceArgMin(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceL1(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceL1(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceL2(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceL2(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceMax(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceMax(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceMean(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceMean(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceMin(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceMin(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceProduct(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceProduct(GetHandle(), input->GetHandle(), &dawn_options);
+  MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
+  return output;
+}
+
+MLOperand* MLGraphBuilder::reduceSum(const MLOperand* input, const MLReduceOptions* options) {
+  WGPUReduceOptions dawn_options = AsDawnType(options);
+  WGPUOperand dawn_output = GetProcs().graphBuilderReduceSum(GetHandle(), input->GetHandle(), &dawn_options);
   MLOperand* output = MakeGarbageCollected<MLOperand>(GetDevice(), dawn_output);
   return output;
 }

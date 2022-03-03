@@ -94,6 +94,11 @@ dictionary MLResample2dOptions {
   sequence<long> axes;
 };
 
+dictionary MLReduceOptions {
+  sequence<long> axes;
+  boolean keepDimensions = false;
+};
+
 [Exposed(Window WebGPU, Worker WebGPU)]
 interface MLGraphBuilder {
   constructor(MLContext context);
@@ -131,6 +136,16 @@ interface MLGraphBuilder {
   MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
 
   MLOperand pad(MLOperand input, sequence<unsigned long> padding, optional MLPadOptions options = {});
+
+  MLOperand reduceArgMax(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceArgMin(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceL1(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceL2(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceMax(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceMean(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceMin(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceProduct(MLOperand input, optional MLReduceOptions options = {});
+  MLOperand reduceSum(MLOperand input, optional MLReduceOptions options = {});
 
   MLOperand relu(MLOperand input);
   MLOperator relu();
