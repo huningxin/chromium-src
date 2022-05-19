@@ -6,18 +6,32 @@
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_OPERATOR_H_
 
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
+#include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 
 namespace blink {
 
+class MLGraph;
 class MLGraphBuilder;
+class MLOperand;
 
-class MLOperator final : public ScriptWrappable {
+class MLOperator : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  explicit MLOperator(MLGraphBuilder* graph_builder);
+  enum OpKind {
+    kClamp,
+    kConv2d,
+    // Element-wise binary operations
+    kAdd,
+    kGemm,
+    // Pooling operations
+    kAveragePool2d,
+    kReshape,
+    kSoftmax
+  };
+  explicit MLOperator(MLGraphBuilder* builder, OpKind kind);
 
   MLOperator(const MLOperator&) = delete;
   MLOperator& operator=(const MLOperator&) = delete;
@@ -26,8 +40,17 @@ class MLOperator final : public ScriptWrappable {
 
   void Trace(Visitor* visitor) const override;
 
- private:
-  Member<MLGraphBuilder> graph_builder_;
+  OpKind Kind() const;
+  HeapVector<Member<const MLOperand>>& Inputs();
+  const HeapVector<Member<const MLOperand>>& Inputs() const;
+  HeapVector<Member<const MLOperand>>& Outputs();
+  const HeapVector<Member<const MLOperand>>& Outputs() const;
+
+ protected:
+  Member<MLGraphBuilder> builder_;
+  OpKind kind_;
+  HeapVector<Member<const MLOperand>> inputs_;
+  HeapVector<Member<const MLOperand>> outputs_;
 };
 
 }  // namespace blink
