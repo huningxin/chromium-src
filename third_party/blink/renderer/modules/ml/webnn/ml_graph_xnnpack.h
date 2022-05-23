@@ -13,7 +13,11 @@ class MLGraphXnnpack : public MLGraph {
  public:
   explicit MLGraphXnnpack(MLContext* context);
 
-  bool Build() override;
+  bool Build(const MLNamedOperands& named_outputs,
+             const std::vector<const MLOperand*>& inputs,
+             const std::vector<const MLOperand*>& constants,
+             const std::vector<const MLOperator*>& sorted_operators,
+             ExceptionState& exception_state) override;
 
  private:
 };

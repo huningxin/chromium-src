@@ -48,4 +48,8 @@ void MLOperator::SetOptions(const bindings::DictionaryBase* options) {
   options_ = options;
 }
 
+const bindings::DictionaryBase* MLOperator::Options() const {
+  return options_;
+}
+
 }  // namespace blink

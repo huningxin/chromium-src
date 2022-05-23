@@ -48,6 +48,7 @@ class MLOperator : public ScriptWrappable {
   const HeapVector<Member<const MLOperand>>& Outputs() const;
 
   void SetOptions(const bindings::DictionaryBase* options);
+  const bindings::DictionaryBase* Options() const;
 
  protected:
   Member<MLGraphBuilder> builder_;
