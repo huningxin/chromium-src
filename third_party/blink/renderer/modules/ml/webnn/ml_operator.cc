@@ -18,6 +18,7 @@ MLOperator::~MLOperator() = default;
 
 void MLOperator::Trace(Visitor* visitor) const {
   visitor->Trace(builder_);
+  visitor->Trace(options_);
   visitor->Trace(inputs_);
   visitor->Trace(outputs_);
   ScriptWrappable::Trace(visitor);
@@ -41,6 +42,10 @@ const HeapVector<Member<const MLOperand>>& MLOperator::Outputs() const {
 
 MLOperator::OpKind MLOperator::Kind() const {
   return kind_;
+}
+
+void MLOperator::SetOptions(const bindings::DictionaryBase* options) {
+  options_ = options;
 }
 
 }  // namespace blink

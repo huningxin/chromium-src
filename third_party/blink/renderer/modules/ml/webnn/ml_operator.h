@@ -5,6 +5,7 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_OPERATOR_H_
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_OPERATOR_H_
 
+#include "third_party/blink/renderer/platform/bindings/dictionary_base.h"
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
@@ -46,9 +47,12 @@ class MLOperator : public ScriptWrappable {
   HeapVector<Member<const MLOperand>>& Outputs();
   const HeapVector<Member<const MLOperand>>& Outputs() const;
 
+  void SetOptions(const bindings::DictionaryBase* options);
+
  protected:
   Member<MLGraphBuilder> builder_;
   OpKind kind_;
+  Member<const bindings::DictionaryBase> options_;
   HeapVector<Member<const MLOperand>> inputs_;
   HeapVector<Member<const MLOperand>> outputs_;
 };

@@ -111,11 +111,11 @@ MLOperand* MLGraphBuilder::add(const MLOperand* a,
   add->Inputs().resize(2);
   add->Inputs()[0] = a;
   add->Inputs()[1] = b;
-  add->Outputs().resize(1);
   auto* c = MakeGarbageCollected<MLOperand>(this);
   c->SetType(a->Type());
   c->SetDimensions(std::move(dims_output));
   c->SetOperator(add);
+  add->Outputs().resize(1);
   add->Outputs()[0] = c;
   return c;
 }
@@ -123,18 +123,26 @@ MLOperand* MLGraphBuilder::add(const MLOperand* a,
 MLOperand* MLGraphBuilder::clamp(const MLOperand* input,
                                  const MLClampOptions* options,
                                  ExceptionState& exception_state) {
-  // TODO(crbug.com/1273291): Implement this on operating systems to access
-  // hardware acceleration.
-  NOTIMPLEMENTED();
-  return MakeGarbageCollected<MLOperand>(this);
+  auto* clamp =
+      MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kClamp);
+  clamp->Inputs().resize(1);
+  clamp->Inputs()[0] = input;
+  clamp->SetOptions(options);
+  auto* output = MakeGarbageCollected<MLOperand>(this);
+  output->SetType(input->Type());
+  output->SetDimensions(input->Dimensions());
+  output->SetOperator(clamp);
+  clamp->Outputs().resize(1);
+  clamp->Outputs()[0] = output;
+  return output;
 }
 
 MLOperator* MLGraphBuilder::clamp(const MLClampOptions* options,
                                   ExceptionState& exception_state) {
-  // TODO(crbug.com/1273291): Implement this on operating systems to access
-  // hardware acceleration.
-  NOTIMPLEMENTED();
-  return MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kClamp);
+  auto* clamp =
+      MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kClamp);
+  clamp->SetOptions(options);
+  return clamp;
 }
 
 MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
@@ -177,10 +185,17 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
 
 MLOperand* MLGraphBuilder::softmax(const MLOperand* input,
                                    ExceptionState& exception_state) {
-  // TODO(crbug.com/1273291): Implement this on operating systems to access
-  // hardware acceleration.
-  NOTIMPLEMENTED();
-  return MakeGarbageCollected<MLOperand>(this);
+  auto* softmax =
+      MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kSoftmax);
+  softmax->Inputs().resize(1);
+  softmax->Inputs()[0] = input;
+  auto* output = MakeGarbageCollected<MLOperand>(this);
+  output->SetType(input->Type());
+  output->SetDimensions(input->Dimensions());
+  output->SetOperator(softmax);
+  softmax->Outputs().resize(1);
+  softmax->Outputs()[0] = output;
+  return output;
 }
 
 MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
