@@ -5,13 +5,12 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_H_
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_H_
 
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 
 namespace blink {
-
-class MLContext;
 
 class MLGraph : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
@@ -26,7 +25,11 @@ class MLGraph : public ScriptWrappable {
 
   void Trace(Visitor* visitor) const override;
 
-  virtual bool Build() = 0;
+  virtual bool Build(const MLNamedOperands& named_outputs,
+                     const std::vector<const MLOperand*>& inputs,
+                     const std::vector<const MLOperand*>& constants,
+                     const std::vector<const MLOperator*>& sorted_operators,
+                     ExceptionState& exception_state) = 0;
 
  private:
   Member<MLContext> ml_context_;
