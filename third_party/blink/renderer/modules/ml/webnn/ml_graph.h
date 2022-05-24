@@ -27,7 +27,6 @@ class MLGraph : public ScriptWrappable {
 
   virtual bool Build(const MLNamedOperands& named_outputs,
                      const std::vector<const MLOperand*>& inputs,
-                     const std::vector<const MLOperand*>& constants,
                      const std::vector<const MLOperator*>& sorted_operators,
                      ExceptionState& exception_state) = 0;
 
