@@ -17,5 +17,11 @@ blink_modules_sources("webnn") {
     "ml_operator.cc",
     "ml_operator.h",
   ]
-  deps = [ "//third_party/blink/renderer/modules/ml" ]
+
+  deps = [
+    "//third_party/blink/renderer/modules/ml",
+    "//third_party/cpuinfo",
+    "//third_party/pthreadpool",
+    "//third_party/xnnpack",
+  ]
 }
