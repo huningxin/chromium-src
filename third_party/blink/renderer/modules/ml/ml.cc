@@ -8,6 +8,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_context_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
+#include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
 namespace blink {
@@ -59,9 +60,27 @@ ScriptPromise ML::createContext(ScriptState* script_state,
   // Notice that currently, we just create the context in the renderer. In the
   // future we may add backend query ability to check whether a context is
   // supportable or not. At that time, this function will be truly asynced.
-  auto* ml_context = MakeGarbageCollected<MLContext>(
-      option->devicePreference(), option->powerPreference(),
-      option->modelFormat(), option->numThreads(), this);
+
+  MLContext* ml_context;
+  if (!option->hasModelFormat() &&
+      option->devicePreference().AsEnum() == V8MLDevicePreference::Enum::kCpu) {
+    // Create XNNPACK backed MLContext for WebNN
+    MLContextXnnpack* ml_context_xnnpack =
+        MakeGarbageCollected<MLContextXnnpack>(option->devicePreference(),
+                                               option->powerPreference(),
+                                               option->numThreads(), this);
+    if (!ml_context_xnnpack->Initialize()) {
+      resolver->Reject(MakeGarbageCollected<DOMException>(
+          DOMExceptionCode::kOperationError, "failed to initialize XNNPACK"));
+      return promise;
+    }
+    ml_context = ml_context_xnnpack;
+  } else {
+    // Create MLContext for Model Loader
+    ml_context = MakeGarbageCollected<MLContext>(
+        option->devicePreference(), option->powerPreference(),
+        option->modelFormat(), option->numThreads(), this);
+  }
   resolver->Resolve(ml_context);
 
   return promise;

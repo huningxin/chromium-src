@@ -18,49 +18,50 @@ class MLGraphXnnpack : public MLGraph {
 
   bool Build(const MLNamedOperands& named_outputs,
              const std::vector<const MLOperand*>& inputs,
+             const std::vector<const MLOperand*>& constants,
              const std::vector<const MLOperator*>& sorted_operators,
              ExceptionState& exception_state) override;
 
  private:
   bool DefineTensor(xnn_subgraph_t,
-                    const std::unordered_map<const MLOperand*, uint32_t>&,
+                    std::unordered_map<const MLOperand*, uint32_t>&,
                     const MLOperand*,
-										uint32_t,
-                    ExceptionState&);
+                    ExceptionState&,
+                    bool external = false);
   bool DefineClamp(xnn_subgraph_t,
-                   const std::unordered_map<const MLOperand*, uint32_t>&,
+                   std::unordered_map<const MLOperand*, uint32_t>&,
                    const MLOperator*,
                    const MLClampOptions*,
                    ExceptionState&);
   bool DefineConv2d(xnn_subgraph_t,
-                    const std::unordered_map<const MLOperand*, uint32_t>&,
+                    std::unordered_map<const MLOperand*, uint32_t>&,
                     const MLOperator*,
                     const MLConv2dOptions*,
                     ExceptionState&);
   bool DefineBinary(xnn_subgraph_t,
-                    const std::unordered_map<const MLOperand*, uint32_t>&,
+                    std::unordered_map<const MLOperand*, uint32_t>&,
                     const MLOperator*,
                     ExceptionState&);
   bool DefineGemm(xnn_subgraph_t,
-                  const std::unordered_map<const MLOperand*, uint32_t>&,
+                  std::unordered_map<const MLOperand*, uint32_t>&,
                   const MLOperator*,
                   const MLGemmOptions*,
                   ExceptionState&);
-  bool DefineAveragePool2d(
-      xnn_subgraph_t,
-      const std::unordered_map<const MLOperand*, uint32_t>&,
-      const MLOperator*,
-      const MLPool2dOptions*,
-      ExceptionState&);
+  bool DefinePool2d(xnn_subgraph_t,
+                    std::unordered_map<const MLOperand*, uint32_t>&,
+                    const MLOperator*,
+                    const MLPool2dOptions*,
+                    ExceptionState&);
   bool DefineReshape(xnn_subgraph_t,
-                     const std::unordered_map<const MLOperand*, uint32_t>&,
+                     std::unordered_map<const MLOperand*, uint32_t>&,
                      const MLOperator*,
                      ExceptionState&);
   bool DefineUnary(xnn_subgraph_t,
-                   const std::unordered_map<const MLOperand*, uint32_t>&,
+                   std::unordered_map<const MLOperand*, uint32_t>&,
                    const MLOperator*,
                    ExceptionState&);
 
+  std::vector<std::unique_ptr<char>> constant_data_;
   xnn_runtime_t runtime_;
 };
 

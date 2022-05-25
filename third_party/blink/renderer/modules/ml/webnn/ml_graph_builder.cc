@@ -201,6 +201,7 @@ MLOperand* MLGraphBuilder::softmax(const MLOperand* input,
 MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
                                ExceptionState& exception_state) {
   std::vector<const MLOperand*> inputs;
+  std::vector<const MLOperand*> constants;
   std::vector<const MLOperator*> sorted_operators;
 
   std::stack<const MLOperator*> nodes_to_do;
@@ -212,14 +213,19 @@ MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
     auto* node = nodes_to_do.top();
     if (nodes_done.count(node) == 0) {
       bool can_add = true;
-      for (auto& dep : node->Inputs()) {
-        if (dep->Operator()) {
-          if (nodes_done.count(dep->Operator()) == 0) {
+      for (auto& input : node->Inputs()) {
+        if (input->Operator()) {
+          if (nodes_done.count(input->Operator()) == 0) {
             can_add = false;
-            nodes_to_do.push(dep->Operator());
+            nodes_to_do.push(input->Operator());
           }
         } else {
-          inputs.push_back(dep);
+          if (input->Kind() == MLOperand::KindEnum::kInput) {
+            inputs.push_back(input);
+          } else {
+            DCHECK(input->Kind() == MLOperand::KindEnum::kConstant);
+            constants.push_back(input);
+          }
         }
       }
       if (can_add) {
@@ -232,7 +238,8 @@ MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
     }
   }
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);
-  if (!graph->Build(named_outputs, inputs, sorted_operators, exception_state)) {
+  if (!graph->Build(named_outputs, inputs, constants, sorted_operators,
+                    exception_state)) {
     return nullptr;
   }
   return graph;

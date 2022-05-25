@@ -41,7 +41,7 @@ dictionary MLContextOptions {
   MLPowerPreference powerPreference = "auto";
 
   // Model format for the model loader API.
-  MLModelFormat modelFormat = "tflite";
+  MLModelFormat modelFormat;
 
   // Number of thread to use.
   // "0" means the backend can determine it automatically.
