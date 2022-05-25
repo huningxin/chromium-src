@@ -26,7 +26,7 @@ void MLOperand::SetName(const String& name) {
   name_ = name;
 }
 
-String MLOperand::Name() const {
+const String& MLOperand::Name() const {
   return name_;
 }
 

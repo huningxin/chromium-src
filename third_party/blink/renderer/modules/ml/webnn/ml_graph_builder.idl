@@ -82,5 +82,6 @@ dictionary MLClampOptions {
 
   [RaisesException] MLOperand softmax(MLOperand input);
 
+  // Should be restricted in worker
   [RaisesException] MLGraph build(MLNamedOperands outputs);
 };

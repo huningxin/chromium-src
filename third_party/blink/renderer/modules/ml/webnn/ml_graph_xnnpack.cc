@@ -9,6 +9,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_tensor.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
@@ -19,9 +20,16 @@
 
 namespace blink {
 
-MLGraphXnnpack::MLGraphXnnpack(MLContext* context) : MLGraph(context) {}
+MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
+    : MLGraph(context), runtime_(nullptr) {}
 
-bool MLGraphXnnpack::Build(
+MLGraphXnnpack::~MLGraphXnnpack() {
+  if (runtime_ != nullptr) {
+    xnn_delete_runtime(runtime_);
+  }
+}
+
+bool MLGraphXnnpack::BuildImpl(
     const MLNamedOperands& named_outputs,
     const std::vector<const MLOperand*>& inputs,
     const std::vector<const MLOperand*>& constants,
@@ -43,19 +51,23 @@ bool MLGraphXnnpack::Build(
   std::unordered_map<const MLOperand*, uint32_t> tensors_map;
   uint32_t external_id = 0;
   for (auto* input : inputs) {
-    tensors_map[input] = external_id++;
+    uint32_t input_id = external_id++;
+    tensors_map[input] = input_id;
     if (!DefineTensor(subgraph.get(), tensors_map, input, exception_state,
                       true)) {
       return false;
     }
+    external_ids_.insert(input->Name(), input_id);
   }
   for (auto& named_output : named_outputs) {
     auto* output = named_output.second.Get();
-    tensors_map[output] = external_id++;
+    uint32_t output_id = external_id++;
+    tensors_map[output] = output_id;
     if (!DefineTensor(subgraph.get(), tensors_map, output, exception_state,
                       true)) {
       return false;
     }
+    external_ids_.insert(named_output.first, output_id);
   }
   for (auto* constant : constants) {
     if (!DefineTensor(subgraph.get(), tensors_map, constant, exception_state)) {
@@ -137,7 +149,7 @@ bool MLGraphXnnpack::DefineTensor(
     std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
     const MLOperand* operand,
     ExceptionState& exception_state,
-    bool external) {
+    bool is_external) {
   xnn_datatype data_type = xnn_datatype_invalid;
   if (operand->Type() == V8MLOperandType::Enum::kFloat32) {
     data_type = xnn_datatype_fp32;
@@ -158,7 +170,7 @@ bool MLGraphXnnpack::DefineTensor(
   uint32_t flags = 0;
   uint32_t external_id = XNN_INVALID_VALUE_ID;
   std::unique_ptr<char> data;
-  if (external) {
+  if (is_external) {
     DCHECK(tensors_map.find(operand) != tensors_map.end());
     external_id = tensors_map.at(operand);
     if (operand->Kind() == MLOperand::KindEnum::kInput) {
@@ -193,7 +205,7 @@ bool MLGraphXnnpack::DefineTensor(
   if (data) {
     constant_data_.push_back(std::move(data));
   }
-  if (!external) {
+  if (!is_external) {
     tensors_map.insert(std::make_pair(operand, tensor_id));
   }
   return true;
@@ -277,6 +289,66 @@ bool MLGraphXnnpack::DefineUnary(
     const MLOperator* unary,
     ExceptionState& exception_state) {
   return true;
+}
+
+void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
+                                 const MLNamedArrayOutputs& outputs,
+                                 ExceptionState& exception_state) {
+  std::vector<xnn_external_value> external_values;
+  for (const auto& input : inputs) {
+    auto iter = external_ids_.find(input.first);
+    if (iter == external_ids_.end()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "There is unknown input: " + input.first);
+      return;
+    }
+    xnn_external_value value = {0};
+    value.id = iter->value;
+    DOMArrayBufferView* array_buffer_view = nullptr;
+    if (input.second->IsArrayBufferView()) {
+      array_buffer_view = input.second->GetAsArrayBufferView().Get();
+    } else if (input.second->IsMLTensor()) {
+      auto* ml_tensor = input.second->GetAsMLTensor();
+      array_buffer_view = ml_tensor->data().Get();
+    }
+    DCHECK(array_buffer_view != nullptr);
+    value.data = reinterpret_cast<char*>(array_buffer_view->BaseAddress()) +
+                 array_buffer_view->byteOffset();
+    external_values.push_back(value);
+  }
+  for (const auto& output : outputs) {
+    auto iter = external_ids_.find(output.first);
+    if (iter == external_ids_.end()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "There is unknown output: " + output.first);
+      return;
+    }
+    xnn_external_value value = {0};
+    value.id = iter->value;
+    if (output.second->IsArrayBufferView()) {
+      DOMArrayBufferView* array_buffer_view =
+          output.second->GetAsArrayBufferView().Get();
+      value.data = reinterpret_cast<char*>(array_buffer_view->BaseAddress()) +
+                   array_buffer_view->byteOffset();
+    } else if (output.second->IsArrayBuffer()) {
+      value.data = output.second->GetAsArrayBuffer()->Data();
+    }
+    DCHECK(value.data);
+    external_values.push_back(value);
+  }
+  if (xnn_setup_runtime(runtime_, external_values.size(),
+                        external_values.data()) != xnn_status_success) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                      "failed to setup runtime");
+    return;
+  }
+  if (xnn_invoke_runtime(runtime_) != xnn_status_success) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                      "failed to invoke runtime");
+    return;
+  }
 }
 
 }  // namespace blink

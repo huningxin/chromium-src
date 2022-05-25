@@ -6,6 +6,9 @@
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_XNNPACK_H_
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
+#include "third_party/blink/renderer/platform/wtf/hash_map.h"
+#include "third_party/blink/renderer/platform/wtf/text/string_hash.h"
+#include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/xnnpack/src/include/xnnpack.h"
 
 #include <unordered_map>
@@ -15,12 +18,17 @@ namespace blink {
 class MLGraphXnnpack : public MLGraph {
  public:
   explicit MLGraphXnnpack(MLContext* context);
+  ~MLGraphXnnpack() override;
 
-  bool Build(const MLNamedOperands& named_outputs,
-             const std::vector<const MLOperand*>& inputs,
-             const std::vector<const MLOperand*>& constants,
-             const std::vector<const MLOperator*>& sorted_operators,
-             ExceptionState& exception_state) override;
+  bool BuildImpl(const MLNamedOperands& named_outputs,
+                 const std::vector<const MLOperand*>& inputs,
+                 const std::vector<const MLOperand*>& constants,
+                 const std::vector<const MLOperator*>& sorted_operators,
+                 ExceptionState& exception_state) override;
+
+  void ComputeImpl(const MLNamedArrayInputs& inputs,
+                   const MLNamedArrayOutputs& outputs,
+                   ExceptionState& exception_state) override;
 
  private:
   bool DefineTensor(xnn_subgraph_t,
@@ -62,6 +70,7 @@ class MLGraphXnnpack : public MLGraph {
                    ExceptionState&);
 
   std::vector<std::unique_ptr<char>> constant_data_;
+  HashMap<String, uint32_t> external_ids_;
   xnn_runtime_t runtime_;
 };
 

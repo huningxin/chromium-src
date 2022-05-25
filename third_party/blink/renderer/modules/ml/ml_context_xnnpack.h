@@ -13,9 +13,9 @@ namespace blink {
 class MLContextXnnpack : public MLContext {
  public:
   MLContextXnnpack(const V8MLDevicePreference device_preference,
-            const V8MLPowerPreference power_preference,
-            const unsigned int num_threads,
-            ML* ml);
+                   const V8MLPowerPreference power_preference,
+                   const unsigned int num_threads,
+                   ML* ml);
   ~MLContextXnnpack() override;
 
   bool Initialize();

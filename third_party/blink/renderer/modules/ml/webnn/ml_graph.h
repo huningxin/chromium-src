@@ -5,12 +5,23 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_H_
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_H_
 
+#include "third_party/blink/renderer/bindings/core/v8/v8_union_arraybuffer_arraybufferview.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_union_arraybufferview_mltensor.h"
+#include "third_party/blink/renderer/core/typed_arrays/array_buffer_view_helpers.h"
+#include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer_view.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
+#include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 
 namespace blink {
+
+typedef HeapVector<std::pair<String, Member<V8UnionArrayBufferViewOrMLTensor>>>
+    MLNamedArrayInputs;
+typedef HeapVector<
+    std::pair<String, Member<V8UnionArrayBufferOrArrayBufferView>>>
+    MLNamedArrayOutputs;
 
 class MLGraph : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
@@ -25,11 +36,20 @@ class MLGraph : public ScriptWrappable {
 
   void Trace(Visitor* visitor) const override;
 
-  virtual bool Build(const MLNamedOperands& named_outputs,
-                     const std::vector<const MLOperand*>& inputs,
-                     const std::vector<const MLOperand*>& constants,
-                     const std::vector<const MLOperator*>& sorted_operators,
-                     ExceptionState& exception_state) = 0;
+  // ml_graph.idl
+  void compute(const MLNamedArrayInputs& inputs,
+               const MLNamedArrayOutputs& outputs,
+               ExceptionState& exception_state);
+
+  virtual bool BuildImpl(const MLNamedOperands& named_outputs,
+                         const std::vector<const MLOperand*>& inputs,
+                         const std::vector<const MLOperand*>& constants,
+                         const std::vector<const MLOperator*>& sorted_operators,
+                         ExceptionState& exception_state) = 0;
+
+  virtual void ComputeImpl(const MLNamedArrayInputs& inputs,
+                           const MLNamedArrayOutputs& outputs,
+                           ExceptionState& exception_state) = 0;
 
  private:
   Member<MLContext> ml_context_;
