@@ -4,7 +4,14 @@
 
 // https://www.w3.org/TR/webnn/
 
+// TODO: support MLArrayInput
+typedef record<DOMString, (ArrayBufferView or MLTensor)> MLNamedArrayInputs;
+typedef record<DOMString, (ArrayBufferView or ArrayBuffer)> MLNamedArrayOutputs;
+
 [
   RuntimeEnabled=MachineLearningNeuralNetwork,
   Exposed=Window
-] interface MLGraph {};
+] interface MLGraph {
+  // Should be restricted in worker
+  [RaisesException] void compute(MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
+};

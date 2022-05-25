@@ -238,8 +238,8 @@ MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
     }
   }
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);
-  if (!graph->Build(named_outputs, inputs, constants, sorted_operators,
-                    exception_state)) {
+  if (!graph->BuildImpl(named_outputs, inputs, constants, sorted_operators,
+                        exception_state)) {
     return nullptr;
   }
   return graph;

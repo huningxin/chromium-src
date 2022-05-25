@@ -7,13 +7,17 @@
 namespace blink {
 
 MLContextXnnpack::MLContextXnnpack(const V8MLDevicePreference device_preference,
-            const V8MLPowerPreference power_preference,
-            const unsigned int num_threads,
-            ML* ml) : MLContext(
-                device_preference,
+                                   const V8MLPowerPreference power_preference,
+                                   const unsigned int num_threads,
+                                   ML* ml)
+    : MLContext(device_preference,
                 power_preference,
-                V8MLModelFormat(V8MLModelFormat::Enum::kTflite), /*should move to model loader context*/
-                num_threads, ml), pthreadpool_(nullptr) {}
+                V8MLModelFormat(
+                    V8MLModelFormat::Enum::kTflite), /*should move to model
+                                                        loader context*/
+                num_threads,
+                ml),
+      pthreadpool_(nullptr) {}
 
 MLContextXnnpack::~MLContextXnnpack() {
   xnn_deinitialize();
@@ -37,4 +41,4 @@ pthreadpool_t MLContextXnnpack::Pthreadpool() const {
   return pthreadpool_;
 }
 
-}
+}  // namespace blink

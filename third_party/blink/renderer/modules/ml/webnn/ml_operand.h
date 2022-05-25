@@ -34,7 +34,7 @@ class MLOperand final : public ScriptWrappable {
   MLGraphBuilder* Builder() const;
   KindEnum Kind() const;
   void SetName(const String& name);
-  String Name() const;
+  const String& Name() const;
   void SetOperator(const MLOperator* ml_operator);
   const MLOperator* Operator() const;
   void SetType(const V8MLOperandType::Enum type);

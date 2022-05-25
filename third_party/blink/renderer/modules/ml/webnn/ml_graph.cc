@@ -17,4 +17,10 @@ void MLGraph::Trace(Visitor* visitor) const {
   ScriptWrappable::Trace(visitor);
 }
 
+void MLGraph::compute(const MLNamedArrayInputs& inputs,
+                      const MLNamedArrayOutputs& outputs,
+                      ExceptionState& exception_state) {
+  ComputeImpl(inputs, outputs, exception_state);
+}
+
 }  // namespace blink
