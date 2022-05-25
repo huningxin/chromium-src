@@ -70,7 +70,13 @@ class MLGraphXnnpack : public MLGraph {
                    ExceptionState&);
 
   std::vector<std::unique_ptr<char>> constant_data_;
-  HashMap<String, uint32_t> external_ids_;
+
+  struct TensorValueInfo {
+    uint32_t id;
+    size_t byte_length;
+  };
+  HashMap<String, TensorValueInfo> inputs_info_;
+  HashMap<String, TensorValueInfo> outputs_info_;
   xnn_runtime_t runtime_;
 };
 

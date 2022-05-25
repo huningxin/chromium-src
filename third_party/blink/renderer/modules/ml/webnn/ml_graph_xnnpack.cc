@@ -20,6 +20,52 @@
 
 namespace blink {
 
+namespace {
+
+String DataTypeToString(V8MLOperandType::Enum datatype) {
+  switch (datatype) {
+    case V8MLOperandType::Enum::kFloat32:
+      return "float32";
+    case V8MLOperandType::Enum::kFloat16:
+      return "float16";
+    case V8MLOperandType::Enum::kInt32:
+      return "int32";
+    case V8MLOperandType::Enum::kUint32:
+      return "uint32";
+    case V8MLOperandType::Enum::kInt8:
+      return "int8";
+    case V8MLOperandType::Enum::kUint8:
+      return "uint8";
+  }
+}
+
+size_t GetBytesPerElement(V8MLOperandType::Enum datatype) {
+  switch (datatype) {
+    case V8MLOperandType::Enum::kFloat32:
+      return 4;
+    case V8MLOperandType::Enum::kFloat16:
+      return 2;
+    case V8MLOperandType::Enum::kInt32:
+      return 4;
+    case V8MLOperandType::Enum::kUint32:
+      return 4;
+    case V8MLOperandType::Enum::kInt8:
+      return 1;
+    case V8MLOperandType::Enum::kUint8:
+      return 1;
+  }
+}
+
+size_t GetByteLength(const MLOperand* operand) {
+  size_t elements = 1;
+  for (auto& d : operand->Dimensions()) {
+    elements = elements * d;
+  }
+  return elements * GetBytesPerElement(operand->Type());
+}
+
+}  // namespace
+
 MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
     : MLGraph(context), runtime_(nullptr) {}
 
@@ -57,7 +103,10 @@ bool MLGraphXnnpack::BuildImpl(
                       true)) {
       return false;
     }
-    external_ids_.insert(input->Name(), input_id);
+    TensorValueInfo info = {0};
+    info.id = input_id;
+    info.byte_length = GetByteLength(input);
+    inputs_info_.insert(input->Name(), std::move(info));
   }
   for (auto& named_output : named_outputs) {
     auto* output = named_output.second.Get();
@@ -67,7 +116,10 @@ bool MLGraphXnnpack::BuildImpl(
                       true)) {
       return false;
     }
-    external_ids_.insert(named_output.first, output_id);
+    TensorValueInfo info = {0};
+    info.id = output_id;
+    info.byte_length = GetByteLength(output);
+    outputs_info_.insert(named_output.first, std::move(info));
   }
   for (auto* constant : constants) {
     if (!DefineTensor(subgraph.get(), tensors_map, constant, exception_state)) {
@@ -154,8 +206,9 @@ bool MLGraphXnnpack::DefineTensor(
   if (operand->Type() == V8MLOperandType::Enum::kFloat32) {
     data_type = xnn_datatype_fp32;
   } else {
-    exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                      "the data type is not supported");
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kNotSupportedError,
+        "the data type is not supported: " + DataTypeToString(operand->Type()));
     return false;
   }
   std::vector<size_t> dims;
@@ -295,16 +348,26 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
                                  const MLNamedArrayOutputs& outputs,
                                  ExceptionState& exception_state) {
   std::vector<xnn_external_value> external_values;
+  if (inputs.size() != inputs_info_.size()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The number of inputs is invalid");
+    return;
+  }
+  if (outputs.size() != outputs_info_.size()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The number of outputs is invalid");
+    return;
+  }
   for (const auto& input : inputs) {
-    auto iter = external_ids_.find(input.first);
-    if (iter == external_ids_.end()) {
+    auto iter = inputs_info_.find(input.first);
+    if (iter == inputs_info_.end()) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
           "There is unknown input: " + input.first);
       return;
     }
     xnn_external_value value = {0};
-    value.id = iter->value;
+    value.id = iter->value.id;
     DOMArrayBufferView* array_buffer_view = nullptr;
     if (input.second->IsArrayBufferView()) {
       array_buffer_view = input.second->GetAsArrayBufferView().Get();
@@ -313,27 +376,46 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
       array_buffer_view = ml_tensor->data().Get();
     }
     DCHECK(array_buffer_view != nullptr);
+    if (array_buffer_view->byteLength() < iter->value.byte_length) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "The input (" + input.first + ") buffer length is invalid.");
+      return;
+    }
     value.data = reinterpret_cast<char*>(array_buffer_view->BaseAddress()) +
                  array_buffer_view->byteOffset();
     external_values.push_back(value);
   }
   for (const auto& output : outputs) {
-    auto iter = external_ids_.find(output.first);
-    if (iter == external_ids_.end()) {
+    auto iter = outputs_info_.find(output.first);
+    if (iter == outputs_info_.end()) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
           "There is unknown output: " + output.first);
       return;
     }
     xnn_external_value value = {0};
-    value.id = iter->value;
+    value.id = iter->value.id;
     if (output.second->IsArrayBufferView()) {
       DOMArrayBufferView* array_buffer_view =
           output.second->GetAsArrayBufferView().Get();
+      if (array_buffer_view->byteLength() < iter->value.byte_length) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            "The output (" + output.first + ") buffer length is invalid.");
+        return;
+      }
       value.data = reinterpret_cast<char*>(array_buffer_view->BaseAddress()) +
                    array_buffer_view->byteOffset();
     } else if (output.second->IsArrayBuffer()) {
-      value.data = output.second->GetAsArrayBuffer()->Data();
+      DOMArrayBuffer* array_buffer = output.second->GetAsArrayBuffer();
+      if (array_buffer->ByteLength() < iter->value.byte_length) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            "The output (" + output.first + ") buffer length is invalid.");
+        return;
+      }
+      value.data = array_buffer->Data();
     }
     DCHECK(value.data);
     external_values.push_back(value);
