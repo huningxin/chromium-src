@@ -51,7 +51,7 @@ class MLGraph : public ScriptWrappable {
                            const MLNamedArrayOutputs& outputs,
                            ExceptionState& exception_state) = 0;
 
- private:
+ protected:
   Member<MLContext> ml_context_;
 };
 

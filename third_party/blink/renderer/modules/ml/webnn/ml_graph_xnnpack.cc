@@ -12,6 +12,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_tensor.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
+#include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
@@ -188,7 +189,11 @@ bool MLGraphXnnpack::BuildImpl(
         return false;
     }
   }
-  if (xnn_create_runtime(subgraph.get(), &runtime_) != xnn_status_success) {
+  uint32_t flags = XNN_FLAG_YIELD_WORKERS;
+  if (xnn_create_runtime_v2(
+          subgraph.get(),
+          static_cast<MLContextXnnpack*>(ml_context_.Get())->Pthreadpool(),
+          flags, &runtime_) != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
                                       "failed to create XNNPACK runtime");
     return false;
