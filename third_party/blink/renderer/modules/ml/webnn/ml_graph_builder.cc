@@ -51,6 +51,32 @@ bool BroadcastShape(Vector<int32_t> dims_input0,
   return true;
 }
 
+void CalculatePaddingForAutoPad(V8MLAutoPad::Enum autoPad,
+                                int32_t input_size,
+                                int32_t filter_size,
+                                int32_t stride,
+                                int32_t dilation,
+                                int32_t& padding_begin,
+                                int32_t& padding_end) {
+  int32_t out_size = (input_size + stride - 1) / stride;
+  int32_t dilated_filter = (filter_size - 1) * dilation + 1;
+  int32_t needed_input = (out_size - 1) * stride + dilated_filter;
+  int32_t total_padding =
+      needed_input > input_size ? needed_input - input_size : 0;
+  switch (autoPad) {
+    case V8MLAutoPad::Enum::kSameUpper:
+      padding_begin = total_padding / 2;
+      padding_end = (total_padding + 1) / 2;
+      break;
+    case V8MLAutoPad::Enum::kSameLower:
+      padding_begin = (total_padding + 1) / 2;
+      padding_end = total_padding / 2;
+      break;
+    default:
+      NOTREACHED();
+  }
+}
+
 }  // namespace
 
 // static
@@ -129,10 +155,131 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
                                   const MLOperand* filter,
                                   const MLConv2dOptions* options,
                                   ExceptionState& exception_state) {
-  // TODO(crbug.com/1273291): Implement this on operating systems to access
-  // hardware acceleration.
-  NOTIMPLEMENTED();
-  return MakeGarbageCollected<MLOperand>(this);
+  // Validate inputs and options
+  if (input->Type() != filter->Type()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "operand type is not consistent");
+    return nullptr;
+  }
+  auto input_shape = input->Dimensions();
+  if (input_shape.size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "input is not a 4-D tensor");
+    return nullptr;
+  }
+  auto filter_shape = filter->Dimensions();
+  if (filter_shape.size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "filter is not a 4-D tensor");
+    return nullptr;
+  }
+  if (options->hasBias() && options->bias()->Dimensions().size() != 1) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "bias is not a 1-D tensor");
+    return nullptr;
+  }
+  if (options->hasPadding() && options->padding().size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "the length of padding is not 4");
+    return nullptr;
+  }
+  auto padding = options->getPaddingOr({0, 0, 0, 0});
+  if (options->hasStrides() && options->strides().size() != 2) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "the length of strides is not 2");
+    return nullptr;
+  }
+  auto strides = options->getStridesOr({1, 1});
+  if (options->hasDilations() && options->dilations().size() != 2) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "the length of dilations is not 2");
+    return nullptr;
+  }
+  auto dilations = options->getDilationsOr({1, 1});
+  bool nchw = options->inputLayout() == V8MLInputOperandLayout::Enum::kNchw;
+  int32_t batch_size = input_shape[0];
+  int32_t input_height = nchw ? input_shape[2] : input_shape[1];
+  int32_t input_width = nchw ? input_shape[3] : input_shape[2];
+  int32_t input_channels = nchw ? input_shape[1] : input_shape[3];
+  int32_t filter_height = 0, filter_width = 0, output_channels = 0,
+          filter_depth_in = 0;
+  switch (options->filterLayout().AsEnum()) {
+    case V8MLConv2dFilterOperandLayout::Enum::kHwio:
+      filter_height = filter_shape[0];
+      filter_width = filter_shape[1];
+      output_channels = filter_shape[3];
+      filter_depth_in = filter_shape[2];
+      break;
+    case V8MLConv2dFilterOperandLayout::Enum::kOhwi:
+      filter_height = filter_shape[1];
+      filter_width = filter_shape[2];
+      output_channels = filter_shape[0];
+      filter_depth_in = filter_shape[3];
+      break;
+    case V8MLConv2dFilterOperandLayout::Enum::kIhwo:
+      filter_height = filter_shape[1];
+      filter_width = filter_shape[2];
+      output_channels = filter_shape[3];
+      filter_depth_in = filter_shape[0];
+      break;
+    case V8MLConv2dFilterOperandLayout::Enum::kOihw:
+      filter_height = filter_shape[2];
+      filter_width = filter_shape[3];
+      output_channels = filter_shape[0];
+      filter_depth_in = filter_shape[1];
+      break;
+  }
+  if (filter_depth_in != input_channels / options->groups()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The groups is invalid, it must evenly divides the input channels.");
+    return nullptr;
+  }
+
+  // Calculate output shape
+  int32_t padding_begin_height = padding[0], padding_end_height = padding[1],
+          padding_begin_width = padding[2], padding_end_width = padding[3];
+  int32_t stride_height = strides[0], stride_width = strides[1];
+  int32_t dilation_height = dilations[0], dilation_width = dilations[1];
+  if (options->autoPad().AsEnum() != V8MLAutoPad::Enum::kExplicit) {
+    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
+                               filter_height, stride_height, dilation_height,
+                               padding_begin_height, padding_end_height);
+    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                               filter_width, stride_width, dilation_width,
+                               padding_begin_width, padding_end_width);
+  }
+
+  int32_t dilated_filter_height = dilation_height * (filter_height - 1) + 1;
+  int32_t dilated_filter_width = dilation_width * (filter_width - 1) + 1;
+  int32_t output_height = 1 + (input_height - dilated_filter_height +
+                               padding_begin_height + padding_end_height) /
+                                  stride_height;
+  int32_t output_width = 1 + (input_width - dilated_filter_width +
+                              padding_begin_width + padding_end_width) /
+                                 stride_width;
+  Vector<int32_t> output_shape;
+  if (nchw) {
+    output_shape = {batch_size, output_channels, output_height, output_width};
+  } else {
+    output_shape = {batch_size, output_height, output_width, output_channels};
+  }
+  auto* conv2d =
+      MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kConv2d);
+  conv2d->Inputs().resize(2);
+  conv2d->Inputs()[0] = input;
+  conv2d->Inputs()[1] = filter;
+  if (options->hasBias()) {
+    conv2d->Inputs().push_back(options->bias());
+  }
+  conv2d->SetOptions(options);
+  auto* output = MakeGarbageCollected<MLOperand>(this);
+  output->SetType(input->Type());
+  output->SetDimensions(std::move(output_shape));
+  output->SetOperator(conv2d);
+  conv2d->Outputs().resize(1);
+  conv2d->Outputs()[0] = output;
+  return output;
 }
 
 MLOperand* MLGraphBuilder::gemm(const MLOperand* a,

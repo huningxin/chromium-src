@@ -362,6 +362,154 @@ bool MLGraphXnnpack::DefineConv2d(
     const MLOperator* conv2d,
     const MLConv2dOptions* options,
     ExceptionState& exception_state) {
+  auto* input = conv2d->Inputs()[0].Get();
+  DCHECK(tensors_map.find(input) != tensors_map.end());
+  uint32_t input_id = tensors_map.at(input);
+  auto* filter = conv2d->Inputs()[1].Get();
+  DCHECK(tensors_map.find(filter) != tensors_map.end());
+  uint32_t filter_id = tensors_map.at(filter);
+  uint32_t bias_id = XNN_INVALID_VALUE_ID;
+  if (conv2d->Inputs().size() == 3) {
+    auto* bias = conv2d->Inputs()[2].Get();
+    DCHECK(tensors_map.find(bias) != tensors_map.end());
+    bias_id = tensors_map.at(bias);
+  }
+  auto* output = conv2d->Outputs()[0].Get();
+  if (tensors_map.find(output) == tensors_map.end()) {
+    if (!DefineTensor(subgraph, tensors_map, output, exception_state)) {
+      return false;
+    }
+  }
+  uint32_t output_id = tensors_map.at(output);
+
+  uint32_t groups = options->groups();
+  uint32_t stride_height = options->hasStrides() ? options->strides()[0] : 1;
+  uint32_t stride_width = options->hasStrides() ? options->strides()[1] : 1;
+  uint32_t dilation_height =
+      options->hasDilations() ? options->dilations()[0] : 1;
+  uint32_t dilation_width =
+      options->hasDilations() ? options->dilations()[1] : 1;
+  size_t input_height, input_width;
+  uint32_t filter_height, filter_width;
+  size_t input_channels, output_channels;
+  bool depthwise = false;
+  if (options->inputLayout().AsEnum() == V8MLInputOperandLayout::Enum::kNhwc) {
+    input_height = input->Dimensions()[1];
+    input_width = input->Dimensions()[2];
+    input_channels = input->Dimensions()[3];
+    depthwise = (groups == input_channels);
+    if (!depthwise) {
+      // For regular conv2d, xnn pack expects weights layed out like (ohwi):
+      //   [groups * group_output_channels, kernel_height, kernel_width,
+      //   group_input_channels]
+      if (options->filterLayout().AsEnum() !=
+          V8MLConv2dFilterOperandLayout::Enum::kOhwi) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kNotSupportedError,
+            "only filter layout ohwi for conv2d is supported");
+        return false;
+      }
+    } else {
+      // For depthwise conv2d, xnn pack expects weights layed out like (ihwo):
+      //   [1, kernel_height, kernel_width, input_channels * depth_multiplier]
+      if (options->filterLayout().AsEnum() !=
+          V8MLConv2dFilterOperandLayout::Enum::kIhwo) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kNotSupportedError,
+            "only filter layout ihwo for depthwise conv2d is supported");
+        return false;
+      }
+    }
+    filter_height = filter->Dimensions()[1];
+    filter_width = filter->Dimensions()[2];
+    output_channels = output->Dimensions()[3];
+  } else {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kNotSupportedError,
+        "only input layout nhwc for conv2d is supported");
+    return false;
+  }
+  size_t group_input_channels = input_channels / groups;
+  size_t group_output_channels = output_channels / groups;
+
+  size_t output_height, output_width;
+  uint32_t pad_top, pad_bottom, pad_left, pad_right;
+  if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kExplicit) {
+    // WebNN padding: [beginning_height, ending_height, beginning_width,
+    // ending_width]
+    pad_top = options->hasPadding() ? options->padding()[0] : 0;
+    pad_bottom = options->hasPadding() ? options->padding()[1] : 0;
+    pad_left = options->hasPadding() ? options->padding()[2] : 0;
+    pad_right = options->hasPadding() ? options->padding()[3] : 0;
+  } else {
+    output_height = ceil(input_height / stride_height);
+    output_width = ceil(input_width / stride_width);
+    uint32_t pad_along_height = static_cast<uint32_t>(std::max(
+        size_t(0),
+        (output_height - 1) * stride_height + filter_height - input_height));
+    uint32_t pad_along_width = static_cast<uint32_t>(std::max(
+        size_t(0),
+        (output_width - 1) * stride_width + filter_width - input_width));
+    if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kSameUpper) {
+      pad_top = floor(pad_along_height / 2);
+      pad_bottom = pad_along_height - pad_top;
+      pad_left = floor(pad_along_width / 2);
+      pad_right = pad_along_width - pad_left;
+    } else {
+      pad_bottom = floor(pad_along_height / 2);
+      pad_top = pad_along_height - pad_bottom;
+      pad_right = floor(pad_along_width / 2);
+      pad_left = pad_along_width - pad_right;
+    }
+  }
+
+  float output_min = -std::numeric_limits<float>::infinity();
+  float output_max = +std::numeric_limits<float>::infinity();
+  if (options->hasActivation()) {
+    switch (options->activation()->Kind()) {
+      case MLOperator::OpKind::kClamp: {
+        const MLClampOptions* clamp_options =
+            static_cast<const MLClampOptions*>(
+                options->activation()->Options());
+        if (clamp_options->hasMinValue()) {
+          output_min = clamp_options->minValue();
+        }
+        if (clamp_options->hasMaxValue()) {
+          output_max = clamp_options->maxValue();
+        }
+        break;
+      }
+      case MLOperator::OpKind::kRelu:
+        output_min = 0.0f;
+        output_max = std::numeric_limits<float>::infinity();
+        break;
+      default:
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kNotSupportedError,
+            "only clamp and relu fused operator are supported");
+        return false;
+    }
+  }
+  xnn_status status;
+  if (depthwise) {
+    status = xnn_define_depthwise_convolution_2d(
+        subgraph, pad_top, pad_right, pad_bottom, pad_left, filter_height,
+        filter_width, stride_height, stride_width, dilation_height,
+        dilation_width, 1, input_channels, output_min, output_max, input_id,
+        filter_id, bias_id, output_id, 0);
+  } else {
+    status = xnn_define_convolution_2d(
+        subgraph, pad_top, pad_right, pad_bottom, pad_left, filter_height,
+        filter_width, stride_height, stride_width, dilation_height,
+        dilation_width, groups, group_input_channels, group_output_channels,
+        output_min, output_max, input_id, filter_id, bias_id, output_id, 0);
+  }
+  if (status != xnn_status_success) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "failed to define conv2d: " + XnnStatusToString(status));
+    return false;
+  }
   return true;
 }
 
