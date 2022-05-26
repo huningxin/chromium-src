@@ -389,9 +389,9 @@ bool MLGraphXnnpack::DefineBinary(
   }
   if (status != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to define operator (" +
+                                      "failed to define " +
                                           OpKindToString(binary->Kind()) +
-                                          "): " + XnnStatusToString(status));
+                                          ": " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -420,6 +420,35 @@ bool MLGraphXnnpack::DefineReshape(
     std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
     const MLOperator* reshape,
     ExceptionState& exception_state) {
+  auto* input = reshape->Inputs()[0].Get();
+  DCHECK(tensors_map.find(input) != tensors_map.end());
+  uint32_t input_id = tensors_map.at(input);
+  auto* output = reshape->Outputs()[0].Get();
+  std::vector<size_t> new_sizes;
+  for (auto& d : output->Dimensions()) {
+    new_sizes.push_back(static_cast<size_t>(d));
+  }
+  if (new_sizes.size() > XNN_MAX_TENSOR_DIMS) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The rank of new shape is not supported.");
+    return false;
+  }
+  if (tensors_map.find(output) == tensors_map.end()) {
+    if (!DefineTensor(subgraph, tensors_map, output, exception_state)) {
+      return false;
+    }
+  }
+  uint32_t output_id = tensors_map.at(output);
+  xnn_status status = xnn_status_success;
+  if ((status = xnn_define_static_reshape(subgraph, new_sizes.size(),
+                                          new_sizes.data(), input_id, output_id,
+                                          0)) != xnn_status_success) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "failed to define reshape: " + XnnStatusToString(status));
+    return false;
+  }
   return true;
 }
 
@@ -449,9 +478,9 @@ bool MLGraphXnnpack::DefineUnary(
   }
   if (status != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to define operator (" +
-                                          OpKindToString(unary->Kind()) +
-                                          "): " + XnnStatusToString(status));
+                                      "failed to define " +
+                                          OpKindToString(unary->Kind()) + ": " +
+                                          XnnStatusToString(status));
     return false;
   }
   return true;
