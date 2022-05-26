@@ -286,10 +286,79 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
                                 const MLOperand* b,
                                 const MLGemmOptions* options,
                                 ExceptionState& exception_state) {
-  // TODO(crbug.com/1273291): Implement this on operating systems to access
-  // hardware acceleration.
-  NOTIMPLEMENTED();
-  return MakeGarbageCollected<MLOperand>(this);
+  if (a->Type() != b->Type()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "Input types are inconsistent.");
+    return nullptr;
+  }
+  // The first input 2-D tensor with shape [M, K] if aTranspose is false, or [K,
+  // M] if aTranspose is true. The second input 2-D tensor with shape [K, N] if
+  // bTranspose is false, or [N, K] if bTranspose is true.
+  auto shape_a = a->Dimensions();
+  if (shape_a.size() != 2) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "input a is not a 2-D tensor");
+    return nullptr;
+  }
+  auto shape_b = b->Dimensions();
+  if (shape_b.size() != 2) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "input b is not a 2-D tensor");
+    return nullptr;
+  }
+  bool is_valid_shape = (options->aTranspose() ? shape_a[0] : shape_a[1]) ==
+                        (options->bTranspose() ? shape_b[1] : shape_b[0]);
+  if (!is_valid_shape) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The shape of two inputs are invalid for matrix multiplication.");
+    return nullptr;
+  }
+  Vector<int32_t> shape_output = {
+      options->aTranspose() ? shape_a[1] : shape_a[0],
+      options->bTranspose() ? shape_b[0] : shape_b[1]};
+  // The third input tensor c is either a scalar, or of the shape that is
+  // unidirectionally broadcastable to the shape [M, N].
+  if (options->hasC()) {
+    auto* c = options->c();
+    if (c->Type() != a->Type()) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The type of input c is invalid.");
+      return nullptr;
+    }
+    auto shape_c = options->c()->Dimensions();
+    if (shape_c.size() > 2) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The shape of input c is invalid.");
+      return nullptr;
+    }
+
+    for (int32_t i = shape_c.size() - 1, j = shape_output.size() - 1;
+         i >= 0 && j >= 0; --i, --j) {
+      if (shape_c[i] != shape_output[j] && shape_c[i] != 1) {
+        exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                          "The shape of input c is invalid.");
+        return nullptr;
+      }
+    }
+  }
+
+  auto* gemm =
+      MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kGemm);
+  gemm->Inputs().resize(2);
+  gemm->Inputs()[0] = a;
+  gemm->Inputs()[1] = b;
+  if (options->hasC()) {
+    gemm->Inputs().push_back(options->c());
+  }
+  gemm->SetOptions(options);
+  auto* output = MakeGarbageCollected<MLOperand>(this);
+  output->SetType(a->Type());
+  output->SetDimensions(std::move(shape_output));
+  output->SetOperator(gemm);
+  gemm->Outputs().resize(1);
+  gemm->Outputs()[0] = output;
+  return output;
 }
 
 MLOperand* MLGraphBuilder::averagePool2d(const MLOperand* input,
@@ -387,14 +456,14 @@ MLOperand* MLGraphBuilder::BuildElementWiseBinary(
     const MLOperand* b,
     ExceptionState& exception_state) {
   if (a->Type() != b->Type()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kConstraintError,
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "Input types are inconsistent.");
     return nullptr;
   }
   Vector<int32_t> dims_output;
   if (!BroadcastShape(a->Dimensions(), b->Dimensions(), dims_output)) {
     exception_state.ThrowDOMException(
-        DOMExceptionCode::kConstraintError,
+        DOMExceptionCode::kDataError,
         "Input shapes are not broadcast compatible.");
     return nullptr;
   }
