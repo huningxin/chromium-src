@@ -154,6 +154,16 @@ MLOperand* MLGraphBuilder::averagePool2d(const MLOperand* input,
   return MakeGarbageCollected<MLOperand>(this);
 }
 
+MLOperand* MLGraphBuilder::relu(const MLOperand* input,
+                                ExceptionState& exception_state) {
+  return BuildElementWiseUnary(MLOperator::OpKind::kRelu, input,
+                               exception_state);
+}
+
+MLOperator* MLGraphBuilder::relu(ExceptionState& exception_state) {
+  return MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kRelu);
+}
+
 MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
                                    const Vector<int32_t>& new_shape,
                                    ExceptionState& exception_state) {
