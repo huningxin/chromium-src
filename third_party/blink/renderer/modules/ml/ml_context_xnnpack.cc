@@ -6,15 +6,10 @@
 
 namespace blink {
 
-MLContextXnnpack::MLContextXnnpack(const V8MLDevicePreference device_preference,
-                                   const V8MLPowerPreference power_preference,
-                                   const unsigned int num_threads,
-                                   ML* ml)
-    : MLContext(device_preference,
-                power_preference,
-                V8MLModelFormat(
-                    V8MLModelFormat::Enum::kTflite), /*should move to model
-                                                        loader context*/
+MLContextXnnpack::MLContextXnnpack(const unsigned int num_threads, ML* ml)
+    : MLContext(V8MLDevicePreference(V8MLDevicePreference::Enum::kCpu),
+                V8MLPowerPreference(V8MLPowerPreference::Enum::kAuto),
+                V8MLModelFormat(V8MLModelFormat::Enum::kTflite),
                 num_threads,
                 ml),
       pthreadpool_(nullptr) {}

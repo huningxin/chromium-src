@@ -62,19 +62,27 @@ ScriptPromise ML::createContext(ScriptState* script_state,
   // supportable or not. At that time, this function will be truly asynced.
 
   MLContext* ml_context;
-  if (!option->hasModelFormat() &&
-      option->devicePreference().AsEnum() == V8MLDevicePreference::Enum::kCpu) {
-    // Create XNNPACK backed MLContext for WebNN
-    MLContextXnnpack* ml_context_xnnpack =
-        MakeGarbageCollected<MLContextXnnpack>(option->devicePreference(),
-                                               option->powerPreference(),
-                                               option->numThreads(), this);
-    if (!ml_context_xnnpack->Initialize()) {
+  if (option->type() == V8MLContextType::Enum::kWebnn) {
+    // Create MLContext for WebNN
+    if (option->devicePreference().AsEnum() ==
+            V8MLDevicePreference::Enum::kAuto ||
+        option->devicePreference().AsEnum() ==
+            V8MLDevicePreference::Enum::kCpu) {
+      // Create XNNPACK backed MLContext for WebNN
+      MLContextXnnpack* ml_context_xnnpack =
+          MakeGarbageCollected<MLContextXnnpack>(option->numThreads(), this);
+      if (!ml_context_xnnpack->Initialize()) {
+        resolver->Reject(MakeGarbageCollected<DOMException>(
+            DOMExceptionCode::kOperationError, "failed to initialize XNNPACK"));
+        return promise;
+      }
+      ml_context = ml_context_xnnpack;
+    } else {
       resolver->Reject(MakeGarbageCollected<DOMException>(
-          DOMExceptionCode::kOperationError, "failed to initialize XNNPACK"));
+          DOMExceptionCode::kNotSupportedError,
+          "GPU device type is not supported"));
       return promise;
     }
-    ml_context = ml_context_xnnpack;
   } else {
     // Create MLContext for Model Loader
     ml_context = MakeGarbageCollected<MLContext>(
