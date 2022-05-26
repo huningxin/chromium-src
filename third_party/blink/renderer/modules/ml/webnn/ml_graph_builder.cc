@@ -96,28 +96,8 @@ MLOperand* MLGraphBuilder::constant(const MLOperandDescriptor* desc,
 MLOperand* MLGraphBuilder::add(const MLOperand* a,
                                const MLOperand* b,
                                ExceptionState& exception_state) {
-  if (a->Type() != b->Type()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kConstraintError,
-                                      "Input types are inconsistent.");
-    return nullptr;
-  }
-  Vector<int32_t> dims_output;
-  if (!BroadcastShape(a->Dimensions(), b->Dimensions(), dims_output)) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kConstraintError,
-                                      "Input shapes are not incompatible.");
-    return nullptr;
-  }
-  auto* add = MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kAdd);
-  add->Inputs().resize(2);
-  add->Inputs()[0] = a;
-  add->Inputs()[1] = b;
-  auto* c = MakeGarbageCollected<MLOperand>(this);
-  c->SetType(a->Type());
-  c->SetDimensions(std::move(dims_output));
-  c->SetOperator(add);
-  add->Outputs().resize(1);
-  add->Outputs()[0] = c;
-  return c;
+  return BuildElementWiseBinary(MLOperator::OpKind::kAdd, a, b,
+                                exception_state);
 }
 
 MLOperand* MLGraphBuilder::clamp(const MLOperand* input,
@@ -185,16 +165,53 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
 
 MLOperand* MLGraphBuilder::softmax(const MLOperand* input,
                                    ExceptionState& exception_state) {
-  auto* softmax =
-      MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kSoftmax);
-  softmax->Inputs().resize(1);
-  softmax->Inputs()[0] = input;
+  return BuildElementWiseUnary(MLOperator::OpKind::kSoftmax, input,
+                               exception_state);
+}
+
+MLOperand* MLGraphBuilder::BuildElementWiseBinary(
+    MLOperator::OpKind kind,
+    const MLOperand* a,
+    const MLOperand* b,
+    ExceptionState& exception_state) {
+  if (a->Type() != b->Type()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kConstraintError,
+                                      "Input types are inconsistent.");
+    return nullptr;
+  }
+  Vector<int32_t> dims_output;
+  if (!BroadcastShape(a->Dimensions(), b->Dimensions(), dims_output)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kConstraintError,
+        "Input shapes are not broadcast compatible.");
+    return nullptr;
+  }
+  auto* binary = MakeGarbageCollected<MLOperator>(this, kind);
+  binary->Inputs().resize(2);
+  binary->Inputs()[0] = a;
+  binary->Inputs()[1] = b;
+  auto* c = MakeGarbageCollected<MLOperand>(this);
+  c->SetType(a->Type());
+  c->SetDimensions(std::move(dims_output));
+  c->SetOperator(binary);
+  binary->Outputs().resize(1);
+  binary->Outputs()[0] = c;
+  return c;
+}
+
+MLOperand* MLGraphBuilder::BuildElementWiseUnary(
+    MLOperator::OpKind kind,
+    const MLOperand* input,
+    ExceptionState& exception_state) {
+  auto* unary = MakeGarbageCollected<MLOperator>(this, kind);
+  unary->Inputs().resize(1);
+  unary->Inputs()[0] = input;
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(input->Type());
   output->SetDimensions(input->Dimensions());
-  output->SetOperator(softmax);
-  softmax->Outputs().resize(1);
-  softmax->Outputs()[0] = output;
+  output->SetOperator(unary);
+  unary->Outputs().resize(1);
+  unary->Outputs()[0] = output;
   return output;
 }
 

@@ -428,6 +428,32 @@ bool MLGraphXnnpack::DefineUnary(
     std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
     const MLOperator* unary,
     ExceptionState& exception_state) {
+  auto* input = unary->Inputs()[0].Get();
+  DCHECK(tensors_map.find(input) != tensors_map.end());
+  uint32_t input_id = tensors_map.at(input);
+  auto* output = unary->Outputs()[0].Get();
+  if (tensors_map.find(output) == tensors_map.end()) {
+    if (!DefineTensor(subgraph, tensors_map, output, exception_state)) {
+      return false;
+    }
+  }
+  uint32_t output_id = tensors_map.at(output);
+  xnn_status status = xnn_status_success;
+  switch (unary->Kind()) {
+    case MLOperator::OpKind::kSoftmax: {
+      status = xnn_define_softmax(subgraph, input_id, output_id, 0);
+      break;
+    }
+    default:
+      NOTREACHED();
+  }
+  if (status != xnn_status_success) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                      "failed to define operator (" +
+                                          OpKindToString(unary->Kind()) +
+                                          "): " + XnnStatusToString(status));
+    return false;
+  }
   return true;
 }
 
