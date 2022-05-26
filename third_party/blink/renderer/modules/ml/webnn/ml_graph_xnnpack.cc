@@ -40,6 +40,44 @@ String DataTypeToString(V8MLOperandType::Enum datatype) {
   }
 }
 
+String OpKindToString(MLOperator::OpKind kind) {
+  switch (kind) {
+    case MLOperator::OpKind::kClamp:
+      return "clamp";
+    case MLOperator::OpKind::kConv2d:
+      return "conv2d";
+    case MLOperator::OpKind::kAdd:
+      return "add";
+    case MLOperator::OpKind::kGemm:
+      return "gemm";
+    case MLOperator::OpKind::kAveragePool2d:
+      return "averagePool2d";
+    case MLOperator::OpKind::kReshape:
+      return "reshape";
+    case MLOperator::OpKind::kSoftmax:
+      return "softmax";
+  }
+}
+
+String XnnStatusToString(xnn_status status) {
+  switch (status) {
+    case xnn_status_success:
+      return "xnn_status_success";
+    case xnn_status_uninitialized:
+      return "xnn_status_uninitialized";
+    case xnn_status_invalid_parameter:
+      return "xnn_status_invalid_parameter";
+    case xnn_status_invalid_state:
+      return "xnn_status_invalid_state";
+    case xnn_status_unsupported_parameter:
+      return "xnn_status_unsupported_parameter";
+    case xnn_status_unsupported_hardware:
+      return "xnn_status_unsupported_hardware";
+    case xnn_status_out_of_memory:
+      return "xnn_status_out_of_memory";
+  }
+}
+
 size_t GetBytesPerElement(V8MLOperandType::Enum datatype) {
   switch (datatype) {
     case V8MLOperandType::Enum::kFloat32:
@@ -85,10 +123,12 @@ bool MLGraphXnnpack::BuildImpl(
   uint32_t externals_size =
       static_cast<uint32_t>(named_outputs.size() + inputs.size());
   xnn_subgraph_t subgraph_ptr = nullptr;
-  if (xnn_create_subgraph(externals_size, 0, &subgraph_ptr) !=
+  xnn_status status;
+  if ((status = xnn_create_subgraph(externals_size, 0, &subgraph_ptr)) !=
       xnn_status_success) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to create XNNPACK subgraph");
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "failed to create XNNPACK subgraph: " + XnnStatusToString(status));
     return false;
   }
 
@@ -185,7 +225,9 @@ bool MLGraphXnnpack::BuildImpl(
       }
       default:
         exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                          "the operator is not supported");
+                                          "the operator (" +
+                                              OpKindToString(op->Kind()) +
+                                              ") is not supported");
         return false;
     }
   }
@@ -211,16 +253,18 @@ bool MLGraphXnnpack::DefineTensor(
   if (operand->Type() == V8MLOperandType::Enum::kFloat32) {
     data_type = xnn_datatype_fp32;
   } else {
-    exception_state.ThrowDOMException(
-        DOMExceptionCode::kNotSupportedError,
-        "the data type is not supported: " + DataTypeToString(operand->Type()));
+    exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                      "the data type (" +
+                                          DataTypeToString(operand->Type()) +
+                                          ") is not supported");
     return false;
   }
   std::vector<size_t> dims;
   for (auto& d : operand->Dimensions()) {
     if (d < 0) {
-      exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                        "the dimension is not supported");
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kNotSupportedError,
+          "the negative dimension is not supported");
       return false;
     }
     dims.push_back(static_cast<size_t>(d));
@@ -253,11 +297,13 @@ bool MLGraphXnnpack::DefineTensor(
     }
   }
   uint32_t tensor_id;
-  if (xnn_define_tensor_value(subgraph, data_type, dims.size(), dims.data(),
-                              data.get(), external_id, flags,
-                              &tensor_id) != xnn_status_success) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to define tensor value");
+  xnn_status status;
+  if ((status = xnn_define_tensor_value(
+           subgraph, data_type, dims.size(), dims.data(), data.get(),
+           external_id, flags, &tensor_id)) != xnn_status_success) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "failed to define tensor value: " + XnnStatusToString(status));
     return false;
   }
   if (data) {
@@ -291,10 +337,12 @@ bool MLGraphXnnpack::DefineClamp(
   const float output_max = options->hasMaxValue()
                                ? options->maxValue()
                                : +std::numeric_limits<float>::infinity();
-  if (xnn_define_clamp(subgraph, output_min, output_max, input_id, output_id,
-                       0) != xnn_status_success) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to define clamp");
+  xnn_status status;
+  if ((status = xnn_define_clamp(subgraph, output_min, output_max, input_id,
+                                 output_id, 0)) != xnn_status_success) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "failed to define clamp: " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -308,13 +356,47 @@ bool MLGraphXnnpack::DefineConv2d(
     ExceptionState& exception_state) {
   return true;
 }
+
 bool MLGraphXnnpack::DefineBinary(
     xnn_subgraph_t subgraph,
     std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
     const MLOperator* binary,
     ExceptionState& exception_state) {
+  auto* input0 = binary->Inputs()[0].Get();
+  DCHECK(tensors_map.find(input0) != tensors_map.end());
+  uint32_t input0_id = tensors_map.at(input0);
+  auto* input1 = binary->Inputs()[1].Get();
+  DCHECK(tensors_map.find(input1) != tensors_map.end());
+  uint32_t input1_id = tensors_map.at(input1);
+  auto* output = binary->Outputs()[0].Get();
+  if (tensors_map.find(output) == tensors_map.end()) {
+    if (!DefineTensor(subgraph, tensors_map, output, exception_state)) {
+      return false;
+    }
+  }
+  uint32_t output_id = tensors_map.at(output);
+  const float output_min = -std::numeric_limits<float>::infinity();
+  const float output_max = +std::numeric_limits<float>::infinity();
+  xnn_status status = xnn_status_success;
+  switch (binary->Kind()) {
+    case MLOperator::OpKind::kAdd: {
+      status = xnn_define_add2(subgraph, output_min, output_max, input0_id,
+                               input1_id, output_id, 0);
+      break;
+    }
+    default:
+      NOTREACHED();
+  }
+  if (status != xnn_status_success) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                      "failed to define operator (" +
+                                          OpKindToString(binary->Kind()) +
+                                          "): " + XnnStatusToString(status));
+    return false;
+  }
   return true;
 }
+
 bool MLGraphXnnpack::DefineGemm(
     xnn_subgraph_t subgraph,
     std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
