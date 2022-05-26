@@ -559,6 +559,66 @@ bool MLGraphXnnpack::DefineGemm(
     const MLOperator* gemm,
     const MLGemmOptions* options,
     ExceptionState& exception_state) {
+  auto* input = gemm->Inputs()[0].Get();
+  DCHECK(tensors_map.find(input) != tensors_map.end());
+  uint32_t input_id = tensors_map.at(input);
+  auto* filter = gemm->Inputs()[1].Get();
+  if (filter->Kind() != MLOperand::KindEnum::kConstant) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                      "only constant input b is supported");
+    return false;
+  }
+  DCHECK(tensors_map.find(filter) != tensors_map.end());
+  uint32_t filter_id = tensors_map.at(filter);
+  auto* output = gemm->Outputs()[0].Get();
+  uint32_t bias_id = XNN_INVALID_VALUE_ID;
+  if (gemm->Inputs().size() == 3) {
+    auto* bias = gemm->Inputs()[2].Get();
+    if (bias->Dimensions().size() != 1 ||
+        bias->Dimensions()[0] != output->Dimensions()[1]) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                        "the bias shape is invalid");
+      return false;
+    }
+    DCHECK(tensors_map.find(bias) != tensors_map.end());
+    bias_id = tensors_map.at(bias);
+  }
+  if (fabs(options->alpha() - 1.0f) > std::numeric_limits<float>::epsilon()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                      "alpha is not supported");
+    return false;
+  }
+  if (fabs(options->beta() - 1.0f) > std::numeric_limits<float>::epsilon()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                      "beta is not supported");
+    return false;
+  }
+  if (options->aTranspose()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                      "aTranspose is not supported");
+    return false;
+  }
+  uint32_t flags = 0;
+  if (!options->bTranspose()) {
+    flags = XNN_FLAG_TRANSPOSE_WEIGHTS;
+  }
+  if (tensors_map.find(output) == tensors_map.end()) {
+    if (!DefineTensor(subgraph, tensors_map, output, exception_state)) {
+      return false;
+    }
+  }
+  uint32_t output_id = tensors_map.at(output);
+  const float output_min = -std::numeric_limits<float>::infinity();
+  const float output_max = +std::numeric_limits<float>::infinity();
+  xnn_status status;
+  if ((status = xnn_define_fully_connected(
+           subgraph, output_min, output_max, input_id, filter_id, bias_id,
+           output_id, flags)) != xnn_status_success) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "failed to define gemm: " + XnnStatusToString(status));
+    return false;
+  }
   return true;
 }
 
