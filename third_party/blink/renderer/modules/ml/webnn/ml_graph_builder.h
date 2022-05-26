@@ -72,6 +72,9 @@ class MLGraphBuilder final : public ScriptWrappable {
                            const MLPool2dOptions*,
                            ExceptionState&);
 
+  MLOperand* relu(const MLOperand*, ExceptionState&);
+  MLOperator* relu(ExceptionState&);
+
   MLOperand* reshape(const MLOperand*, const Vector<int32_t>&, ExceptionState&);
 
   MLOperand* softmax(const MLOperand*, ExceptionState&);

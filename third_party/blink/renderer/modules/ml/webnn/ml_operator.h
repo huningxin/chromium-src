@@ -29,6 +29,7 @@ class MLOperator : public ScriptWrappable {
     kGemm,
     // Pooling operations
     kAveragePool2d,
+    kRelu,
     kReshape,
     kSoftmax
   };

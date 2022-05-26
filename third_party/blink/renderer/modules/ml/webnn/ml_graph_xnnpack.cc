@@ -52,6 +52,8 @@ String OpKindToString(MLOperator::OpKind kind) {
       return "gemm";
     case MLOperator::OpKind::kAveragePool2d:
       return "averagePool2d";
+    case MLOperator::OpKind::kRelu:
+      return "relu";
     case MLOperator::OpKind::kReshape:
       return "reshape";
     case MLOperator::OpKind::kSoftmax:
@@ -207,6 +209,12 @@ bool MLGraphXnnpack::BuildImpl(
             static_cast<const MLPool2dOptions*>(op->Options());
         if (!DefinePool2d(subgraph.get(), tensors_map, op, options,
                           exception_state)) {
+          return false;
+        }
+        break;
+      }
+      case MLOperator::OpKind::kRelu: {
+        if (!DefineUnary(subgraph.get(), tensors_map, op, exception_state)) {
           return false;
         }
         break;
@@ -469,6 +477,12 @@ bool MLGraphXnnpack::DefineUnary(
   uint32_t output_id = tensors_map.at(output);
   xnn_status status = xnn_status_success;
   switch (unary->Kind()) {
+    case MLOperator::OpKind::kRelu: {
+      status = xnn_define_clamp(subgraph, 0.0f,
+                                std::numeric_limits<float>::infinity(),
+                                input_id, output_id, 0);
+      break;
+    }
     case MLOperator::OpKind::kSoftmax: {
       status = xnn_define_softmax(subgraph, input_id, output_id, 0);
       break;
