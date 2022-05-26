@@ -157,10 +157,65 @@ MLOperand* MLGraphBuilder::averagePool2d(const MLOperand* input,
 MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
                                    const Vector<int32_t>& new_shape,
                                    ExceptionState& exception_state) {
-  // TODO(crbug.com/1273291): Implement this on operating systems to access
-  // hardware acceleration.
-  NOTIMPLEMENTED();
-  return MakeGarbageCollected<MLOperand>(this);
+  bool has_minus1 = false;
+  // Only one component of newShape can be the special value of -1
+  for (auto i : new_shape) {
+    if (i < -1 || i == 0) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "new shape is invalid");
+      return nullptr;
+    } else if (i == -1) {
+      if (has_minus1) {
+        exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                          "new shape is invalid");
+        return nullptr;
+      }
+      has_minus1 = true;
+    }
+  }
+  auto input_shape = input->Dimensions();
+  uint32_t input_size = 1, capacity = 1;
+  for (auto dim : input_shape) {
+    input_size *= dim;
+  }
+  int minus1_dim_idx = -1;
+  has_minus1 = false;
+  Vector<int32_t> output_shape(new_shape.size());
+  for (wtf_size_t i = 0; i < new_shape.size(); ++i) {
+    int32_t dim = new_shape[i];
+    if (dim == -1) {
+      minus1_dim_idx = i;
+      has_minus1 = true;
+    } else {
+      capacity *= dim;
+      output_shape[i] = dim;
+    }
+  }
+
+  // The size of the dimension with the value -1 is computed so that the total
+  // size remains constant.
+  if (has_minus1) {
+    output_shape[minus1_dim_idx] = input_size / capacity;
+  } else {
+    // The number of elements implied by newShape must be the same as the number
+    // of elements in the input tensor.
+    if (input_size != capacity) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "new shape is invalid");
+      return nullptr;
+    }
+  }
+  auto* reshape =
+      MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kReshape);
+  reshape->Inputs().resize(1);
+  reshape->Inputs()[0] = input;
+  auto* output = MakeGarbageCollected<MLOperand>(this);
+  output->SetType(input->Type());
+  output->SetDimensions(std::move(output_shape));
+  output->SetOperator(reshape);
+  reshape->Outputs().resize(1);
+  reshape->Outputs()[0] = output;
+  return output;
 }
 
 MLOperand* MLGraphBuilder::softmax(const MLOperand* input,
