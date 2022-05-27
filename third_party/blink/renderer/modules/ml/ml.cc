@@ -44,19 +44,14 @@ void ML::Trace(Visitor* visitor) const {
   ScriptWrappable::Trace(visitor);
 }
 
-ScriptPromise ML::createContext(ScriptState* script_state,
-                                MLContextOptions* option,
-                                ExceptionState& exception_state) {
+MLContext* ML::createContext(ScriptState* script_state,
+                             MLContextOptions* option,
+                             ExceptionState& exception_state) {
   if (!script_state->ContextIsValid()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
                                       "Invalid script state");
-    return ScriptPromise();
+    return nullptr;
   }
-
-  ScriptPromiseResolver* resolver =
-      MakeGarbageCollected<ScriptPromiseResolver>(script_state);
-
-  auto promise = resolver->Promise();
 
   // Notice that currently, we just create the context in the renderer. In the
   // future we may add backend query ability to check whether a context is
@@ -73,9 +68,9 @@ ScriptPromise ML::createContext(ScriptState* script_state,
       MLContextXnnpack* ml_context_xnnpack =
           MakeGarbageCollected<MLContextXnnpack>(option->numThreads(), this);
       if (!ml_context_xnnpack->Initialize()) {
-        resolver->Reject(MakeGarbageCollected<DOMException>(
-            DOMExceptionCode::kOperationError, "failed to initialize XNNPACK"));
-        return promise;
+        exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                          "failed to initialize XNNPACK");
+        return nullptr;
       }
       execution_context_->AddConsoleMessage(
           MakeGarbageCollected<ConsoleMessage>(
@@ -86,10 +81,9 @@ ScriptPromise ML::createContext(ScriptState* script_state,
                       ml_context_xnnpack->Pthreadpool()))));
       ml_context = ml_context_xnnpack;
     } else {
-      resolver->Reject(MakeGarbageCollected<DOMException>(
-          DOMExceptionCode::kNotSupportedError,
-          "GPU device type is not supported"));
-      return promise;
+      exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                        "GPU device type is not supported yet");
+      return nullptr;
     }
   } else {
     // Create MLContext for Model Loader
@@ -97,9 +91,7 @@ ScriptPromise ML::createContext(ScriptState* script_state,
         option->devicePreference(), option->powerPreference(),
         option->modelFormat(), option->numThreads(), this);
   }
-  resolver->Resolve(ml_context);
-
-  return promise;
+  return ml_context;
 }
 
 bool ML::BootstrapMojoConnectionIfNeeded(ScriptState* script_state,
