@@ -4,6 +4,8 @@
 
 #include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 
+#include <thread>
+
 namespace blink {
 
 MLContextXnnpack::MLContextXnnpack(const unsigned int num_threads, ML* ml)
@@ -25,7 +27,12 @@ bool MLContextXnnpack::Initialize() {
   if (xnn_initialize(NULL) != xnn_status_success) {
     return false;
   }
-  pthreadpool_ = pthreadpool_create(num_threads_);
+
+  uint32_t num_cores = std::thread::hardware_concurrency() / 2;
+  size_t num_threads = num_threads_ == 0          ? num_cores
+                       : num_threads_ > num_cores ? num_cores
+                                                  : num_threads_;
+  pthreadpool_ = pthreadpool_create(num_threads);
   if (pthreadpool_ == nullptr) {
     return false;
   }

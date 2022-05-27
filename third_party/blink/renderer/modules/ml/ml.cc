@@ -8,6 +8,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_context_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
+#include "third_party/blink/renderer/core/inspector/console_message.h"
 #include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
@@ -76,6 +77,13 @@ ScriptPromise ML::createContext(ScriptState* script_state,
             DOMExceptionCode::kOperationError, "failed to initialize XNNPACK"));
         return promise;
       }
+      execution_context_->AddConsoleMessage(
+          MakeGarbageCollected<ConsoleMessage>(
+              mojom::blink::ConsoleMessageSource::kJavaScript,
+              mojom::blink::ConsoleMessageLevel::kInfo,
+              "WebNN MLContext created pthreadpool with threads count: " +
+                  String::Number(pthreadpool_get_threads_count(
+                      ml_context_xnnpack->Pthreadpool()))));
       ml_context = ml_context_xnnpack;
     } else {
       resolver->Reject(MakeGarbageCollected<DOMException>(
