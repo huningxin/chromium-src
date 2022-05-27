@@ -364,10 +364,8 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
 MLOperand* MLGraphBuilder::averagePool2d(const MLOperand* input,
                                          const MLPool2dOptions* options,
                                          ExceptionState& exception_state) {
-  // TODO(crbug.com/1273291): Implement this on operating systems to access
-  // hardware acceleration.
-  NOTIMPLEMENTED();
-  return MakeGarbageCollected<MLOperand>(this);
+  return BuildPool2d(MLOperator::OpKind::kAveragePool2d, input, options,
+                     exception_state);
 }
 
 MLOperand* MLGraphBuilder::relu(const MLOperand* input,
@@ -493,6 +491,115 @@ MLOperand* MLGraphBuilder::BuildElementWiseUnary(
   output->SetOperator(unary);
   unary->Outputs().resize(1);
   unary->Outputs()[0] = output;
+  return output;
+}
+
+MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
+                                       const MLOperand* input,
+                                       const MLPool2dOptions* options,
+                                       ExceptionState& exception_state) {
+  auto input_shape = input->Dimensions();
+  if (input_shape.size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "input is not a 4-D tensor");
+    return nullptr;
+  }
+  if (options->hasWindowDimensions() &&
+      options->windowDimensions().size() != 2) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "the length of windowDimensions is not 2");
+    return nullptr;
+  }
+  if (options->hasOutputSizes() && options->outputSizes().size() != 2) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "the length of outputSizes is not 2");
+    return nullptr;
+  }
+  if (options->hasPadding() && options->padding().size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "the length of padding is not 4");
+    return nullptr;
+  }
+  auto padding = options->getPaddingOr({0, 0, 0, 0});
+  if (options->hasStrides() && options->strides().size() != 2) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "the length of strides is not 2");
+    return nullptr;
+  }
+  auto strides = options->getStridesOr({1, 1});
+  if (options->hasDilations() && options->dilations().size() != 2) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "the length of dilations is not 2");
+    return nullptr;
+  }
+  auto dilations = options->getDilationsOr({1, 1});
+  bool nchw = options->layout() == V8MLInputOperandLayout::Enum::kNchw;
+  int32_t batches = input_shape[0];
+  int32_t input_height = nchw ? input_shape[2] : input_shape[1];
+  int32_t input_width = nchw ? input_shape[3] : input_shape[2];
+  int32_t channels = nchw ? input_shape[1] : input_shape[3];
+  int32_t window_height = options->hasWindowDimensions()
+                              ? options->windowDimensions()[0]
+                              : input_height;
+  int32_t window_width = options->hasWindowDimensions()
+                             ? options->windowDimensions()[1]
+                             : input_width;
+
+  int32_t padding_begin_height = padding[0], padding_end_height = padding[1],
+          padding_begin_width = padding[2], padding_end_width = padding[3];
+  int32_t stride_height = strides[0], stride_width = strides[1];
+  int32_t dilation_height = dilations[0], dilation_width = dilations[1];
+  if (options->autoPad().AsEnum() != V8MLAutoPad::Enum::kExplicit) {
+    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), dilation_height,
+                               input_height, window_height, stride_height,
+                               padding_begin_height, padding_end_height);
+    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), dilation_width,
+                               input_width, window_width, stride_width,
+                               padding_begin_width, padding_end_width);
+  }
+
+  // TODO: We may need to consider dilations when calculating output sizes.
+  int32_t output_height, output_width;
+  if (!options->hasOutputSizes()) {
+    float float_output_height =
+        1.0 + static_cast<float>(input_height - window_height +
+                                 padding_begin_height + padding_end_height) /
+                  static_cast<float>(stride_height);
+    float float_output_width =
+        1.0 + static_cast<float>(input_width - window_width +
+                                 padding_begin_width + padding_end_width) /
+                  static_cast<float>(stride_width);
+    output_height =
+        options->roundingType().AsEnum() == V8MLRoundingType::Enum::kFloor
+            ? floor(float_output_height)
+            : ceil(float_output_height);
+    output_width =
+        options->roundingType().AsEnum() == V8MLRoundingType::Enum::kFloor
+            ? floor(float_output_width)
+            : ceil(float_output_width);
+  } else {
+    output_height = options->outputSizes()[0];
+    output_width = options->outputSizes()[1];
+  }
+
+  Vector<int32_t> output_shape;
+  if (nchw) {
+    output_shape = {batches, channels, output_height, output_width};
+  } else {
+    output_shape = {batches, output_height, output_width, channels};
+  }
+
+  auto* pool2d = MakeGarbageCollected<MLOperator>(this, kind);
+  pool2d->Inputs().resize(1);
+  pool2d->Inputs()[0] = input;
+  pool2d->SetOptions(options);
+  auto* output = MakeGarbageCollected<MLOperand>(this);
+  output->SetType(input->Type());
+  output->SetDimensions(std::move(output_shape));
+  output->SetOperator(pool2d);
+  pool2d->Outputs().resize(1);
+  pool2d->Outputs()[0] = output;
   return output;
 }
 

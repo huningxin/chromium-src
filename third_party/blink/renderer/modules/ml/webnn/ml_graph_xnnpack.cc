@@ -628,6 +628,106 @@ bool MLGraphXnnpack::DefinePool2d(
     const MLOperator* pool2d,
     const MLPool2dOptions* options,
     ExceptionState& exception_state) {
+  auto* input = pool2d->Inputs()[0].Get();
+  DCHECK(tensors_map.find(input) != tensors_map.end());
+  uint32_t input_id = tensors_map.at(input);
+  auto* output = pool2d->Outputs()[0].Get();
+  if (tensors_map.find(output) == tensors_map.end()) {
+    if (!DefineTensor(subgraph, tensors_map, output, exception_state)) {
+      return false;
+    }
+  }
+  uint32_t output_id = tensors_map.at(output);
+
+  uint32_t stride_height = options->hasStrides() ? options->strides()[0] : 1;
+  uint32_t stride_width = options->hasStrides() ? options->strides()[1] : 1;
+  uint32_t dilation_height =
+      options->hasDilations() ? options->dilations()[0] : 1;
+  uint32_t dilation_width =
+      options->hasDilations() ? options->dilations()[1] : 1;
+  size_t input_height, input_width;
+  uint32_t filter_height, filter_width;
+  bool global_pooling = false;
+  if (options->layout().AsEnum() == V8MLInputOperandLayout::Enum::kNhwc) {
+    input_height = input->Dimensions()[1];
+    input_width = input->Dimensions()[2];
+    if (options->hasWindowDimensions()) {
+      filter_height = options->windowDimensions()[0];
+      filter_width = options->windowDimensions()[1];
+    } else {
+      global_pooling = true;
+    }
+  } else {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kNotSupportedError,
+        "only input layout nhwc for pool2d is supported");
+    return false;
+  }
+
+  size_t output_height, output_width;
+  uint32_t pad_top, pad_bottom, pad_left, pad_right;
+  if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kExplicit) {
+    // WebNN padding: [beginning_height, ending_height, beginning_width,
+    // ending_width]
+    pad_top = options->hasPadding() ? options->padding()[0] : 0;
+    pad_bottom = options->hasPadding() ? options->padding()[1] : 0;
+    pad_left = options->hasPadding() ? options->padding()[2] : 0;
+    pad_right = options->hasPadding() ? options->padding()[3] : 0;
+  } else {
+    output_height = ceil(input_height / stride_height);
+    output_width = ceil(input_width / stride_width);
+    uint32_t pad_along_height = static_cast<uint32_t>(std::max(
+        size_t(0),
+        (output_height - 1) * stride_height + filter_height - input_height));
+    uint32_t pad_along_width = static_cast<uint32_t>(std::max(
+        size_t(0),
+        (output_width - 1) * stride_width + filter_width - input_width));
+    if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kSameUpper) {
+      pad_top = floor(pad_along_height / 2);
+      pad_bottom = pad_along_height - pad_top;
+      pad_left = floor(pad_along_width / 2);
+      pad_right = pad_along_width - pad_left;
+    } else {
+      pad_bottom = floor(pad_along_height / 2);
+      pad_top = pad_along_height - pad_bottom;
+      pad_right = floor(pad_along_width / 2);
+      pad_left = pad_along_width - pad_right;
+    }
+  }
+
+  float output_min = -std::numeric_limits<float>::infinity();
+  float output_max = +std::numeric_limits<float>::infinity();
+  const uint32_t flags = 0;
+  xnn_status status = xnn_status_success;
+  switch (pool2d->Kind()) {
+    case MLOperator::OpKind::kAveragePool2d: {
+      if (dilation_height != 1 || dilation_width != 1) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kNotSupportedError,
+            "dilation for averagePool2d is not supported");
+        return false;
+      }
+      if (global_pooling) {
+        status = xnn_define_global_average_pooling_2d(
+            subgraph, output_min, output_max, input_id, output_id, flags);
+      } else {
+        status = xnn_define_average_pooling_2d(
+            subgraph, pad_top, pad_right, pad_bottom, pad_left, filter_height,
+            filter_width, stride_height, stride_width, output_min, output_max,
+            input_id, output_id, flags);
+      }
+      break;
+    }
+    default:
+      NOTREACHED();
+  }
+  if (status != xnn_status_success) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                      "failed to define " +
+                                          OpKindToString(pool2d->Kind()) +
+                                          ": " + XnnStatusToString(status));
+    return false;
+  }
   return true;
 }
 

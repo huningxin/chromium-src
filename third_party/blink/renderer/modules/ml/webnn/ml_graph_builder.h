@@ -90,6 +90,10 @@ class MLGraphBuilder final : public ScriptWrappable {
   MLOperand* BuildElementWiseUnary(MLOperator::OpKind,
                                    const MLOperand*,
                                    ExceptionState&);
+  MLOperand* BuildPool2d(MLOperator::OpKind,
+                         const MLOperand*,
+                         const MLPool2dOptions*,
+                         ExceptionState&);
 
   Member<MLContext> ml_context_;
 };
