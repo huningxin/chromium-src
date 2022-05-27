@@ -42,9 +42,9 @@ class ML final : public ScriptWrappable {
   void Trace(blink::Visitor*) const override;
 
   // IDL interface:
-  ScriptPromise createContext(ScriptState* state,
-                              MLContextOptions* option,
-                              ExceptionState& exception_state);
+  MLContext* createContext(ScriptState* state,
+                           MLContextOptions* option,
+                           ExceptionState& exception_state);
 
  private:
   // Binds the Mojo connection to browser process if needed.
