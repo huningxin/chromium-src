@@ -76,7 +76,7 @@ MLContext* ML::createContext(ScriptState* script_state,
           MakeGarbageCollected<ConsoleMessage>(
               mojom::blink::ConsoleMessageSource::kJavaScript,
               mojom::blink::ConsoleMessageLevel::kInfo,
-              "WebNN MLContext created pthreadpool with threads count: " +
+              "Created WebNN MLContext with pthreadpool threads count: " +
                   String::Number(pthreadpool_get_threads_count(
                       ml_context_xnnpack->Pthreadpool()))));
       ml_context = ml_context_xnnpack;

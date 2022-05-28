@@ -5,10 +5,15 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_ML_ML_CONTEXT_XNNPACK_H_
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_ML_CONTEXT_XNNPACK_H_
 
+#include "base/memory/scoped_refptr.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
 #include "third_party/xnnpack/src/include/xnnpack.h"
 
 namespace blink {
+
+namespace {
+class SharedXnnpackContext;
+}
 
 class MLContextXnnpack : public MLContext {
  public:
@@ -20,7 +25,7 @@ class MLContextXnnpack : public MLContext {
   pthreadpool_t Pthreadpool() const;
 
  private:
-  pthreadpool_t pthreadpool_;
+  scoped_refptr<SharedXnnpackContext> impl_;
 };
 
 }  // namespace blink
