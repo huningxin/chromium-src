@@ -4,7 +4,7 @@
 
 #include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 
-#include <thread>
+#include "base/system/sys_info.h"
 
 namespace blink {
 
@@ -25,7 +25,9 @@ class SharedXnnpackContext
 
   ~SharedXnnpackContext() {
     base::AutoLock auto_lock(lock_);
+#if BUILDFLAG(IS_WIN)
     xnn_deinitialize();
+#endif
     if (pthreadpool_ != nullptr) {
       pthreadpool_destroy(pthreadpool_);
     }
@@ -37,11 +39,13 @@ class SharedXnnpackContext
     if (initialized_) {
       return true;
     }
+#if BUILDFLAG(IS_WIN)
     if (xnn_initialize(NULL) != xnn_status_success) {
       return false;
     }
+#endif
 
-    uint32_t num_cores = std::thread::hardware_concurrency() / 2;
+    uint32_t num_cores = base::SysInfo::NumberOfProcessors() / 2;
     size_t num_threads = num_threads_ == 0          ? num_cores
                          : num_threads_ > num_cores ? num_cores
                                                     : num_threads_;
