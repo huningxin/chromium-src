@@ -298,9 +298,7 @@ bool MLGraphXnnpack::DefineTensor(
                                           "out of memory.");
         return false;
       }
-      memcpy(data.get(),
-             reinterpret_cast<char*>(array_buffer_view->BaseAddress()) +
-                 array_buffer_view->byteOffset(),
+      memcpy(data.get(), array_buffer_view->BaseAddress(),
              array_buffer_view->byteLength());
     }
   }
@@ -846,8 +844,7 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
           "The input (" + input.first + ") buffer length is invalid.");
       return;
     }
-    value.data = reinterpret_cast<char*>(array_buffer_view->BaseAddress()) +
-                 array_buffer_view->byteOffset();
+    value.data = array_buffer_view->BaseAddress();
     external_values.push_back(value);
   }
   for (const auto& output : outputs) {
@@ -869,8 +866,7 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
             "The output (" + output.first + ") buffer length is invalid.");
         return;
       }
-      value.data = reinterpret_cast<char*>(array_buffer_view->BaseAddress()) +
-                   array_buffer_view->byteOffset();
+      value.data = array_buffer_view->BaseAddress();
     } else if (output.second->IsArrayBuffer()) {
       DOMArrayBuffer* array_buffer = output.second->GetAsArrayBuffer();
       if (array_buffer->ByteLength() < iter->value.byte_length) {
