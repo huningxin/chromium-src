@@ -61,6 +61,8 @@ MLContext* ML::createContext(ScriptState* script_state,
   if (option->type() == V8MLContextType::Enum::kWebnn) {
     // Create MLContext for WebNN
     if (option->devicePreference().AsEnum() ==
+            V8MLDevicePreference::Enum::kDefault ||
+        option->devicePreference().AsEnum() ==
             V8MLDevicePreference::Enum::kAuto ||
         option->devicePreference().AsEnum() ==
             V8MLDevicePreference::Enum::kCpu) {
