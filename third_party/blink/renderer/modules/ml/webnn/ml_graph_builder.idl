@@ -61,7 +61,7 @@ dictionary MLClampOptions {
 
   [RaisesException] MLOperand input(DOMString name, MLOperandDescriptor desc);
 
-  [RaisesException] MLOperand constant(MLOperandDescriptor desc, MLBufferView bufferView);
+  [RaisesException] MLOperand constant(MLOperandDescriptor desc, [AllowShared] ArrayBufferView bufferView);
 
   [RaisesException] MLOperand clamp(MLOperand input, optional MLClampOptions options = {});
   [RaisesException] MLOperator clamp(optional MLClampOptions options = {});

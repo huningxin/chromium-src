@@ -47,7 +47,7 @@ class MLGraphBuilder final : public ScriptWrappable {
                    const MLOperandDescriptor* desc,
                    ExceptionState& exception_state);
   MLOperand* constant(const MLOperandDescriptor* desc,
-                      NotShared<DOMArrayBufferView> buffer_view,
+                      MaybeShared<DOMArrayBufferView> buffer_view,
                       ExceptionState& exception_state);
 
   // The order of operations declaration is the same as spec.
