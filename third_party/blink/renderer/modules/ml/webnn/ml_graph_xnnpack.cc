@@ -298,7 +298,7 @@ bool MLGraphXnnpack::DefineTensor(
                                           "out of memory.");
         return false;
       }
-      memcpy(data.get(), array_buffer_view->BaseAddress(),
+      memcpy(data.get(), array_buffer_view->BaseAddressMaybeShared(),
              array_buffer_view->byteLength());
     }
   }
@@ -831,8 +831,8 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
     xnn_external_value value = {0};
     value.id = iter->value.id;
     DOMArrayBufferView* array_buffer_view = nullptr;
-    if (input.second->IsArrayBufferView()) {
-      array_buffer_view = input.second->GetAsArrayBufferView().Get();
+    if (input.second->IsArrayBufferViewAllowShared()) {
+      array_buffer_view = input.second->GetAsArrayBufferViewAllowShared().Get();
     } else if (input.second->IsMLTensor()) {
       auto* ml_tensor = input.second->GetAsMLTensor();
       array_buffer_view = ml_tensor->data().Get();
@@ -844,7 +844,7 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
           "The input (" + input.first + ") buffer length is invalid.");
       return;
     }
-    value.data = array_buffer_view->BaseAddress();
+    value.data = array_buffer_view->BaseAddressMaybeShared();
     external_values.push_back(value);
   }
   for (const auto& output : outputs) {
@@ -857,25 +857,26 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
     }
     xnn_external_value value = {0};
     value.id = iter->value.id;
-    if (output.second->IsArrayBufferView()) {
+    if (output.second->IsArrayBufferViewAllowShared()) {
       DOMArrayBufferView* array_buffer_view =
-          output.second->GetAsArrayBufferView().Get();
+          output.second->GetAsArrayBufferViewAllowShared().Get();
       if (array_buffer_view->byteLength() < iter->value.byte_length) {
         exception_state.ThrowDOMException(
             DOMExceptionCode::kDataError,
             "The output (" + output.first + ") buffer length is invalid.");
         return;
       }
-      value.data = array_buffer_view->BaseAddress();
-    } else if (output.second->IsArrayBuffer()) {
-      DOMArrayBuffer* array_buffer = output.second->GetAsArrayBuffer();
+      value.data = array_buffer_view->BaseAddressMaybeShared();
+    } else if (output.second->IsArrayBufferAllowShared()) {
+      DOMArrayBufferBase* array_buffer =
+          output.second->GetAsArrayBufferAllowShared();
       if (array_buffer->ByteLength() < iter->value.byte_length) {
         exception_state.ThrowDOMException(
             DOMExceptionCode::kDataError,
             "The output (" + output.first + ") buffer length is invalid.");
         return;
       }
-      value.data = array_buffer->Data();
+      value.data = array_buffer->DataMaybeShared();
     }
     DCHECK(value.data);
     external_values.push_back(value);

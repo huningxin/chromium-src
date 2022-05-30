@@ -5,8 +5,8 @@
 // https://www.w3.org/TR/webnn/
 
 // TODO: support MLArrayInput
-typedef record<DOMString, (ArrayBufferView or MLTensor)> MLNamedArrayInputs;
-typedef record<DOMString, (ArrayBufferView or ArrayBuffer)> MLNamedArrayOutputs;
+typedef record<DOMString, ([AllowShared] ArrayBufferView or MLTensor)> MLNamedArrayInputs;
+typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer)> MLNamedArrayOutputs;
 
 [
   RuntimeEnabled=MachineLearningNeuralNetwork,

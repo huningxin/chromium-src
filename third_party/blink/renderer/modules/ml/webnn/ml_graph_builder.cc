@@ -107,7 +107,7 @@ MLOperand* MLGraphBuilder::input(String name,
 }
 
 MLOperand* MLGraphBuilder::constant(const MLOperandDescriptor* desc,
-                                    NotShared<DOMArrayBufferView> buffer_view,
+                                    MaybeShared<DOMArrayBufferView> buffer_view,
                                     ExceptionState& exception_state) {
   auto* constant =
       MakeGarbageCollected<MLOperand>(this, MLOperand::KindEnum::kConstant);
