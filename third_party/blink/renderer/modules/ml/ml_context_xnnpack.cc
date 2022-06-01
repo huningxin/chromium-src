@@ -5,37 +5,34 @@
 #include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 
 #include "base/system/sys_info.h"
+#include "third_party/blink/renderer/platform/wtf/thread_safe_ref_counted.h"
+#include "third_party/blink/renderer/platform/wtf/threading_primitives.h"
 
 namespace blink {
 
 namespace {
 
-class SharedXnnpackContext
-    : public base::RefCountedThreadSafe<SharedXnnpackContext> {
+class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
  public:
-  static SharedXnnpackContext* GetInstance(size_t num_threads) {
+  static scoped_refptr<SharedXnnpackContext> GetInstance(size_t num_threads) {
     if (instance_ == nullptr) {
-      instance_ = new SharedXnnpackContext(num_threads);
+      scoped_refptr<SharedXnnpackContext> refptr =
+          base::MakeRefCounted<SharedXnnpackContext>(num_threads);
+      instance_ = refptr.get();
+      return refptr;
+    } else {
+      return base::WrapRefCounted(instance_);
     }
-    return instance_;
   }
+
+  explicit SharedXnnpackContext(size_t num_threads)
+      : initialized_(false), num_threads_(num_threads) {}
 
   SharedXnnpackContext(const SharedXnnpackContext&) = delete;
   SharedXnnpackContext& operator=(const SharedXnnpackContext&) = delete;
 
-  ~SharedXnnpackContext() {
-    base::AutoLock auto_lock(lock_);
-#if BUILDFLAG(IS_WIN)
-    xnn_deinitialize();
-#endif
-    if (pthreadpool_ != nullptr) {
-      pthreadpool_destroy(pthreadpool_);
-    }
-    instance_ = nullptr;
-  }
-
   bool Initialize() {
-    base::AutoLock auto_lock(lock_);
+    WTF::MutexLocker locker(mutex_);
     if (initialized_) {
       return true;
     }
@@ -60,12 +57,22 @@ class SharedXnnpackContext
   pthreadpool_t Pthreadpool() { return pthreadpool_; }
 
  private:
-  explicit SharedXnnpackContext(size_t num_threads)
-      : initialized_(false), num_threads_(num_threads) {}
+  friend class ThreadSafeRefCounted<SharedXnnpackContext>;
+
+  ~SharedXnnpackContext() {
+    WTF::MutexLocker locker(mutex_);
+#if BUILDFLAG(IS_WIN)
+    xnn_deinitialize();
+#endif
+    if (pthreadpool_ != nullptr) {
+      pthreadpool_destroy(pthreadpool_);
+    }
+    instance_ = nullptr;
+  }
 
   static SharedXnnpackContext* instance_;
 
-  base::Lock lock_;
+  WTF::Mutex mutex_;
   bool initialized_;
   size_t num_threads_;
   pthreadpool_t pthreadpool_;
@@ -80,11 +87,8 @@ MLContextXnnpack::MLContextXnnpack(const unsigned int num_threads, ML* ml)
                 V8MLPowerPreference(V8MLPowerPreference::Enum::kAuto),
                 V8MLModelFormat(V8MLModelFormat::Enum::kTflite),
                 num_threads,
-                ml) {
-  impl_ = base::subtle::AdoptRefIfNeeded(
-      SharedXnnpackContext::GetInstance(num_threads),
-      SharedXnnpackContext::kRefCountPreference);
-}
+                ml),
+      impl_(SharedXnnpackContext::GetInstance(num_threads)) {}
 
 MLContextXnnpack::~MLContextXnnpack() = default;
 

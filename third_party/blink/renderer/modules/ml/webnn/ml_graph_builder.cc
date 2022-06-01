@@ -16,11 +16,8 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
-
-#include <stack>
-#include <string>
-#include <unordered_set>
-#include <vector>
+#include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
+#include "third_party/blink/renderer/platform/heap/collection_support/heap_hash_set.h"
 
 namespace blink {
 
@@ -605,41 +602,41 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
 
 MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
                                ExceptionState& exception_state) {
-  std::vector<const MLOperand*> inputs;
-  std::vector<const MLOperand*> constants;
-  std::vector<const MLOperator*> sorted_operators;
+  HeapVector<Member<const MLOperand>> inputs;
+  HeapVector<Member<const MLOperand>> constants;
+  HeapVector<Member<const MLOperator>> sorted_operators;
 
-  std::stack<const MLOperator*> nodes_to_do;
-  std::unordered_set<const MLOperator*> nodes_done;
-  for (auto& output : named_outputs) {
-    nodes_to_do.push(output.second->Operator());
+  HeapDeque<Member<const MLOperator>> nodes_to_do;
+  HeapHashSet<Member<const MLOperator>> nodes_done;
+  for (const auto& output : named_outputs) {
+    nodes_to_do.push_back(output.second->Operator());
   }
   while (nodes_to_do.size() > 0) {
-    auto* node = nodes_to_do.top();
-    if (nodes_done.count(node) == 0) {
+    const auto& node = nodes_to_do.back();
+    if (!nodes_done.Contains(node.Get())) {
       bool can_add = true;
-      for (auto& input : node->Inputs()) {
+      for (const auto& input : node->Inputs()) {
         if (input->Operator()) {
-          if (nodes_done.count(input->Operator()) == 0) {
+          if (!nodes_done.Contains(input->Operator())) {
             can_add = false;
-            nodes_to_do.push(input->Operator());
+            nodes_to_do.push_back(input->Operator());
           }
         } else {
           if (input->Kind() == MLOperand::KindEnum::kInput) {
-            inputs.push_back(input);
+            inputs.push_back(input.Get());
           } else {
             DCHECK(input->Kind() == MLOperand::KindEnum::kConstant);
-            constants.push_back(input);
+            constants.push_back(input.Get());
           }
         }
       }
       if (can_add) {
-        sorted_operators.push_back(node);
-        nodes_to_do.pop();
-        nodes_done.insert(node);
+        sorted_operators.push_back(node.Get());
+        nodes_done.insert(node.Get());
+        nodes_to_do.pop_back();
       }
     } else {
-      nodes_to_do.pop();
+      nodes_to_do.pop_back();
     }
   }
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);

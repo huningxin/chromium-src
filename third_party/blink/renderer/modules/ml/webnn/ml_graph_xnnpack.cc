@@ -118,9 +118,9 @@ MLGraphXnnpack::~MLGraphXnnpack() {
 
 bool MLGraphXnnpack::BuildImpl(
     const MLNamedOperands& named_outputs,
-    const std::vector<const MLOperand*>& inputs,
-    const std::vector<const MLOperand*>& constants,
-    const std::vector<const MLOperator*>& sorted_operators,
+    const HeapVector<Member<const MLOperand>>& inputs,
+    const HeapVector<Member<const MLOperand>>& constants,
+    const HeapVector<Member<const MLOperator>>& sorted_operators,
     ExceptionState& exception_state) {
   uint32_t externals_size =
       static_cast<uint32_t>(named_outputs.size() + inputs.size());
@@ -137,11 +137,11 @@ bool MLGraphXnnpack::BuildImpl(
   std::unique_ptr<xnn_subgraph, decltype(&xnn_delete_subgraph)> subgraph(
       subgraph_ptr, &xnn_delete_subgraph);
 
-  std::unordered_map<const MLOperand*, uint32_t> tensors_map;
+  HashMap<Member<const MLOperand>, uint32_t> tensors_map;
   uint32_t external_id = 0;
-  for (auto* input : inputs) {
+  for (const auto& input : inputs) {
     uint32_t input_id = external_id++;
-    tensors_map[input] = input_id;
+    tensors_map.insert(input, input_id);
     if (!DefineTensor(subgraph.get(), tensors_map, input, exception_state,
                       true)) {
       return false;
@@ -151,10 +151,10 @@ bool MLGraphXnnpack::BuildImpl(
     info.byte_length = GetByteLength(input);
     inputs_info_.insert(input->Name(), std::move(info));
   }
-  for (auto& named_output : named_outputs) {
+  for (const auto& named_output : named_outputs) {
     auto* output = named_output.second.Get();
     uint32_t output_id = external_id++;
-    tensors_map[output] = output_id;
+    tensors_map.insert(output, output_id);
     if (!DefineTensor(subgraph.get(), tensors_map, output, exception_state,
                       true)) {
       return false;
@@ -164,12 +164,12 @@ bool MLGraphXnnpack::BuildImpl(
     info.byte_length = GetByteLength(output);
     outputs_info_.insert(named_output.first, std::move(info));
   }
-  for (auto* constant : constants) {
+  for (const auto& constant : constants) {
     if (!DefineTensor(subgraph.get(), tensors_map, constant, exception_state)) {
       return false;
     }
   }
-  for (auto* op : sorted_operators) {
+  for (const auto& op : sorted_operators) {
     switch (op->Kind()) {
       case MLOperator::OpKind::kClamp: {
         const MLClampOptions* options =
@@ -253,7 +253,7 @@ bool MLGraphXnnpack::BuildImpl(
 
 bool MLGraphXnnpack::DefineTensor(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperand* operand,
     ExceptionState& exception_state,
     bool is_external) {
@@ -267,7 +267,7 @@ bool MLGraphXnnpack::DefineTensor(
                                           ") is not supported");
     return false;
   }
-  std::vector<size_t> dims;
+  Vector<size_t> dims;
   for (auto& d : operand->Dimensions()) {
     if (d < 0) {
       exception_state.ThrowDOMException(
@@ -316,14 +316,14 @@ bool MLGraphXnnpack::DefineTensor(
     constant_data_.push_back(std::move(data));
   }
   if (!is_external) {
-    tensors_map.insert(std::make_pair(operand, tensor_id));
+    tensors_map.insert(operand, tensor_id);
   }
   return true;
 }
 
 bool MLGraphXnnpack::DefineClamp(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperator* clamp,
     const MLClampOptions* options,
     ExceptionState& exception_state) {
@@ -356,7 +356,7 @@ bool MLGraphXnnpack::DefineClamp(
 
 bool MLGraphXnnpack::DefineConv2d(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperator* conv2d,
     const MLConv2dOptions* options,
     ExceptionState& exception_state) {
@@ -513,7 +513,7 @@ bool MLGraphXnnpack::DefineConv2d(
 
 bool MLGraphXnnpack::DefineBinary(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperator* binary,
     ExceptionState& exception_state) {
   auto* input0 = binary->Inputs()[0].Get();
@@ -553,7 +553,7 @@ bool MLGraphXnnpack::DefineBinary(
 
 bool MLGraphXnnpack::DefineGemm(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperator* gemm,
     const MLGemmOptions* options,
     ExceptionState& exception_state) {
@@ -622,7 +622,7 @@ bool MLGraphXnnpack::DefineGemm(
 
 bool MLGraphXnnpack::DefinePool2d(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperator* pool2d,
     const MLPool2dOptions* options,
     ExceptionState& exception_state) {
@@ -731,14 +731,14 @@ bool MLGraphXnnpack::DefinePool2d(
 
 bool MLGraphXnnpack::DefineReshape(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperator* reshape,
     ExceptionState& exception_state) {
   auto* input = reshape->Inputs()[0].Get();
   DCHECK(tensors_map.find(input) != tensors_map.end());
   uint32_t input_id = tensors_map.at(input);
   auto* output = reshape->Outputs()[0].Get();
-  std::vector<size_t> new_sizes;
+  Vector<size_t> new_sizes;
   for (auto& d : output->Dimensions()) {
     new_sizes.push_back(static_cast<size_t>(d));
   }
@@ -768,7 +768,7 @@ bool MLGraphXnnpack::DefineReshape(
 
 bool MLGraphXnnpack::DefineUnary(
     xnn_subgraph_t subgraph,
-    std::unordered_map<const MLOperand*, uint32_t>& tensors_map,
+    HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
     const MLOperator* unary,
     ExceptionState& exception_state) {
   auto* input = unary->Inputs()[0].Get();
@@ -809,7 +809,7 @@ bool MLGraphXnnpack::DefineUnary(
 void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
                                  const MLNamedArrayOutputs& outputs,
                                  ExceptionState& exception_state) {
-  std::vector<xnn_external_value> external_values;
+  Vector<xnn_external_value> external_values;
   if (inputs.size() != inputs_info_.size()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "The number of inputs is invalid");

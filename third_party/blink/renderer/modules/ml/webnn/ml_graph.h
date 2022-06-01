@@ -43,11 +43,12 @@ class MLGraph : public ScriptWrappable {
                const MLNamedArrayOutputs& outputs,
                ExceptionState& exception_state);
 
-  virtual bool BuildImpl(const MLNamedOperands& named_outputs,
-                         const std::vector<const MLOperand*>& inputs,
-                         const std::vector<const MLOperand*>& constants,
-                         const std::vector<const MLOperator*>& sorted_operators,
-                         ExceptionState& exception_state) = 0;
+  virtual bool BuildImpl(
+      const MLNamedOperands& named_outputs,
+      const HeapVector<Member<const MLOperand>>& inputs,
+      const HeapVector<Member<const MLOperand>>& constants,
+      const HeapVector<Member<const MLOperator>>& sorted_operators,
+      ExceptionState& exception_state) = 0;
 
   virtual void ComputeImpl(const MLNamedArrayInputs& inputs,
                            const MLNamedArrayOutputs& outputs,

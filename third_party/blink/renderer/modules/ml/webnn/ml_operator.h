@@ -13,7 +13,6 @@
 
 namespace blink {
 
-class MLGraph;
 class MLGraphBuilder;
 class MLOperand;
 
