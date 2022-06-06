@@ -68,7 +68,7 @@ MLContext* ML::createContext(ScriptState* script_state,
             V8MLDevicePreference::Enum::kCpu) {
       // Create XNNPACK backed MLContext for WebNN
       MLContextXnnpack* ml_context_xnnpack =
-          MakeGarbageCollected<MLContextXnnpack>(option->numThreads(), this);
+          MakeGarbageCollected<MLContextXnnpack>(this);
       if (!ml_context_xnnpack->Initialize()) {
         exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
                                           "failed to initialize XNNPACK");

@@ -17,7 +17,7 @@ class SharedXnnpackContext;
 
 class MLContextXnnpack : public MLContext {
  public:
-  MLContextXnnpack(const unsigned int num_threads, ML* ml);
+  MLContextXnnpack(ML* ml);
   ~MLContextXnnpack() override;
 
   bool Initialize();

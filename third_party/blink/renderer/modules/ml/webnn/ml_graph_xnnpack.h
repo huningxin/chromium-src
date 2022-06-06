@@ -26,10 +26,6 @@ class MLGraphXnnpack final : public MLGraph {
                  const HeapVector<Member<const MLOperator>>& sorted_operators,
                  ExceptionState& exception_state) override;
 
-  void ComputeImpl(const MLNamedArrayInputs& inputs,
-                   const MLNamedArrayOutputs& outputs,
-                   ExceptionState& exception_state) override;
-
  private:
   bool DefineTensor(xnn_subgraph_t,
                     HashMap<Member<const MLOperand>, uint32_t>&,
@@ -68,6 +64,10 @@ class MLGraphXnnpack final : public MLGraph {
                    HashMap<Member<const MLOperand>, uint32_t>&,
                    const MLOperator*,
                    ExceptionState&);
+
+  void ComputeImpl(const MLNamedArrayInputs& inputs,
+                   const MLNamedArrayOutputs& outputs,
+                   ExceptionState& exception_state) override;
 
   Vector<std::unique_ptr<char>> constant_data_;
 

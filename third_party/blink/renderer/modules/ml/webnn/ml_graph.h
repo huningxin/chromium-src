@@ -50,11 +50,11 @@ class MLGraph : public ScriptWrappable {
       const HeapVector<Member<const MLOperator>>& sorted_operators,
       ExceptionState& exception_state) = 0;
 
+ protected:
   virtual void ComputeImpl(const MLNamedArrayInputs& inputs,
                            const MLNamedArrayOutputs& outputs,
                            ExceptionState& exception_state) = 0;
 
- protected:
   Member<MLContext> ml_context_;
 };
 
