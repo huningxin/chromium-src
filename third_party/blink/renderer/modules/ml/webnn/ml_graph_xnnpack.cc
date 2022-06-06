@@ -809,7 +809,6 @@ bool MLGraphXnnpack::DefineUnary(
 void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
                                  const MLNamedArrayOutputs& outputs,
                                  ExceptionState& exception_state) {
-  Vector<xnn_external_value> external_values;
   if (inputs.size() != inputs_info_.size()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "The number of inputs is invalid");
@@ -820,6 +819,9 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
                                       "The number of outputs is invalid");
     return;
   }
+  Vector<xnn_external_value> external_values;
+  external_values.ReserveInitialCapacity(inputs_info_.size() +
+                                         outputs_info_.size());
   for (const auto& input : inputs) {
     auto iter = inputs_info_.find(input.first);
     if (iter == inputs_info_.end()) {

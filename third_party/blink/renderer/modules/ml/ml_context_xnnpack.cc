@@ -5,6 +5,7 @@
 #include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 
 #include "base/system/sys_info.h"
+#include "build/buildflag.h"
 #include "third_party/blink/renderer/platform/wtf/thread_safe_ref_counted.h"
 #include "third_party/blink/renderer/platform/wtf/threading_primitives.h"
 

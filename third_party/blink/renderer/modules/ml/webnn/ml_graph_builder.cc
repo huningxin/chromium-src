@@ -128,15 +128,13 @@ MLOperand* MLGraphBuilder::clamp(const MLOperand* input,
                                  ExceptionState& exception_state) {
   auto* clamp =
       MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kClamp);
-  clamp->Inputs().resize(1);
-  clamp->Inputs()[0] = input;
+  clamp->SetInputs({input});
   clamp->SetOptions(options);
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(input->Type());
   output->SetDimensions(input->Dimensions());
   output->SetOperator(clamp);
-  clamp->Outputs().resize(1);
-  clamp->Outputs()[0] = output;
+  clamp->SetOutputs({output});
   return output;
 }
 
@@ -263,19 +261,19 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
   }
   auto* conv2d =
       MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kConv2d);
-  conv2d->Inputs().resize(2);
-  conv2d->Inputs()[0] = input;
-  conv2d->Inputs()[1] = filter;
+  HeapVector<Member<const MLOperand>> inputs;
+  inputs.push_back(input);
+  inputs.push_back(filter);
   if (options->hasBias()) {
-    conv2d->Inputs().push_back(options->bias());
+    inputs.push_back(options->bias());
   }
+  conv2d->SetInputs(inputs);
   conv2d->SetOptions(options);
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(input->Type());
   output->SetDimensions(std::move(output_shape));
   output->SetOperator(conv2d);
-  conv2d->Outputs().resize(1);
-  conv2d->Outputs()[0] = output;
+  conv2d->SetOutputs({output});
   return output;
 }
 
@@ -342,19 +340,19 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
 
   auto* gemm =
       MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kGemm);
-  gemm->Inputs().resize(2);
-  gemm->Inputs()[0] = a;
-  gemm->Inputs()[1] = b;
+  HeapVector<Member<const MLOperand>> inputs;
+  inputs.push_back(a);
+  inputs.push_back(b);
   if (options->hasC()) {
-    gemm->Inputs().push_back(options->c());
+    inputs.push_back(options->c());
   }
+  gemm->SetInputs(inputs);
   gemm->SetOptions(options);
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(a->Type());
   output->SetDimensions(std::move(shape_output));
   output->SetOperator(gemm);
-  gemm->Outputs().resize(1);
-  gemm->Outputs()[0] = output;
+  gemm->SetOutputs({output});
   return output;
 }
 
@@ -428,14 +426,12 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
   }
   auto* reshape =
       MakeGarbageCollected<MLOperator>(this, MLOperator::OpKind::kReshape);
-  reshape->Inputs().resize(1);
-  reshape->Inputs()[0] = input;
+  reshape->SetInputs({input});
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(input->Type());
   output->SetDimensions(std::move(output_shape));
   output->SetOperator(reshape);
-  reshape->Outputs().resize(1);
-  reshape->Outputs()[0] = output;
+  reshape->SetOutputs({output});
   return output;
 }
 
@@ -463,15 +459,12 @@ MLOperand* MLGraphBuilder::BuildElementWiseBinary(
     return nullptr;
   }
   auto* binary = MakeGarbageCollected<MLOperator>(this, kind);
-  binary->Inputs().resize(2);
-  binary->Inputs()[0] = a;
-  binary->Inputs()[1] = b;
+  binary->SetInputs({a, b});
   auto* c = MakeGarbageCollected<MLOperand>(this);
   c->SetType(a->Type());
   c->SetDimensions(std::move(dims_output));
   c->SetOperator(binary);
-  binary->Outputs().resize(1);
-  binary->Outputs()[0] = c;
+  binary->SetOutputs({c});
   return c;
 }
 
@@ -480,14 +473,12 @@ MLOperand* MLGraphBuilder::BuildElementWiseUnary(
     const MLOperand* input,
     ExceptionState& exception_state) {
   auto* unary = MakeGarbageCollected<MLOperator>(this, kind);
-  unary->Inputs().resize(1);
-  unary->Inputs()[0] = input;
+  unary->SetInputs({input});
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(input->Type());
   output->SetDimensions(input->Dimensions());
   output->SetOperator(unary);
-  unary->Outputs().resize(1);
-  unary->Outputs()[0] = output;
+  unary->SetOutputs({output});
   return output;
 }
 
@@ -588,15 +579,13 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
   }
 
   auto* pool2d = MakeGarbageCollected<MLOperator>(this, kind);
-  pool2d->Inputs().resize(1);
-  pool2d->Inputs()[0] = input;
+  pool2d->SetInputs({input});
   pool2d->SetOptions(options);
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(input->Type());
   output->SetDimensions(std::move(output_shape));
   output->SetOperator(pool2d);
-  pool2d->Outputs().resize(1);
-  pool2d->Outputs()[0] = output;
+  pool2d->SetOutputs({output});
   return output;
 }
 

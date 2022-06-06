@@ -4,8 +4,6 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 
-#include "third_party/blink/renderer/modules/ml/ml_context.h"
-#include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 
@@ -24,20 +22,21 @@ void MLOperator::Trace(Visitor* visitor) const {
   ScriptWrappable::Trace(visitor);
 }
 
-HeapVector<Member<const MLOperand>>& MLOperator::Inputs() {
-  return inputs_;
-}
-
 const HeapVector<Member<const MLOperand>>& MLOperator::Inputs() const {
   return inputs_;
 }
 
-HeapVector<Member<const MLOperand>>& MLOperator::Outputs() {
-  return outputs_;
+void MLOperator::SetInputs(const HeapVector<Member<const MLOperand>>& inputs) {
+  inputs_ = std::move(inputs);
 }
 
 const HeapVector<Member<const MLOperand>>& MLOperator::Outputs() const {
   return outputs_;
+}
+
+void MLOperator::SetOutputs(
+    const HeapVector<Member<const MLOperand>>& outputs) {
+  outputs_ = std::move(outputs);
 }
 
 MLOperator::OpKind MLOperator::Kind() const {

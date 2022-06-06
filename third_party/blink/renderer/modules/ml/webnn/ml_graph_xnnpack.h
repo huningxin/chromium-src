@@ -15,7 +15,7 @@
 
 namespace blink {
 
-class MLGraphXnnpack : public MLGraph {
+class MLGraphXnnpack final : public MLGraph {
  public:
   explicit MLGraphXnnpack(MLContext* context);
   ~MLGraphXnnpack() override;
