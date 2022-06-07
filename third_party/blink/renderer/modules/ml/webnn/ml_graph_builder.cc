@@ -4,6 +4,7 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 
+#include "base/numerics/safe_math.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
@@ -31,7 +32,9 @@ bool BroadcastShape(Vector<int32_t> dims_input0,
   auto rank_a = dims_input0.size(), rank_b = dims_input1.size();
   auto rank_c = rank_a >= rank_b ? rank_a : rank_b;
   dims_output.resize(rank_c);
-  DCHECK(rank_a >= skip_axes && rank_b >= skip_axes);
+  if (rank_a < skip_axes || rank_b < skip_axes) {
+    return false;
+  }
   // For each dimension of the output tensor, its size is the maximum size along
   // that dimension of the input tensors.
   for (wtf_size_t i = 0; i < rank_c; ++i) {
@@ -48,30 +51,41 @@ bool BroadcastShape(Vector<int32_t> dims_input0,
   return true;
 }
 
-void CalculatePaddingForAutoPad(V8MLAutoPad::Enum autoPad,
-                                int32_t input_size,
-                                int32_t filter_size,
-                                int32_t stride,
-                                int32_t dilation,
+bool CalculatePaddingForAutoPad(V8MLAutoPad::Enum autoPad,
+                                base::CheckedNumeric<int32_t> input_size,
+                                base::CheckedNumeric<int32_t> filter_size,
+                                base::CheckedNumeric<int32_t> stride,
+                                base::CheckedNumeric<int32_t> dilation,
                                 int32_t& padding_begin,
                                 int32_t& padding_end) {
-  int32_t out_size = (input_size + stride - 1) / stride;
-  int32_t dilated_filter = (filter_size - 1) * dilation + 1;
-  int32_t needed_input = (out_size - 1) * stride + dilated_filter;
-  int32_t total_padding =
-      needed_input > input_size ? needed_input - input_size : 0;
+  auto output_size = (input_size + stride - 1) / stride;
+  auto dilated_filter_size = (filter_size - 1) * dilation + 1;
+  auto needed_input_size = (output_size - 1) * stride + dilated_filter_size;
+  if (!needed_input_size.IsValid() || !input_size.IsValid()) {
+    return false;
+  }
+  auto total_padding = needed_input_size.ValueOrDie() > input_size.ValueOrDie()
+                           ? needed_input_size - input_size
+                           : base::MakeCheckedNum(0);
+  base::CheckedNumeric<int32_t> checked_padding_begin(0),
+      checked_padding_end(0);
   switch (autoPad) {
     case V8MLAutoPad::Enum::kSameUpper:
-      padding_begin = total_padding / 2;
-      padding_end = (total_padding + 1) / 2;
+      checked_padding_begin = total_padding / 2;
+      checked_padding_end = (total_padding + 1) / 2;
       break;
     case V8MLAutoPad::Enum::kSameLower:
-      padding_begin = (total_padding + 1) / 2;
-      padding_end = total_padding / 2;
+      checked_padding_begin = (total_padding + 1) / 2;
+      checked_padding_end = total_padding / 2;
       break;
     default:
       NOTREACHED();
   }
+  if (!checked_padding_begin.AssignIfValid(&padding_begin) ||
+      !checked_padding_end.AssignIfValid(&padding_end)) {
+    return false;
+  }
+  return true;
 }
 
 }  // namespace
@@ -151,43 +165,52 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
                                   const MLConv2dOptions* options,
                                   ExceptionState& exception_state) {
   // Validate inputs and options
-  if (input->Type() != filter->Type()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "operand type is not consistent");
-    return nullptr;
-  }
   auto input_shape = input->Dimensions();
   if (input_shape.size() != 4) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "input is not a 4-D tensor");
+                                      "The input is not a 4-D tensor.");
     return nullptr;
   }
   auto filter_shape = filter->Dimensions();
   if (filter_shape.size() != 4) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "filter is not a 4-D tensor");
+                                      "The filter is not a 4-D tensor.");
     return nullptr;
   }
-  if (options->hasBias() && options->bias()->Dimensions().size() != 1) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "bias is not a 1-D tensor");
+  if (input->Type() != filter->Type()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The filter type is not consistent with input.");
     return nullptr;
+  }
+  if (options->hasBias()) {
+    if (options->bias()->Dimensions().size() != 1) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The bias is not a 1-D tensor.");
+      return nullptr;
+    }
+    if (options->bias()->Type() != input->Type()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "The bias type is not consistent with input.");
+      return nullptr;
+    }
   }
   if (options->hasPadding() && options->padding().size() != 4) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "the length of padding is not 4");
+                                      "The length of padding is not 4.");
     return nullptr;
   }
   auto padding = options->getPaddingOr({0, 0, 0, 0});
   if (options->hasStrides() && options->strides().size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "the length of strides is not 2");
+                                      "The length of strides is not 2.");
     return nullptr;
   }
   auto strides = options->getStridesOr({1, 1});
   if (options->hasDilations() && options->dilations().size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "the length of dilations is not 2");
+                                      "The length of dilations is not 2.");
     return nullptr;
   }
   auto dilations = options->getDilationsOr({1, 1});
@@ -224,10 +247,12 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
       filter_depth_in = filter_shape[1];
       break;
   }
-  if (filter_depth_in != input_channels / options->groups()) {
+  if (input_channels % options->groups() == 0 &&
+      filter_depth_in != input_channels / options->groups()) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "The groups is invalid, it must evenly divides the input channels.");
+        "The groups is invalid, it must evenly divides the input channels to "
+        "filter input depth.");
     return nullptr;
   }
 
@@ -237,22 +262,49 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
   int32_t stride_height = strides[0], stride_width = strides[1];
   int32_t dilation_height = dilations[0], dilation_width = dilations[1];
   if (options->autoPad().AsEnum() != V8MLAutoPad::Enum::kExplicit) {
-    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
-                               filter_height, stride_height, dilation_height,
-                               padding_begin_height, padding_end_height);
-    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
-                               filter_width, stride_width, dilation_width,
-                               padding_begin_width, padding_end_width);
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
+                                    filter_height, stride_height,
+                                    dilation_height, padding_begin_height,
+                                    padding_end_height) ||
+        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    filter_width, stride_width, dilation_width,
+                                    padding_begin_width, padding_end_width)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calcuating padding for autoPad.");
+      return nullptr;
+    }
   }
 
-  int32_t dilated_filter_height = dilation_height * (filter_height - 1) + 1;
-  int32_t dilated_filter_width = dilation_width * (filter_width - 1) + 1;
-  int32_t output_height = 1 + (input_height - dilated_filter_height +
-                               padding_begin_height + padding_end_height) /
-                                  stride_height;
-  int32_t output_width = 1 + (input_width - dilated_filter_width +
-                              padding_begin_width + padding_end_width) /
-                                 stride_width;
+  base::CheckedNumeric<int32_t> checked_filter_height(filter_height),
+      checked_filter_width(filter_width);
+  auto dilated_filter_height =
+      (checked_filter_height - 1) * dilation_height + 1;
+  auto dilated_filter_width = (checked_filter_width - 1) * dilation_width + 1;
+  if (!dilated_filter_height.IsValid() || !dilated_filter_width.IsValid()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calcuating dilated filter size.");
+    return nullptr;
+  }
+  base::CheckedNumeric<int32_t> checked_input_height(input_height),
+      checked_input_width(input_width);
+  auto checked_output_height = (checked_input_height - dilated_filter_height +
+                                padding_begin_height + padding_end_height) /
+                                   stride_height +
+                               1;
+  auto checked_output_width = (checked_input_width - dilated_filter_width +
+                               padding_begin_width + padding_end_width) /
+                                  stride_width +
+                              1;
+  int32_t output_height, output_width;
+  if (!checked_output_height.AssignIfValid(&output_height) ||
+      !checked_output_width.AssignIfValid(&output_width)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calcuating output size.");
+    return nullptr;
+  }
   Vector<int32_t> output_shape;
   if (nchw) {
     output_shape = {batch_size, output_channels, output_height, output_width};
@@ -282,8 +334,9 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
                                 const MLGemmOptions* options,
                                 ExceptionState& exception_state) {
   if (a->Type() != b->Type()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "Input types are inconsistent.");
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The types of input a and b are inconsistent.");
     return nullptr;
   }
   // The first input 2-D tensor with shape [M, K] if aTranspose is false, or [K,
@@ -292,13 +345,13 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
   auto shape_a = a->Dimensions();
   if (shape_a.size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "input a is not a 2-D tensor");
+                                      "The input a is not a 2-D tensor.");
     return nullptr;
   }
   auto shape_b = b->Dimensions();
   if (shape_b.size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "input b is not a 2-D tensor");
+                                      "The input b is not a 2-D tensor.");
     return nullptr;
   }
   bool is_valid_shape = (options->aTranspose() ? shape_a[0] : shape_a[1]) ==
@@ -306,7 +359,7 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
   if (!is_valid_shape) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "The shape of two inputs are invalid for matrix multiplication.");
+        "The shapes of input a and b are invalid for matrix multiplication.");
     return nullptr;
   }
   Vector<int32_t> shape_output = {
@@ -381,12 +434,12 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
   for (auto i : new_shape) {
     if (i < -1 || i == 0) {
       exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                        "new shape is invalid");
+                                        "The new shape is invalid.");
       return nullptr;
     } else if (i == -1) {
       if (has_minus1) {
         exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                          "new shape is invalid");
+                                          "The new shape is invalid.");
         return nullptr;
       }
       has_minus1 = true;
@@ -420,7 +473,7 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
     // of elements in the input tensor.
     if (input_size != capacity) {
       exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                        "new shape is invalid");
+                                        "The new shape is invalid.");
       return nullptr;
     }
   }
@@ -447,15 +500,16 @@ MLOperand* MLGraphBuilder::BuildElementWiseBinary(
     const MLOperand* b,
     ExceptionState& exception_state) {
   if (a->Type() != b->Type()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "Input types are inconsistent.");
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The types of input a and b are inconsistent.");
     return nullptr;
   }
   Vector<int32_t> dims_output;
   if (!BroadcastShape(a->Dimensions(), b->Dimensions(), dims_output)) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "Input shapes are not broadcast compatible.");
+        "The shapes of input a and b are not broadcast compatible.");
     return nullptr;
   }
   auto* binary = MakeGarbageCollected<MLOperator>(this, kind);
@@ -489,36 +543,36 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
   auto input_shape = input->Dimensions();
   if (input_shape.size() != 4) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "input is not a 4-D tensor");
+                                      "The input is not a 4-D tensor.");
     return nullptr;
   }
   if (options->hasWindowDimensions() &&
       options->windowDimensions().size() != 2) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "the length of windowDimensions is not 2");
+        "The length of windowDimensions is not 2.");
     return nullptr;
   }
   if (options->hasOutputSizes() && options->outputSizes().size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "the length of outputSizes is not 2");
+                                      "The length of outputSizes is not 2.");
     return nullptr;
   }
   if (options->hasPadding() && options->padding().size() != 4) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "the length of padding is not 4");
+                                      "The length of padding is not 4.");
     return nullptr;
   }
   auto padding = options->getPaddingOr({0, 0, 0, 0});
   if (options->hasStrides() && options->strides().size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "the length of strides is not 2");
+                                      "The length of strides is not 2.");
     return nullptr;
   }
   auto strides = options->getStridesOr({1, 1});
   if (options->hasDilations() && options->dilations().size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "the length of dilations is not 2");
+                                      "The length of dilations is not 2.");
     return nullptr;
   }
   auto dilations = options->getDilationsOr({1, 1});
@@ -539,33 +593,49 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
   int32_t stride_height = strides[0], stride_width = strides[1];
   int32_t dilation_height = dilations[0], dilation_width = dilations[1];
   if (options->autoPad().AsEnum() != V8MLAutoPad::Enum::kExplicit) {
-    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), dilation_height,
-                               input_height, window_height, stride_height,
-                               padding_begin_height, padding_end_height);
-    CalculatePaddingForAutoPad(options->autoPad().AsEnum(), dilation_width,
-                               input_width, window_width, stride_width,
-                               padding_begin_width, padding_end_width);
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(),
+                                    dilation_height, input_height,
+                                    window_height, stride_height,
+                                    padding_begin_height, padding_end_height) ||
+        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), dilation_width,
+                                    input_width, window_width, stride_width,
+                                    padding_begin_width, padding_end_width)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calcuating padding for autoPad.");
+      return nullptr;
+    }
   }
 
   // TODO: We may need to consider dilations when calculating output sizes.
   int32_t output_height, output_width;
   if (!options->hasOutputSizes()) {
-    float float_output_height =
-        1.0 + static_cast<float>(input_height - window_height +
-                                 padding_begin_height + padding_end_height) /
-                  static_cast<float>(stride_height);
-    float float_output_width =
-        1.0 + static_cast<float>(input_width - window_width +
+    base::CheckedNumeric<float> checked_input_height(input_height),
+        checked_input_width(input_width);
+    auto checked_output_height = (checked_input_height - window_height +
+                                  padding_begin_height + padding_end_height) /
+                                     stride_height +
+                                 1.0;
+    auto checked_output_width = (checked_input_width - window_width +
                                  padding_begin_width + padding_end_width) /
-                  static_cast<float>(stride_width);
+                                    stride_width +
+                                1.0;
+    float float_output_height, float_output_width;
+    if (!checked_output_height.AssignIfValid(&float_output_height) ||
+        !checked_output_width.AssignIfValid(&float_output_width)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calcuating output size.");
+      return nullptr;
+    }
     output_height =
         options->roundingType().AsEnum() == V8MLRoundingType::Enum::kFloor
-            ? floor(float_output_height)
-            : ceil(float_output_height);
+            ? base::ClampFloor<int32_t>(float_output_height)
+            : base::ClampCeil<int32_t>(float_output_height);
     output_width =
         options->roundingType().AsEnum() == V8MLRoundingType::Enum::kFloor
-            ? floor(float_output_width)
-            : ceil(float_output_width);
+            ? base::ClampFloor(float_output_width)
+            : base::ClampCeil(float_output_width);
   } else {
     output_height = options->outputSizes()[0];
     output_width = options->outputSizes()[1];
