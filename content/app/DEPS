@@ -13,4 +13,5 @@ include_rules = [
   "+services/network/public/cpp/features.h",
   "+services/resource_coordinator/public",
   "+services/tracing/public/cpp",
+  "+third_party/xnnpack/src/include/xnnpack.h",
 ]

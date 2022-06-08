@@ -82,6 +82,11 @@ source_set("content_main_runner_app") {
            "//content/renderer",
            "//content/utility",
            "//content/zygote",
+
+           # XNNPACK
+           "//third_party/cpuinfo",
+           "//third_party/pthreadpool",
+           "//third_party/xnnpack",
          ]
   if (is_chromeos_lacros) {
     deps += [

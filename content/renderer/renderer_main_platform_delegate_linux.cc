@@ -14,7 +14,6 @@
 #include "content/public/common/content_switches.h"
 #include "sandbox/policy/sandbox.h"
 #include "sandbox/policy/sandbox_type.h"
-#include "third_party/xnnpack/src/include/xnnpack.h"
 
 namespace content {
 
@@ -25,16 +24,9 @@ RendererMainPlatformDelegate::~RendererMainPlatformDelegate() {
 }
 
 void RendererMainPlatformDelegate::PlatformInitialize() {
-  // cpuinfo needs to parse /cpu/cpuinfo
-  if (xnn_initialize(NULL) != xnn_status_success) {
-    LOG(ERROR) << "Failed to initialize XNNPACK";
-  }
 }
 
 void RendererMainPlatformDelegate::PlatformUninitialize() {
-  if (xnn_deinitialize() != xnn_status_success) {
-    LOG(ERROR) << "Failed to deinitialize XNNPACK";
-  }
 }
 
 bool RendererMainPlatformDelegate::EnableSandbox() {
