@@ -4,6 +4,7 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 
+#include "base/numerics/checked_math.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
@@ -97,12 +98,49 @@ size_t GetBytesPerElement(V8MLOperandType::Enum datatype) {
   }
 }
 
-size_t GetByteLength(const MLOperand* operand) {
-  size_t elements = 1;
+bool CalculateByteLength(const MLOperand* operand, size_t& byte_length) {
+  base::CheckedNumeric<size_t> checked_byte_length = 1;
   for (auto& d : operand->Dimensions()) {
-    elements = elements * d;
+    checked_byte_length *= d;
   }
-  return elements * GetBytesPerElement(operand->Type());
+  checked_byte_length *= GetBytesPerElement(operand->Type());
+  if (!checked_byte_length.AssignIfValid(&byte_length)) {
+    return false;
+  }
+  return true;
+}
+
+bool CalculatePaddingForAutoPad(V8MLAutoPad::Enum autoPad,
+                                size_t input_size,
+                                uint32_t filter_size,
+                                uint32_t stride,
+                                uint32_t& padding_begin,
+                                uint32_t& padding_end) {
+  base::CheckedNumeric<size_t> output_size =
+      base::ClampCeil<size_t>(base::checked_cast<double>(input_size) / stride);
+  auto total_padding = (output_size - 1) * stride + filter_size - input_size;
+  if (!total_padding.IsValid()) {
+    return false;
+  }
+  base::CheckedNumeric<uint32_t> checked_padding_begin(0),
+      checked_padding_end(0);
+  switch (autoPad) {
+    case V8MLAutoPad::Enum::kSameUpper:
+      checked_padding_begin = total_padding / 2;
+      checked_padding_end = (total_padding + 1) / 2;
+      break;
+    case V8MLAutoPad::Enum::kSameLower:
+      checked_padding_begin = (total_padding + 1) / 2;
+      checked_padding_end = total_padding / 2;
+      break;
+    default:
+      NOTREACHED();
+  }
+  if (!checked_padding_begin.AssignIfValid(&padding_begin) ||
+      !checked_padding_end.AssignIfValid(&padding_end)) {
+    return false;
+  }
+  return true;
 }
 
 }  // namespace
@@ -122,15 +160,21 @@ bool MLGraphXnnpack::BuildImpl(
     const HeapVector<Member<const MLOperand>>& constants,
     const HeapVector<Member<const MLOperator>>& sorted_operators,
     ExceptionState& exception_state) {
-  uint32_t externals_size =
-      static_cast<uint32_t>(named_outputs.size() + inputs.size());
+  uint32_t externals_size;
+  if (!base::CheckAdd<wtf_size_t>(named_outputs.size(), inputs.size())
+           .AssignIfValid(&externals_size)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calcuating externals size.");
+    return false;
+  }
   xnn_subgraph_t subgraph_ptr = nullptr;
   xnn_status status;
   if ((status = xnn_create_subgraph(externals_size, 0, &subgraph_ptr)) !=
       xnn_status_success) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kOperationError,
-        "failed to create XNNPACK subgraph: " + XnnStatusToString(status));
+        "Failed to create XNNPACK subgraph: " + XnnStatusToString(status));
     return false;
   }
 
@@ -148,7 +192,13 @@ bool MLGraphXnnpack::BuildImpl(
     }
     TensorValueInfo info = {0};
     info.id = input_id;
-    info.byte_length = GetByteLength(input);
+    if (!CalculateByteLength(input, info.byte_length)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calcuating byte length of input: " +
+              input->Name());
+      return false;
+    }
     inputs_info_.insert(input->Name(), std::move(info));
   }
   for (const auto& named_output : named_outputs) {
@@ -161,7 +211,13 @@ bool MLGraphXnnpack::BuildImpl(
     }
     TensorValueInfo info = {0};
     info.id = output_id;
-    info.byte_length = GetByteLength(output);
+    if (!CalculateByteLength(output, info.byte_length)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calcuating byte length of output: " +
+              named_output.first);
+      return false;
+    }
     outputs_info_.insert(named_output.first, std::move(info));
   }
   for (const auto& constant : constants) {
@@ -233,7 +289,7 @@ bool MLGraphXnnpack::BuildImpl(
       }
       default:
         exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                          "the operator (" +
+                                          "The operator (" +
                                               OpKindToString(op->Kind()) +
                                               ") is not supported");
         return false;
@@ -245,7 +301,7 @@ bool MLGraphXnnpack::BuildImpl(
           static_cast<MLContextXnnpack*>(ml_context_.Get())->Pthreadpool(),
           flags, &runtime_) != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to create XNNPACK runtime");
+                                      "Failed to create XNNPACK runtime");
     return false;
   }
   return true;
@@ -262,7 +318,7 @@ bool MLGraphXnnpack::DefineTensor(
     data_type = xnn_datatype_fp32;
   } else {
     exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                      "the data type (" +
+                                      "The data type (" +
                                           DataTypeToString(operand->Type()) +
                                           ") is not supported");
     return false;
@@ -272,10 +328,10 @@ bool MLGraphXnnpack::DefineTensor(
     if (d < 0) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kNotSupportedError,
-          "the negative dimension is not supported");
+          "The negative dimension is not supported");
       return false;
     }
-    dims.push_back(static_cast<size_t>(d));
+    dims.push_back(base::checked_cast<size_t>(d));
   }
   uint32_t flags = 0;
   uint32_t external_id = XNN_INVALID_VALUE_ID;
@@ -295,7 +351,7 @@ bool MLGraphXnnpack::DefineTensor(
       data.reset(new char[array_buffer_view->byteLength()]);
       if (data.get() == nullptr) {
         exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
-                                          "out of memory.");
+                                          "Out of memory.");
         return false;
       }
       memcpy(data.get(), array_buffer_view->BaseAddressMaybeShared(),
@@ -309,7 +365,7 @@ bool MLGraphXnnpack::DefineTensor(
            external_id, flags, &tensor_id)) != xnn_status_success) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kOperationError,
-        "failed to define tensor value: " + XnnStatusToString(status));
+        "Failed to define tensor value: " + XnnStatusToString(status));
     return false;
   }
   if (data) {
@@ -348,7 +404,7 @@ bool MLGraphXnnpack::DefineClamp(
                                  output_id, 0)) != xnn_status_success) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kOperationError,
-        "failed to define clamp: " + XnnStatusToString(status));
+        "Failed to define clamp: " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -380,21 +436,31 @@ bool MLGraphXnnpack::DefineConv2d(
   }
   uint32_t output_id = tensors_map.at(output);
 
-  uint32_t groups = options->groups();
-  uint32_t stride_height = options->hasStrides() ? options->strides()[0] : 1;
-  uint32_t stride_width = options->hasStrides() ? options->strides()[1] : 1;
+  uint32_t groups = base::checked_cast<uint32_t>(options->groups());
+  uint32_t stride_height =
+      options->hasStrides()
+          ? base::checked_cast<uint32_t>(options->strides()[0])
+          : 1;
+  uint32_t stride_width =
+      options->hasStrides()
+          ? base::checked_cast<uint32_t>(options->strides()[1])
+          : 1;
   uint32_t dilation_height =
-      options->hasDilations() ? options->dilations()[0] : 1;
+      options->hasDilations()
+          ? base::checked_cast<uint32_t>(options->dilations()[0])
+          : 1;
   uint32_t dilation_width =
-      options->hasDilations() ? options->dilations()[1] : 1;
+      options->hasDilations()
+          ? base::checked_cast<uint32_t>(options->dilations()[1])
+          : 1;
   size_t input_height, input_width;
   uint32_t filter_height, filter_width;
   size_t input_channels, output_channels;
   bool depthwise = false;
   if (options->inputLayout().AsEnum() == V8MLInputOperandLayout::Enum::kNhwc) {
-    input_height = input->Dimensions()[1];
-    input_width = input->Dimensions()[2];
-    input_channels = input->Dimensions()[3];
+    input_height = base::checked_cast<size_t>(input->Dimensions()[1]);
+    input_width = base::checked_cast<size_t>(input->Dimensions()[2]);
+    input_channels = base::checked_cast<size_t>(input->Dimensions()[3]);
     depthwise = (groups == input_channels);
     if (!depthwise) {
       // For regular conv2d, xnn pack expects weights layed out like (ohwi):
@@ -404,7 +470,7 @@ bool MLGraphXnnpack::DefineConv2d(
           V8MLConv2dFilterOperandLayout::Enum::kOhwi) {
         exception_state.ThrowDOMException(
             DOMExceptionCode::kNotSupportedError,
-            "only filter layout ohwi for conv2d is supported");
+            "The filter layout of conv2d is not supported.");
         return false;
       }
     } else {
@@ -414,50 +480,49 @@ bool MLGraphXnnpack::DefineConv2d(
           V8MLConv2dFilterOperandLayout::Enum::kIhwo) {
         exception_state.ThrowDOMException(
             DOMExceptionCode::kNotSupportedError,
-            "only filter layout ihwo for depthwise conv2d is supported");
+            "The filter layout of depthwise conv2d is not supported.");
         return false;
       }
     }
-    filter_height = filter->Dimensions()[1];
-    filter_width = filter->Dimensions()[2];
-    output_channels = output->Dimensions()[3];
+    filter_height = base::checked_cast<uint32_t>(filter->Dimensions()[1]);
+    filter_width = base::checked_cast<uint32_t>(filter->Dimensions()[2]);
+    output_channels = base::checked_cast<size_t>(output->Dimensions()[3]);
   } else {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kNotSupportedError,
-        "only input layout nhwc for conv2d is supported");
+        "The input layout of conv2d is not supported.");
     return false;
   }
   size_t group_input_channels = input_channels / groups;
   size_t group_output_channels = output_channels / groups;
 
-  size_t output_height, output_width;
   uint32_t pad_top, pad_bottom, pad_left, pad_right;
   if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kExplicit) {
     // WebNN padding: [beginning_height, ending_height, beginning_width,
     // ending_width]
-    pad_top = options->hasPadding() ? options->padding()[0] : 0;
-    pad_bottom = options->hasPadding() ? options->padding()[1] : 0;
-    pad_left = options->hasPadding() ? options->padding()[2] : 0;
-    pad_right = options->hasPadding() ? options->padding()[3] : 0;
+    pad_top = options->hasPadding()
+                  ? base::checked_cast<uint32_t>(options->padding()[0])
+                  : 0;
+    pad_bottom = options->hasPadding()
+                     ? base::checked_cast<uint32_t>(options->padding()[1])
+                     : 0;
+    pad_left = options->hasPadding()
+                   ? base::checked_cast<uint32_t>(options->padding()[2])
+                   : 0;
+    pad_right = options->hasPadding()
+                    ? base::checked_cast<uint32_t>(options->padding()[3])
+                    : 0;
   } else {
-    output_height = ceil(input_height / stride_height);
-    output_width = ceil(input_width / stride_width);
-    uint32_t pad_along_height = static_cast<uint32_t>(std::max(
-        size_t(0),
-        (output_height - 1) * stride_height + filter_height - input_height));
-    uint32_t pad_along_width = static_cast<uint32_t>(std::max(
-        size_t(0),
-        (output_width - 1) * stride_width + filter_width - input_width));
-    if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kSameUpper) {
-      pad_top = floor(pad_along_height / 2);
-      pad_bottom = pad_along_height - pad_top;
-      pad_left = floor(pad_along_width / 2);
-      pad_right = pad_along_width - pad_left;
-    } else {
-      pad_bottom = floor(pad_along_height / 2);
-      pad_top = pad_along_height - pad_bottom;
-      pad_right = floor(pad_along_width / 2);
-      pad_left = pad_along_width - pad_right;
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
+                                    filter_height, stride_height, pad_top,
+                                    pad_bottom) ||
+        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    filter_width, stride_width, pad_left,
+                                    pad_right)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kNotSupportedError,
+          "Overflow occurred when calcuating padding for autoPad.");
+      return false;
     }
   }
 
@@ -484,7 +549,7 @@ bool MLGraphXnnpack::DefineConv2d(
       default:
         exception_state.ThrowDOMException(
             DOMExceptionCode::kNotSupportedError,
-            "only clamp and relu fused operator are supported");
+            "Only clamp and relu fused operator are supported by conv2d.");
         return false;
     }
   }
@@ -505,7 +570,7 @@ bool MLGraphXnnpack::DefineConv2d(
   if (status != xnn_status_success) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kOperationError,
-        "failed to define conv2d: " + XnnStatusToString(status));
+        "Failed to define conv2d: " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -542,10 +607,10 @@ bool MLGraphXnnpack::DefineBinary(
       NOTREACHED();
   }
   if (status != xnn_status_success) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to define " +
-                                          OpKindToString(binary->Kind()) +
-                                          ": " + XnnStatusToString(status));
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "Failed to define element-wise binary op " +
+            OpKindToString(binary->Kind()) + ": " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -563,7 +628,7 @@ bool MLGraphXnnpack::DefineGemm(
   auto* filter = gemm->Inputs()[1].Get();
   if (filter->Kind() != MLOperand::KindEnum::kConstant) {
     exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                      "only constant input b is supported");
+                                      "Only constant input b is supported.");
     return false;
   }
   DCHECK(tensors_map.find(filter) != tensors_map.end());
@@ -575,7 +640,7 @@ bool MLGraphXnnpack::DefineGemm(
     if (bias->Dimensions().size() != 1 ||
         bias->Dimensions()[0] != output->Dimensions()[1]) {
       exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                        "the bias shape is invalid");
+                                        "The shape of bias is not supported.");
       return false;
     }
     DCHECK(tensors_map.find(bias) != tensors_map.end());
@@ -583,17 +648,17 @@ bool MLGraphXnnpack::DefineGemm(
   }
   if (fabs(options->alpha() - 1.0f) > std::numeric_limits<float>::epsilon()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                      "alpha is not supported");
+                                      "The alpha is not supported.");
     return false;
   }
   if (fabs(options->beta() - 1.0f) > std::numeric_limits<float>::epsilon()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                      "beta is not supported");
+                                      "The beta is not supported.");
     return false;
   }
   if (options->aTranspose()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                      "aTranspose is not supported");
+                                      "The aTranspose is not supported.");
     return false;
   }
   uint32_t flags = 0;
@@ -614,7 +679,7 @@ bool MLGraphXnnpack::DefineGemm(
            output_id, flags)) != xnn_status_success) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kOperationError,
-        "failed to define gemm: " + XnnStatusToString(status));
+        "Failed to define gemm: " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -637,59 +702,70 @@ bool MLGraphXnnpack::DefinePool2d(
   }
   uint32_t output_id = tensors_map.at(output);
 
-  uint32_t stride_height = options->hasStrides() ? options->strides()[0] : 1;
-  uint32_t stride_width = options->hasStrides() ? options->strides()[1] : 1;
+  uint32_t stride_height =
+      options->hasStrides()
+          ? base::checked_cast<uint32_t>(options->strides()[0])
+          : 1;
+  uint32_t stride_width =
+      options->hasStrides()
+          ? base::checked_cast<uint32_t>(options->strides()[1])
+          : 1;
   uint32_t dilation_height =
-      options->hasDilations() ? options->dilations()[0] : 1;
+      options->hasDilations()
+          ? base::checked_cast<uint32_t>(options->dilations()[0])
+          : 1;
   uint32_t dilation_width =
-      options->hasDilations() ? options->dilations()[1] : 1;
+      options->hasDilations()
+          ? base::checked_cast<uint32_t>(options->dilations()[1])
+          : 1;
   size_t input_height, input_width;
   uint32_t filter_height, filter_width;
   bool global_pooling = false;
   if (options->layout().AsEnum() == V8MLInputOperandLayout::Enum::kNhwc) {
-    input_height = input->Dimensions()[1];
-    input_width = input->Dimensions()[2];
+    input_height = base::checked_cast<size_t>(input->Dimensions()[1]);
+    input_width = base::checked_cast<size_t>(input->Dimensions()[2]);
     if (options->hasWindowDimensions()) {
-      filter_height = options->windowDimensions()[0];
-      filter_width = options->windowDimensions()[1];
+      filter_height =
+          base::checked_cast<uint32_t>(options->windowDimensions()[0]);
+      filter_width =
+          base::checked_cast<uint32_t>(options->windowDimensions()[1]);
     } else {
       global_pooling = true;
     }
   } else {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kNotSupportedError,
-        "only input layout nhwc for pool2d is supported");
+        "The input layout of pool2d is not supported.");
     return false;
   }
 
-  size_t output_height, output_width;
   uint32_t pad_top, pad_bottom, pad_left, pad_right;
   if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kExplicit) {
     // WebNN padding: [beginning_height, ending_height, beginning_width,
     // ending_width]
-    pad_top = options->hasPadding() ? options->padding()[0] : 0;
-    pad_bottom = options->hasPadding() ? options->padding()[1] : 0;
-    pad_left = options->hasPadding() ? options->padding()[2] : 0;
-    pad_right = options->hasPadding() ? options->padding()[3] : 0;
+    pad_top = options->hasPadding()
+                  ? base::checked_cast<uint32_t>(options->padding()[0])
+                  : 0;
+    pad_bottom = options->hasPadding()
+                     ? base::checked_cast<uint32_t>(options->padding()[1])
+                     : 0;
+    pad_left = options->hasPadding()
+                   ? base::checked_cast<uint32_t>(options->padding()[2])
+                   : 0;
+    pad_right = options->hasPadding()
+                    ? base::checked_cast<uint32_t>(options->padding()[3])
+                    : 0;
   } else {
-    output_height = ceil(input_height / stride_height);
-    output_width = ceil(input_width / stride_width);
-    uint32_t pad_along_height = static_cast<uint32_t>(std::max(
-        size_t(0),
-        (output_height - 1) * stride_height + filter_height - input_height));
-    uint32_t pad_along_width = static_cast<uint32_t>(std::max(
-        size_t(0),
-        (output_width - 1) * stride_width + filter_width - input_width));
-    if (options->autoPad().AsEnum() == V8MLAutoPad::Enum::kSameUpper) {
-      pad_top = floor(pad_along_height / 2);
-      pad_bottom = pad_along_height - pad_top;
-      pad_left = floor(pad_along_width / 2);
-      pad_right = pad_along_width - pad_left;
-    } else {
-      pad_bottom = floor(pad_along_height / 2);
-      pad_top = pad_along_height - pad_bottom;
-      pad_right = floor(pad_along_width / 2);
-      pad_left = pad_along_width - pad_right;
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
+                                    filter_height, stride_height, pad_top,
+                                    pad_bottom) ||
+        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    filter_width, stride_width, pad_left,
+                                    pad_right)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kNotSupportedError,
+          "Overflow occurred when calcuating padding for autoPad.");
+      return false;
     }
   }
 
@@ -702,7 +778,7 @@ bool MLGraphXnnpack::DefinePool2d(
       if (dilation_height != 1 || dilation_width != 1) {
         exception_state.ThrowDOMException(
             DOMExceptionCode::kNotSupportedError,
-            "dilation for averagePool2d is not supported");
+            "The dilation for averagePool2d is not supported.");
         return false;
       }
       if (global_pooling) {
@@ -721,7 +797,7 @@ bool MLGraphXnnpack::DefinePool2d(
   }
   if (status != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to define " +
+                                      "Failed to define " +
                                           OpKindToString(pool2d->Kind()) +
                                           ": " + XnnStatusToString(status));
     return false;
@@ -740,7 +816,7 @@ bool MLGraphXnnpack::DefineReshape(
   auto* output = reshape->Outputs()[0].Get();
   Vector<size_t> new_sizes;
   for (auto& d : output->Dimensions()) {
-    new_sizes.push_back(static_cast<size_t>(d));
+    new_sizes.push_back(base::checked_cast<size_t>(d));
   }
   if (new_sizes.size() > XNN_MAX_TENSOR_DIMS) {
     exception_state.ThrowDOMException(
@@ -760,7 +836,7 @@ bool MLGraphXnnpack::DefineReshape(
                                           0)) != xnn_status_success) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kOperationError,
-        "failed to define reshape: " + XnnStatusToString(status));
+        "Failed to define reshape: " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -797,10 +873,10 @@ bool MLGraphXnnpack::DefineUnary(
       NOTREACHED();
   }
   if (status != xnn_status_success) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to define " +
-                                          OpKindToString(unary->Kind()) + ": " +
-                                          XnnStatusToString(status));
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kOperationError,
+        "Failed to define element-wise unary op " +
+            OpKindToString(unary->Kind()) + ": " + XnnStatusToString(status));
     return false;
   }
   return true;
@@ -811,12 +887,12 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
                                  ExceptionState& exception_state) {
   if (inputs.size() != inputs_info_.size()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "The number of inputs is invalid");
+                                      "The number of inputs is invalid.");
     return;
   }
   if (outputs.size() != outputs_info_.size()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "The number of outputs is invalid");
+                                      "The number of outputs is invalid.");
     return;
   }
   Vector<xnn_external_value> external_values;
@@ -827,7 +903,7 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
     if (iter == inputs_info_.end()) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
-          "There is unknown input: " + input.first);
+          "There is an unknown input: " + input.first);
       return;
     }
     xnn_external_value value = {0};
@@ -854,7 +930,7 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
     if (iter == outputs_info_.end()) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
-          "There is unknown output: " + output.first);
+          "There is an unknown output: " + output.first);
       return;
     }
     xnn_external_value value = {0};
@@ -886,12 +962,12 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
   if (xnn_setup_runtime(runtime_, external_values.size(),
                         external_values.data()) != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to setup runtime");
+                                      "Failed to setup XNNPACK runtime.");
     return;
   }
   if (xnn_invoke_runtime(runtime_) != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "failed to invoke runtime");
+                                      "Failed to invoke XNNPACK runtime.");
     return;
   }
 }
