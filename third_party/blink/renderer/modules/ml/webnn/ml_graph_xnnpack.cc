@@ -5,6 +5,10 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 
 #include "base/numerics/checked_math.h"
+#include "base/synchronization/lock.h"
+#include "base/system/sys_info.h"
+#include "base/thread_annotations.h"
+#include "build/buildflag.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
@@ -13,16 +17,77 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_tensor.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
-#include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+#include "third_party/blink/renderer/platform/wtf/thread_safe_ref_counted.h"
 
 #include <memory>
 
 namespace blink {
 
 namespace {
+
+class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
+ public:
+  static scoped_refptr<SharedXnnpackContext> GetInstance() {
+    if (instance_ == nullptr) {
+      return base::MakeRefCounted<SharedXnnpackContext>();
+    } else {
+      return base::WrapRefCounted(instance_);
+    }
+  }
+
+  explicit SharedXnnpackContext() : initialized_(false) { instance_ = this; }
+
+  SharedXnnpackContext(const SharedXnnpackContext&) = delete;
+  SharedXnnpackContext& operator=(const SharedXnnpackContext&) = delete;
+
+  bool Initialize() {
+    base::AutoLock auto_lock(lock_);
+    if (initialized_) {
+      return true;
+    }
+#if BUILDFLAG(IS_WIN)
+    if (xnn_initialize(NULL) != xnn_status_success) {
+      return false;
+    }
+#endif
+
+    pthreadpool_ = pthreadpool_create(base::SysInfo::NumberOfProcessors() / 2);
+    if (pthreadpool_ == nullptr) {
+      return false;
+    }
+    initialized_ = true;
+    return true;
+  }
+
+  pthreadpool_t Pthreadpool() {
+    base::AutoLock auto_lock(lock_);
+    return pthreadpool_;
+  }
+
+ private:
+  friend class ThreadSafeRefCounted<SharedXnnpackContext>;
+
+  ~SharedXnnpackContext() {
+#if BUILDFLAG(IS_WIN)
+    xnn_deinitialize();
+#endif
+    if (pthreadpool_ != nullptr) {
+      pthreadpool_destroy(pthreadpool_);
+    }
+    instance_ = nullptr;
+  }
+
+  static SharedXnnpackContext* instance_;
+
+  base::Lock lock_;
+  bool initialized_ GUARDED_BY(lock_);
+  pthreadpool_t pthreadpool_ GUARDED_BY(lock_);
+};
+
+SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
 
 String DataTypeToString(V8MLOperandType::Enum datatype) {
   switch (datatype) {
@@ -146,11 +211,13 @@ bool CalculatePaddingForAutoPad(V8MLAutoPad::Enum autoPad,
 }  // namespace
 
 MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
-    : MLGraph(context), runtime_(nullptr) {}
+    : MLGraph(context),
+      xnn_runtime_(nullptr),
+      xnn_context_(SharedXnnpackContext::GetInstance()) {}
 
 MLGraphXnnpack::~MLGraphXnnpack() {
-  if (runtime_ != nullptr) {
-    xnn_delete_runtime(runtime_);
+  if (xnn_runtime_ != nullptr) {
+    xnn_delete_runtime(xnn_runtime_);
   }
 }
 
@@ -160,6 +227,11 @@ bool MLGraphXnnpack::BuildImpl(
     const HeapVector<Member<const MLOperand>>& constants,
     const HeapVector<Member<const MLOperator>>& sorted_operators,
     ExceptionState& exception_state) {
+  if (!xnn_context_->Initialize()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "Failed to initialize XNNPACK context.");
+    return false;
+  }
   uint32_t externals_size;
   if (!base::CheckAdd<wtf_size_t>(named_outputs.size(), inputs.size())
            .AssignIfValid(&externals_size)) {
@@ -296,10 +368,8 @@ bool MLGraphXnnpack::BuildImpl(
     }
   }
   uint32_t flags = XNN_FLAG_YIELD_WORKERS;
-  if (xnn_create_runtime_v2(
-          subgraph.get(),
-          static_cast<MLContextXnnpack*>(ml_context_.Get())->Pthreadpool(),
-          flags, &runtime_) != xnn_status_success) {
+  if (xnn_create_runtime_v2(subgraph.get(), xnn_context_->Pthreadpool(), flags,
+                            &xnn_runtime_) != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
                                       "Failed to create XNNPACK runtime");
     return false;
@@ -959,13 +1029,13 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
     DCHECK(value.data);
     external_values.push_back(value);
   }
-  if (xnn_setup_runtime(runtime_, external_values.size(),
+  if (xnn_setup_runtime(xnn_runtime_, external_values.size(),
                         external_values.data()) != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
                                       "Failed to setup XNNPACK runtime.");
     return;
   }
-  if (xnn_invoke_runtime(runtime_) != xnn_status_success) {
+  if (xnn_invoke_runtime(xnn_runtime_) != xnn_status_success) {
     exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
                                       "Failed to invoke XNNPACK runtime.");
     return;

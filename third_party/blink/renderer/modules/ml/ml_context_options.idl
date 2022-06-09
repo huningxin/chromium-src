@@ -9,18 +9,20 @@
 //     https://github.com/webmachinelearning/webnn/blob/main/explainer.md
 
 enum MLDevicePreference {
+  // WebNN legacy definition.
+  "default",
   // Let the backend selects the most suitable device.
   "auto",
   // The backend will use GPU to do model inference. If some operator is not
   // supported by GPU, it will fall back to CPU.
   "gpu",
   // The backend will use CPU to do model inference.
-  "cpu",
-  // For WebNN legacy test
-  "default"
+  "cpu"
 };
 
 enum MLPowerPreference {
+  // WebNN definition.
+  "default",
   // Let the backend selects the most suitable behavior.
   "auto",
   // Prioritizes execution speed over power consumption.
@@ -28,8 +30,6 @@ enum MLPowerPreference {
   // Prioritizes power consumption over other considerations such as execution
   // speed.
   "low-power",
-  // For WebNN legacy test
-  "default"
 };
 
 enum MLModelFormat {
@@ -37,15 +37,7 @@ enum MLModelFormat {
   "tflite"
 };
 
-enum MLContextType {
-  "webnn",
-  "model-loader"
-};
-
 dictionary MLContextOptions {
-  // Experimental context type
-  MLContextType type = "webnn";
-
   // Preferred kind of device used.
   MLDevicePreference devicePreference = "auto";
 

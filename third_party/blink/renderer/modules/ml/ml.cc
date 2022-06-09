@@ -8,8 +8,6 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_context_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
-#include "third_party/blink/renderer/core/inspector/console_message.h"
-#include "third_party/blink/renderer/modules/ml/ml_context_xnnpack.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
 namespace blink {
@@ -56,43 +54,9 @@ MLContext* ML::createContext(ScriptState* script_state,
   // Notice that currently, we just create the context in the renderer. In the
   // future we may add backend query ability to check whether a context is
   // supportable or not. At that time, this function will be truly asynced.
-
-  MLContext* ml_context;
-  if (option->type() == V8MLContextType::Enum::kWebnn) {
-    // Create MLContext for WebNN
-    if (option->devicePreference().AsEnum() ==
-            V8MLDevicePreference::Enum::kDefault ||
-        option->devicePreference().AsEnum() ==
-            V8MLDevicePreference::Enum::kAuto ||
-        option->devicePreference().AsEnum() ==
-            V8MLDevicePreference::Enum::kCpu) {
-      // Create XNNPACK backed MLContext for WebNN
-      MLContextXnnpack* ml_context_xnnpack =
-          MakeGarbageCollected<MLContextXnnpack>(this);
-      if (!ml_context_xnnpack->Initialize()) {
-        exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                          "failed to initialize XNNPACK");
-        return nullptr;
-      }
-      execution_context_->AddConsoleMessage(
-          MakeGarbageCollected<ConsoleMessage>(
-              mojom::blink::ConsoleMessageSource::kJavaScript,
-              mojom::blink::ConsoleMessageLevel::kInfo,
-              "Created WebNN MLContext with pthreadpool threads count: " +
-                  String::Number(pthreadpool_get_threads_count(
-                      ml_context_xnnpack->Pthreadpool()))));
-      ml_context = ml_context_xnnpack;
-    } else {
-      exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                        "GPU device type is not supported yet");
-      return nullptr;
-    }
-  } else {
-    // Create MLContext for Model Loader
-    ml_context = MakeGarbageCollected<MLContext>(
-        option->devicePreference(), option->powerPreference(),
-        option->modelFormat(), option->numThreads(), this);
-  }
+  auto* ml_context = MakeGarbageCollected<MLContext>(
+      option->devicePreference(), option->powerPreference(),
+      option->modelFormat(), option->numThreads(), this);
   return ml_context;
 }
 

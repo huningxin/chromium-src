@@ -15,6 +15,10 @@
 
 namespace blink {
 
+namespace {
+class SharedXnnpackContext;
+}
+
 class MLGraphXnnpack final : public MLGraph {
  public:
   explicit MLGraphXnnpack(MLContext* context);
@@ -77,7 +81,9 @@ class MLGraphXnnpack final : public MLGraph {
   };
   HashMap<String, TensorValueInfo> inputs_info_;
   HashMap<String, TensorValueInfo> outputs_info_;
-  xnn_runtime_t runtime_;
+  xnn_runtime_t xnn_runtime_;
+
+  scoped_refptr<SharedXnnpackContext> xnn_context_;
 };
 
 }  // namespace blink
