@@ -9,8 +9,6 @@
 //     https://github.com/webmachinelearning/webnn/blob/main/explainer.md
 
 enum MLDevicePreference {
-  // WebNN legacy definition.
-  "default",
   // Let the backend selects the most suitable device.
   "auto",
   // The backend will use GPU to do model inference. If some operator is not
@@ -21,8 +19,6 @@ enum MLDevicePreference {
 };
 
 enum MLPowerPreference {
-  // WebNN definition.
-  "default",
   // Let the backend selects the most suitable behavior.
   "auto",
   // Prioritizes execution speed over power consumption.
