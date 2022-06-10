@@ -94,6 +94,10 @@ class MLGraphBuilder final : public ScriptWrappable {
                          const MLOperand*,
                          const MLPool2dOptions*,
                          ExceptionState&);
+  void SortOperators(const MLNamedOperands& named_outputs,
+                     HeapVector<Member<const MLOperand>>& inputs,
+                     HeapVector<Member<const MLOperand>>& constants,
+                     HeapVector<Member<const MLOperator>>& sorted_operators);
 
   Member<MLContext> ml_context_;
 };

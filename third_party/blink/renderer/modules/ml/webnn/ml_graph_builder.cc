@@ -659,12 +659,11 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
   return output;
 }
 
-MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
-                               ExceptionState& exception_state) {
-  HeapVector<Member<const MLOperand>> inputs;
-  HeapVector<Member<const MLOperand>> constants;
-  HeapVector<Member<const MLOperator>> sorted_operators;
-
+void MLGraphBuilder::SortOperators(
+    const MLNamedOperands& named_outputs,
+    HeapVector<Member<const MLOperand>>& inputs,
+    HeapVector<Member<const MLOperand>>& constants,
+    HeapVector<Member<const MLOperator>>& sorted_operators) {
   HeapDeque<Member<const MLOperator>> nodes_to_do;
   HeapHashSet<Member<const MLOperator>> nodes_done;
   for (const auto& output : named_outputs) {
@@ -698,6 +697,15 @@ MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
       nodes_to_do.pop_back();
     }
   }
+}
+
+MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
+                               ExceptionState& exception_state) {
+  HeapVector<Member<const MLOperand>> inputs;
+  HeapVector<Member<const MLOperand>> constants;
+  HeapVector<Member<const MLOperator>> sorted_operators;
+  SortOperators(named_outputs, inputs, constants, sorted_operators);
+
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);
   if (!graph->BuildImpl(named_outputs, inputs, constants, sorted_operators,
                         exception_state)) {
