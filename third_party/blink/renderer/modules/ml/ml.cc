@@ -42,14 +42,19 @@ void ML::Trace(Visitor* visitor) const {
   ScriptWrappable::Trace(visitor);
 }
 
-MLContext* ML::createContext(ScriptState* script_state,
-                             MLContextOptions* option,
-                             ExceptionState& exception_state) {
+ScriptPromise ML::createContext(ScriptState* script_state,
+                                MLContextOptions* option,
+                                ExceptionState& exception_state) {
   if (!script_state->ContextIsValid()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
                                       "Invalid script state");
-    return nullptr;
+    return ScriptPromise();
   }
+
+  ScriptPromiseResolver* resolver =
+      MakeGarbageCollected<ScriptPromiseResolver>(script_state);
+
+  auto promise = resolver->Promise();
 
   // Notice that currently, we just create the context in the renderer. In the
   // future we may add backend query ability to check whether a context is
@@ -57,7 +62,9 @@ MLContext* ML::createContext(ScriptState* script_state,
   auto* ml_context = MakeGarbageCollected<MLContext>(
       option->devicePreference(), option->powerPreference(),
       option->modelFormat(), option->numThreads(), this);
-  return ml_context;
+  resolver->Resolve(ml_context);
+
+  return promise;
 }
 
 bool ML::BootstrapMojoConnectionIfNeeded(ScriptState* script_state,
