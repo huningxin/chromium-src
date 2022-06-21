@@ -15,6 +15,8 @@
 
 namespace blink {
 
+class ScriptPromiseResolver;
+
 namespace {
 class SharedXnnpackContext;
 }
@@ -24,65 +26,96 @@ class MLGraphXnnpack final : public MLGraph {
   explicit MLGraphXnnpack(MLContext* context);
   ~MLGraphXnnpack() override;
 
-  bool BuildImpl(const MLNamedOperands& named_outputs,
-                 const HeapVector<Member<const MLOperand>>& inputs,
-                 const HeapVector<Member<const MLOperand>>& constants,
-                 const HeapVector<Member<const MLOperator>>& sorted_operators,
-                 ExceptionState& exception_state) override;
+  void Trace(Visitor* visitor) const override;
+
+  ScriptPromise BuildImpl(ScriptState* script_state,
+                          const MLNamedOperands& named_outputs,
+                          ExceptionState& exception_state) override;
 
  private:
-  bool DefineTensor(xnn_subgraph_t,
-                    HashMap<Member<const MLOperand>, uint32_t>&,
-                    const MLOperand*,
-                    ExceptionState&,
-                    bool external = false);
-  bool DefineClamp(xnn_subgraph_t,
-                   HashMap<Member<const MLOperand>, uint32_t>&,
-                   const MLOperator*,
-                   const MLClampOptions*,
-                   ExceptionState&);
-  bool DefineConv2d(xnn_subgraph_t,
-                    HashMap<Member<const MLOperand>, uint32_t>&,
-                    const MLOperator*,
-                    const MLConv2dOptions*,
-                    ExceptionState&);
-  bool DefineBinary(xnn_subgraph_t,
-                    HashMap<Member<const MLOperand>, uint32_t>&,
-                    const MLOperator*,
-                    ExceptionState&);
-  bool DefineGemm(xnn_subgraph_t,
-                  HashMap<Member<const MLOperand>, uint32_t>&,
-                  const MLOperator*,
-                  const MLGemmOptions*,
-                  ExceptionState&);
-  bool DefinePool2d(xnn_subgraph_t,
-                    HashMap<Member<const MLOperand>, uint32_t>&,
-                    const MLOperator*,
-                    const MLPool2dOptions*,
-                    ExceptionState&);
-  bool DefineReshape(xnn_subgraph_t,
-                     HashMap<Member<const MLOperand>, uint32_t>&,
-                     const MLOperator*,
-                     ExceptionState&);
-  bool DefineUnary(xnn_subgraph_t,
-                   HashMap<Member<const MLOperand>, uint32_t>&,
-                   const MLOperator*,
-                   ExceptionState&);
+  // Performs the graph build off the main thread.
+  static void BuildOnBackgroundThread(
+      CrossThreadPersistent<MLGraphXnnpack> graph,
+      CrossThreadPersistent<ScriptPromiseResolver> resolver,
+      scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
+
+  // Performs the post graph build on the main thread.
+  void DidBuild(CrossThreadPersistent<ScriptPromiseResolver> resolver,
+                xnn_status xnn_status,
+                const String& error_message = String());
+
+  xnn_status DefineTensor(
+      xnn_subgraph_t subgraph,
+      HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+      const MLOperand* operand,
+      String& error_message,
+      bool is_external = false);
+
+  xnn_status DefineClamp(
+      xnn_subgraph_t subgraph,
+      HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+      const MLOperator* clamp,
+      const MLClampOptions* options,
+      String& error_message);
+
+  xnn_status DefineConv2d(
+      xnn_subgraph_t subgraph,
+      HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+      const MLOperator* conv2d,
+      const MLConv2dOptions* options,
+      String& error_message);
+
+  xnn_status DefineBinary(
+      xnn_subgraph_t subgraph,
+      HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+      const MLOperator* binary,
+      String& error_message);
+
+  xnn_status DefineGemm(xnn_subgraph_t subgraph,
+                        HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+                        const MLOperator* gemm,
+                        const MLGemmOptions* options,
+                        String& error_message);
+
+  xnn_status DefinePool2d(
+      xnn_subgraph_t subgraph,
+      HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+      const MLOperator* pool2d,
+      const MLPool2dOptions* options,
+      String& error_message);
+
+  xnn_status DefineReshape(
+      xnn_subgraph_t subgraph,
+      HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+      const MLOperator* reshape,
+      String& error_message);
+
+  xnn_status DefineUnary(
+      xnn_subgraph_t subgraph,
+      HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
+      const MLOperator* unary,
+      String& error_message);
 
   void ComputeImpl(const MLNamedArrayInputs& inputs,
                    const MLNamedArrayOutputs& outputs,
                    ExceptionState& exception_state) override;
 
-  Vector<std::unique_ptr<char>> constant_data_;
+  // Members for graph build, will be cleared in DidBuild.
+  MLNamedOperands named_outputs_;
+  HeapVector<Member<const MLOperand>> inputs_;
+  HeapVector<Member<const MLOperand>> constants_;
+  HeapVector<Member<const MLOperator>> sorted_operators_;
 
+  // Members for graph compute, will be perserved in object life time.
+  Vector<std::unique_ptr<char>> constant_data_;
   struct TensorValueInfo {
     uint32_t id;
     size_t byte_length;
   };
   HashMap<String, TensorValueInfo> inputs_info_;
   HashMap<String, TensorValueInfo> outputs_info_;
-  xnn_runtime_t xnn_runtime_;
 
+  xnn_runtime_t xnn_runtime_;
   scoped_refptr<SharedXnnpackContext> xnn_context_;
 };
 

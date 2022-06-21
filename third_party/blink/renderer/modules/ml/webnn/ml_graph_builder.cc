@@ -5,6 +5,7 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 
 #include "base/numerics/checked_math.h"
+#include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
@@ -659,6 +660,7 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
   return output;
 }
 
+// static
 void MLGraphBuilder::SortOperators(
     const MLNamedOperands& named_outputs,
     HeapVector<Member<const MLOperand>>& inputs,
@@ -699,19 +701,18 @@ void MLGraphBuilder::SortOperators(
   }
 }
 
-MLGraph* MLGraphBuilder::build(const MLNamedOperands& named_outputs,
-                               ExceptionState& exception_state) {
-  HeapVector<Member<const MLOperand>> inputs;
-  HeapVector<Member<const MLOperand>> constants;
-  HeapVector<Member<const MLOperator>> sorted_operators;
-  SortOperators(named_outputs, inputs, constants, sorted_operators);
+ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
+                                    const MLNamedOperands& named_outputs,
+                                    ExceptionState& exception_state) {
+  if (!script_state->ContextIsValid()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
+                                      "Invalid script state");
+    return ScriptPromise();
+  }
 
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);
-  if (!graph->BuildImpl(named_outputs, inputs, constants, sorted_operators,
-                        exception_state)) {
-    return nullptr;
-  }
-  return graph;
+  return graph->BuildImpl(script_state, std::move(named_outputs),
+                          exception_state);
 }
 
 }  // namespace blink
