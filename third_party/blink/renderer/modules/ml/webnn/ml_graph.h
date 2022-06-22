@@ -39,18 +39,20 @@ class MLGraph : public ScriptWrappable {
   void Trace(Visitor* visitor) const override;
 
   // ml_graph.idl
-  void compute(const MLNamedArrayInputs& inputs,
-               const MLNamedArrayOutputs& outputs,
-               ExceptionState& exception_state);
+  ScriptPromise compute(ScriptState* script_state,
+                        const MLNamedArrayInputs& inputs,
+                        const MLNamedArrayOutputs& outputs,
+                        ExceptionState& exception_state);
 
   virtual ScriptPromise BuildImpl(ScriptState* script_state,
                                   const MLNamedOperands& named_outputs,
                                   ExceptionState& exception_state) = 0;
 
  protected:
-  virtual void ComputeImpl(const MLNamedArrayInputs& inputs,
-                           const MLNamedArrayOutputs& outputs,
-                           ExceptionState& exception_state) = 0;
+  virtual ScriptPromise ComputeImpl(ScriptState* script_state,
+                                    const MLNamedArrayInputs& inputs,
+                                    const MLNamedArrayOutputs& outputs,
+                                    ExceptionState& exception_state) = 0;
 
   Member<MLContext> ml_context_;
 };

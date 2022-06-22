@@ -4,7 +4,7 @@
 
 // https://www.w3.org/TR/webnn/
 
-// TODO: support MLArrayInput
+// TODO: align MLArrayInput and MLTensor
 typedef record<DOMString, ([AllowShared] ArrayBufferView or MLTensor)> MLNamedArrayInputs;
 typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer)> MLNamedArrayOutputs;
 
@@ -13,5 +13,5 @@ typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayB
   Exposed=Window
 ] interface MLGraph {
   // Should be restricted in worker
-  [RaisesException] void compute(MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
+  [CallWith=ScriptState, RaisesException] Promise<void> compute(MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
 };

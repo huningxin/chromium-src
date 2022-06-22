@@ -33,16 +33,32 @@ class MLGraphXnnpack final : public MLGraph {
                           ExceptionState& exception_state) override;
 
  private:
-  // Performs the graph build off the main thread.
+  // Build the XNNPACK graph and runtime off the main thread.
   static void BuildOnBackgroundThread(
       CrossThreadPersistent<MLGraphXnnpack> graph,
       CrossThreadPersistent<ScriptPromiseResolver> resolver,
       scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
 
-  // Performs the post graph build on the main thread.
+  // Perform the post graph build on the main thread.
   void DidBuild(CrossThreadPersistent<ScriptPromiseResolver> resolver,
-                xnn_status xnn_status,
+                xnn_status status,
                 const String& error_message = String());
+
+  ScriptPromise ComputeImpl(ScriptState* script_state,
+                            const MLNamedArrayInputs& inputs,
+                            const MLNamedArrayOutputs& outputs,
+                            ExceptionState& exception_state) override;
+
+  // Setup and invoke XNNPACK runtime off the main thread.
+  static void ComputeOnBackgroundThread(
+      CrossThreadPersistent<MLGraphXnnpack> graph,
+      CrossThreadPersistent<ScriptPromiseResolver> resolver,
+      scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
+
+  // Perform the post graph compute on the main thread.
+  void DidCompute(CrossThreadPersistent<ScriptPromiseResolver> resolver,
+                  xnn_status status,
+                  const String& error_message = String());
 
   xnn_status DefineTensor(
       xnn_subgraph_t subgraph,
@@ -96,15 +112,16 @@ class MLGraphXnnpack final : public MLGraph {
       const MLOperator* unary,
       String& error_message);
 
-  void ComputeImpl(const MLNamedArrayInputs& inputs,
-                   const MLNamedArrayOutputs& outputs,
-                   ExceptionState& exception_state) override;
-
   // Members for graph build, will be cleared in DidBuild.
-  MLNamedOperands named_outputs_;
-  HeapVector<Member<const MLOperand>> inputs_;
-  HeapVector<Member<const MLOperand>> constants_;
-  HeapVector<Member<const MLOperator>> sorted_operators_;
+  MLNamedOperands build_outputs_;
+  HeapVector<Member<const MLOperand>> build_inputs_;
+  HeapVector<Member<const MLOperand>> build_constants_;
+  HeapVector<Member<const MLOperator>> build_operators_;
+
+  // Members for each graph compute, will be cleared in DidCompute.
+  MLNamedArrayInputs compute_inputs_;
+  MLNamedArrayOutputs compute_outputs_;
+  Vector<xnn_external_value> external_values_;
 
   // Members for graph compute, will be perserved in object life time.
   Vector<std::unique_ptr<char>> constant_data_;
@@ -114,7 +131,6 @@ class MLGraphXnnpack final : public MLGraph {
   };
   HashMap<String, TensorValueInfo> inputs_info_;
   HashMap<String, TensorValueInfo> outputs_info_;
-
   xnn_runtime_t xnn_runtime_;
   scoped_refptr<SharedXnnpackContext> xnn_context_;
 };

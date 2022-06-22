@@ -12,7 +12,6 @@
 #include "base/thread_annotations.h"
 #include "build/buildflag.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
-#include "third_party/blink/renderer/bindings/core/v8/v8_throw_dom_exception.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
@@ -240,20 +239,6 @@ DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
   return DOMExceptionCode::kUnknownError;
 }
 
-void RejectWithError(ScriptPromiseResolver* resolver,
-                     xnn_status status,
-                     const String& error_message) {
-  ScriptState* script_state = resolver->GetScriptState();
-  if (!script_state->ContextIsValid()) {
-    return;
-  }
-  ScriptState::Scope scope(script_state);
-  DOMExceptionCode exception_code = XnnStatusToDOMExceptionCode(status);
-  resolver->Reject(V8ThrowDOMException::CreateOrEmpty(
-      script_state->GetIsolate(), exception_code, error_message));
-  return;
-}
-
 }  // namespace
 
 MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
@@ -268,19 +253,21 @@ MLGraphXnnpack::~MLGraphXnnpack() {
 }
 
 void MLGraphXnnpack::Trace(Visitor* visitor) const {
-  visitor->Trace(named_outputs_);
-  visitor->Trace(inputs_);
-  visitor->Trace(constants_);
-  visitor->Trace(sorted_operators_);
+  visitor->Trace(build_outputs_);
+  visitor->Trace(build_inputs_);
+  visitor->Trace(build_constants_);
+  visitor->Trace(build_operators_);
+  visitor->Trace(compute_inputs_);
+  visitor->Trace(compute_outputs_);
   MLGraph::Trace(visitor);
 }
 
 ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
                                         const MLNamedOperands& named_outputs,
                                         ExceptionState& exception_state) {
-  named_outputs_ = std::move(named_outputs);
-  MLGraphBuilder::SortOperators(named_outputs_, inputs_, constants_,
-                                sorted_operators_);
+  build_outputs_ = std::move(named_outputs);
+  MLGraphBuilder::SortOperators(build_outputs_, build_inputs_, build_constants_,
+                                build_operators_);
   // TODO: Get a dedicated queue when the specification matures.
   scoped_refptr<base::SequencedTaskRunner> task_runner =
       ExecutionContext::From(script_state)
@@ -314,8 +301,8 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
                               "Failed to initialize XNNPACK context.");
   }
   uint32_t externals_size;
-  if (!base::CheckAdd<wtf_size_t>(graph->named_outputs_.size(),
-                                  graph->inputs_.size())
+  if (!base::CheckAdd<wtf_size_t>(graph->build_outputs_.size(),
+                                  graph->build_inputs_.size())
            .AssignIfValid(&externals_size)) {
     POST_DID_BUILD_AND_RETURN(
         xnn_status_invalid_parameter,
@@ -335,7 +322,7 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
 
   HashMap<Member<const MLOperand>, uint32_t> tensors_map;
   uint32_t external_id = 0;
-  for (const auto& input : graph->inputs_) {
+  for (const auto& input : graph->build_inputs_) {
     uint32_t input_id = external_id++;
     tensors_map.insert(input, input_id);
     if ((status = graph->DefineTensor(subgraph.get(), tensors_map, input,
@@ -353,7 +340,7 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
     }
     graph->inputs_info_.insert(input->Name(), std::move(info));
   }
-  for (const auto& named_output : graph->named_outputs_) {
+  for (const auto& named_output : graph->build_outputs_) {
     auto* output = named_output.second.Get();
     uint32_t output_id = external_id++;
     tensors_map.insert(output, output_id);
@@ -372,13 +359,13 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
     }
     graph->outputs_info_.insert(named_output.first, std::move(info));
   }
-  for (const auto& constant : graph->constants_) {
+  for (const auto& constant : graph->build_constants_) {
     if ((status = graph->DefineTensor(subgraph.get(), tensors_map, constant,
                                       error_message)) != xnn_status_success) {
       POST_DID_BUILD_AND_RETURN(status, error_message);
     }
   }
-  for (const auto& op : graph->sorted_operators_) {
+  for (const auto& op : graph->build_operators_) {
     switch (op->Kind()) {
       case MLOperator::OpKind::kClamp: {
         const MLClampOptions* options =
@@ -472,18 +459,16 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
 
 void MLGraphXnnpack::DidBuild(
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
-    xnn_status xnn_status,
+    xnn_status status,
     const String& error_message) {
-  named_outputs_.clear();
-  inputs_.clear();
-  constants_.clear();
-  sorted_operators_.clear();
+  build_outputs_.clear();
+  build_inputs_.clear();
+  build_constants_.clear();
+  build_operators_.clear();
 
-  ScriptState* script_state = resolver->GetScriptState();
-  if (!script_state->ContextIsValid())
-    return;
-  if (xnn_status != xnn_status_success) {
-    RejectWithError(resolver, xnn_status, std::move(error_message));
+  if (status != xnn_status_success) {
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        XnnStatusToDOMExceptionCode(status), error_message));
     return;
   }
   resolver->Resolve(this);
@@ -1035,29 +1020,38 @@ xnn_status MLGraphXnnpack::DefineUnary(
   return xnn_status_success;
 }
 
-void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
-                                 const MLNamedArrayOutputs& outputs,
-                                 ExceptionState& exception_state) {
+ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
+                                          const MLNamedArrayInputs& inputs,
+                                          const MLNamedArrayOutputs& outputs,
+                                          ExceptionState& exception_state) {
+  if (!script_state->ContextIsValid()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
+                                      "Invalid script state");
+    return ScriptPromise();
+  }
+
+  auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
+  ScriptPromise promise = resolver->Promise();
   if (inputs.size() != inputs_info_.size()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "The number of inputs is invalid.");
-    return;
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        DOMExceptionCode::kDataError,
+        "The number of inputs doesn't match graph's expectation."));
+    return promise;
   }
   if (outputs.size() != outputs_info_.size()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "The number of outputs is invalid.");
-    return;
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        DOMExceptionCode::kDataError,
+        "The number of outputs doesn't match graph's expectation."));
+    return promise;
   }
-  Vector<xnn_external_value> external_values;
-  external_values.ReserveInitialCapacity(inputs_info_.size() +
-                                         outputs_info_.size());
+  external_values_.ReserveCapacity(inputs_info_.size() + outputs_info_.size());
   for (const auto& input : inputs) {
     auto iter = inputs_info_.find(input.first);
     if (iter == inputs_info_.end()) {
-      exception_state.ThrowDOMException(
+      resolver->Reject(MakeGarbageCollected<DOMException>(
           DOMExceptionCode::kDataError,
-          "There is an unknown input: " + input.first);
-      return;
+          "There is unknown input: " + input.first));
+      return promise;
     }
     xnn_external_value value = {0};
     value.id = iter->value.id;
@@ -1070,21 +1064,21 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
     }
     DCHECK(array_buffer_view != nullptr);
     if (array_buffer_view->byteLength() < iter->value.byte_length) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "The input (" + input.first + ") buffer length is invalid.");
-      return;
+      resolver->Reject(MakeGarbageCollected<DOMException>(
+          DOMExceptionCode::kUnknownError,
+          "Wrong size of input: " + input.first));
+      return promise;
     }
     value.data = array_buffer_view->BaseAddressMaybeShared();
-    external_values.push_back(value);
+    external_values_.push_back(value);
   }
   for (const auto& output : outputs) {
     auto iter = outputs_info_.find(output.first);
     if (iter == outputs_info_.end()) {
-      exception_state.ThrowDOMException(
+      resolver->Reject(MakeGarbageCollected<DOMException>(
           DOMExceptionCode::kDataError,
-          "There is an unknown output: " + output.first);
-      return;
+          "There is unknown output: " + output.first));
+      return promise;
     }
     xnn_external_value value = {0};
     value.id = iter->value.id;
@@ -1092,37 +1086,84 @@ void MLGraphXnnpack::ComputeImpl(const MLNamedArrayInputs& inputs,
       DOMArrayBufferView* array_buffer_view =
           output.second->GetAsArrayBufferViewAllowShared().Get();
       if (array_buffer_view->byteLength() < iter->value.byte_length) {
-        exception_state.ThrowDOMException(
-            DOMExceptionCode::kDataError,
-            "The output (" + output.first + ") buffer length is invalid.");
-        return;
+        resolver->Reject(MakeGarbageCollected<DOMException>(
+            DOMExceptionCode::kUnknownError,
+            "Wrong size of output: " + output.first));
+        return promise;
       }
       value.data = array_buffer_view->BaseAddressMaybeShared();
     } else if (output.second->IsArrayBufferAllowShared()) {
       DOMArrayBufferBase* array_buffer =
           output.second->GetAsArrayBufferAllowShared();
       if (array_buffer->ByteLength() < iter->value.byte_length) {
-        exception_state.ThrowDOMException(
-            DOMExceptionCode::kDataError,
-            "The output (" + output.first + ") buffer length is invalid.");
-        return;
+        resolver->Reject(MakeGarbageCollected<DOMException>(
+            DOMExceptionCode::kUnknownError,
+            "Wrong size of output: " + output.first));
+        return promise;
       }
       value.data = array_buffer->DataMaybeShared();
     }
     DCHECK(value.data);
-    external_values.push_back(value);
+    external_values_.push_back(value);
   }
-  if (xnn_setup_runtime(xnn_runtime_, external_values.size(),
-                        external_values.data()) != xnn_status_success) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "Failed to setup XNNPACK runtime.");
+
+  compute_inputs_ = std::move(inputs);
+  compute_outputs_ = std::move(outputs);
+
+  // TODO: Get a dedicated queue when the specification matures.
+  scoped_refptr<base::SequencedTaskRunner> task_runner =
+      ExecutionContext::From(script_state)
+          ->GetTaskRunner(TaskType::kMiscPlatformAPI);
+
+  worker_pool::PostTask(FROM_HERE, {base::MayBlock()},
+                        CrossThreadBindOnce(&ComputeOnBackgroundThread,
+                                            WrapCrossThreadPersistent(this),
+                                            WrapCrossThreadPersistent(resolver),
+                                            std::move(task_runner)));
+  return promise;
+}
+
+#define POST_DID_COMPUTE_AND_RETURN(STATUS, MESSAGE)                      \
+  PostCrossThreadTask(                                                    \
+      *resolver_task_runner, FROM_HERE,                                   \
+      CrossThreadBindOnce(&MLGraphXnnpack::DidCompute, std::move(graph),  \
+                          std::move(resolver), STATUS, String(MESSAGE))); \
+  return;
+
+// static
+void MLGraphXnnpack::ComputeOnBackgroundThread(
+    CrossThreadPersistent<MLGraphXnnpack> graph,
+    CrossThreadPersistent<ScriptPromiseResolver> resolver,
+    scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
+  xnn_status status = xnn_status_success;
+  if ((status = xnn_setup_runtime(
+           graph->xnn_runtime_, graph->external_values_.size(),
+           graph->external_values_.data())) != xnn_status_success) {
+    POST_DID_COMPUTE_AND_RETURN(status, "Failed to setup XNNPACK runtime: " +
+                                            XnnStatusToString(status));
+  }
+  if ((status = xnn_invoke_runtime(graph->xnn_runtime_)) !=
+      xnn_status_success) {
+    POST_DID_COMPUTE_AND_RETURN(status, "Failed to invoke XNNPACK runtime: " +
+                                            XnnStatusToString(status));
+  }
+  POST_DID_COMPUTE_AND_RETURN(status, "");
+}
+
+void MLGraphXnnpack::DidCompute(
+    CrossThreadPersistent<ScriptPromiseResolver> resolver,
+    xnn_status status,
+    const String& error_message) {
+  compute_inputs_.clear();
+  compute_outputs_.clear();
+  external_values_.clear();
+
+  if (status != xnn_status_success) {
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        XnnStatusToDOMExceptionCode(status), error_message));
     return;
   }
-  if (xnn_invoke_runtime(xnn_runtime_) != xnn_status_success) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                      "Failed to invoke XNNPACK runtime.");
-    return;
-  }
+  resolver->Resolve();
 }
 
 }  // namespace blink
