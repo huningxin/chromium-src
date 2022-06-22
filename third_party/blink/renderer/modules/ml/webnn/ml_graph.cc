@@ -4,9 +4,7 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
 
-#include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
-#include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
 namespace blink {
 
@@ -17,18 +15,6 @@ MLGraph::~MLGraph() = default;
 void MLGraph::Trace(Visitor* visitor) const {
   visitor->Trace(ml_context_);
   ScriptWrappable::Trace(visitor);
-}
-
-ScriptPromise MLGraph::compute(ScriptState* script_state,
-                               const MLNamedArrayInputs& inputs,
-                               const MLNamedArrayOutputs& outputs,
-                               ExceptionState& exception_state) {
-  if (!script_state->ContextIsValid()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
-                                      "Invalid script state");
-    return ScriptPromise();
-  }
-  return ComputeImpl(script_state, inputs, outputs, exception_state);
 }
 
 }  // namespace blink

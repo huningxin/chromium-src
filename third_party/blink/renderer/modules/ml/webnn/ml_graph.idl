@@ -4,14 +4,8 @@
 
 // https://www.w3.org/TR/webnn/
 
-// TODO: align MLArrayInput and MLTensor
-typedef record<DOMString, ([AllowShared] ArrayBufferView or MLTensor)> MLNamedArrayInputs;
-typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer)> MLNamedArrayOutputs;
-
 [
   RuntimeEnabled=MachineLearningNeuralNetwork,
   Exposed=Window
 ] interface MLGraph {
-  // Should be restricted in worker
-  [CallWith=ScriptState, RaisesException] Promise<void> compute(MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
 };
