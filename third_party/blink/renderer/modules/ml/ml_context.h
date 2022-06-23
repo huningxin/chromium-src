@@ -48,6 +48,11 @@ class MLContext final : public ScriptWrappable {
                         const MLNamedArrayOutputs& outputs,
                         ExceptionState& exception_state);
 
+  void computeSync(MLGraph* graph,
+                   const MLNamedArrayInputs& inputs,
+                   const MLNamedArrayOutputs& outputs,
+                   ExceptionState& exception_state);
+
  private:
   V8MLDevicePreference device_preference_;
   V8MLPowerPreference power_preference_;

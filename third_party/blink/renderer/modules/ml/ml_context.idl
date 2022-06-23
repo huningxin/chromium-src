@@ -19,7 +19,11 @@ typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayB
 [
   RuntimeEnabled=MachineLearningModelLoader,
   SecureContext,
-  Exposed=Window
+  Exposed=(Window, DedicatedWorker)
 ] interface MLContext {
-  [CallWith=ScriptState, RaisesException] Promise<void> compute(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
+  [CallWith=ScriptState, RaisesException]
+      Promise<void> compute(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
+
+  [RaisesException, Exposed=DedicatedWorker]
+      void computeSync(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
 };

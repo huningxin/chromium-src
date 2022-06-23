@@ -265,9 +265,7 @@ void MLGraphXnnpack::Trace(Visitor* visitor) const {
 ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
                                         const MLNamedOperands& named_outputs,
                                         ExceptionState& exception_state) {
-  build_outputs_ = std::move(named_outputs);
-  MLGraphBuilder::SortOperators(build_outputs_, build_inputs_, build_constants_,
-                                build_operators_);
+  SetupBuildState(std::move(named_outputs));
   // TODO: Get a dedicated queue when the specification matures.
   scoped_refptr<base::SequencedTaskRunner> task_runner =
       ExecutionContext::From(script_state)
@@ -282,12 +280,68 @@ ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
   return resolver->Promise();
 }
 
-#define POST_DID_BUILD_AND_RETURN(STATUS, MESSAGE)                        \
-  PostCrossThreadTask(                                                    \
-      *resolver_task_runner, FROM_HERE,                                   \
-      CrossThreadBindOnce(&MLGraphXnnpack::DidBuild, std::move(graph),    \
-                          std::move(resolver), STATUS, String(MESSAGE))); \
-  return;
+void MLGraphXnnpack::BuildSyncImpl(const MLNamedOperands& named_outputs,
+                                   ExceptionState& exception_state) {
+  SetupBuildState(std::move(named_outputs));
+  String error_message;
+  xnn_status status = CreateRuntime(error_message);
+  ClearBuildState();
+  if (status != xnn_status_success) {
+    exception_state.ThrowDOMException(XnnStatusToDOMExceptionCode(status),
+                                      error_message);
+  }
+}
+
+ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
+                                          const MLNamedArrayInputs& inputs,
+                                          const MLNamedArrayOutputs& outputs,
+                                          ExceptionState& exception_state) {
+  if (!script_state->ContextIsValid()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
+                                      "Invalid script state");
+    return ScriptPromise();
+  }
+
+  SetupComputeState(std::move(inputs), std::move(outputs));
+
+  // TODO: Get a dedicated queue when the specification matures.
+  scoped_refptr<base::SequencedTaskRunner> task_runner =
+      ExecutionContext::From(script_state)
+          ->GetTaskRunner(TaskType::kMiscPlatformAPI);
+  auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
+  worker_pool::PostTask(FROM_HERE, {base::MayBlock()},
+                        CrossThreadBindOnce(&ComputeOnBackgroundThread,
+                                            WrapCrossThreadPersistent(this),
+                                            WrapCrossThreadPersistent(resolver),
+                                            std::move(task_runner)));
+  return resolver->Promise();
+}
+
+void MLGraphXnnpack::ComputeSyncImpl(const MLNamedArrayInputs& inputs,
+                                     const MLNamedArrayOutputs& outputs,
+                                     ExceptionState& exception_state) {
+  SetupComputeState(std::move(inputs), std::move(outputs));
+  String error_message;
+  xnn_status status = InvokeRuntime(error_message);
+  ClearComputeState();
+  if (status != xnn_status_success) {
+    exception_state.ThrowDOMException(XnnStatusToDOMExceptionCode(status),
+                                      error_message);
+  }
+}
+
+void MLGraphXnnpack::SetupBuildState(const MLNamedOperands& named_outputs) {
+  build_outputs_ = std::move(named_outputs);
+  MLGraphBuilder::SortOperators(build_outputs_, build_inputs_, build_constants_,
+                                build_operators_);
+}
+
+void MLGraphXnnpack::ClearBuildState() {
+  build_outputs_.clear();
+  build_inputs_.clear();
+  build_constants_.clear();
+  build_operators_.clear();
+}
 
 // static
 void MLGraphXnnpack::BuildOnBackgroundThread(
@@ -296,25 +350,82 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
     scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
   DCHECK(!IsMainThread());
 
-  if (!graph->xnn_context_->Initialize()) {
-    POST_DID_BUILD_AND_RETURN(xnn_status_uninitialized,
-                              "Failed to initialize XNNPACK context.");
+  String error_message;
+  xnn_status status = graph->CreateRuntime(error_message);
+  PostCrossThreadTask(
+      *resolver_task_runner, FROM_HERE,
+      CrossThreadBindOnce(&MLGraphXnnpack::DidBuild, std::move(graph),
+                          std::move(resolver), status, error_message));
+}
+
+void MLGraphXnnpack::DidBuild(
+    CrossThreadPersistent<ScriptPromiseResolver> resolver,
+    xnn_status status,
+    const String& error_message) {
+  ClearBuildState();
+  if (status != xnn_status_success) {
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        XnnStatusToDOMExceptionCode(status), error_message));
+    return;
+  }
+  resolver->Resolve(this);
+}
+
+void MLGraphXnnpack::SetupComputeState(const MLNamedArrayInputs& inputs,
+                                       const MLNamedArrayOutputs& outputs) {
+  compute_inputs_ = std::move(inputs);
+  compute_outputs_ = std::move(outputs);
+}
+
+void MLGraphXnnpack::ClearComputeState() {
+  compute_inputs_.clear();
+  compute_outputs_.clear();
+}
+
+// static
+void MLGraphXnnpack::ComputeOnBackgroundThread(
+    CrossThreadPersistent<MLGraphXnnpack> graph,
+    CrossThreadPersistent<ScriptPromiseResolver> resolver,
+    scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
+  String error_message;
+  xnn_status status = graph->InvokeRuntime(error_message);
+  PostCrossThreadTask(
+      *resolver_task_runner, FROM_HERE,
+      CrossThreadBindOnce(&MLGraphXnnpack::DidCompute, std::move(graph),
+                          std::move(resolver), status, error_message));
+}
+
+void MLGraphXnnpack::DidCompute(
+    CrossThreadPersistent<ScriptPromiseResolver> resolver,
+    xnn_status status,
+    const String& error_message) {
+  ClearComputeState();
+  if (status != xnn_status_success) {
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        XnnStatusToDOMExceptionCode(status), error_message));
+    return;
+  }
+  resolver->Resolve();
+}
+
+xnn_status MLGraphXnnpack::CreateRuntime(String& error_message) {
+  if (!xnn_context_->Initialize()) {
+    error_message = "Failed to initialize XNNPACK context.";
+    return xnn_status_uninitialized;
   }
   uint32_t externals_size;
-  if (!base::CheckAdd<wtf_size_t>(graph->build_outputs_.size(),
-                                  graph->build_inputs_.size())
+  if (!base::CheckAdd<wtf_size_t>(build_outputs_.size(), build_inputs_.size())
            .AssignIfValid(&externals_size)) {
-    POST_DID_BUILD_AND_RETURN(
-        xnn_status_invalid_parameter,
-        "Overflow occurred when calcuating externals size.");
+    error_message = "Overflow occurred when calcuating externals size.";
+    return xnn_status_invalid_parameter;
   }
   xnn_subgraph_t subgraph_ptr = nullptr;
   xnn_status status;
-  String error_message;
   if ((status = xnn_create_subgraph(externals_size, 0, &subgraph_ptr)) !=
       xnn_status_success) {
-    POST_DID_BUILD_AND_RETURN(status, "Failed to create XNNPACK subgraph: " +
-                                          XnnStatusToString(status));
+    error_message =
+        "Failed to create XNNPACK subgraph: " + XnnStatusToString(status);
+    return status;
   }
 
   std::unique_ptr<xnn_subgraph, decltype(&xnn_delete_subgraph)> subgraph(
@@ -322,156 +433,129 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
 
   HashMap<Member<const MLOperand>, uint32_t> tensors_map;
   uint32_t external_id = 0;
-  for (const auto& input : graph->build_inputs_) {
+  for (const auto& input : build_inputs_) {
     uint32_t input_id = external_id++;
     tensors_map.insert(input, input_id);
-    if ((status = graph->DefineTensor(subgraph.get(), tensors_map, input,
-                                      error_message, true)) !=
-        xnn_status_success) {
-      POST_DID_BUILD_AND_RETURN(status, error_message);
+    if ((status = DefineTensor(subgraph.get(), tensors_map, input,
+                               error_message, true)) != xnn_status_success) {
+      return status;
     }
     TensorValueInfo info = {0};
     info.id = input_id;
     if (!CalculateByteLength(input, info.byte_length)) {
-      POST_DID_BUILD_AND_RETURN(
-          xnn_status_invalid_parameter,
+      error_message =
           "Overflow occurred when calcuating byte length of input: " +
-              input->Name());
+          input->Name();
+      return xnn_status_invalid_parameter;
     }
-    graph->inputs_info_.insert(input->Name(), std::move(info));
+    inputs_info_.insert(input->Name(), std::move(info));
   }
-  for (const auto& named_output : graph->build_outputs_) {
+  for (const auto& named_output : build_outputs_) {
     auto* output = named_output.second.Get();
     uint32_t output_id = external_id++;
     tensors_map.insert(output, output_id);
-    if ((status = graph->DefineTensor(subgraph.get(), tensors_map, output,
-                                      error_message, true)) !=
-        xnn_status_success) {
-      POST_DID_BUILD_AND_RETURN(status, error_message);
+    if ((status = DefineTensor(subgraph.get(), tensors_map, output,
+                               error_message, true)) != xnn_status_success) {
+      return status;
     }
     TensorValueInfo info = {0};
     info.id = output_id;
     if (!CalculateByteLength(output, info.byte_length)) {
-      POST_DID_BUILD_AND_RETURN(
-          xnn_status_invalid_parameter,
+      error_message =
           "Overflow occurred when calcuating byte length of output: " +
-              named_output.first);
+          named_output.first;
+      return xnn_status_invalid_parameter;
     }
-    graph->outputs_info_.insert(named_output.first, std::move(info));
+    outputs_info_.insert(named_output.first, std::move(info));
   }
-  for (const auto& constant : graph->build_constants_) {
-    if ((status = graph->DefineTensor(subgraph.get(), tensors_map, constant,
-                                      error_message)) != xnn_status_success) {
-      POST_DID_BUILD_AND_RETURN(status, error_message);
+  for (const auto& constant : build_constants_) {
+    if ((status = DefineTensor(subgraph.get(), tensors_map, constant,
+                               error_message)) != xnn_status_success) {
+      return status;
     }
   }
-  for (const auto& op : graph->build_operators_) {
+  for (const auto& op : build_operators_) {
     switch (op->Kind()) {
       case MLOperator::OpKind::kClamp: {
         const MLClampOptions* options =
             static_cast<const MLClampOptions*>(op->Options());
-        if ((status = graph->DefineClamp(subgraph.get(), tensors_map, op,
-                                         options, error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefineClamp(subgraph.get(), tensors_map, op, options,
+                                  error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       case MLOperator::OpKind::kConv2d: {
         const MLConv2dOptions* options =
             static_cast<const MLConv2dOptions*>(op->Options());
-        if ((status = graph->DefineConv2d(subgraph.get(), tensors_map, op,
-                                          options, error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefineConv2d(subgraph.get(), tensors_map, op, options,
+                                   error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       case MLOperator::OpKind::kAdd: {
-        if ((status = graph->DefineBinary(subgraph.get(), tensors_map, op,
-                                          error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefineBinary(subgraph.get(), tensors_map, op,
+                                   error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       case MLOperator::OpKind::kGemm: {
         const MLGemmOptions* options =
             static_cast<const MLGemmOptions*>(op->Options());
-        if ((status = graph->DefineGemm(subgraph.get(), tensors_map, op,
-                                        options, error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefineGemm(subgraph.get(), tensors_map, op, options,
+                                 error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       case MLOperator::OpKind::kAveragePool2d: {
         const MLPool2dOptions* options =
             static_cast<const MLPool2dOptions*>(op->Options());
-        if ((status = graph->DefinePool2d(subgraph.get(), tensors_map, op,
-                                          options, error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefinePool2d(subgraph.get(), tensors_map, op, options,
+                                   error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       case MLOperator::OpKind::kRelu: {
-        if ((status = graph->DefineUnary(subgraph.get(), tensors_map, op,
-                                         error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefineUnary(subgraph.get(), tensors_map, op,
+                                  error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       case MLOperator::OpKind::kReshape: {
-        if ((status = graph->DefineReshape(subgraph.get(), tensors_map, op,
-                                           error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefineReshape(subgraph.get(), tensors_map, op,
+                                    error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       case MLOperator::OpKind::kSoftmax: {
-        if ((status = graph->DefineUnary(subgraph.get(), tensors_map, op,
-                                         error_message)) !=
-            xnn_status_success) {
-          POST_DID_BUILD_AND_RETURN(status, error_message);
+        if ((status = DefineUnary(subgraph.get(), tensors_map, op,
+                                  error_message)) != xnn_status_success) {
+          return status;
         }
         break;
       }
       default:
-        POST_DID_BUILD_AND_RETURN(xnn_status_unsupported_parameter,
-                                  "The operator (" +
-                                      OpKindToString(op->Kind()) +
-                                      ") is not supported");
+        error_message = "The operator (" + OpKindToString(op->Kind()) +
+                        ") is not supported";
+        return xnn_status_unsupported_parameter;
     }
   }
   uint32_t flags = XNN_FLAG_YIELD_WORKERS;
-  if ((status = xnn_create_runtime_v2(
-           subgraph.get(), graph->xnn_context_->Pthreadpool(), flags,
-           &graph->xnn_runtime_)) != xnn_status_success) {
-    POST_DID_BUILD_AND_RETURN(status, "Failed to create XNNPACK runtime: " +
-                                          XnnStatusToString(status));
+  if ((status =
+           xnn_create_runtime_v2(subgraph.get(), xnn_context_->Pthreadpool(),
+                                 flags, &xnn_runtime_)) != xnn_status_success) {
+    error_message =
+        "Failed to create XNNPACK runtime: " + XnnStatusToString(status);
+    return status;
   }
 
-  POST_DID_BUILD_AND_RETURN(xnn_status_success, "");
-}
-
-void MLGraphXnnpack::DidBuild(
-    CrossThreadPersistent<ScriptPromiseResolver> resolver,
-    xnn_status status,
-    const String& error_message) {
-  build_outputs_.clear();
-  build_inputs_.clear();
-  build_constants_.clear();
-  build_operators_.clear();
-
-  if (status != xnn_status_success) {
-    resolver->Reject(MakeGarbageCollected<DOMException>(
-        XnnStatusToDOMExceptionCode(status), error_message));
-    return;
-  }
-  resolver->Resolve(this);
+  return xnn_status_success;
 }
 
 xnn_status MLGraphXnnpack::DefineTensor(
@@ -1020,38 +1104,22 @@ xnn_status MLGraphXnnpack::DefineUnary(
   return xnn_status_success;
 }
 
-ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
-                                          const MLNamedArrayInputs& inputs,
-                                          const MLNamedArrayOutputs& outputs,
-                                          ExceptionState& exception_state) {
-  if (!script_state->ContextIsValid()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
-                                      "Invalid script state");
-    return ScriptPromise();
+xnn_status MLGraphXnnpack::InvokeRuntime(String& error_message) {
+  if (compute_inputs_.size() != inputs_info_.size()) {
+    error_message = "The number of inputs doesn't match graph's expectation.";
+    return xnn_status_invalid_parameter;
   }
-
-  auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
-  ScriptPromise promise = resolver->Promise();
-  if (inputs.size() != inputs_info_.size()) {
-    resolver->Reject(MakeGarbageCollected<DOMException>(
-        DOMExceptionCode::kDataError,
-        "The number of inputs doesn't match graph's expectation."));
-    return promise;
+  if (compute_outputs_.size() != outputs_info_.size()) {
+    error_message = "The number of outputs doesn't match graph's expectation.";
+    return xnn_status_invalid_parameter;
   }
-  if (outputs.size() != outputs_info_.size()) {
-    resolver->Reject(MakeGarbageCollected<DOMException>(
-        DOMExceptionCode::kDataError,
-        "The number of outputs doesn't match graph's expectation."));
-    return promise;
-  }
-  external_values_.ReserveCapacity(inputs_info_.size() + outputs_info_.size());
-  for (const auto& input : inputs) {
+  Vector<xnn_external_value> external_values;
+  external_values.ReserveCapacity(inputs_info_.size() + outputs_info_.size());
+  for (const auto& input : compute_inputs_) {
     auto iter = inputs_info_.find(input.first);
     if (iter == inputs_info_.end()) {
-      resolver->Reject(MakeGarbageCollected<DOMException>(
-          DOMExceptionCode::kDataError,
-          "There is unknown input: " + input.first));
-      return promise;
+      error_message = "There is unknown input: " + input.first;
+      return xnn_status_invalid_parameter;
     }
     xnn_external_value value = {0};
     value.id = iter->value.id;
@@ -1064,21 +1132,17 @@ ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
     }
     DCHECK(array_buffer_view != nullptr);
     if (array_buffer_view->byteLength() < iter->value.byte_length) {
-      resolver->Reject(MakeGarbageCollected<DOMException>(
-          DOMExceptionCode::kUnknownError,
-          "Wrong size of input: " + input.first));
-      return promise;
+      error_message = "Wrong size of input: " + input.first;
+      return xnn_status_invalid_parameter;
     }
     value.data = array_buffer_view->BaseAddressMaybeShared();
-    external_values_.push_back(value);
+    external_values.push_back(value);
   }
-  for (const auto& output : outputs) {
+  for (const auto& output : compute_outputs_) {
     auto iter = outputs_info_.find(output.first);
     if (iter == outputs_info_.end()) {
-      resolver->Reject(MakeGarbageCollected<DOMException>(
-          DOMExceptionCode::kDataError,
-          "There is unknown output: " + output.first));
-      return promise;
+      error_message = "There is unknown output: " + output.first;
+      return xnn_status_invalid_parameter;
     }
     xnn_external_value value = {0};
     value.id = iter->value.id;
@@ -1086,84 +1150,36 @@ ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
       DOMArrayBufferView* array_buffer_view =
           output.second->GetAsArrayBufferViewAllowShared().Get();
       if (array_buffer_view->byteLength() < iter->value.byte_length) {
-        resolver->Reject(MakeGarbageCollected<DOMException>(
-            DOMExceptionCode::kUnknownError,
-            "Wrong size of output: " + output.first));
-        return promise;
+        error_message = "Wrong size of output: " + output.first;
+        return xnn_status_invalid_parameter;
       }
       value.data = array_buffer_view->BaseAddressMaybeShared();
     } else if (output.second->IsArrayBufferAllowShared()) {
       DOMArrayBufferBase* array_buffer =
           output.second->GetAsArrayBufferAllowShared();
       if (array_buffer->ByteLength() < iter->value.byte_length) {
-        resolver->Reject(MakeGarbageCollected<DOMException>(
-            DOMExceptionCode::kUnknownError,
-            "Wrong size of output: " + output.first));
-        return promise;
+        error_message = "Wrong size of output: " + output.first;
+        return xnn_status_invalid_parameter;
       }
       value.data = array_buffer->DataMaybeShared();
     }
     DCHECK(value.data);
-    external_values_.push_back(value);
+    external_values.push_back(value);
   }
-
-  compute_inputs_ = std::move(inputs);
-  compute_outputs_ = std::move(outputs);
-
-  // TODO: Get a dedicated queue when the specification matures.
-  scoped_refptr<base::SequencedTaskRunner> task_runner =
-      ExecutionContext::From(script_state)
-          ->GetTaskRunner(TaskType::kMiscPlatformAPI);
-
-  worker_pool::PostTask(FROM_HERE, {base::MayBlock()},
-                        CrossThreadBindOnce(&ComputeOnBackgroundThread,
-                                            WrapCrossThreadPersistent(this),
-                                            WrapCrossThreadPersistent(resolver),
-                                            std::move(task_runner)));
-  return promise;
-}
-
-#define POST_DID_COMPUTE_AND_RETURN(STATUS, MESSAGE)                      \
-  PostCrossThreadTask(                                                    \
-      *resolver_task_runner, FROM_HERE,                                   \
-      CrossThreadBindOnce(&MLGraphXnnpack::DidCompute, std::move(graph),  \
-                          std::move(resolver), STATUS, String(MESSAGE))); \
-  return;
-
-// static
-void MLGraphXnnpack::ComputeOnBackgroundThread(
-    CrossThreadPersistent<MLGraphXnnpack> graph,
-    CrossThreadPersistent<ScriptPromiseResolver> resolver,
-    scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
   xnn_status status = xnn_status_success;
-  if ((status = xnn_setup_runtime(
-           graph->xnn_runtime_, graph->external_values_.size(),
-           graph->external_values_.data())) != xnn_status_success) {
-    POST_DID_COMPUTE_AND_RETURN(status, "Failed to setup XNNPACK runtime: " +
-                                            XnnStatusToString(status));
-  }
-  if ((status = xnn_invoke_runtime(graph->xnn_runtime_)) !=
+  if ((status = xnn_setup_runtime(xnn_runtime_, external_values.size(),
+                                  external_values.data())) !=
       xnn_status_success) {
-    POST_DID_COMPUTE_AND_RETURN(status, "Failed to invoke XNNPACK runtime: " +
-                                            XnnStatusToString(status));
+    error_message =
+        "Failed to setup XNNPACK runtime: " + XnnStatusToString(status);
+    return status;
   }
-  POST_DID_COMPUTE_AND_RETURN(status, "");
-}
-
-void MLGraphXnnpack::DidCompute(
-    CrossThreadPersistent<ScriptPromiseResolver> resolver,
-    xnn_status status,
-    const String& error_message) {
-  compute_inputs_.clear();
-  compute_outputs_.clear();
-  external_values_.clear();
-
-  if (status != xnn_status_success) {
-    resolver->Reject(MakeGarbageCollected<DOMException>(
-        XnnStatusToDOMExceptionCode(status), error_message));
-    return;
+  if ((status = xnn_invoke_runtime(xnn_runtime_)) != xnn_status_success) {
+    error_message =
+        "Failed to invoke XNNPACK runtime: " + XnnStatusToString(status);
+    return status;
   }
-  resolver->Resolve();
+  return xnn_status_success;
 }
 
 }  // namespace blink

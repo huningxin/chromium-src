@@ -715,4 +715,14 @@ ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
                           exception_state);
 }
 
+MLGraph* MLGraphBuilder::buildSync(const MLNamedOperands& named_outputs,
+                                   ExceptionState& exception_state) {
+  auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);
+  graph->BuildSyncImpl(std::move(named_outputs), exception_state);
+  if (exception_state.HadException()) {
+    return nullptr;
+  }
+  return graph;
+}
+
 }  // namespace blink

@@ -19,8 +19,22 @@ using ml::model_loader::mojom::blink::MLService;
 
 }  // namespace
 
-ML::ML(ExecutionContext* execution_context)
-    : execution_context_(execution_context),
+// static
+const char ML::kSupplementName[] = "ML";
+
+// static
+ML* ML::ml(NavigatorBase& navigator) {
+  ML* ml = Supplement<NavigatorBase>::From<ML>(navigator);
+  if (!ml) {
+    ml = MakeGarbageCollected<ML>(navigator);
+    ProvideTo(navigator, ml);
+  }
+  return ml;
+}
+
+ML::ML(NavigatorBase& navigator)
+    : Supplement<NavigatorBase>(navigator),
+      execution_context_(navigator.GetExecutionContext()),
       remote_service_(execution_context_.Get()) {}
 
 void ML::CreateModelLoader(ScriptState* script_state,
@@ -38,7 +52,7 @@ void ML::CreateModelLoader(ScriptState* script_state,
 void ML::Trace(Visitor* visitor) const {
   visitor->Trace(execution_context_);
   visitor->Trace(remote_service_);
-
+  Supplement<NavigatorBase>::Trace(visitor);
   ScriptWrappable::Trace(visitor);
 }
 
@@ -65,6 +79,13 @@ ScriptPromise ML::createContext(ScriptState* script_state,
   resolver->Resolve(ml_context);
 
   return promise;
+}
+
+MLContext* ML::createContextSync(MLContextOptions* option,
+                                 ExceptionState& exception_state) {
+  return MakeGarbageCollected<MLContext>(
+      option->devicePreference(), option->powerPreference(),
+      option->modelFormat(), option->numThreads(), this);
 }
 
 bool ML::BootstrapMojoConnectionIfNeeded(ScriptState* script_state,

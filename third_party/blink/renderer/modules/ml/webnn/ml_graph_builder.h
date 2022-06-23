@@ -84,6 +84,9 @@ class MLGraphBuilder final : public ScriptWrappable {
                       const MLNamedOperands& outputs,
                       ExceptionState& exception_state);
 
+  MLGraph* buildSync(const MLNamedOperands& outputs,
+                     ExceptionState& exception_state);
+
   static void SortOperators(
       const MLNamedOperands& named_outputs,
       HeapVector<Member<const MLOperand>>& inputs,

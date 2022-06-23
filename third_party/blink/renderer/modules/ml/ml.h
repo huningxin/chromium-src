@@ -8,12 +8,13 @@
 #include "components/ml/mojom/ml_service.mojom-blink.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
-#include "third_party/blink/renderer/core/frame/navigator.h"
+#include "third_party/blink/renderer/core/execution_context/navigator_base.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 #include "third_party/blink/renderer/platform/mojo/heap_mojo_remote.h"
+#include "third_party/blink/renderer/platform/supplementable.h"
 
 namespace blink {
 
@@ -23,11 +24,15 @@ class ScriptState;
 
 // This class represents the "Machine Learning" object "navigator.ml" and will
 // be shared between the Model Loader API and WebNN API.
-class ML final : public ScriptWrappable {
+class ML final : public ScriptWrappable, public Supplement<NavigatorBase> {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  explicit ML(ExecutionContext* execution_context);
+  static const char kSupplementName[];
+  // Getter for navigator.ml
+  static ML* ml(NavigatorBase& navigator);
+
+  explicit ML(NavigatorBase& navigator);
 
   ML(const ML&) = delete;
   ML& operator=(const ML&) = delete;
@@ -45,6 +50,9 @@ class ML final : public ScriptWrappable {
   ScriptPromise createContext(ScriptState* state,
                               MLContextOptions* option,
                               ExceptionState& exception_state);
+
+  MLContext* createContextSync(MLContextOptions* option,
+                               ExceptionState& exception_state);
 
  private:
   // Binds the Mojo connection to browser process if needed.

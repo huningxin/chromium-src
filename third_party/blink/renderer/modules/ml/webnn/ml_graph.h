@@ -42,10 +42,17 @@ class MLGraph : public ScriptWrappable {
                                   const MLNamedOperands& named_outputs,
                                   ExceptionState& exception_state) = 0;
 
+  virtual void BuildSyncImpl(const MLNamedOperands& named_outputs,
+                             ExceptionState& exception_state) = 0;
+
   virtual ScriptPromise ComputeImpl(ScriptState* script_state,
                                     const MLNamedArrayInputs& inputs,
                                     const MLNamedArrayOutputs& outputs,
                                     ExceptionState& exception_state) = 0;
+
+  virtual void ComputeSyncImpl(const MLNamedArrayInputs& inputs,
+                               const MLNamedArrayOutputs& outputs,
+                               ExceptionState& exception_state) = 0;
 
  protected:
   Member<MLContext> ml_context_;

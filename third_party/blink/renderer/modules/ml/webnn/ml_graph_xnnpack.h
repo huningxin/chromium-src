@@ -31,8 +31,21 @@ class MLGraphXnnpack final : public MLGraph {
   ScriptPromise BuildImpl(ScriptState* script_state,
                           const MLNamedOperands& named_outputs,
                           ExceptionState& exception_state) override;
+  void BuildSyncImpl(const MLNamedOperands& named_outputs,
+                     ExceptionState& exception_state) override;
+
+  ScriptPromise ComputeImpl(ScriptState* script_state,
+                            const MLNamedArrayInputs& inputs,
+                            const MLNamedArrayOutputs& outputs,
+                            ExceptionState& exception_state) override;
+  void ComputeSyncImpl(const MLNamedArrayInputs& inputs,
+                       const MLNamedArrayOutputs& outputs,
+                       ExceptionState& exception_state) override;
 
  private:
+  void SetupBuildState(const MLNamedOperands& named_outputs);
+  void ClearBuildState();
+
   // Build the XNNPACK graph and runtime off the main thread.
   static void BuildOnBackgroundThread(
       CrossThreadPersistent<MLGraphXnnpack> graph,
@@ -44,10 +57,9 @@ class MLGraphXnnpack final : public MLGraph {
                 xnn_status status,
                 const String& error_message = String());
 
-  ScriptPromise ComputeImpl(ScriptState* script_state,
-                            const MLNamedArrayInputs& inputs,
-                            const MLNamedArrayOutputs& outputs,
-                            ExceptionState& exception_state) override;
+  void SetupComputeState(const MLNamedArrayInputs& inputs,
+                         const MLNamedArrayOutputs& outputs);
+  void ClearComputeState();
 
   // Setup and invoke XNNPACK runtime off the main thread.
   static void ComputeOnBackgroundThread(
@@ -59,6 +71,9 @@ class MLGraphXnnpack final : public MLGraph {
   void DidCompute(CrossThreadPersistent<ScriptPromiseResolver> resolver,
                   xnn_status status,
                   const String& error_message = String());
+
+  // Methods for interaction with XNNPACK APIs
+  xnn_status CreateRuntime(String& error_message);
 
   xnn_status DefineTensor(
       xnn_subgraph_t subgraph,
@@ -112,16 +127,17 @@ class MLGraphXnnpack final : public MLGraph {
       const MLOperator* unary,
       String& error_message);
 
-  // Members for graph build, will be cleared in DidBuild.
+  xnn_status InvokeRuntime(String& error_message);
+
+  // Members for graph build state
   MLNamedOperands build_outputs_;
   HeapVector<Member<const MLOperand>> build_inputs_;
   HeapVector<Member<const MLOperand>> build_constants_;
   HeapVector<Member<const MLOperator>> build_operators_;
 
-  // Members for each graph compute, will be cleared in DidCompute.
+  // Members for each graph compute state
   MLNamedArrayInputs compute_inputs_;
   MLNamedArrayOutputs compute_outputs_;
-  Vector<xnn_external_value> external_values_;
 
   // Members for graph compute, will be perserved in object life time.
   Vector<std::unique_ptr<char>> constant_data_;

@@ -55,7 +55,7 @@ dictionary MLClampOptions {
 
 [
   RuntimeEnabled=MachineLearningNeuralNetwork,
-  Exposed=Window
+  Exposed=(Window, DedicatedWorker)
 ] interface MLGraphBuilder {
   constructor(MLContext context);
 
@@ -86,4 +86,6 @@ dictionary MLClampOptions {
   [RaisesException] MLOperand softmax(MLOperand input);
 
   [CallWith=ScriptState, RaisesException] Promise<MLGraph> build(MLNamedOperands outputs);
+
+  [RaisesException, Exposed=DedicatedWorker] MLGraph buildSync(MLNamedOperands outputs);
 };

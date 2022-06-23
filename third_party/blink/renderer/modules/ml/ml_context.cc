@@ -62,4 +62,11 @@ ScriptPromise MLContext::compute(ScriptState* script_state,
   return graph->ComputeImpl(script_state, inputs, outputs, exception_state);
 }
 
+void MLContext::computeSync(MLGraph* graph,
+                            const MLNamedArrayInputs& inputs,
+                            const MLNamedArrayOutputs& outputs,
+                            ExceptionState& exception_state) {
+  return graph->ComputeSyncImpl(inputs, outputs, exception_state);
+}
+
 }  // namespace blink
