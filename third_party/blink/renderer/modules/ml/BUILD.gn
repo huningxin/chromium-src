@@ -2,7 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("//third_party/blink/renderer/modules/ml/features.gni")
 import("//third_party/blink/renderer/modules/modules.gni")
+
+config("ml_flags") {
+  if (build_webnn_with_xnnpack) {
+    defines = [ "BUILD_WEBNN_WITH_XNNPACK" ]
+  }
+}
 
 blink_modules_sources("ml") {
   sources = [
@@ -18,24 +25,30 @@ blink_modules_sources("ml") {
 
   deps = [ "//components/ml/mojom:mojom_blink" ]
 
+  configs += [ ":ml_flags" ]
+
   # WebNN sources
   sources += [
     "webnn/ml_graph.cc",
     "webnn/ml_graph.h",
     "webnn/ml_graph_builder.cc",
     "webnn/ml_graph_builder.h",
-    "webnn/ml_graph_xnnpack.cc",
-    "webnn/ml_graph_xnnpack.h",
     "webnn/ml_operand.cc",
     "webnn/ml_operand.h",
     "webnn/ml_operator.cc",
     "webnn/ml_operator.h",
   ]
 
-  # WebNN XNNPACK backend deps
-  deps += [
-    "//third_party/cpuinfo",
-    "//third_party/pthreadpool",
-    "//third_party/xnnpack",
-  ]
+  if (build_webnn_with_xnnpack) {
+    sources += [
+      "webnn/ml_graph_xnnpack.cc",
+      "webnn/ml_graph_xnnpack.h",
+    ]
+
+    deps += [
+      "//third_party/cpuinfo",
+      "//third_party/pthreadpool",
+      "//third_party/xnnpack",
+    ]
+  }
 }

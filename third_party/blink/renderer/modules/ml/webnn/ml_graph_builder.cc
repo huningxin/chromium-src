@@ -14,12 +14,15 @@
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
-#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_hash_set.h"
+
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
+#endif
 
 namespace blink {
 
@@ -710,19 +713,33 @@ ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
     return ScriptPromise();
   }
 
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);
   return graph->BuildImpl(script_state, std::move(named_outputs),
                           exception_state);
+#else
+  NOTIMPLEMENTED();
+  exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                    "Not implemented");
+  return ScriptPromise();
+#endif
 }
 
 MLGraph* MLGraphBuilder::buildSync(const MLNamedOperands& named_outputs,
                                    ExceptionState& exception_state) {
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);
   graph->BuildSyncImpl(std::move(named_outputs), exception_state);
   if (exception_state.HadException()) {
     return nullptr;
   }
   return graph;
+#else
+  NOTIMPLEMENTED();
+  exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                    "Not implemented");
+  return nullptr;
+#endif
 }
 
 }  // namespace blink
