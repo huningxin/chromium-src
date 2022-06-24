@@ -187,19 +187,6 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
         "The filter type is not consistent with input.");
     return nullptr;
   }
-  if (options->hasBias()) {
-    if (options->bias()->Dimensions().size() != 1) {
-      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                        "The bias is not a 1-D tensor.");
-      return nullptr;
-    }
-    if (options->bias()->Type() != input->Type()) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "The bias type is not consistent with input.");
-      return nullptr;
-    }
-  }
   if (options->hasPadding() && options->padding().size() != 4) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "The length of padding is not 4.");
@@ -251,13 +238,33 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
       filter_depth_in = filter_shape[1];
       break;
   }
-  if (input_channels % options->groups() == 0 &&
+  if (input_channels % options->groups() != 0 ||
       filter_depth_in != input_channels / options->groups()) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
         "The groups is invalid, it must evenly divides the input channels to "
         "filter input depth.");
     return nullptr;
+  }
+  if (options->hasBias()) {
+    auto shape_bias = options->bias()->Dimensions();
+    if (shape_bias.size() != 1) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The bias is not a 1-D tensor.");
+      return nullptr;
+    }
+    if (shape_bias[0] != output_channels) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "The bias shape is not [output_channels].");
+      return nullptr;
+    }
+    if (options->bias()->Type() != input->Type()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "The bias type is not consistent with input.");
+      return nullptr;
+    }
   }
 
   // Calculate output shape
