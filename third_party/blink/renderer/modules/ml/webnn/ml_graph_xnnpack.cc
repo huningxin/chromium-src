@@ -241,6 +241,29 @@ DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
 
 }  // namespace
 
+MLGraphXnnpack::BuildRequest::BuildRequest(const MLNamedOperands& named_outputs)
+    : outputs_(std::move(named_outputs)) {
+  MLGraphBuilder::SortOperators(outputs_, inputs_, constants_,
+                                sorted_operators_);
+}
+
+void MLGraphXnnpack::BuildRequest::Trace(Visitor* visitor) const {
+  visitor->Trace(outputs_);
+  visitor->Trace(inputs_);
+  visitor->Trace(constants_);
+  visitor->Trace(sorted_operators_);
+}
+
+MLGraphXnnpack::ComputeRequest::ComputeRequest(
+    const MLNamedArrayInputs& inputs,
+    const MLNamedArrayOutputs& outputs)
+    : inputs_(std::move(inputs)), outputs_(std::move(outputs)) {}
+
+void MLGraphXnnpack::ComputeRequest::Trace(Visitor* visitor) const {
+  visitor->Trace(inputs_);
+  visitor->Trace(outputs_);
+}
+
 MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
     : MLGraph(context),
       xnn_runtime_(nullptr),
@@ -252,29 +275,19 @@ MLGraphXnnpack::~MLGraphXnnpack() {
   }
 }
 
-void MLGraphXnnpack::Trace(Visitor* visitor) const {
-  visitor->Trace(build_outputs_);
-  visitor->Trace(build_inputs_);
-  visitor->Trace(build_constants_);
-  visitor->Trace(build_operators_);
-  visitor->Trace(compute_inputs_);
-  visitor->Trace(compute_outputs_);
-  MLGraph::Trace(visitor);
-}
-
 ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
                                         const MLNamedOperands& named_outputs,
                                         ExceptionState& exception_state) {
-  SetupBuildState(std::move(named_outputs));
+  auto* request = MakeGarbageCollected<BuildRequest>(std::move(named_outputs));
   // TODO: Get a dedicated queue when the specification matures.
   scoped_refptr<base::SequencedTaskRunner> task_runner =
       ExecutionContext::From(script_state)
           ->GetTaskRunner(TaskType::kMiscPlatformAPI);
-
   auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
   worker_pool::PostTask(FROM_HERE, {base::MayBlock()},
                         CrossThreadBindOnce(&BuildOnBackgroundThread,
                                             WrapCrossThreadPersistent(this),
+                                            WrapCrossThreadPersistent(request),
                                             WrapCrossThreadPersistent(resolver),
                                             std::move(task_runner)));
   return resolver->Promise();
@@ -282,10 +295,9 @@ ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
 
 void MLGraphXnnpack::BuildSyncImpl(const MLNamedOperands& named_outputs,
                                    ExceptionState& exception_state) {
-  SetupBuildState(std::move(named_outputs));
+  auto* request = MakeGarbageCollected<BuildRequest>(std::move(named_outputs));
   String error_message;
-  xnn_status status = CreateRuntime(error_message);
-  ClearBuildState();
+  xnn_status status = CreateRuntime(request, error_message);
   if (status != xnn_status_success) {
     exception_state.ThrowDOMException(XnnStatusToDOMExceptionCode(status),
                                       error_message);
@@ -302,8 +314,8 @@ ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
     return ScriptPromise();
   }
 
-  SetupComputeState(std::move(inputs), std::move(outputs));
-
+  auto* request = MakeGarbageCollected<ComputeRequest>(std::move(inputs),
+                                                       std::move(outputs));
   // TODO: Get a dedicated queue when the specification matures.
   scoped_refptr<base::SequencedTaskRunner> task_runner =
       ExecutionContext::From(script_state)
@@ -312,6 +324,7 @@ ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
   worker_pool::PostTask(FROM_HERE, {base::MayBlock()},
                         CrossThreadBindOnce(&ComputeOnBackgroundThread,
                                             WrapCrossThreadPersistent(this),
+                                            WrapCrossThreadPersistent(request),
                                             WrapCrossThreadPersistent(resolver),
                                             std::move(task_runner)));
   return resolver->Promise();
@@ -320,38 +333,26 @@ ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
 void MLGraphXnnpack::ComputeSyncImpl(const MLNamedArrayInputs& inputs,
                                      const MLNamedArrayOutputs& outputs,
                                      ExceptionState& exception_state) {
-  SetupComputeState(std::move(inputs), std::move(outputs));
+  auto* request = MakeGarbageCollected<ComputeRequest>(std::move(inputs),
+                                                       std::move(outputs));
   String error_message;
-  xnn_status status = InvokeRuntime(error_message);
-  ClearComputeState();
+  xnn_status status = InvokeRuntime(request, error_message);
   if (status != xnn_status_success) {
     exception_state.ThrowDOMException(XnnStatusToDOMExceptionCode(status),
                                       error_message);
   }
 }
 
-void MLGraphXnnpack::SetupBuildState(const MLNamedOperands& named_outputs) {
-  build_outputs_ = std::move(named_outputs);
-  MLGraphBuilder::SortOperators(build_outputs_, build_inputs_, build_constants_,
-                                build_operators_);
-}
-
-void MLGraphXnnpack::ClearBuildState() {
-  build_outputs_.clear();
-  build_inputs_.clear();
-  build_constants_.clear();
-  build_operators_.clear();
-}
-
 // static
 void MLGraphXnnpack::BuildOnBackgroundThread(
     CrossThreadPersistent<MLGraphXnnpack> graph,
+    CrossThreadPersistent<BuildRequest> request,
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
   DCHECK(!IsMainThread());
 
   String error_message;
-  xnn_status status = graph->CreateRuntime(error_message);
+  xnn_status status = graph->CreateRuntime(request, error_message);
   PostCrossThreadTask(
       *resolver_task_runner, FROM_HERE,
       CrossThreadBindOnce(&MLGraphXnnpack::DidBuild, std::move(graph),
@@ -362,7 +363,6 @@ void MLGraphXnnpack::DidBuild(
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     xnn_status status,
     const String& error_message) {
-  ClearBuildState();
   if (status != xnn_status_success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         XnnStatusToDOMExceptionCode(status), error_message));
@@ -371,24 +371,14 @@ void MLGraphXnnpack::DidBuild(
   resolver->Resolve(this);
 }
 
-void MLGraphXnnpack::SetupComputeState(const MLNamedArrayInputs& inputs,
-                                       const MLNamedArrayOutputs& outputs) {
-  compute_inputs_ = std::move(inputs);
-  compute_outputs_ = std::move(outputs);
-}
-
-void MLGraphXnnpack::ClearComputeState() {
-  compute_inputs_.clear();
-  compute_outputs_.clear();
-}
-
 // static
 void MLGraphXnnpack::ComputeOnBackgroundThread(
     CrossThreadPersistent<MLGraphXnnpack> graph,
+    CrossThreadPersistent<ComputeRequest> request,
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
   String error_message;
-  xnn_status status = graph->InvokeRuntime(error_message);
+  xnn_status status = graph->InvokeRuntime(request, error_message);
   PostCrossThreadTask(
       *resolver_task_runner, FROM_HERE,
       CrossThreadBindOnce(&MLGraphXnnpack::DidCompute, std::move(graph),
@@ -399,7 +389,6 @@ void MLGraphXnnpack::DidCompute(
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     xnn_status status,
     const String& error_message) {
-  ClearComputeState();
   if (status != xnn_status_success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         XnnStatusToDOMExceptionCode(status), error_message));
@@ -408,13 +397,15 @@ void MLGraphXnnpack::DidCompute(
   resolver->Resolve();
 }
 
-xnn_status MLGraphXnnpack::CreateRuntime(String& error_message) {
+xnn_status MLGraphXnnpack::CreateRuntime(BuildRequest* request,
+                                         String& error_message) {
   if (!xnn_context_->Initialize()) {
     error_message = "Failed to initialize XNNPACK context.";
     return xnn_status_uninitialized;
   }
   uint32_t externals_size;
-  if (!base::CheckAdd<wtf_size_t>(build_outputs_.size(), build_inputs_.size())
+  if (!base::CheckAdd<wtf_size_t>(request->outputs_.size(),
+                                  request->inputs_.size())
            .AssignIfValid(&externals_size)) {
     error_message = "Overflow occurred when calcuating externals size.";
     return xnn_status_invalid_parameter;
@@ -433,7 +424,7 @@ xnn_status MLGraphXnnpack::CreateRuntime(String& error_message) {
 
   HashMap<Member<const MLOperand>, uint32_t> tensors_map;
   uint32_t external_id = 0;
-  for (const auto& input : build_inputs_) {
+  for (const auto& input : request->inputs_) {
     uint32_t input_id = external_id++;
     tensors_map.insert(input, input_id);
     if ((status = DefineTensor(subgraph.get(), tensors_map, input,
@@ -450,7 +441,7 @@ xnn_status MLGraphXnnpack::CreateRuntime(String& error_message) {
     }
     inputs_info_.insert(input->Name(), std::move(info));
   }
-  for (const auto& named_output : build_outputs_) {
+  for (const auto& named_output : request->outputs_) {
     auto* output = named_output.second.Get();
     uint32_t output_id = external_id++;
     tensors_map.insert(output, output_id);
@@ -468,13 +459,13 @@ xnn_status MLGraphXnnpack::CreateRuntime(String& error_message) {
     }
     outputs_info_.insert(named_output.first, std::move(info));
   }
-  for (const auto& constant : build_constants_) {
+  for (const auto& constant : request->constants_) {
     if ((status = DefineTensor(subgraph.get(), tensors_map, constant,
                                error_message)) != xnn_status_success) {
       return status;
     }
   }
-  for (const auto& op : build_operators_) {
+  for (const auto& op : request->sorted_operators_) {
     switch (op->Kind()) {
       case MLOperator::OpKind::kClamp: {
         const MLClampOptions* options =
@@ -1104,18 +1095,19 @@ xnn_status MLGraphXnnpack::DefineUnary(
   return xnn_status_success;
 }
 
-xnn_status MLGraphXnnpack::InvokeRuntime(String& error_message) {
-  if (compute_inputs_.size() != inputs_info_.size()) {
+xnn_status MLGraphXnnpack::InvokeRuntime(ComputeRequest* request,
+                                         String& error_message) {
+  if (request->inputs_.size() != inputs_info_.size()) {
     error_message = "The number of inputs doesn't match graph's expectation.";
     return xnn_status_invalid_parameter;
   }
-  if (compute_outputs_.size() != outputs_info_.size()) {
+  if (request->outputs_.size() != outputs_info_.size()) {
     error_message = "The number of outputs doesn't match graph's expectation.";
     return xnn_status_invalid_parameter;
   }
   Vector<xnn_external_value> external_values;
   external_values.ReserveCapacity(inputs_info_.size() + outputs_info_.size());
-  for (const auto& input : compute_inputs_) {
+  for (const auto& input : request->inputs_) {
     auto iter = inputs_info_.find(input.first);
     if (iter == inputs_info_.end()) {
       error_message = "There is unknown input: " + input.first;
@@ -1138,7 +1130,7 @@ xnn_status MLGraphXnnpack::InvokeRuntime(String& error_message) {
     value.data = array_buffer_view->BaseAddressMaybeShared();
     external_values.push_back(value);
   }
-  for (const auto& output : compute_outputs_) {
+  for (const auto& output : request->outputs_) {
     auto iter = outputs_info_.find(output.first);
     if (iter == outputs_info_.end()) {
       error_message = "There is unknown output: " + output.first;

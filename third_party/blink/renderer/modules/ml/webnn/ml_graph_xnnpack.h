@@ -26,8 +26,6 @@ class MLGraphXnnpack final : public MLGraph {
   explicit MLGraphXnnpack(MLContext* context);
   ~MLGraphXnnpack() override;
 
-  void Trace(Visitor* visitor) const override;
-
   ScriptPromise BuildImpl(ScriptState* script_state,
                           const MLNamedOperands& named_outputs,
                           ExceptionState& exception_state) override;
@@ -43,12 +41,29 @@ class MLGraphXnnpack final : public MLGraph {
                        ExceptionState& exception_state) override;
 
  private:
-  void SetupBuildState(const MLNamedOperands& named_outputs);
-  void ClearBuildState();
+  struct BuildRequest final : public GarbageCollected<BuildRequest> {
+    BuildRequest(const MLNamedOperands& named_outputs);
+    void Trace(Visitor*) const;
 
-  // Build the XNNPACK graph and runtime off the main thread.
+    MLNamedOperands outputs_;
+    HeapVector<Member<const MLOperand>> inputs_;
+    HeapVector<Member<const MLOperand>> constants_;
+    HeapVector<Member<const MLOperator>> sorted_operators_;
+  };
+
+  struct ComputeRequest final : public GarbageCollected<ComputeRequest> {
+    ComputeRequest(const MLNamedArrayInputs& inputs,
+                   const MLNamedArrayOutputs& outputs);
+    void Trace(Visitor*) const;
+
+    MLNamedArrayInputs inputs_;
+    MLNamedArrayOutputs outputs_;
+  };
+
+  // Perform the graph build off the main thread.
   static void BuildOnBackgroundThread(
       CrossThreadPersistent<MLGraphXnnpack> graph,
+      CrossThreadPersistent<BuildRequest> request,
       CrossThreadPersistent<ScriptPromiseResolver> resolver,
       scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
 
@@ -57,13 +72,10 @@ class MLGraphXnnpack final : public MLGraph {
                 xnn_status status,
                 const String& error_message = String());
 
-  void SetupComputeState(const MLNamedArrayInputs& inputs,
-                         const MLNamedArrayOutputs& outputs);
-  void ClearComputeState();
-
-  // Setup and invoke XNNPACK runtime off the main thread.
+  // Perform the graph compute off the main thread.
   static void ComputeOnBackgroundThread(
       CrossThreadPersistent<MLGraphXnnpack> graph,
+      CrossThreadPersistent<ComputeRequest> request,
       CrossThreadPersistent<ScriptPromiseResolver> resolver,
       scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
 
@@ -73,7 +85,8 @@ class MLGraphXnnpack final : public MLGraph {
                   const String& error_message = String());
 
   // Methods for interaction with XNNPACK APIs
-  xnn_status CreateRuntime(String& error_message);
+  xnn_status CreateRuntime(BuildRequest* request, String& error_message);
+  xnn_status InvokeRuntime(ComputeRequest* request, String& error_message);
 
   xnn_status DefineTensor(
       xnn_subgraph_t subgraph,
@@ -126,18 +139,6 @@ class MLGraphXnnpack final : public MLGraph {
       HashMap<Member<const MLOperand>, uint32_t>& tensors_map,
       const MLOperator* unary,
       String& error_message);
-
-  xnn_status InvokeRuntime(String& error_message);
-
-  // Members for graph build state
-  MLNamedOperands build_outputs_;
-  HeapVector<Member<const MLOperand>> build_inputs_;
-  HeapVector<Member<const MLOperand>> build_constants_;
-  HeapVector<Member<const MLOperator>> build_operators_;
-
-  // Members for each graph compute state
-  MLNamedArrayInputs compute_inputs_;
-  MLNamedArrayOutputs compute_outputs_;
 
   // Members for graph compute, will be perserved in object life time.
   Vector<std::unique_ptr<char>> constant_data_;
