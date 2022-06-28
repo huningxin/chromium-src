@@ -6,12 +6,14 @@ import("//build/config/chrome_build.gni")
 import("//build/config/chromeos/ui_mode.gni")
 import("//build/config/features.gni")
 import("//ppapi/buildflags/buildflags.gni")
+import("//third_party/blink/renderer/modules/ml/features.gni")
 
 extra_configs = [
   "//build/config/compiler:wexit_time_destructors",
   "//content:content_implementation",
   "//tools/v8_context_snapshot:use_v8_context_snapshot",
   "//v8:external_startup_data",
+  "//third_party/blink/renderer/modules/ml:ml_flags",
 ]
 
 content_app_deps = [
@@ -82,16 +84,18 @@ source_set("content_main_runner_app") {
            "//content/renderer",
            "//content/utility",
            "//content/zygote",
-
-           # XNNPACK
-           "//third_party/cpuinfo",
-           "//third_party/pthreadpool",
-           "//third_party/xnnpack",
          ]
   if (is_chromeos_lacros) {
     deps += [
       "//chromeos/startup",
       "//chromeos/startup:constants",
+    ]
+  }
+  if (build_webnn_with_xnnpack) {
+    deps += [
+      "//third_party/cpuinfo",
+      "//third_party/pthreadpool",
+      "//third_party/xnnpack",
     ]
   }
 }

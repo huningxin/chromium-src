@@ -143,7 +143,10 @@
 #include "third_party/skia/include/core/SkFontMgr.h"
 #include "third_party/skia/include/ports/SkFontMgr_android.h"
 #include "third_party/webrtc_overrides/init_webrtc.h"  // nogncheck
+
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
 #include "third_party/xnnpack/src/include/xnnpack.h"
+#endif
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
 #include "chromeos/startup/browser_init_params.h"
@@ -411,10 +414,12 @@ void PreSandboxInit() {
 #endif
   InitializeWebRtcModule();
 
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
   // cpuinfo needs to parse /cpu/cpuinfo
   if (xnn_initialize(NULL) != xnn_status_success) {
     LOG(ERROR) << "Failed to initialize XNNPACK";
   }
+#endif
 
   // Set the android SkFontMgr for blink. We need to ensure this is done
   // before the sandbox is initialized to allow the font manager to access
