@@ -604,12 +604,12 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
   int32_t stride_height = strides[0], stride_width = strides[1];
   int32_t dilation_height = dilations[0], dilation_width = dilations[1];
   if (options->autoPad().AsEnum() != V8MLAutoPad::Enum::kExplicit) {
-    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(),
-                                    dilation_height, input_height,
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
                                     window_height, stride_height,
-                                    padding_begin_height, padding_end_height) ||
-        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), dilation_width,
-                                    input_width, window_width, stride_width,
+                                    dilation_height, padding_begin_height,
+                                    padding_end_height) ||
+        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    window_width, stride_width, dilation_width,
                                     padding_begin_width, padding_end_width)) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
