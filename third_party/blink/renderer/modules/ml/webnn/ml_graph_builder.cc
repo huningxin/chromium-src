@@ -457,10 +457,11 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
     }
   }
   auto input_shape = input->Dimensions();
-  uint32_t input_size = 1, capacity = 1;
+  uint32_t input_size = 1;
   for (auto dim : input_shape) {
     input_size *= dim;
   }
+  uint32_t capacity = 1;
   int minus1_dim_idx = -1;
   has_minus1 = false;
   Vector<int32_t> output_shape(new_shape.size());
@@ -478,6 +479,11 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
   // The size of the dimension with the value -1 is computed so that the total
   // size remains constant.
   if (has_minus1) {
+    if (input_size % capacity != 0) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The new shape is invalid.");
+      return nullptr;
+    }
     output_shape[minus1_dim_idx] = input_size / capacity;
   } else {
     // The number of elements implied by newShape must be the same as the number
