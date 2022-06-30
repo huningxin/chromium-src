@@ -676,37 +676,40 @@ void MLGraphBuilder::SortOperators(
     HeapVector<Member<const MLOperand>>& inputs,
     HeapVector<Member<const MLOperand>>& constants,
     HeapVector<Member<const MLOperator>>& sorted_operators) {
-  HeapDeque<Member<const MLOperator>> nodes_to_do;
-  HeapHashSet<Member<const MLOperator>> nodes_done;
+  HeapDeque<Member<const MLOperator>> operators_to_do;
+  HeapHashSet<Member<const MLOperator>> operators_done;
   for (const auto& output : named_outputs) {
-    nodes_to_do.push_back(output.second->Operator());
+    operators_to_do.push_back(output.second->Operator());
   }
-  while (nodes_to_do.size() > 0) {
-    const auto& node = nodes_to_do.back();
-    if (!nodes_done.Contains(node.Get())) {
+  while (operators_to_do.size() > 0) {
+    const auto& op = operators_to_do.back();
+    if (!operators_done.Contains(op.Get())) {
       bool can_add = true;
-      for (const auto& input : node->Inputs()) {
-        if (input->Operator()) {
-          if (!nodes_done.Contains(input->Operator())) {
-            can_add = false;
-            nodes_to_do.push_back(input->Operator());
-          }
-        } else {
-          if (input->Kind() == MLOperand::KindEnum::kInput) {
-            inputs.push_back(input.Get());
-          } else {
-            DCHECK(input->Kind() == MLOperand::KindEnum::kConstant);
-            constants.push_back(input.Get());
-          }
+      for (const auto& input : op->Inputs()) {
+        const auto* dep = input->Operator();
+        if (dep && !operators_done.Contains(dep)) {
+          // As the dependent operator is not done, skip processing of this
+          // operator and add the dependent operator into the to-do stack.
+          can_add = false;
+          operators_to_do.push_back(dep);
         }
       }
       if (can_add) {
-        sorted_operators.push_back(node.Get());
-        nodes_done.insert(node.Get());
-        nodes_to_do.pop_back();
+        // All dependent operators are done, process and add it into the
+        // done set.
+        for (const auto& input : op->Inputs()) {
+          if (input->Kind() == MLOperand::KindEnum::kInput) {
+            inputs.push_back(input.Get());
+          } else if (input->Kind() == MLOperand::KindEnum::kConstant) {
+            constants.push_back(input.Get());
+          }
+        }
+        sorted_operators.push_back(op.Get());
+        operators_done.insert(op.Get());
+        operators_to_do.pop_back();
       }
     } else {
-      nodes_to_do.pop_back();
+      operators_to_do.pop_back();
     }
   }
 }
