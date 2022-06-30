@@ -692,12 +692,12 @@ void MLGraphBuilder::SortOperators(
     if (!operators_done.Contains(op.Get())) {
       bool can_add = true;
       for (const auto& input : op->Inputs()) {
-        const auto* dep = input->Operator();
-        if (dep && !operators_done.Contains(dep)) {
+        const auto* dependent_op = input->Operator();
+        if (dependent_op && !operators_done.Contains(dependent_op)) {
           // As the dependent operator is not done, skip processing of this
-          // operator and add the dependent operator into the to-do stack.
+          // operator and push the dependent operator into the to-do stack.
           can_add = false;
-          operators_to_do.push_back(dep);
+          operators_to_do.push_back(dependent_op);
         }
       }
       if (can_add) {
