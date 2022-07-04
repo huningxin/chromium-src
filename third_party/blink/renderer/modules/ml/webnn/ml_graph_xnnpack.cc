@@ -40,14 +40,13 @@ namespace {
 class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
  public:
   static scoped_refptr<SharedXnnpackContext> GetInstance() {
+    base::AutoLock auto_lock(SharedXnnpackContextLock());
     if (instance_ == nullptr) {
       return base::MakeRefCounted<SharedXnnpackContext>();
     } else {
       return base::WrapRefCounted(instance_);
     }
   }
-
-  explicit SharedXnnpackContext() : initialized_(false) { instance_ = this; }
 
   SharedXnnpackContext(const SharedXnnpackContext&) = delete;
   SharedXnnpackContext& operator=(const SharedXnnpackContext&) = delete;
@@ -78,7 +77,10 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
 
  private:
   friend class ThreadSafeRefCounted<SharedXnnpackContext>;
+  template <typename T, typename... Args>
+  friend scoped_refptr<T> base::MakeRefCounted(Args&&... args);
 
+  SharedXnnpackContext() : initialized_(false) { instance_ = this; }
   ~SharedXnnpackContext() {
 #if BUILDFLAG(IS_WIN)
     xnn_deinitialize();
@@ -89,6 +91,10 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     instance_ = nullptr;
   }
 
+  static base::Lock& SharedXnnpackContextLock() {
+    DEFINE_THREAD_SAFE_STATIC_LOCAL(base::Lock, lock, ());
+    return lock;
+  }
   static SharedXnnpackContext* instance_;
 
   base::Lock lock_;
