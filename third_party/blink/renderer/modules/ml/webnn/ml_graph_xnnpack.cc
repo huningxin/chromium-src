@@ -91,7 +91,9 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     }
 #endif
 
-    pthreadpool_ = pthreadpool_create(base::SysInfo::NumberOfProcessors() / 2);
+    // TODO: consider using base::PostJob in the future
+    pthreadpool_ = pthreadpool_create(
+        std::max(1, base::SysInfo::NumberOfProcessors() / 2));
     if (pthreadpool_ == nullptr) {
       return false;
     }
