@@ -4,6 +4,7 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 
+#include "base/allocator/partition_allocator/partition_root.h"
 #include "base/numerics/checked_math.h"
 #include "base/synchronization/lock.h"
 #include "base/system/sys_info.h"
@@ -27,6 +28,7 @@
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/scheduler/public/post_cross_thread_task.h"
 #include "third_party/blink/renderer/platform/scheduler/public/worker_pool.h"
+#include "third_party/blink/renderer/platform/wtf/allocator/partitions.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_copier_base.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_copier_std.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
@@ -37,6 +39,28 @@
 namespace blink {
 
 namespace {
+
+void* XnnAllocate(void* context, size_t size) {
+  return WTF::Partitions::BufferPartition()->Alloc(size, "xnnpack");
+}
+
+void* XnnReallocate(void* context, void* pointer, size_t size) {
+  return WTF::Partitions::BufferPartition()->TryRealloc(pointer, size,
+                                                        "xnnpack");
+}
+
+void XnnDeallocate(void* context, void* pointer) {
+  WTF::Partitions::BufferPartition()->Free(pointer);
+}
+
+void* XnnAlignedAllocate(void* context, size_t alignment, size_t size) {
+  return WTF::Partitions::BufferPartition()->AlignedAllocWithFlags(0, alignment,
+                                                                   size);
+}
+
+void XnnAlignedDeallocate(void* context, void* pointer) {
+  WTF::Partitions::BufferFree(pointer);
+}
 
 class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
  public:
@@ -58,7 +82,14 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
       return true;
     }
 #if BUILDFLAG(IS_WIN)
-    if (xnn_initialize(NULL) != xnn_status_success) {
+    const struct xnn_allocator partition_allocator = {
+        .allocate = XnnAllocate,
+        .reallocate = XnnReallocate,
+        .deallocate = XnnDeallocate,
+        .aligned_allocate = XnnAlignedAllocate,
+        .aligned_deallocate = XnnAlignedDeallocate,
+    };
+    if (xnn_initialize(&partition_allocator) != xnn_status_success) {
       return false;
     }
 #endif
