@@ -4,7 +4,6 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 
-#include "base/allocator/partition_allocator/partition_root.h"
 #include "base/numerics/checked_math.h"
 #include "base/synchronization/lock.h"
 #include "base/system/sys_info.h"
@@ -33,8 +32,6 @@
 #include "third_party/blink/renderer/platform/wtf/cross_thread_copier_std.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
 #include "third_party/blink/renderer/platform/wtf/thread_safe_ref_counted.h"
-
-#include <memory>
 
 namespace blink {
 
@@ -612,7 +609,7 @@ xnn_status MLGraphXnnpack::DefineTensor(
   }
   uint32_t flags = 0;
   uint32_t external_id = XNN_INVALID_VALUE_ID;
-  std::unique_ptr<char> data;
+  std::unique_ptr<uint8_t[], OnFree> data;
   if (is_external) {
     DCHECK(tensors_map.find(operand) != tensors_map.end());
     external_id = tensors_map.at(operand);
@@ -625,7 +622,9 @@ xnn_status MLGraphXnnpack::DefineTensor(
   } else {
     if (operand->Kind() == MLOperand::KindEnum::kConstant) {
       auto* array_buffer_view = operand->ArrayBufferView();
-      data.reset(new char[array_buffer_view->byteLength()]);
+      data.reset(
+          reinterpret_cast<uint8_t*>(WTF::Partitions::BufferPartition()->Alloc(
+              array_buffer_view->byteLength(), "MLGraphXnnpack")));
       if (data.get() == nullptr) {
         error_message = "Out of memory.";
         return xnn_status_out_of_memory;

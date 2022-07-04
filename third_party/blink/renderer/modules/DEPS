@@ -35,6 +35,9 @@ specific_include_rules = {
         "+testing/libfuzzer/proto/lpm_interface.h",
         "+third_party/protobuf/src/google/protobuf/repeated_field.h",
     ],
+    "ml_graph_xnnpack.h": [
+        "+base/allocator/partition_allocator/partition_root.h",
+    ],
     ".*_decoder_fuzzer.cc": [
         "+base/run_loop.h",
     ],

@@ -5,13 +5,12 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_XNNPACK_H_
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_XNNPACK_H_
 
+#include "base/allocator/partition_allocator/partition_root.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
 #include "third_party/blink/renderer/platform/wtf/hash_map.h"
 #include "third_party/blink/renderer/platform/wtf/text/string_hash.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 #include "third_party/xnnpack/src/include/xnnpack.h"
-
-#include <unordered_map>
 
 namespace blink {
 
@@ -141,7 +140,12 @@ class MLGraphXnnpack final : public MLGraph {
       String& error_message);
 
   // Members for graph compute, will be perserved in object life time.
-  Vector<std::unique_ptr<char>> constant_data_;
+  struct OnFree {
+    void operator()(void* ptr) const {
+      WTF::Partitions::BufferPartition()->Free(ptr);
+    }
+  };
+  Vector<std::unique_ptr<uint8_t[], OnFree>> constant_data_;
   struct TensorValueInfo {
     uint32_t id;
     size_t byte_length;
