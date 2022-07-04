@@ -10,6 +10,7 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/thread_annotations.h"
+#include "base/trace_event/typed_macros.h"
 #include "build/buildflag.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
@@ -405,6 +406,7 @@ void MLGraphXnnpack::DidCompute(
 
 xnn_status MLGraphXnnpack::CreateRuntime(BuildRequest* request,
                                          String& error_message) {
+  TRACE_EVENT("blink", "MLGraphXnnpack::CreateRuntime");
   if (!xnn_context_->Initialize()) {
     error_message = "Failed to initialize XNNPACK context.";
     return xnn_status_uninitialized;
@@ -1103,6 +1105,7 @@ xnn_status MLGraphXnnpack::DefineUnary(
 
 xnn_status MLGraphXnnpack::InvokeRuntime(ComputeRequest* request,
                                          String& error_message) {
+  TRACE_EVENT("blink", "MLGraphXnnpack::InvokeRuntime");
   if (request->inputs_.size() != inputs_info_.size()) {
     error_message = "The number of inputs doesn't match graph's expectation.";
     return xnn_status_invalid_parameter;
