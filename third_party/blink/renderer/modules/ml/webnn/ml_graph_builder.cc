@@ -28,8 +28,8 @@ namespace blink {
 
 namespace {
 
-bool BroadcastShape(Vector<int32_t> dims_input0,
-                    Vector<int32_t> dims_input1,
+bool BroadcastShape(const Vector<int32_t>& dims_input0,
+                    const Vector<int32_t>& dims_input1,
                     Vector<int32_t>& dims_output,
                     wtf_size_t skip_axes = 0) {
   // The rank of the output tensor is the maximum rank of the input tensors.
@@ -242,7 +242,7 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
       filter_depth_in != input_channels / options->groups()) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "The groups is invalid, it must evenly divides the input channels to "
+        "The groups is invalid, it must evenly divide the input channels to "
         "filter input depth.");
     return nullptr;
   }
