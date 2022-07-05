@@ -64,7 +64,11 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   static scoped_refptr<SharedXnnpackContext> GetInstance() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
     if (instance_ == nullptr) {
-      return base::MakeRefCounted<SharedXnnpackContext>();
+      auto instance = base::MakeRefCounted<SharedXnnpackContext>();
+      if (!instance->Initialize()) {
+        return nullptr;
+      }
+      return instance;
     } else {
       return base::WrapRefCounted(instance_);
     }
@@ -73,11 +77,27 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   SharedXnnpackContext(const SharedXnnpackContext&) = delete;
   SharedXnnpackContext& operator=(const SharedXnnpackContext&) = delete;
 
-  bool Initialize() {
-    base::AutoLock auto_lock(lock_);
-    if (initialized_) {
-      return true;
+  pthreadpool_t Pthreadpool() { return pthreadpool_; }
+
+ private:
+  friend class ThreadSafeRefCounted<SharedXnnpackContext>;
+  template <typename T, typename... Args>
+  friend scoped_refptr<T> base::MakeRefCounted(Args&&... args);
+
+  SharedXnnpackContext() : pthreadpool_(nullptr) { instance_ = this; }
+  ~SharedXnnpackContext() {
+    base::AutoLock auto_lock(SharedXnnpackContextLock());
+#if BUILDFLAG(IS_WIN)
+    xnn_deinitialize();
+#endif
+    if (pthreadpool_ != nullptr) {
+      pthreadpool_destroy(pthreadpool_);
     }
+    DCHECK_EQ(this, instance_);
+    instance_ = nullptr;
+  }
+
+  bool Initialize() {
 #if BUILDFLAG(IS_WIN)
     const struct xnn_allocator partition_allocator = {
         .allocate = XnnAllocate,
@@ -97,29 +117,7 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     if (pthreadpool_ == nullptr) {
       return false;
     }
-    initialized_ = true;
     return true;
-  }
-
-  pthreadpool_t Pthreadpool() {
-    base::AutoLock auto_lock(lock_);
-    return pthreadpool_;
-  }
-
- private:
-  friend class ThreadSafeRefCounted<SharedXnnpackContext>;
-  template <typename T, typename... Args>
-  friend scoped_refptr<T> base::MakeRefCounted(Args&&... args);
-
-  SharedXnnpackContext() : initialized_(false) { instance_ = this; }
-  ~SharedXnnpackContext() {
-#if BUILDFLAG(IS_WIN)
-    xnn_deinitialize();
-#endif
-    if (pthreadpool_ != nullptr) {
-      pthreadpool_destroy(pthreadpool_);
-    }
-    instance_ = nullptr;
   }
 
   static base::Lock& SharedXnnpackContextLock() {
@@ -127,10 +125,7 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     return lock;
   }
   static SharedXnnpackContext* instance_;
-
-  base::Lock lock_;
-  bool initialized_ GUARDED_BY(lock_);
-  pthreadpool_t pthreadpool_ GUARDED_BY(lock_);
+  pthreadpool_t pthreadpool_;
 };
 
 SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
@@ -302,9 +297,7 @@ void MLGraphXnnpack::ComputeRequest::Trace(Visitor* visitor) const {
 }
 
 MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
-    : MLGraph(context),
-      xnn_runtime_(nullptr),
-      xnn_context_(SharedXnnpackContext::GetInstance()) {}
+    : MLGraph(context), xnn_runtime_(nullptr) {}
 
 MLGraphXnnpack::~MLGraphXnnpack() {
   if (xnn_runtime_ != nullptr) {
@@ -437,8 +430,9 @@ void MLGraphXnnpack::DidCompute(
 xnn_status MLGraphXnnpack::CreateRuntime(BuildRequest* request,
                                          String& error_message) {
   TRACE_EVENT("blink", "MLGraphXnnpack::CreateRuntime");
-  if (!xnn_context_->Initialize()) {
-    error_message = "Failed to initialize XNNPACK context.";
+  xnn_context_ = SharedXnnpackContext::GetInstance();
+  if (!xnn_context_) {
+    error_message = "Failed to get XNNPACK context.";
     return xnn_status_uninitialized;
   }
   uint32_t externals_size;
