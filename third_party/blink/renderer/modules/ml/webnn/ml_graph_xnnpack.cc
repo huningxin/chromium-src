@@ -64,11 +64,25 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   static scoped_refptr<SharedXnnpackContext> GetInstance() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
     if (instance_ == nullptr) {
-      auto instance = base::MakeRefCounted<SharedXnnpackContext>();
-      if (!instance->Initialize()) {
+#if BUILDFLAG(IS_WIN)
+      const struct xnn_allocator partition_allocator = {
+          .allocate = XnnAllocate,
+          .reallocate = XnnReallocate,
+          .deallocate = XnnDeallocate,
+          .aligned_allocate = XnnAlignedAllocate,
+          .aligned_deallocate = XnnAlignedDeallocate,
+      };
+      if (xnn_initialize(&partition_allocator) != xnn_status_success) {
         return nullptr;
       }
-      return instance;
+#endif
+      // TODO: consider using base::PostJob in the future
+      pthreadpool_t pthreadpool = pthreadpool_create(
+          std::max(1, base::SysInfo::NumberOfProcessors() / 2));
+      if (pthreadpool == nullptr) {
+        return nullptr;
+      }
+      return base::MakeRefCounted<SharedXnnpackContext>(pthreadpool);
     } else {
       return base::WrapRefCounted(instance_);
     }
@@ -84,7 +98,10 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   template <typename T, typename... Args>
   friend scoped_refptr<T> base::MakeRefCounted(Args&&... args);
 
-  SharedXnnpackContext() : pthreadpool_(nullptr) { instance_ = this; }
+  explicit SharedXnnpackContext(pthreadpool_t pthreadpool)
+      : pthreadpool_(pthreadpool) {
+    instance_ = this;
+  }
   ~SharedXnnpackContext() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
 #if BUILDFLAG(IS_WIN)
@@ -95,29 +112,6 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     }
     DCHECK_EQ(this, instance_);
     instance_ = nullptr;
-  }
-
-  bool Initialize() {
-#if BUILDFLAG(IS_WIN)
-    const struct xnn_allocator partition_allocator = {
-        .allocate = XnnAllocate,
-        .reallocate = XnnReallocate,
-        .deallocate = XnnDeallocate,
-        .aligned_allocate = XnnAlignedAllocate,
-        .aligned_deallocate = XnnAlignedDeallocate,
-    };
-    if (xnn_initialize(&partition_allocator) != xnn_status_success) {
-      return false;
-    }
-#endif
-
-    // TODO: consider using base::PostJob in the future
-    pthreadpool_ = pthreadpool_create(
-        std::max(1, base::SysInfo::NumberOfProcessors() / 2));
-    if (pthreadpool_ == nullptr) {
-      return false;
-    }
-    return true;
   }
 
   static base::Lock& SharedXnnpackContextLock() {
