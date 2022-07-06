@@ -124,7 +124,7 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     DEFINE_THREAD_SAFE_STATIC_LOCAL(base::Lock, lock, ());
     return lock;
   }
-  static SharedXnnpackContext* instance_;
+  static SharedXnnpackContext* instance_ GUARDED_BY(SharedXnnpackContextLock());
   pthreadpool_t pthreadpool_;
 };
 
