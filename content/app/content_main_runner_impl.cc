@@ -145,7 +145,7 @@
 #include "third_party/webrtc_overrides/init_webrtc.h"  // nogncheck
 
 #if defined(BUILD_WEBNN_WITH_XNNPACK)
-#include "third_party/xnnpack/src/include/xnnpack.h"
+#include "third_party/cpuinfo/src/include/cpuinfo.h"
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
@@ -416,8 +416,8 @@ void PreSandboxInit() {
 
 #if defined(BUILD_WEBNN_WITH_XNNPACK)
   // cpuinfo needs to parse /cpu/cpuinfo
-  if (xnn_initialize(NULL) != xnn_status_success) {
-    LOG(ERROR) << "Failed to initialize XNNPACK";
+  if (!cpuinfo_initialize()) {
+    LOG(ERROR) << "Failed to initialize cpuinfo";
   }
 #endif
 

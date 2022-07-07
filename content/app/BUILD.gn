@@ -92,11 +92,7 @@ source_set("content_main_runner_app") {
     ]
   }
   if (build_webnn_with_xnnpack) {
-    deps += [
-      "//third_party/cpuinfo",
-      "//third_party/pthreadpool",
-      "//third_party/xnnpack",
-    ]
+    deps += [ "//third_party/cpuinfo" ]
   }
 }
 

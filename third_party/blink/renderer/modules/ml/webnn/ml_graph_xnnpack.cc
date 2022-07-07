@@ -64,7 +64,6 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   static scoped_refptr<SharedXnnpackContext> GetInstance() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
     if (instance_ == nullptr) {
-#if BUILDFLAG(IS_WIN)
       const struct xnn_allocator partition_allocator = {
           .allocate = XnnAllocate,
           .reallocate = XnnReallocate,
@@ -75,7 +74,6 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
       if (xnn_initialize(&partition_allocator) != xnn_status_success) {
         return nullptr;
       }
-#endif
       // TODO: consider using base::PostJob in the future
       pthreadpool_t pthreadpool = pthreadpool_create(
           std::max(1, base::SysInfo::NumberOfProcessors() / 2));
