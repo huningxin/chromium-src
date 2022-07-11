@@ -38,12 +38,12 @@ namespace blink {
 namespace {
 
 void* XnnAllocate(void* context, size_t size) {
-  return WTF::Partitions::BufferPartition()->Alloc(size, "xnnpack");
+  return WTF::Partitions::BufferPartition()->Alloc(size, "xnnpack_WebNN");
 }
 
 void* XnnReallocate(void* context, void* pointer, size_t size) {
   return WTF::Partitions::BufferPartition()->TryRealloc(pointer, size,
-                                                        "xnnpack");
+                                                        "xnnpack_WebNN");
 }
 
 void XnnDeallocate(void* context, void* pointer) {
@@ -75,12 +75,12 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
         return nullptr;
       }
       // TODO: consider using base::PostJob in the future
-      pthreadpool_t pthreadpool = pthreadpool_create(
+      pthreadpool_t pthreadpool_ptr = pthreadpool_create(
           std::max(1, base::SysInfo::NumberOfProcessors() / 2));
-      if (pthreadpool == nullptr) {
+      if (pthreadpool_ptr == nullptr) {
         return nullptr;
       }
-      return base::MakeRefCounted<SharedXnnpackContext>(pthreadpool);
+      return base::MakeRefCounted<SharedXnnpackContext>(pthreadpool_ptr);
     } else {
       return base::WrapRefCounted(instance_);
     }
@@ -89,15 +89,15 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   SharedXnnpackContext(const SharedXnnpackContext&) = delete;
   SharedXnnpackContext& operator=(const SharedXnnpackContext&) = delete;
 
-  pthreadpool_t Pthreadpool() { return pthreadpool_; }
+  pthreadpool_t Pthreadpool() { return pthreadpool_.get(); }
 
  private:
   friend class ThreadSafeRefCounted<SharedXnnpackContext>;
   template <typename T, typename... Args>
   friend scoped_refptr<T> base::MakeRefCounted(Args&&... args);
 
-  explicit SharedXnnpackContext(pthreadpool_t pthreadpool)
-      : pthreadpool_(pthreadpool) {
+  explicit SharedXnnpackContext(pthreadpool_t pthreadpool_ptr)
+      : pthreadpool_(pthreadpool_ptr, &pthreadpool_destroy) {
     instance_ = this;
   }
   ~SharedXnnpackContext() {
@@ -105,9 +105,6 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
 #if BUILDFLAG(IS_WIN)
     xnn_deinitialize();
 #endif
-    if (pthreadpool_ != nullptr) {
-      pthreadpool_destroy(pthreadpool_);
-    }
     DCHECK_EQ(this, instance_);
     instance_ = nullptr;
   }
@@ -117,7 +114,7 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     return lock;
   }
   static SharedXnnpackContext* instance_ GUARDED_BY(SharedXnnpackContextLock());
-  pthreadpool_t pthreadpool_;
+  std::unique_ptr<pthreadpool, decltype(&pthreadpool_destroy)> pthreadpool_;
 };
 
 SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
@@ -289,13 +286,9 @@ void MLGraphXnnpack::ComputeRequest::Trace(Visitor* visitor) const {
 }
 
 MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
-    : MLGraph(context), xnn_runtime_(nullptr) {}
+    : MLGraph(context), xnn_runtime_(nullptr, &xnn_delete_runtime) {}
 
-MLGraphXnnpack::~MLGraphXnnpack() {
-  if (xnn_runtime_ != nullptr) {
-    xnn_delete_runtime(xnn_runtime_);
-  }
-}
+MLGraphXnnpack::~MLGraphXnnpack() = default;
 
 ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
                                         const MLNamedOperands& named_outputs,
@@ -562,14 +555,15 @@ xnn_status MLGraphXnnpack::CreateRuntime(BuildRequest* request,
     }
   }
   uint32_t flags = XNN_FLAG_YIELD_WORKERS;
-  if ((status =
-           xnn_create_runtime_v2(subgraph.get(), xnn_context_->Pthreadpool(),
-                                 flags, &xnn_runtime_)) != xnn_status_success) {
+  xnn_runtime_t runtime_ptr = nullptr;
+  if ((status = xnn_create_runtime_v2(
+           subgraph.get(), xnn_context_->Pthreadpool(), flags, &runtime_ptr)) !=
+      xnn_status_success) {
     error_message =
         "Failed to create XNNPACK runtime: " + XnnStatusToString(status);
     return status;
   }
-
+  xnn_runtime_.reset(runtime_ptr);
   return xnn_status_success;
 }
 
@@ -1200,14 +1194,14 @@ xnn_status MLGraphXnnpack::InvokeRuntime(ComputeRequest* request,
     external_values.push_back(value);
   }
   xnn_status status = xnn_status_success;
-  if ((status = xnn_setup_runtime(xnn_runtime_, external_values.size(),
+  if ((status = xnn_setup_runtime(xnn_runtime_.get(), external_values.size(),
                                   external_values.data())) !=
       xnn_status_success) {
     error_message =
         "Failed to setup XNNPACK runtime: " + XnnStatusToString(status);
     return status;
   }
-  if ((status = xnn_invoke_runtime(xnn_runtime_)) != xnn_status_success) {
+  if ((status = xnn_invoke_runtime(xnn_runtime_.get())) != xnn_status_success) {
     error_message =
         "Failed to invoke XNNPACK runtime: " + XnnStatusToString(status);
     return status;

@@ -152,7 +152,7 @@ class MLGraphXnnpack final : public MLGraph {
   };
   HashMap<String, TensorValueInfo> inputs_info_;
   HashMap<String, TensorValueInfo> outputs_info_;
-  xnn_runtime_t xnn_runtime_;
+  std::unique_ptr<xnn_runtime, decltype(&xnn_delete_runtime)> xnn_runtime_;
   scoped_refptr<SharedXnnpackContext> xnn_context_;
 };
 
