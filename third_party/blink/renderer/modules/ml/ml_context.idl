@@ -17,7 +17,7 @@ typedef record<DOMString, ([AllowShared] ArrayBufferView or MLTensor)> MLNamedAr
 typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer)> MLNamedArrayOutputs;
 
 [
-  RuntimeEnabled=MachineLearningModelLoader,
+  RuntimeEnabled=(MachineLearningModelLoader, MachineLearningNeuralNetwork),
   SecureContext,
   Exposed=(Window, DedicatedWorker)
 ] interface MLContext {

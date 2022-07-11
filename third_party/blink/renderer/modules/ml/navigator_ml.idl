@@ -12,7 +12,7 @@
   Exposed=Window,
   SecureContext,
   ImplementedAs=ML,
-  RuntimeEnabled=MachineLearningModelLoader
+  RuntimeEnabled=(MachineLearningModelLoader, MachineLearningNeuralNetwork)
 ] partial interface Navigator {
   [SameObject] readonly attribute ML ml;
 };
