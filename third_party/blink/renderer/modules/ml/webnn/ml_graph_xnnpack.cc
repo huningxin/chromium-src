@@ -593,12 +593,12 @@ xnn_status MLGraphXnnpack::DefineTensor(
   uint32_t external_id = XNN_INVALID_VALUE_ID;
   std::unique_ptr<uint8_t[], OnFree> data;
   if (is_external) {
-    DCHECK(tensors_map.find(operand) != tensors_map.end());
+    DCHECK_NE(tensors_map.find(operand), tensors_map.end());
     external_id = tensors_map.at(operand);
     if (operand->Kind() == MLOperand::KindEnum::kInput) {
       flags |= XNN_VALUE_FLAG_EXTERNAL_INPUT;
     } else {
-      DCHECK(operand->Kind() == MLOperand::KindEnum::kOutput);
+      DCHECK_EQ(operand->Kind(), MLOperand::KindEnum::kOutput);
       flags |= XNN_VALUE_FLAG_EXTERNAL_OUTPUT;
     }
   } else {
@@ -641,7 +641,7 @@ xnn_status MLGraphXnnpack::DefineClamp(
     String& error_message) {
   xnn_status status = xnn_status_success;
   auto* input = clamp->Inputs()[0].Get();
-  DCHECK(tensors_map.find(input) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input), tensors_map.end());
   uint32_t input_id = tensors_map.at(input);
   auto* output = clamp->Outputs()[0].Get();
   if (tensors_map.find(output) == tensors_map.end()) {
@@ -673,15 +673,15 @@ xnn_status MLGraphXnnpack::DefineConv2d(
     String& error_message) {
   xnn_status status = xnn_status_success;
   auto* input = conv2d->Inputs()[0].Get();
-  DCHECK(tensors_map.find(input) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input), tensors_map.end());
   uint32_t input_id = tensors_map.at(input);
   auto* filter = conv2d->Inputs()[1].Get();
-  DCHECK(tensors_map.find(filter) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(filter), tensors_map.end());
   uint32_t filter_id = tensors_map.at(filter);
   uint32_t bias_id = XNN_INVALID_VALUE_ID;
   if (conv2d->Inputs().size() == 3) {
     auto* bias = conv2d->Inputs()[2].Get();
-    DCHECK(tensors_map.find(bias) != tensors_map.end());
+    DCHECK_NE(tensors_map.find(bias), tensors_map.end());
     bias_id = tensors_map.at(bias);
   }
   auto* output = conv2d->Outputs()[0].Get();
@@ -836,10 +836,10 @@ xnn_status MLGraphXnnpack::DefineBinary(
     String& error_message) {
   xnn_status status = xnn_status_success;
   auto* input0 = binary->Inputs()[0].Get();
-  DCHECK(tensors_map.find(input0) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input0), tensors_map.end());
   uint32_t input0_id = tensors_map.at(input0);
   auto* input1 = binary->Inputs()[1].Get();
-  DCHECK(tensors_map.find(input1) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input1), tensors_map.end());
   uint32_t input1_id = tensors_map.at(input1);
   auto* output = binary->Outputs()[0].Get();
   if (tensors_map.find(output) == tensors_map.end()) {
@@ -877,14 +877,14 @@ xnn_status MLGraphXnnpack::DefineGemm(
     String& error_message) {
   xnn_status status = xnn_status_success;
   auto* input = gemm->Inputs()[0].Get();
-  DCHECK(tensors_map.find(input) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input), tensors_map.end());
   uint32_t input_id = tensors_map.at(input);
   auto* filter = gemm->Inputs()[1].Get();
   if (filter->Kind() != MLOperand::KindEnum::kConstant) {
     error_message = "Only constant input b is supported.";
     return xnn_status_unsupported_parameter;
   }
-  DCHECK(tensors_map.find(filter) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(filter), tensors_map.end());
   uint32_t filter_id = tensors_map.at(filter);
   auto* output = gemm->Outputs()[0].Get();
   uint32_t bias_id = XNN_INVALID_VALUE_ID;
@@ -895,7 +895,7 @@ xnn_status MLGraphXnnpack::DefineGemm(
       error_message = "The shape of bias is not supported.";
       return xnn_status_unsupported_parameter;
     }
-    DCHECK(tensors_map.find(bias) != tensors_map.end());
+    DCHECK_NE(tensors_map.find(bias), tensors_map.end());
     bias_id = tensors_map.at(bias);
   }
   if (fabs(options->alpha() - 1.0f) > std::numeric_limits<float>::epsilon()) {
@@ -940,7 +940,7 @@ xnn_status MLGraphXnnpack::DefinePool2d(
     String& error_message) {
   xnn_status status = xnn_status_success;
   auto* input = pool2d->Inputs()[0].Get();
-  DCHECK(tensors_map.find(input) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input), tensors_map.end());
   uint32_t input_id = tensors_map.at(input);
   auto* output = pool2d->Outputs()[0].Get();
   if (tensors_map.find(output) == tensors_map.end()) {
@@ -1059,7 +1059,7 @@ xnn_status MLGraphXnnpack::DefineReshape(
     String& error_message) {
   xnn_status status = xnn_status_success;
   auto* input = reshape->Inputs()[0].Get();
-  DCHECK(tensors_map.find(input) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input), tensors_map.end());
   uint32_t input_id = tensors_map.at(input);
   auto* output = reshape->Outputs()[0].Get();
   Vector<size_t> new_sizes;
@@ -1096,7 +1096,7 @@ xnn_status MLGraphXnnpack::DefineUnary(
     String& error_message) {
   xnn_status status = xnn_status_success;
   auto* input = unary->Inputs()[0].Get();
-  DCHECK(tensors_map.find(input) != tensors_map.end());
+  DCHECK_NE(tensors_map.find(input), tensors_map.end());
   uint32_t input_id = tensors_map.at(input);
   auto* output = unary->Outputs()[0].Get();
   if (tensors_map.find(output) == tensors_map.end()) {
@@ -1157,7 +1157,7 @@ xnn_status MLGraphXnnpack::InvokeRuntime(ComputeRequest* request,
       auto* ml_tensor = input.second->GetAsMLTensor();
       array_buffer_view = ml_tensor->data().Get();
     }
-    DCHECK(array_buffer_view != nullptr);
+    DCHECK(array_buffer_view);
     if (array_buffer_view->byteLength() < iter->value.byte_length) {
       error_message = "Wrong size of input: " + input.first;
       return xnn_status_invalid_parameter;
