@@ -645,48 +645,48 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
     }
   }
 
+  base::CheckedNumeric<int32_t> checked_window_height(window_height),
+      checked_window_width(window_width);
+  auto dilated_window_height =
+      (checked_window_height - 1) * dilation_height + 1;
+  auto dilated_window_width = (checked_window_width - 1) * dilation_width + 1;
+  if (!dilated_window_height.IsValid()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calculating dilated window height.");
+    return nullptr;
+  }
+  if (!dilated_window_width.IsValid()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calculating dilated window width.");
+    return nullptr;
+  }
+  base::CheckedNumeric<float> checked_input_height(input_height),
+      checked_input_width(input_width);
+  auto checked_output_height = (checked_input_height - dilated_window_height +
+                                padding_begin_height + padding_end_height) /
+                                   stride_height +
+                               1.0;
+  auto checked_output_width = (checked_input_width - dilated_window_width +
+                               padding_begin_width + padding_end_width) /
+                                  stride_width +
+                              1.0;
+  float float_output_height, float_output_width;
+  if (!checked_output_height.AssignIfValid(&float_output_height)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calculating output height.");
+    return nullptr;
+  }
+  if (!checked_output_width.AssignIfValid(&float_output_width)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calculating output width.");
+    return nullptr;
+  }
   int32_t output_height, output_width;
   if (!options->hasOutputSizes()) {
-    base::CheckedNumeric<int32_t> checked_window_height(window_height),
-        checked_window_width(window_width);
-    auto dilated_window_height =
-        (checked_window_height - 1) * dilation_height + 1;
-    auto dilated_window_width = (checked_window_width - 1) * dilation_width + 1;
-    if (!dilated_window_height.IsValid()) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "Overflow occurred when calculating dilated window height.");
-      return nullptr;
-    }
-    if (!dilated_window_width.IsValid()) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "Overflow occurred when calculating dilated window width.");
-      return nullptr;
-    }
-    base::CheckedNumeric<float> checked_input_height(input_height),
-        checked_input_width(input_width);
-    auto checked_output_height = (checked_input_height - dilated_window_height +
-                                  padding_begin_height + padding_end_height) /
-                                     stride_height +
-                                 1.0;
-    auto checked_output_width = (checked_input_width - dilated_window_width +
-                                 padding_begin_width + padding_end_width) /
-                                    stride_width +
-                                1.0;
-    float float_output_height, float_output_width;
-    if (!checked_output_height.AssignIfValid(&float_output_height)) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "Overflow occurred when calculating output height.");
-      return nullptr;
-    }
-    if (!checked_output_width.AssignIfValid(&float_output_width)) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "Overflow occurred when calculating output width.");
-      return nullptr;
-    }
     output_height =
         options->roundingType().AsEnum() == V8MLRoundingType::Enum::kFloor
             ? base::ClampFloor<int32_t>(float_output_height)
@@ -696,8 +696,19 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
             ? base::ClampFloor(float_output_width)
             : base::ClampCeil(float_output_width);
   } else {
-    output_height = options->outputSizes()[0];
-    output_width = options->outputSizes()[1];
+    if ((options->outputSizes()[0] ==
+             base::ClampFloor<int32_t>(float_output_height) &&
+         options->outputSizes()[1] == base::ClampFloor(float_output_width)) ||
+        (options->outputSizes()[0] ==
+             base::ClampCeil<int32_t>(float_output_height) &&
+         options->outputSizes()[1] == base::ClampCeil(float_output_width))) {
+      output_height = options->outputSizes()[0];
+      output_width = options->outputSizes()[1];
+    } else {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The output sizes is invalid.");
+      return nullptr;
+    }
   }
 
   Vector<int32_t> output_shape;
