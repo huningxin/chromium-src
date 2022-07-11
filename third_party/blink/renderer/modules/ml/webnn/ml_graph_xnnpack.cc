@@ -431,7 +431,7 @@ xnn_status MLGraphXnnpack::CreateRuntime(BuildRequest* request,
   if (!base::CheckAdd<wtf_size_t>(request->outputs_.size(),
                                   request->inputs_.size())
            .AssignIfValid(&externals_size)) {
-    error_message = "Overflow occurred when calcuating externals size.";
+    error_message = "Overflow occurred when calculating externals size.";
     return xnn_status_invalid_parameter;
   }
   xnn_subgraph_t subgraph_ptr = nullptr;
@@ -459,7 +459,7 @@ xnn_status MLGraphXnnpack::CreateRuntime(BuildRequest* request,
     info.id = input_id;
     if (!CalculateByteLength(input, info.byte_length)) {
       error_message =
-          "Overflow occurred when calcuating byte length of input: " +
+          "Overflow occurred when calculating byte length of input: " +
           input->Name();
       return xnn_status_invalid_parameter;
     }
@@ -477,7 +477,7 @@ xnn_status MLGraphXnnpack::CreateRuntime(BuildRequest* request,
     info.id = output_id;
     if (!CalculateByteLength(output, info.byte_length)) {
       error_message =
-          "Overflow occurred when calcuating byte length of output: " +
+          "Overflow occurred when calculating byte length of output: " +
           named_output.first;
       return xnn_status_invalid_parameter;
     }
@@ -773,11 +773,18 @@ xnn_status MLGraphXnnpack::DefineConv2d(
   } else {
     if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
                                     filter_height, stride_height, pad_top,
-                                    pad_bottom) ||
-        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    pad_bottom)) {
+      error_message =
+          "Overflow occurred when calculating padding along the height "
+          "dimension.";
+      return xnn_status_invalid_parameter;
+    }
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
                                     filter_width, stride_width, pad_left,
                                     pad_right)) {
-      error_message = "Overflow occurred when calcuating padding for autoPad.";
+      error_message =
+          "Overflow occurred when calculating padding along the width "
+          "dimension.";
       return xnn_status_invalid_parameter;
     }
   }
@@ -1004,11 +1011,18 @@ xnn_status MLGraphXnnpack::DefinePool2d(
   } else {
     if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
                                     filter_height, stride_height, pad_top,
-                                    pad_bottom) ||
-        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    pad_bottom)) {
+      error_message =
+          "Overflow occurred when calculating padding along the height "
+          "dimension.";
+      return xnn_status_invalid_parameter;
+    }
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
                                     filter_width, stride_width, pad_left,
                                     pad_right)) {
-      error_message = "Overflow occurred when calcuating padding for autoPad.";
+      error_message =
+          "Overflow occurred when calculating padding along width width "
+          "dimension.";
       return xnn_status_invalid_parameter;
     }
   }

@@ -276,13 +276,18 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
     if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
                                     filter_height, stride_height,
                                     dilation_height, padding_begin_height,
-                                    padding_end_height) ||
-        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    padding_end_height)) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "Overflow occurred when calculating "
+                                        "padding along the height dimension.");
+      return nullptr;
+    }
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
                                     filter_width, stride_width, dilation_width,
                                     padding_begin_width, padding_end_width)) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "Overflow occurred when calcuating padding for autoPad.");
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "Overflow occurred when calculating "
+                                        "padding along the width dimension.");
       return nullptr;
     }
   }
@@ -292,10 +297,16 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
   auto dilated_filter_height =
       (checked_filter_height - 1) * dilation_height + 1;
   auto dilated_filter_width = (checked_filter_width - 1) * dilation_width + 1;
-  if (!dilated_filter_height.IsValid() || !dilated_filter_width.IsValid()) {
+  if (!dilated_filter_height.IsValid()) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "Overflow occurred when calcuating dilated filter size.");
+        "Overflow occurred when calculating dilated filter height.");
+    return nullptr;
+  }
+  if (!dilated_filter_width.IsValid()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calculating dilated filter width.");
     return nullptr;
   }
   base::CheckedNumeric<int32_t> checked_input_height(input_height),
@@ -309,11 +320,16 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
                                   stride_width +
                               1;
   int32_t output_height, output_width;
-  if (!checked_output_height.AssignIfValid(&output_height) ||
-      !checked_output_width.AssignIfValid(&output_width)) {
+  if (!checked_output_height.AssignIfValid(&output_height)) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "Overflow occurred when calcuating output size.");
+        "Overflow occurred when calculating output height.");
+    return nullptr;
+  }
+  if (!checked_output_width.AssignIfValid(&output_width)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Overflow occurred when calculating output width.");
     return nullptr;
   }
   Vector<int32_t> output_shape;
@@ -613,36 +629,62 @@ MLOperand* MLGraphBuilder::BuildPool2d(MLOperator::OpKind kind,
     if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_height,
                                     window_height, stride_height,
                                     dilation_height, padding_begin_height,
-                                    padding_end_height) ||
-        !CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
+                                    padding_end_height)) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "Overflow occurred when calculating "
+                                        "padding along the height dimension.");
+      return nullptr;
+    }
+    if (!CalculatePaddingForAutoPad(options->autoPad().AsEnum(), input_width,
                                     window_width, stride_width, dilation_width,
                                     padding_begin_width, padding_end_width)) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "Overflow occurred when calcuating padding for autoPad.");
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "Overflow occurred when calculating "
+                                        "padding along the width dimension.");
       return nullptr;
     }
   }
 
-  // TODO: We may need to consider dilations when calculating output sizes.
   int32_t output_height, output_width;
   if (!options->hasOutputSizes()) {
+    base::CheckedNumeric<int32_t> checked_window_height(window_height),
+        checked_window_width(window_width);
+    auto dilated_window_height =
+        (checked_window_height - 1) * dilation_height + 1;
+    auto dilated_window_width = (checked_window_width - 1) * dilation_width + 1;
+    if (!dilated_window_height.IsValid()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calculating dilated window height.");
+      return nullptr;
+    }
+    if (!dilated_window_width.IsValid()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calculating dilated window width.");
+      return nullptr;
+    }
     base::CheckedNumeric<float> checked_input_height(input_height),
         checked_input_width(input_width);
-    auto checked_output_height = (checked_input_height - window_height +
+    auto checked_output_height = (checked_input_height - dilated_window_height +
                                   padding_begin_height + padding_end_height) /
                                      stride_height +
                                  1.0;
-    auto checked_output_width = (checked_input_width - window_width +
+    auto checked_output_width = (checked_input_width - dilated_window_width +
                                  padding_begin_width + padding_end_width) /
                                     stride_width +
                                 1.0;
     float float_output_height, float_output_width;
-    if (!checked_output_height.AssignIfValid(&float_output_height) ||
-        !checked_output_width.AssignIfValid(&float_output_width)) {
+    if (!checked_output_height.AssignIfValid(&float_output_height)) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
-          "Overflow occurred when calcuating output size.");
+          "Overflow occurred when calculating output height.");
+      return nullptr;
+    }
+    if (!checked_output_width.AssignIfValid(&float_output_width)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "Overflow occurred when calculating output width.");
       return nullptr;
     }
     output_height =
