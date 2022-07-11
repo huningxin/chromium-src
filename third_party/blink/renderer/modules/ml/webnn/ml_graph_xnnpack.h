@@ -67,7 +67,7 @@ class MLGraphXnnpack final : public MLGraph {
       scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
 
   // Perform the post graph build on the main thread.
-  void DidBuild(CrossThreadPersistent<ScriptPromiseResolver> resolver,
+  void OnBuildFinished(CrossThreadPersistent<ScriptPromiseResolver> resolver,
                 xnn_status status,
                 const String& error_message = String());
 
@@ -79,7 +79,7 @@ class MLGraphXnnpack final : public MLGraph {
       scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
 
   // Perform the post graph compute on the main thread.
-  void DidCompute(CrossThreadPersistent<ScriptPromiseResolver> resolver,
+  void OnComputeFinished(CrossThreadPersistent<ScriptPromiseResolver> resolver,
                   xnn_status status,
                   const String& error_message = String());
 

@@ -370,11 +370,11 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
   xnn_status status = graph->CreateRuntime(request, error_message);
   PostCrossThreadTask(
       *resolver_task_runner, FROM_HERE,
-      CrossThreadBindOnce(&MLGraphXnnpack::DidBuild, std::move(graph),
+      CrossThreadBindOnce(&MLGraphXnnpack::OnBuildFinished, std::move(graph),
                           std::move(resolver), status, error_message));
 }
 
-void MLGraphXnnpack::DidBuild(
+void MLGraphXnnpack::OnBuildFinished(
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     xnn_status status,
     const String& error_message) {
@@ -396,11 +396,11 @@ void MLGraphXnnpack::ComputeOnBackgroundThread(
   xnn_status status = graph->InvokeRuntime(request, error_message);
   PostCrossThreadTask(
       *resolver_task_runner, FROM_HERE,
-      CrossThreadBindOnce(&MLGraphXnnpack::DidCompute, std::move(graph),
+      CrossThreadBindOnce(&MLGraphXnnpack::OnComputeFinished, std::move(graph),
                           std::move(resolver), status, error_message));
 }
 
-void MLGraphXnnpack::DidCompute(
+void MLGraphXnnpack::OnComputeFinished(
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     xnn_status status,
     const String& error_message) {
