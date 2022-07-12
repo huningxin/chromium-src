@@ -262,7 +262,7 @@ DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
 
 }  // namespace
 
-MLGraphXnnpack::BuildRequest::BuildRequest(const MLNamedOperands& named_outputs)
+MLGraphXnnpack::BuildRequest::BuildRequest(MLNamedOperands named_outputs)
     : outputs_(std::move(named_outputs)) {
   MLGraphBuilder::SortOperators(outputs_, inputs_, constants_,
                                 sorted_operators_);
@@ -275,9 +275,8 @@ void MLGraphXnnpack::BuildRequest::Trace(Visitor* visitor) const {
   visitor->Trace(sorted_operators_);
 }
 
-MLGraphXnnpack::ComputeRequest::ComputeRequest(
-    const MLNamedArrayInputs& inputs,
-    const MLNamedArrayOutputs& outputs)
+MLGraphXnnpack::ComputeRequest::ComputeRequest(MLNamedArrayInputs inputs,
+                                               MLNamedArrayOutputs outputs)
     : inputs_(std::move(inputs)), outputs_(std::move(outputs)) {}
 
 void MLGraphXnnpack::ComputeRequest::Trace(Visitor* visitor) const {
@@ -291,7 +290,7 @@ MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
 MLGraphXnnpack::~MLGraphXnnpack() = default;
 
 ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
-                                        const MLNamedOperands& named_outputs,
+                                        MLNamedOperands named_outputs,
                                         ExceptionState& exception_state) {
   auto* request = MakeGarbageCollected<BuildRequest>(std::move(named_outputs));
   // TODO: Get a dedicated queue when the specification matures.
@@ -308,7 +307,7 @@ ScriptPromise MLGraphXnnpack::BuildImpl(ScriptState* script_state,
   return resolver->Promise();
 }
 
-void MLGraphXnnpack::BuildSyncImpl(const MLNamedOperands& named_outputs,
+void MLGraphXnnpack::BuildSyncImpl(MLNamedOperands named_outputs,
                                    ExceptionState& exception_state) {
   auto* request = MakeGarbageCollected<BuildRequest>(std::move(named_outputs));
   String error_message;
@@ -320,8 +319,8 @@ void MLGraphXnnpack::BuildSyncImpl(const MLNamedOperands& named_outputs,
 }
 
 ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
-                                          const MLNamedArrayInputs& inputs,
-                                          const MLNamedArrayOutputs& outputs,
+                                          MLNamedArrayInputs inputs,
+                                          MLNamedArrayOutputs outputs,
                                           ExceptionState& exception_state) {
   if (!script_state->ContextIsValid()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
@@ -345,8 +344,8 @@ ScriptPromise MLGraphXnnpack::ComputeImpl(ScriptState* script_state,
   return resolver->Promise();
 }
 
-void MLGraphXnnpack::ComputeSyncImpl(const MLNamedArrayInputs& inputs,
-                                     const MLNamedArrayOutputs& outputs,
+void MLGraphXnnpack::ComputeSyncImpl(MLNamedArrayInputs inputs,
+                                     MLNamedArrayOutputs outputs,
                                      ExceptionState& exception_state) {
   auto* request = MakeGarbageCollected<ComputeRequest>(std::move(inputs),
                                                        std::move(outputs));
@@ -368,16 +367,16 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
 
   String error_message;
   xnn_status status = graph->CreateRuntime(request, error_message);
-  PostCrossThreadTask(
-      *resolver_task_runner, FROM_HERE,
-      CrossThreadBindOnce(&MLGraphXnnpack::OnBuildFinished, std::move(graph),
-                          std::move(resolver), status, error_message));
+  PostCrossThreadTask(*resolver_task_runner, FROM_HERE,
+                      CrossThreadBindOnce(&MLGraphXnnpack::OnBuildFinished,
+                                          std::move(graph), std::move(resolver),
+                                          status, std::move(error_message)));
 }
 
 void MLGraphXnnpack::OnBuildFinished(
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     xnn_status status,
-    const String& error_message) {
+    String error_message) {
   if (status != xnn_status_success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         XnnStatusToDOMExceptionCode(status), error_message));
@@ -394,16 +393,16 @@ void MLGraphXnnpack::ComputeOnBackgroundThread(
     scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
   String error_message;
   xnn_status status = graph->InvokeRuntime(request, error_message);
-  PostCrossThreadTask(
-      *resolver_task_runner, FROM_HERE,
-      CrossThreadBindOnce(&MLGraphXnnpack::OnComputeFinished, std::move(graph),
-                          std::move(resolver), status, error_message));
+  PostCrossThreadTask(*resolver_task_runner, FROM_HERE,
+                      CrossThreadBindOnce(&MLGraphXnnpack::OnComputeFinished,
+                                          std::move(graph), std::move(resolver),
+                                          status, std::move(error_message)));
 }
 
 void MLGraphXnnpack::OnComputeFinished(
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     xnn_status status,
-    const String& error_message) {
+    String error_message) {
   if (status != xnn_status_success) {
     resolver->Reject(MakeGarbageCollected<DOMException>(
         XnnStatusToDOMExceptionCode(status), error_message));

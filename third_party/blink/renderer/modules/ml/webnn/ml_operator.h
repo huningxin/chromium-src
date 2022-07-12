@@ -43,9 +43,9 @@ class MLOperator : public ScriptWrappable {
 
   OpKind Kind() const;
   const HeapVector<Member<const MLOperand>>& Inputs() const;
-  void SetInputs(const HeapVector<Member<const MLOperand>>&);
+  void SetInputs(HeapVector<Member<const MLOperand>>);
   const HeapVector<Member<const MLOperand>>& Outputs() const;
-  void SetOutputs(const HeapVector<Member<const MLOperand>>&);
+  void SetOutputs(HeapVector<Member<const MLOperand>>);
 
   void SetOptions(const bindings::DictionaryBase* options);
   const bindings::DictionaryBase* Options() const;

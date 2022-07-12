@@ -81,11 +81,10 @@ class MLGraphBuilder final : public ScriptWrappable {
   MLOperand* softmax(const MLOperand*, ExceptionState&);
 
   ScriptPromise build(ScriptState* script_state,
-                      const MLNamedOperands& outputs,
+                      MLNamedOperands outputs,
                       ExceptionState& exception_state);
 
-  MLGraph* buildSync(const MLNamedOperands& outputs,
-                     ExceptionState& exception_state);
+  MLGraph* buildSync(MLNamedOperands outputs, ExceptionState& exception_state);
 
   static void SortOperators(
       const MLNamedOperands& named_outputs,

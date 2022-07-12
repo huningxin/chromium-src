@@ -26,22 +26,22 @@ class MLGraphXnnpack final : public MLGraph {
   ~MLGraphXnnpack() override;
 
   ScriptPromise BuildImpl(ScriptState* script_state,
-                          const MLNamedOperands& named_outputs,
+                          MLNamedOperands named_outputs,
                           ExceptionState& exception_state) override;
-  void BuildSyncImpl(const MLNamedOperands& named_outputs,
+  void BuildSyncImpl(MLNamedOperands named_outputs,
                      ExceptionState& exception_state) override;
 
   ScriptPromise ComputeImpl(ScriptState* script_state,
-                            const MLNamedArrayInputs& inputs,
-                            const MLNamedArrayOutputs& outputs,
+                            MLNamedArrayInputs inputs,
+                            MLNamedArrayOutputs outputs,
                             ExceptionState& exception_state) override;
-  void ComputeSyncImpl(const MLNamedArrayInputs& inputs,
-                       const MLNamedArrayOutputs& outputs,
+  void ComputeSyncImpl(MLNamedArrayInputs inputs,
+                       MLNamedArrayOutputs outputs,
                        ExceptionState& exception_state) override;
 
  private:
   struct BuildRequest final : public GarbageCollected<BuildRequest> {
-    BuildRequest(const MLNamedOperands& named_outputs);
+    BuildRequest(MLNamedOperands named_outputs);
     void Trace(Visitor*) const;
 
     MLNamedOperands outputs_;
@@ -51,8 +51,7 @@ class MLGraphXnnpack final : public MLGraph {
   };
 
   struct ComputeRequest final : public GarbageCollected<ComputeRequest> {
-    ComputeRequest(const MLNamedArrayInputs& inputs,
-                   const MLNamedArrayOutputs& outputs);
+    ComputeRequest(MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
     void Trace(Visitor*) const;
 
     MLNamedArrayInputs inputs_;
@@ -68,8 +67,8 @@ class MLGraphXnnpack final : public MLGraph {
 
   // Perform the post graph build on the main thread.
   void OnBuildFinished(CrossThreadPersistent<ScriptPromiseResolver> resolver,
-                xnn_status status,
-                const String& error_message = String());
+                       xnn_status status,
+                       String error_message = String());
 
   // Perform the graph compute off the main thread.
   static void ComputeOnBackgroundThread(
@@ -80,8 +79,8 @@ class MLGraphXnnpack final : public MLGraph {
 
   // Perform the post graph compute on the main thread.
   void OnComputeFinished(CrossThreadPersistent<ScriptPromiseResolver> resolver,
-                  xnn_status status,
-                  const String& error_message = String());
+                         xnn_status status,
+                         String error_message = String());
 
   // Methods for interaction with XNNPACK APIs
   xnn_status CreateRuntime(BuildRequest* request, String& error_message);

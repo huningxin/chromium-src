@@ -26,7 +26,7 @@ const HeapVector<Member<const MLOperand>>& MLOperator::Inputs() const {
   return inputs_;
 }
 
-void MLOperator::SetInputs(const HeapVector<Member<const MLOperand>>& inputs) {
+void MLOperator::SetInputs(HeapVector<Member<const MLOperand>> inputs) {
   inputs_ = std::move(inputs);
 }
 
@@ -34,8 +34,7 @@ const HeapVector<Member<const MLOperand>>& MLOperator::Outputs() const {
   return outputs_;
 }
 
-void MLOperator::SetOutputs(
-    const HeapVector<Member<const MLOperand>>& outputs) {
+void MLOperator::SetOutputs(HeapVector<Member<const MLOperand>> outputs) {
   outputs_ = std::move(outputs);
 }
 

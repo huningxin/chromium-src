@@ -22,8 +22,8 @@ MLOperand::KindEnum MLOperand::Kind() const {
   return kind_;
 }
 
-void MLOperand::SetName(const String& name) {
-  name_ = name;
+void MLOperand::SetName(String name) {
+  name_ = std::move(name);
 }
 
 const String& MLOperand::Name() const {
@@ -46,8 +46,8 @@ V8MLOperandType::Enum MLOperand::Type() const {
   return type_;
 }
 
-void MLOperand::SetDimensions(const Vector<int32_t>& dimensions) {
-  dimensions_ = dimensions;
+void MLOperand::SetDimensions(Vector<int32_t> dimensions) {
+  dimensions_ = std::move(dimensions);
 }
 
 const Vector<int32_t>& MLOperand::Dimensions() const {

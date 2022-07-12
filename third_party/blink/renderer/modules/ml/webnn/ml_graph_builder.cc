@@ -113,7 +113,7 @@ MLOperand* MLGraphBuilder::input(String name,
                                  ExceptionState& exception_state) {
   auto* input =
       MakeGarbageCollected<MLOperand>(this, MLOperand::KindEnum::kInput);
-  input->SetName(name);
+  input->SetName(std::move(name));
   input->SetType(desc->type().AsEnum());
   if (desc->hasDimensions()) {
     input->SetDimensions(desc->dimensions());
@@ -346,7 +346,7 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
   if (options->hasBias()) {
     inputs.push_back(options->bias());
   }
-  conv2d->SetInputs(inputs);
+  conv2d->SetInputs(std::move(inputs));
   conv2d->SetOptions(options);
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(input->Type());
@@ -426,7 +426,7 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
   if (options->hasC()) {
     inputs.push_back(options->c());
   }
-  gemm->SetInputs(inputs);
+  gemm->SetInputs(std::move(inputs));
   gemm->SetOptions(options);
   auto* output = MakeGarbageCollected<MLOperand>(this);
   output->SetType(a->Type());
@@ -774,7 +774,7 @@ void MLGraphBuilder::SortOperators(
 }
 
 ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
-                                    const MLNamedOperands& named_outputs,
+                                    MLNamedOperands named_outputs,
                                     ExceptionState& exception_state) {
   if (!script_state->ContextIsValid()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
@@ -794,7 +794,7 @@ ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
 #endif
 }
 
-MLGraph* MLGraphBuilder::buildSync(const MLNamedOperands& named_outputs,
+MLGraph* MLGraphBuilder::buildSync(MLNamedOperands named_outputs,
                                    ExceptionState& exception_state) {
 #if defined(BUILD_WEBNN_WITH_XNNPACK)
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(ml_context_);

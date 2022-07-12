@@ -33,13 +33,13 @@ class MLOperand final : public ScriptWrappable {
 
   MLGraphBuilder* Builder() const;
   KindEnum Kind() const;
-  void SetName(const String& name);
+  void SetName(String name);
   const String& Name() const;
   void SetOperator(const MLOperator* ml_operator);
   const MLOperator* Operator() const;
   void SetType(const V8MLOperandType::Enum type);
   V8MLOperandType::Enum Type() const;
-  void SetDimensions(const Vector<int32_t>& dimensions);
+  void SetDimensions(Vector<int32_t> dimensions);
   const Vector<int32_t>& Dimensions() const;
   void SetArrayBufferView(const DOMArrayBufferView* array_buffer_view);
   const DOMArrayBufferView* ArrayBufferView() const;
