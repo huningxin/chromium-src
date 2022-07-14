@@ -1014,7 +1014,7 @@ xnn_status MLGraphXnnpack::DefinePool2d(
                                     filter_width, stride_width, pad_left,
                                     pad_right)) {
       error_message =
-          "Overflow occurred when calculating padding along width width "
+          "Overflow occurred when calculating padding along the width "
           "dimension.";
       return xnn_status_invalid_parameter;
     }
