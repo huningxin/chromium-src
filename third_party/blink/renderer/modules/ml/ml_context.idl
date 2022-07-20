@@ -17,13 +17,13 @@ typedef record<DOMString, ([AllowShared] ArrayBufferView or MLTensor)> MLNamedAr
 typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer)> MLNamedArrayOutputs;
 
 [
-  RuntimeEnabled=(MachineLearningModelLoader, MachineLearningNeuralNetwork),
+  RuntimeEnabled=MachineLearning,
   SecureContext,
   Exposed=(Window, DedicatedWorker)
 ] interface MLContext {
-  [CallWith=ScriptState, RaisesException]
+  [RuntimeEnabled=MachineLearningNeuralNetwork, CallWith=ScriptState, RaisesException]
       Promise<void> compute(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
 
-  [RaisesException, Exposed=DedicatedWorker]
+  [RuntimeEnabled=MachineLearningNeuralNetwork, RaisesException, Exposed=DedicatedWorker]
       void computeSync(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
 };
