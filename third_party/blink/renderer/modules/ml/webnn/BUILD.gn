@@ -10,6 +10,8 @@ blink_modules_sources("webnn") {
     "ml_graph.h",
     "ml_graph_builder.cc",
     "ml_graph_builder.h",
+    "ml_graph_xnnpack.cc",
+    "ml_graph_xnnpack.h",
     "ml_operand.cc",
     "ml_operand.h",
     "ml_operator.cc",
