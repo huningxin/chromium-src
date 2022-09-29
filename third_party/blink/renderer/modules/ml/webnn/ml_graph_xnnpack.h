@@ -6,6 +6,7 @@
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_XNNPACK_H_
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
+#include "third_party/blink/renderer/platform/heap/persistent.h"
 #include "third_party/xnnpack/src/include/xnnpack.h"
 
 namespace blink {
@@ -39,5 +40,7 @@ class MLGraphXnnpack final : public MLGraph {
 
   scoped_refptr<SharedXnnpackContext> xnn_context_;
 };
+
+}  // namespace blink
 
 #endif  // THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_XNNPACK_H_

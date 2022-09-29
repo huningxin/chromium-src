@@ -4,6 +4,23 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 
+#include "base/allocator/partition_allocator/partition_root.h"
+#include "base/synchronization/lock.h"
+#include "base/system/sys_info.h"
+#include "base/task/sequenced_task_runner.h"
+#include "base/task/thread_pool.h"
+#include "base/thread_annotations.h"
+#include "build/buildflag.h"
+#include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+#include "third_party/blink/renderer/core/dom/dom_exception.h"
+#include "third_party/blink/renderer/platform/scheduler/public/post_cross_thread_task.h"
+#include "third_party/blink/renderer/platform/scheduler/public/worker_pool.h"
+#include "third_party/blink/renderer/platform/wtf/allocator/partitions.h"
+#include "third_party/blink/renderer/platform/wtf/cross_thread_copier_base.h"
+#include "third_party/blink/renderer/platform/wtf/cross_thread_copier_std.h"
+#include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
+#include "third_party/blink/renderer/platform/wtf/thread_safe_ref_counted.h"
+
 namespace blink {
 
 namespace {
@@ -74,8 +91,10 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   ~SharedXnnpackContext() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
 #if !(BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS))
-    // cpuinfo needs to parse /proc/cpuinfo that needs to be done pre sandbox.
-    // xnn_deinitialize() will call cpuinfo_deinitialize().
+    // For Linux and ChromeOS, cpuinfo needs to parse /proc/cpuinfo to
+    // initialize in pre sandbox stage. Calling xnn_deinitialize() here will
+    // deinitialize cpufino within sandbox and cannot access /proc/cpuinfo
+    // again.
     xnn_deinitialize();
 #endif
     DCHECK_EQ(this, instance_);
@@ -91,6 +110,28 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
 };
 
 SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
+
+DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
+  switch (status) {
+    case xnn_status_success:
+      // This function should only be called with an error.
+      NOTREACHED();
+      return DOMExceptionCode::kNoError;
+    case xnn_status_uninitialized:
+      return DOMExceptionCode::kUnknownError;
+    case xnn_status_invalid_parameter:
+      return DOMExceptionCode::kDataError;
+    case xnn_status_invalid_state:
+      return DOMExceptionCode::kInvalidStateError;
+    case xnn_status_unsupported_parameter:
+    case xnn_status_unsupported_hardware:
+      return DOMExceptionCode::kNotSupportedError;
+    case xnn_status_out_of_memory:
+      return DOMExceptionCode::kQuotaExceededError;
+  }
+  NOTREACHED();
+  return DOMExceptionCode::kUnknownError;
+}
 
 }  // namespace
 
@@ -111,6 +152,45 @@ void MLGraphXnnpack::BuildAsyncImpl(BuildInfo* build_info,
           &BuildOnBackgroundThread, WrapCrossThreadPersistent(this),
           WrapCrossThreadPersistent(build_info),
           WrapCrossThreadPersistent(resolver), std::move(task_runner)));
+}
+
+// static
+void MLGraphXnnpack::BuildOnBackgroundThread(
+    CrossThreadPersistent<MLGraphXnnpack> graph,
+    CrossThreadPersistent<BuildInfo> build_info,
+    CrossThreadPersistent<ScriptPromiseResolver> resolver,
+    scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
+  DCHECK(!IsMainThread());
+  DCHECK(!graph->xnn_context_);
+  graph->xnn_context_ = SharedXnnpackContext::GetInstance();
+  String error_message;
+  xnn_status status;
+  if (!graph->xnn_context_) {
+    error_message = "Failed to get XNNPACK context.";
+    status = xnn_status_uninitialized;
+  }
+
+  // TODO(ningxin.hu@intel.com): process build info and create xnnpack subgraph
+  // and runtime.
+  error_message = "XNNPACK backend not implemented.";
+  status = xnn_status_unsupported_hardware;
+
+  PostCrossThreadTask(*resolver_task_runner, FROM_HERE,
+                      CrossThreadBindOnce(&MLGraphXnnpack::OnBuildFinished,
+                                          std::move(graph), std::move(resolver),
+                                          status, std::move(error_message)));
+}
+
+void MLGraphXnnpack::OnBuildFinished(
+    CrossThreadPersistent<ScriptPromiseResolver> resolver,
+    xnn_status status,
+    String error_message) {
+  if (status != xnn_status_success) {
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        XnnStatusToDOMExceptionCode(status), error_message));
+    return;
+  }
+  resolver->Resolve(this);
 }
 
 }  // namespace blink

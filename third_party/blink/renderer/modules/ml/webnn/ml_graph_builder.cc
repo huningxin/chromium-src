@@ -20,6 +20,10 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
+#endif
+
 namespace blink {
 
 namespace {
@@ -1097,9 +1101,12 @@ ScriptPromise MLGraphBuilder::buildAsync(ScriptState* script_state,
   auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
   auto promise = resolver->Promise();
 
-  // TODO(ningxin.hu@intel.com): Create a concrete MLGraph object that builds
-  // the platform specific graph for hardware acceleration. For example:
-  // MLGraphXnnpack::ValidateAndBuildAsync(ml_context_, outputs, resolver);
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
+  if (ml_context_->GetDevicePreference() != V8MLDevicePreference::Enum::kGpu) {
+    MLGraphXnnpack::ValidateAndBuildAsync(ml_context_, named_outputs, resolver);
+    return promise;
+  }
+#endif
 
   resolver->Reject(MakeGarbageCollected<DOMException>(
       DOMExceptionCode::kNotSupportedError, "Not implemented"));
