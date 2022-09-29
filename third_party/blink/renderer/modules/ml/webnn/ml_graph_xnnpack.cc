@@ -139,6 +139,10 @@ MLGraphXnnpack::MLGraphXnnpack(MLContext* context) : MLGraph(context) {}
 
 MLGraphXnnpack::~MLGraphXnnpack() = default;
 
+pthreadpool_t MLGraphXnnpack::GetPthreadpoolForTesting() const {
+  return xnn_context_->Pthreadpool();
+}
+
 void MLGraphXnnpack::BuildAsyncImpl(BuildInfo* build_info,
                                     ScriptPromiseResolver* resolver) {
   // TODO(ningxin.hu@intel.com): Get a dedicated queue when the specification
@@ -172,7 +176,7 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
 
   // TODO(ningxin.hu@intel.com): process build info and create xnnpack subgraph
   // and runtime.
-  error_message = "XNNPACK backend not implemented.";
+  error_message = "XNNPACK backend is not implemented.";
   status = xnn_status_unsupported_hardware;
 
   PostCrossThreadTask(*resolver_task_runner, FROM_HERE,

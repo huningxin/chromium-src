@@ -37,6 +37,10 @@
 #include "third_party/blink/renderer/platform/wtf/deque.h"
 #include "third_party/blink/renderer/platform/wtf/hash_set.h"
 
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
+#endif
+
 namespace blink {
 
 const uint32_t kSquareRootOfSizeMax =
@@ -1830,5 +1834,62 @@ TEST_F(MLGraphBuilderTest, BuildAsyncTest) {
     EXPECT_EQ(outputs.at("output").byte_length, output->ByteLength());
   }
 }
+
+#if defined(BUILD_WEBNN_WITH_XNNPACK)
+MLGraphXnnpack* ToMLGraphXnnpack(V8TestingScope* scope, ScriptValue value) {
+  return NativeValueTraits<MLGraphXnnpack>::NativeValue(
+      scope->GetIsolate(), value.V8Value(), scope->GetExceptionState());
+}
+
+TEST_F(MLGraphBuilderTest, MLGraphXnnpackTest) {
+  V8TestingScope scope;
+  auto* builder = CreateMLGraphBuilder(scope);
+  auto* script_state = scope.GetScriptState();
+  {
+    // Testing throwing excpetion of xnnpack backend not implemented.
+    auto* a = BuildInput(scope, builder, "a", {3, 4},
+                         V8MLOperandType::Enum::kFloat32);
+    auto* b = BuildInput(scope, builder, "b", {4, 3},
+                         V8MLOperandType::Enum::kFloat32);
+    auto* c = BuildGemm(scope, builder, a, b);
+
+    ScriptPromiseTester tester(script_state,
+                               builder->buildAsync(script_state, {{"c", c}},
+                                                   scope.GetExceptionState()));
+    tester.WaitUntilSettled();
+    EXPECT_TRUE(tester.IsRejected());
+    auto* exception = V8DOMException::ToImplWithTypeCheck(
+        scope.GetIsolate(), tester.Value().V8Value());
+    EXPECT_NE(exception, nullptr);
+    EXPECT_EQ(exception->name(), "NotSupportedError");
+    EXPECT_EQ(exception->message(), "XNNPACK backend is not implemented.");
+  }
+  {
+    // Test building MLGraphXnnpack with SharedXnnpackContext successfully.
+    auto* a = BuildInput(scope, builder, "a", {3, 4},
+                         V8MLOperandType::Enum::kFloat32);
+    auto* b = BuildInput(scope, builder, "b", {4, 3},
+                         V8MLOperandType::Enum::kFloat32);
+    auto* c = BuildGemm(scope, builder, a, b);
+
+    String error_message;
+    auto* build_info = MLGraph::BuildInfo::Create({{"c", c}}, error_message);
+    EXPECT_NE(build_info, nullptr);
+    EXPECT_FALSE(error_message);
+    auto* xnnpack_graph =
+        MakeGarbageCollected<MLGraphXnnpack>(builder->GetContext());
+    auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
+    xnnpack_graph->BuildAsyncImpl(build_info, resolver);
+    ScriptPromiseTester tester(script_state, resolver->Promise());
+    tester.WaitUntilSettled();
+    EXPECT_TRUE(tester.IsRejected());
+    EXPECT_NE(xnnpack_graph->GetPthreadpoolForTesting(), nullptr);
+    EXPECT_NE(pthreadpool_get_threads_count(
+                  xnnpack_graph->GetPthreadpoolForTesting()),
+              static_cast<size_t>(0));
+  }
+}
+
+#endif
 
 }  // namespace blink

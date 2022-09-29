@@ -22,6 +22,8 @@ class MLGraphXnnpack final : public MLGraph {
   explicit MLGraphXnnpack(MLContext* context);
   ~MLGraphXnnpack() override;
 
+  pthreadpool_t GetPthreadpoolForTesting() const;
+
   void BuildAsyncImpl(BuildInfo* build_info,
                       ScriptPromiseResolver* resolver) override;
 
