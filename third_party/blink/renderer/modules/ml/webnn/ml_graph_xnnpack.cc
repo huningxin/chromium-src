@@ -45,7 +45,7 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
       if (xnn_initialize(&partition_allocator) != xnn_status_success) {
         return nullptr;
       }
-      // TODO: consider using base::PostJob in the future
+      // TODO(ningxin.hu@intel.com): consider using base::PostJob in the future
       pthreadpool_t pthreadpool_ptr = pthreadpool_create(
           std::max(1, base::SysInfo::NumberOfProcessors() / 2));
       if (pthreadpool_ptr == nullptr) {
@@ -73,7 +73,9 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   }
   ~SharedXnnpackContext() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
-#if BUILDFLAG(IS_WIN)
+#if !(BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS))
+    // cpuinfo needs to parse /proc/cpuinfo that needs to be done pre sandbox.
+    // xnn_deinitialize() will call cpuinfo_deinitialize().
     xnn_deinitialize();
 #endif
     DCHECK_EQ(this, instance_);
@@ -92,23 +94,23 @@ SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
 
 }  // namespace
 
-MLGraphXnnpack::MLGraphXnnpack(MLContext* context)
-    : MLGraph(context) {}
+MLGraphXnnpack::MLGraphXnnpack(MLContext* context) : MLGraph(context) {}
 
 MLGraphXnnpack::~MLGraphXnnpack() = default;
 
 void MLGraphXnnpack::BuildAsyncImpl(BuildInfo* build_info,
-                      ScriptPromiseResolver* resolver) {
-// TODO(ningxin.hu@intel.com): Get a dedicated queue when the specification matures.
-scoped_refptr<base::SequencedTaskRunner> task_runner =
-    ExecutionContext::From(resolver->GetScriptState())
-        ->GetTaskRunner(TaskType::kMiscPlatformAPI);
-worker_pool::PostTask(
-    FROM_HERE, {base::MayBlock()},
-    CrossThreadBindOnce(
-        &BuildOnBackgroundThread, WrapCrossThreadPersistent(this),
-        WrapCrossThreadPersistent(build_info),
-        WrapCrossThreadPersistent(resolver), std::move(task_runner)));
+                                    ScriptPromiseResolver* resolver) {
+  // TODO(ningxin.hu@intel.com): Get a dedicated queue when the specification
+  // matures.
+  scoped_refptr<base::SequencedTaskRunner> task_runner =
+      ExecutionContext::From(resolver->GetScriptState())
+          ->GetTaskRunner(TaskType::kMiscPlatformAPI);
+  worker_pool::PostTask(
+      FROM_HERE, {base::MayBlock()},
+      CrossThreadBindOnce(
+          &BuildOnBackgroundThread, WrapCrossThreadPersistent(this),
+          WrapCrossThreadPersistent(build_info),
+          WrapCrossThreadPersistent(resolver), std::move(task_runner)));
 }
 
 }  // namespace blink
