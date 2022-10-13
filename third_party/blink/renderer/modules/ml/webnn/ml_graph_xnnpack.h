@@ -19,23 +19,33 @@ class SharedXnnpackContext;
 
 class MLGraphXnnpack final : public MLGraph {
  public:
+  // Create and build an MLGraphXnnpack object. Resolve the promise with
+  // this concrete object if no errors.
+  static void ValidateAndBuildAsync(MLContext* context,
+                                    const MLNamedOperands& named_outputs,
+                                    ScriptPromiseResolver* resolver);
+
+  // The constructor shouldn't be called directly. The callers should use
+  // ValidateAndBuildAsync() method instead.
   explicit MLGraphXnnpack(MLContext* context);
+
   ~MLGraphXnnpack() override;
 
+  // Get the pthreadpool of SharedXnnpackContext for unit test.
   pthreadpool_t GetPthreadpoolForTesting() const;
 
-  void BuildAsyncImpl(BuildInfo* build_info,
+ private:
+  void BuildAsyncImpl(const MLNamedOperands& named_outputs,
                       ScriptPromiseResolver* resolver) override;
 
- private:
-  // Perform the xnnpack graph build off the main thread.
+  // Perform the XNNPACK graph build off the main thread.
   static void BuildOnBackgroundThread(
       CrossThreadPersistent<MLGraphXnnpack> graph,
-      CrossThreadPersistent<BuildInfo> build_info,
+      CrossThreadPersistent<MLNamedOperands> named_outputs,
       CrossThreadPersistent<ScriptPromiseResolver> resolver,
       scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
 
-  // Perform the post xnnpack graph build on the main thread.
+  // Resolve the promise on the main thread.
   void OnBuildFinished(CrossThreadPersistent<ScriptPromiseResolver> resolver,
                        xnn_status status,
                        String error_message = String());

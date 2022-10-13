@@ -13,6 +13,7 @@
 #include "build/buildflag.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
+#include "third_party/blink/renderer/platform/heap/cross_thread_persistent.h"
 #include "third_party/blink/renderer/platform/scheduler/public/post_cross_thread_task.h"
 #include "third_party/blink/renderer/platform/scheduler/public/worker_pool.h"
 #include "third_party/blink/renderer/platform/wtf/allocator/partitions.h"
@@ -95,6 +96,8 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     // initialize in pre sandbox stage. Calling xnn_deinitialize() here will
     // deinitialize cpufino within sandbox and cannot access /proc/cpuinfo
     // again.
+    // See https://chromium-review.googlesource.com/c/chromium/src/+/3907965 for
+    // more details.
     xnn_deinitialize();
 #endif
     DCHECK_EQ(this, instance_);
@@ -135,6 +138,14 @@ DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
 
 }  // namespace
 
+// static
+void MLGraphXnnpack::ValidateAndBuildAsync(MLContext* context,
+                                  const MLNamedOperands& named_outputs,
+                                  ScriptPromiseResolver* resolver) {
+  auto* graph = MakeGarbageCollected<MLGraphXnnpack>(context);
+  graph->BuildAsync(named_outputs, resolver);
+}
+
 MLGraphXnnpack::MLGraphXnnpack(MLContext* context) : MLGraph(context) {}
 
 MLGraphXnnpack::~MLGraphXnnpack() = default;
@@ -143,29 +154,33 @@ pthreadpool_t MLGraphXnnpack::GetPthreadpoolForTesting() const {
   return xnn_context_->Pthreadpool();
 }
 
-void MLGraphXnnpack::BuildAsyncImpl(BuildInfo* build_info,
+void MLGraphXnnpack::BuildAsyncImpl(const MLNamedOperands& named_outputs,
                                     ScriptPromiseResolver* resolver) {
-  // TODO(ningxin.hu@intel.com): Get a dedicated queue when the specification
+  // TODO(crbug.com/1273291): Get a dedicated queue when the specification
   // matures.
   scoped_refptr<base::SequencedTaskRunner> task_runner =
       ExecutionContext::From(resolver->GetScriptState())
           ->GetTaskRunner(TaskType::kMiscPlatformAPI);
+  auto* on_heap_named_outputs =
+      MakeGarbageCollected<MLNamedOperands>(named_outputs);
   worker_pool::PostTask(
       FROM_HERE, {base::MayBlock()},
       CrossThreadBindOnce(
           &BuildOnBackgroundThread, WrapCrossThreadPersistent(this),
-          WrapCrossThreadPersistent(build_info),
+          WrapCrossThreadPersistent(on_heap_named_outputs),
           WrapCrossThreadPersistent(resolver), std::move(task_runner)));
 }
 
 // static
 void MLGraphXnnpack::BuildOnBackgroundThread(
     CrossThreadPersistent<MLGraphXnnpack> graph,
-    CrossThreadPersistent<BuildInfo> build_info,
+    CrossThreadPersistent<MLNamedOperands> named_outputs,
     CrossThreadPersistent<ScriptPromiseResolver> resolver,
     scoped_refptr<base::SequencedTaskRunner> resolver_task_runner) {
   DCHECK(!IsMainThread());
   DCHECK(!graph->xnn_context_);
+
+  // Get or create the shared XNNPACK context.
   graph->xnn_context_ = SharedXnnpackContext::GetInstance();
   String error_message;
   xnn_status status;
@@ -173,11 +188,6 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
     error_message = "Failed to get XNNPACK context.";
     status = xnn_status_uninitialized;
   }
-
-  // TODO(ningxin.hu@intel.com): process build info and create xnnpack subgraph
-  // and runtime.
-  error_message = "XNNPACK backend is not implemented.";
-  status = xnn_status_unsupported_hardware;
 
   PostCrossThreadTask(*resolver_task_runner, FROM_HERE,
                       CrossThreadBindOnce(&MLGraphXnnpack::OnBuildFinished,

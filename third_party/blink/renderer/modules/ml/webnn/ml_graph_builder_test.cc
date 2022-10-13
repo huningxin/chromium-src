@@ -8,6 +8,7 @@
 #include <numeric>
 
 #include "base/numerics/checked_math.h"
+#include "base/system/sys_info.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h"
@@ -1846,47 +1847,30 @@ TEST_F(MLGraphBuilderTest, MLGraphXnnpackTest) {
   auto* builder = CreateMLGraphBuilder(scope);
   auto* script_state = scope.GetScriptState();
   {
-    // Testing throwing excpetion of xnnpack backend not implemented.
-    auto* a = BuildInput(scope, builder, "a", {3, 4},
+    // Test building MLGraphXnnpack with SharedXnnpackContext successfully.
+    auto* input = BuildInput(scope, builder, "input", {3, 4, 5},
                          V8MLOperandType::Enum::kFloat32);
-    auto* b = BuildInput(scope, builder, "b", {4, 3},
-                         V8MLOperandType::Enum::kFloat32);
-    auto* c = BuildGemm(scope, builder, a, b);
+    auto* output = builder->relu(input, scope.GetExceptionState());
+    EXPECT_NE(output, nullptr);
 
     ScriptPromiseTester tester(script_state,
-                               builder->buildAsync(script_state, {{"c", c}},
+                               builder->buildAsync(script_state, {{"output", output}},
                                                    scope.GetExceptionState()));
     tester.WaitUntilSettled();
-    EXPECT_TRUE(tester.IsRejected());
-    auto* exception = V8DOMException::ToImplWithTypeCheck(
-        scope.GetIsolate(), tester.Value().V8Value());
-    EXPECT_NE(exception, nullptr);
-    EXPECT_EQ(exception->name(), "NotSupportedError");
-    EXPECT_EQ(exception->message(), "XNNPACK backend is not implemented.");
-  }
-  {
-    // Test building MLGraphXnnpack with SharedXnnpackContext successfully.
-    auto* a = BuildInput(scope, builder, "a", {3, 4},
-                         V8MLOperandType::Enum::kFloat32);
-    auto* b = BuildInput(scope, builder, "b", {4, 3},
-                         V8MLOperandType::Enum::kFloat32);
-    auto* c = BuildGemm(scope, builder, a, b);
-
-    String error_message;
-    auto* build_info = MLGraph::BuildInfo::Create({{"c", c}}, error_message);
-    EXPECT_NE(build_info, nullptr);
-    EXPECT_FALSE(error_message);
-    auto* xnnpack_graph =
-        MakeGarbageCollected<MLGraphXnnpack>(builder->GetContext());
-    auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
-    xnnpack_graph->BuildAsyncImpl(build_info, resolver);
-    ScriptPromiseTester tester(script_state, resolver->Promise());
-    tester.WaitUntilSettled();
-    EXPECT_TRUE(tester.IsRejected());
+    EXPECT_TRUE(tester.IsFulfilled());
+    auto* xnnpack_graph = ToMLGraphXnnpack(&scope, tester.Value());
+    const auto& inputs = xnnpack_graph->GetInputResourcesInfo();
+    EXPECT_EQ(inputs.size(), static_cast<uint32_t>(1));
+    EXPECT_EQ(inputs.at("input").type, input->Type());
+    EXPECT_EQ(inputs.at("input").byte_length, input->ByteLength());
+    const auto& outputs = xnnpack_graph->GetOutputResourcesInfo();
+    EXPECT_EQ(outputs.size(), static_cast<uint32_t>(1));
+    EXPECT_EQ(outputs.at("output").type, output->Type());
+    EXPECT_EQ(outputs.at("output").byte_length, output->ByteLength());
     EXPECT_NE(xnnpack_graph->GetPthreadpoolForTesting(), nullptr);
-    EXPECT_NE(pthreadpool_get_threads_count(
+    EXPECT_EQ(pthreadpool_get_threads_count(
                   xnnpack_graph->GetPthreadpoolForTesting()),
-              static_cast<size_t>(0));
+              std::max(1, base::SysInfo::NumberOfProcessors() / 2));
   }
 }
 
