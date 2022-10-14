@@ -6,7 +6,7 @@
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_XNNPACK_H_
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
-#include "third_party/blink/renderer/platform/heap/persistent.h"
+#include "third_party/blink/renderer/platform/heap/cross_thread_persistent.h"
 #include "third_party/xnnpack/src/include/xnnpack.h"
 
 namespace blink {
@@ -20,7 +20,8 @@ class SharedXnnpackContext;
 class MLGraphXnnpack final : public MLGraph {
  public:
   // Create and build an MLGraphXnnpack object. Resolve the promise with
-  // this concrete object if no errors.
+  // this concrete object if the underlying XNNPACK subgraph builds
+  // successfully.
   static void ValidateAndBuildAsync(MLContext* context,
                                     const MLNamedOperands& named_outputs,
                                     ScriptPromiseResolver* resolver);
@@ -31,25 +32,30 @@ class MLGraphXnnpack final : public MLGraph {
 
   ~MLGraphXnnpack() override;
 
-  // Get the pthreadpool of SharedXnnpackContext for unit test.
+  // Get the underlying pthreadpool of SharedXnnpackContext for unit test.
   pthreadpool_t GetPthreadpoolForTesting() const;
 
  private:
+  // Post the XNNPACK subgraph building to a background thread.
   void BuildAsyncImpl(const MLNamedOperands& named_outputs,
                       ScriptPromiseResolver* resolver) override;
 
-  // Perform the XNNPACK graph build off the main thread.
+  // Build the XNNPACK subgraph off the main thread.
   static void BuildOnBackgroundThread(
       CrossThreadPersistent<MLGraphXnnpack> graph,
       CrossThreadPersistent<MLNamedOperands> named_outputs,
       CrossThreadPersistent<ScriptPromiseResolver> resolver,
       scoped_refptr<base::SequencedTaskRunner> resolver_task_runner);
 
-  // Resolve the promise on the main thread.
+  // Resolve the promise on the main thread after finish building the XNNPACK
+  // subgraph.
   void OnBuildFinished(CrossThreadPersistent<ScriptPromiseResolver> resolver,
                        xnn_status status,
                        String error_message = String());
 
+  // The XNNPACK context is shared by all instances of MLGraphXnnpack. It
+  // maintains the pthreadpool and the initialization/deinitialization of
+  // XNNPACK library.
   scoped_refptr<SharedXnnpackContext> xnn_context_;
 };
 

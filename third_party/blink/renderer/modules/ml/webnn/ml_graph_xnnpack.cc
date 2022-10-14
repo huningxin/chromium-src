@@ -13,7 +13,8 @@
 #include "build/buildflag.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
-#include "third_party/blink/renderer/platform/heap/cross_thread_persistent.h"
+#include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
+#include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 #include "third_party/blink/renderer/platform/scheduler/public/post_cross_thread_task.h"
 #include "third_party/blink/renderer/platform/scheduler/public/worker_pool.h"
 #include "third_party/blink/renderer/platform/wtf/allocator/partitions.h"
@@ -26,51 +27,112 @@ namespace blink {
 
 namespace {
 
-void* XnnAllocate(void* context, size_t size) {
-  return WTF::Partitions::BufferPartition()->Alloc(size, "xnnpack_WebNN");
+String XnnStatusToString(xnn_status status) {
+  switch (status) {
+    case xnn_status_success:
+      return "xnn_status_success";
+    case xnn_status_uninitialized:
+      return "xnn_status_uninitialized";
+    case xnn_status_invalid_parameter:
+      return "xnn_status_invalid_parameter";
+    case xnn_status_invalid_state:
+      return "xnn_status_invalid_state";
+    case xnn_status_unsupported_parameter:
+      return "xnn_status_unsupported_parameter";
+    case xnn_status_unsupported_hardware:
+      return "xnn_status_unsupported_hardware";
+    case xnn_status_out_of_memory:
+      return "xnn_status_out_of_memory";
+  }
 }
 
-void* XnnReallocate(void* context, void* pointer, size_t size) {
-  return WTF::Partitions::BufferPartition()->TryRealloc(pointer, size,
-                                                        "xnnpack_WebNN");
+DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
+  switch (status) {
+    case xnn_status_success:
+      // This function should only be called with an error.
+      NOTREACHED();
+      return DOMExceptionCode::kNoError;
+    case xnn_status_uninitialized:
+      return DOMExceptionCode::kUnknownError;
+    case xnn_status_invalid_parameter:
+      return DOMExceptionCode::kDataError;
+    case xnn_status_invalid_state:
+      return DOMExceptionCode::kInvalidStateError;
+    case xnn_status_unsupported_parameter:
+    case xnn_status_unsupported_hardware:
+      return DOMExceptionCode::kNotSupportedError;
+    case xnn_status_out_of_memory:
+      return DOMExceptionCode::kQuotaExceededError;
+  }
 }
 
-void XnnDeallocate(void* context, void* pointer) {
-  WTF::Partitions::BufferPartition()->Free(pointer);
-}
-
-void* XnnAlignedAllocate(void* context, size_t alignment, size_t size) {
-  return WTF::Partitions::BufferPartition()->AlignedAllocWithFlags(0, alignment,
-                                                                   size);
-}
-
-void XnnAlignedDeallocate(void* context, void* pointer) {
-  WTF::Partitions::BufferFree(pointer);
-}
-
+// SharedXnnpackContext maintains the pthreadpool that is shared by all
+// instances MLGraphXnnpack. It also manages the initialization/deinitialization
+// of XNNPACK library.
 class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
  public:
-  static scoped_refptr<SharedXnnpackContext> GetInstance() {
+  // The XnnBufferPartition* methods implement an xnn_allocator by
+  // BufferPartition of Blink's PartitionAlloc. XNNPACK, e.g.,
+  // xnn_allocate_simd_memory(), requires the BufferPartition supports aligned
+  // allocation.
+  static void* XnnBufferPartitionAllocate(void* context, size_t size) {
+    return WTF::Partitions::BufferPartition()->Alloc(size, "xnnpack_WebNN");
+  }
+
+  static void* XnnBufferPartitionReallocate(void* context,
+                                            void* pointer,
+                                            size_t size) {
+    return WTF::Partitions::BufferPartition()->TryRealloc(pointer, size,
+                                                          "xnnpack_WebNN");
+  }
+
+  static void XnnBufferPartitionDeallocate(void* context, void* pointer) {
+    WTF::Partitions::BufferPartition()->Free(pointer);
+  }
+
+  static void* XnnBufferPartitionAlignedAllocate(void* context,
+                                                 size_t alignment,
+                                                 size_t size) {
+    return WTF::Partitions::BufferPartition()->AlignedAllocWithFlags(
+        0, alignment, size);
+  }
+
+  static void XnnBufferPartitionAlignedDeallocate(void* context,
+                                                  void* pointer) {
+    WTF::Partitions::BufferFree(pointer);
+  }
+
+  static scoped_refptr<SharedXnnpackContext> GetInstance(
+      String& error_message) {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
     if (instance_ == nullptr) {
-      const struct xnn_allocator partition_allocator = {
-          .allocate = XnnAllocate,
-          .reallocate = XnnReallocate,
-          .deallocate = XnnDeallocate,
-          .aligned_allocate = XnnAlignedAllocate,
-          .aligned_deallocate = XnnAlignedDeallocate,
+      // xnn_initialize will memory copy the allocator to the internal one.
+      const struct xnn_allocator buffer_partition_allocator = {
+          .allocate = XnnBufferPartitionAllocate,
+          .reallocate = XnnBufferPartitionReallocate,
+          .deallocate = XnnBufferPartitionDeallocate,
+          .aligned_allocate = XnnBufferPartitionAlignedAllocate,
+          .aligned_deallocate = XnnBufferPartitionAlignedDeallocate,
       };
-      if (xnn_initialize(&partition_allocator) != xnn_status_success) {
+      xnn_status status = xnn_initialize(&buffer_partition_allocator);
+      if (status != xnn_status_success) {
+        error_message = "Failed to initialize the XNNPACK library: " +
+                        XnnStatusToString(status);
         return nullptr;
       }
-      // TODO(ningxin.hu@intel.com): consider using base::PostJob in the future
+      // TODO(crbug.com/1273291): Consider using base::PostJob to replace
+      // pthreadpool in the future. Set the thread counts of pthreadpool to the
+      // half of the number of logical processors.
       pthreadpool_t pthreadpool_ptr = pthreadpool_create(
           std::max(1, base::SysInfo::NumberOfProcessors() / 2));
       if (pthreadpool_ptr == nullptr) {
+        error_message = "Failed to create a pthreadpool.";
         return nullptr;
       }
+      // Create a new instance of SharedXnnpackContext with the pthreadpool.
       return base::MakeRefCounted<SharedXnnpackContext>(pthreadpool_ptr);
     } else {
+      // Add a reference to the existing SharedXnnpackContext instance.
       return base::WrapRefCounted(instance_);
     }
   }
@@ -108,40 +170,19 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
     DEFINE_THREAD_SAFE_STATIC_LOCAL(base::Lock, lock, ());
     return lock;
   }
+
   static SharedXnnpackContext* instance_ GUARDED_BY(SharedXnnpackContextLock());
   std::unique_ptr<pthreadpool, decltype(&pthreadpool_destroy)> pthreadpool_;
 };
 
 SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
 
-DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
-  switch (status) {
-    case xnn_status_success:
-      // This function should only be called with an error.
-      NOTREACHED();
-      return DOMExceptionCode::kNoError;
-    case xnn_status_uninitialized:
-      return DOMExceptionCode::kUnknownError;
-    case xnn_status_invalid_parameter:
-      return DOMExceptionCode::kDataError;
-    case xnn_status_invalid_state:
-      return DOMExceptionCode::kInvalidStateError;
-    case xnn_status_unsupported_parameter:
-    case xnn_status_unsupported_hardware:
-      return DOMExceptionCode::kNotSupportedError;
-    case xnn_status_out_of_memory:
-      return DOMExceptionCode::kQuotaExceededError;
-  }
-  NOTREACHED();
-  return DOMExceptionCode::kUnknownError;
-}
-
 }  // namespace
 
 // static
 void MLGraphXnnpack::ValidateAndBuildAsync(MLContext* context,
-                                  const MLNamedOperands& named_outputs,
-                                  ScriptPromiseResolver* resolver) {
+                                           const MLNamedOperands& named_outputs,
+                                           ScriptPromiseResolver* resolver) {
   auto* graph = MakeGarbageCollected<MLGraphXnnpack>(context);
   graph->BuildAsync(named_outputs, resolver);
 }
@@ -181,13 +222,16 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
   DCHECK(!graph->xnn_context_);
 
   // Get or create the shared XNNPACK context.
-  graph->xnn_context_ = SharedXnnpackContext::GetInstance();
   String error_message;
-  xnn_status status;
+  xnn_status status = xnn_status_success;
+  graph->xnn_context_ = SharedXnnpackContext::GetInstance(error_message);
   if (!graph->xnn_context_) {
-    error_message = "Failed to get XNNPACK context.";
     status = xnn_status_uninitialized;
   }
+
+  // TODO(ningxin.hu@intel.com): Sort the operators topoloically by searching
+  // from named_outputs, build an XNNPACK subgraph based those operators and
+  // create an XNNPACK runtime for execution.
 
   PostCrossThreadTask(*resolver_task_runner, FROM_HERE,
                       CrossThreadBindOnce(&MLGraphXnnpack::OnBuildFinished,
