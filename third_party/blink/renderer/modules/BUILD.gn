@@ -523,6 +523,7 @@ source_set("unit_tests") {
     "mediastream/webaudio_media_stream_audio_sink_test.cc",
     "mediastream/webmediaplayer_ms_test.cc",
     "ml/webnn/ml_graph_builder_test.cc",
+    "ml/webnn/ml_graph_builder_test.h",
     "nfc/nfc_proxy_test.cc",
     "notifications/notification_data_test.cc",
     "notifications/notification_resources_loader_test.cc",
@@ -700,6 +701,8 @@ source_set("unit_tests") {
   }
 
   if (build_webnn_with_xnnpack) {
+    sources += [ "ml/webnn/ml_graph_xnnpack_test.cc" ]
+
     deps += [
       "//third_party/cpuinfo",
       "//third_party/pthreadpool",

@@ -6,6 +6,7 @@
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_GRAPH_XNNPACK_H_
 
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
+#include "third_party/blink/renderer/modules/modules_export.h"
 #include "third_party/blink/renderer/platform/heap/cross_thread_persistent.h"
 #include "third_party/xnnpack/src/include/xnnpack.h"
 
@@ -17,7 +18,7 @@ namespace {
 class SharedXnnpackContext;
 }
 
-class MLGraphXnnpack final : public MLGraph {
+class MODULES_EXPORT MLGraphXnnpack final : public MLGraph {
  public:
   // Create and build an MLGraphXnnpack object. Resolve the promise with
   // this concrete object if the underlying XNNPACK subgraph builds
