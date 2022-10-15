@@ -1915,11 +1915,13 @@ TEST_F(MLGraphBuilderTest, MLGraphXnnpackTest) {
 
     // Test the XNNPACK initialization and memory allocator by creating a clamp
     // op.
-    xnn_operator_t clamp_op = nullptr;
+    xnn_operator_t xnn_clamp_op = nullptr;
     xnn_status status = xnn_create_clamp_nc_f32(
-        3, 3, 3, 0.0f, std::numeric_limits<float>::infinity(), 0, &clamp_op);
+        3, 3, 3, 0.0f, std::numeric_limits<float>::infinity(), 0, &xnn_clamp_op);
     EXPECT_EQ(status, xnn_status_success);
-    EXPECT_NE(clamp_op, nullptr);
+    EXPECT_NE(xnn_clamp_op, nullptr);
+    status = xnn_delete_operator(xnn_clamp_op);
+    EXPECT_EQ(status, xnn_status_success);
   }
 }
 
