@@ -46,6 +46,7 @@
 #include "base/thread_annotations.h"
 #include "build/build_config.h"
 #include "components/crash/core/common/crash_key.h"
+#include "third_party/blink/renderer/modules/ml/webnn/buildflags.h"
 #include "third_party/blink/renderer/platform/wtf/allocator/partition_allocator.h"
 #include "third_party/blink/renderer/platform/wtf/wtf.h"
 
@@ -146,8 +147,14 @@ bool Partitions::InitializeOnce() {
 
   static base::NoDestructor<partition_alloc::PartitionAllocator>
       buffer_allocator{};
+  constexpr partition_alloc::PartitionOptions::AlignedAlloc aligned_alloc =
+#if BUILDFLAG(BUILD_WEBNN_WITH_XNNPACK)
+      partition_alloc::PartitionOptions::AlignedAlloc::kAllowed;
+#else
+      partition_alloc::PartitionOptions::AlignedAlloc::kDisallowed;
+#endif
   buffer_allocator->init({
-      partition_alloc::PartitionOptions::AlignedAlloc::kAllowed,
+      aligned_alloc,
       partition_alloc::PartitionOptions::ThreadCache::kDisabled,
       partition_alloc::PartitionOptions::Quarantine::kAllowed,
       partition_alloc::PartitionOptions::Cookie::kAllowed,
