@@ -71,48 +71,39 @@ DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
 // of XNNPACK library.
 class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
  public:
-  // The XnnBufferPartition* methods implement an xnn_allocator by
-  // BufferPartition of Blink's PartitionAlloc. XNNPACK, e.g.,
-  // xnn_allocate_simd_memory(), requires the BufferPartition supports aligned
-  // allocation.
-  static void* XnnBufferPartitionAllocate(void* context, size_t size) {
-    return WTF::Partitions::BufferPartition()->Alloc(size, "xnnpack_WebNN");
-  }
-
-  static void* XnnBufferPartitionReallocate(void* context,
-                                            void* pointer,
-                                            size_t size) {
-    return WTF::Partitions::BufferPartition()->TryRealloc(pointer, size,
-                                                          "xnnpack_WebNN");
-  }
-
-  static void XnnBufferPartitionDeallocate(void* context, void* pointer) {
-    WTF::Partitions::BufferPartition()->Free(pointer);
-  }
-
-  static void* XnnBufferPartitionAlignedAllocate(void* context,
-                                                 size_t alignment,
-                                                 size_t size) {
-    return WTF::Partitions::BufferPartition()->AlignedAllocWithFlags(
-        0, alignment, size);
-  }
-
-  static void XnnBufferPartitionAlignedDeallocate(void* context,
-                                                  void* pointer) {
-    WTF::Partitions::BufferFree(pointer);
-  }
-
   static scoped_refptr<SharedXnnpackContext> GetInstance(
       String& error_message) {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
     if (instance_ == nullptr) {
-      // xnn_initialize will memory copy the allocator to the internal one.
+      // Implement an xnn_allocator by BufferPartition of Blink's PartitionAlloc
+      // (//third_party/blink/renderer/platform/wtf/Allocator.md).
+      // xnn_initialize() will copy the allocate function pointers to internal.
+      // XNNPACK memory allocation functions, e.g., xnn_allocate_simd_memory(),
+      // requires the aligned allocation, so the buffer_allocator
+      // (//third_party/blink/renderer/platform/wtf/allocator/partitions.cc)
+      // should be initialized with PartitionOptions::AlignedAlloc::kAllowed.
       const struct xnn_allocator buffer_partition_allocator = {
-          .allocate = XnnBufferPartitionAllocate,
-          .reallocate = XnnBufferPartitionReallocate,
-          .deallocate = XnnBufferPartitionDeallocate,
-          .aligned_allocate = XnnBufferPartitionAlignedAllocate,
-          .aligned_deallocate = XnnBufferPartitionAlignedDeallocate,
+          .allocate = [](void* context, size_t size) -> void* {
+            return WTF::Partitions::BufferPartition()->Alloc(size,
+                                                             "xnnpack_WebNN");
+          },
+          .reallocate = [](void* context, void* pointer, size_t size) -> void* {
+            return WTF::Partitions::BufferPartition()->TryRealloc(
+                pointer, size, "xnnpack_WebNN");
+          },
+          .deallocate =
+              [](void* context, void* pointer) {
+                WTF::Partitions::BufferPartition()->Free(pointer);
+              },
+          .aligned_allocate = [](void* context, size_t alignment,
+                                 size_t size) -> void* {
+            return WTF::Partitions::BufferPartition()->AlignedAllocWithFlags(
+                0, alignment, size);
+          },
+          .aligned_deallocate =
+              [](void* context, void* pointer) {
+                WTF::Partitions::BufferFree(pointer);
+              },
       };
       xnn_status status = xnn_initialize(&buffer_partition_allocator);
       if (status != xnn_status_success) {

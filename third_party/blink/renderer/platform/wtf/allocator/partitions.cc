@@ -149,6 +149,9 @@ bool Partitions::InitializeOnce() {
       buffer_allocator{};
   constexpr partition_alloc::PartitionOptions::AlignedAlloc aligned_alloc =
 #if BUILDFLAG(BUILD_WEBNN_WITH_XNNPACK)
+      // WebNN XNNPACK backend allocates memory in BufferPartition and its
+      // memory allocation, e.g., xnn_allocate_simd_memory(), requires the
+      // aligned allocation.
       partition_alloc::PartitionOptions::AlignedAlloc::kAllowed;
 #else
       partition_alloc::PartitionOptions::AlignedAlloc::kDisallowed;
