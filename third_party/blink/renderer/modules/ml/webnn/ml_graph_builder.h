@@ -30,10 +30,11 @@ class MLResample2dOptions;
 class MLOperand;
 class MLOperandDescriptor;
 class ScriptPromiseResolver;
+class ScriptPromise;
 
 typedef HeapVector<std::pair<String, Member<MLOperand>>> MLNamedOperands;
 
-class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
+class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
@@ -141,6 +142,11 @@ class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
   ScriptPromise buildAsync(ScriptState* script_state,
                            const MLNamedOperands& named_outputs,
                            ExceptionState& exception_state);
+  static void SortOperators(
+      const MLNamedOperands& named_outputs,
+      HeapVector<Member<const MLOperand>>& inputs,
+      HeapVector<Member<const MLOperand>>& constants,
+      HeapVector<Member<const MLOperator>>& sorted_operators);
 
   // TODO(ningxin.hu@intel.com): Once the web-platform-tests are updated, add
   // MLGraphBuilder.buildSync() into ml_graph_builder.idl for dedicated worker

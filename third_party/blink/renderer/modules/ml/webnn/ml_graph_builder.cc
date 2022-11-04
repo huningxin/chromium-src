@@ -21,7 +21,9 @@
 #include "third_party/blink/renderer/modules/ml/webnn/buildflags.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
+#include "third_party/blink/renderer/modules/ml/webnn/mojo_graph.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+#include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
 
 #if BUILDFLAG(BUILD_WEBNN_WITH_XNNPACK)
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
@@ -72,8 +74,8 @@ absl::optional<Vector<uint32_t>> BroadcastShapes(
     const Vector<uint32_t>& dims_lhs,
     const Vector<uint32_t>& dims_rhs,
     bool bidirectional = true) {
-  // If bidirectional is true, the rank of the output shape is the maximum rank
-  // of the input shapes. Otherwise it is as the same as the rhs' rank.
+  // If bidirectional is true, the rank of the output shape is the maximum
+  // rank of the input shapes. Otherwise it is as the same as the rhs' rank.
   auto rank_lhs = dims_lhs.size(), rank_rhs = dims_rhs.size();
   auto rank_output = bidirectional ? std::max(rank_lhs, rank_rhs) : rank_rhs;
   Vector<uint32_t> dims_output(rank_output);
@@ -83,8 +85,8 @@ absl::optional<Vector<uint32_t>> BroadcastShapes(
     auto dim_rhs = i < rank_rhs ? dims_rhs[rank_rhs - i - 1] : 1;
     DCHECK_GT(dim_rhs, uint32_t(0));
     // If bidirectional is true, two dimensions are compatible when they are
-    // equal, or one of them is 1. Otherwise, two dimensions are compatible when
-    // they are equal, or the lhs dimension is 1.
+    // equal, or one of them is 1. Otherwise, two dimensions are compatible
+    // when they are equal, or the lhs dimension is 1.
     if (bidirectional) {
       if (dim_lhs != dim_rhs && dim_lhs != 1 && dim_rhs != 1) {
         return absl::nullopt;
@@ -130,6 +132,54 @@ MLOperand* BuildElementWiseBinary(MLGraphBuilder* builder,
   }
   binary->Connect({a, b}, {output});
   return output;
+}
+
+struct PaddingSizes {
+  uint32_t begin;
+  uint32_t end;
+};
+
+// Calculate the padding given auto pad, input size, filter size, stride and
+// dilation. Return the calculated padding sizes if no error.
+absl::optional<PaddingSizes> CalculatePaddingForAutoPad(
+    V8MLAutoPad::Enum auto_pad,
+    const uint32_t input_size,
+    const uint32_t filter_size,
+    const uint32_t stride,
+    const uint32_t dilation) {
+  auto checked_output_size =
+      (base::MakeCheckedNum<uint32_t>(input_size) + stride - 1) / stride;
+  auto checked_dilated_filter_size =
+      (base::MakeCheckedNum<uint32_t>(filter_size) - 1) * dilation + 1;
+  auto checked_needed_input_size =
+      (checked_output_size - 1) * stride + checked_dilated_filter_size;
+  if (!checked_needed_input_size.IsValid()) {
+    return absl::nullopt;
+  }
+  auto checked_total_padding =
+      checked_needed_input_size.ValueOrDie() > input_size
+          ? checked_needed_input_size - input_size
+          : base::MakeCheckedNum<uint32_t>(0);
+  base::CheckedNumeric<uint32_t> checked_padding_begin, checked_padding_end;
+  switch (auto_pad) {
+    case V8MLAutoPad::Enum::kSameUpper:
+      checked_padding_begin = checked_total_padding / 2;
+      checked_padding_end = (checked_total_padding + 1) / 2;
+      break;
+    case V8MLAutoPad::Enum::kSameLower:
+      checked_padding_begin = (checked_total_padding + 1) / 2;
+      checked_padding_end = checked_total_padding / 2;
+      break;
+    default:
+      NOTREACHED();
+  }
+
+  uint32_t padding_begin, padding_end;
+  if (!checked_padding_begin.AssignIfValid(&padding_begin) ||
+      !checked_padding_end.AssignIfValid(&padding_end)) {
+    return absl::nullopt;
+  }
+  return PaddingSizes({.begin = padding_begin, .end = padding_end});
 }
 
 // Calculate the output size for conv2d based on WebNN spec:
@@ -183,8 +233,8 @@ struct FloatSize2D {
 
 // Validate and calculate the output spatial dimensions of conv2d given
 // input sizes, filter sizes, padding, strides and dilations.
-// Return the calculated output sizes in double precision floating point number
-// if no errors.
+// Return the calculated output sizes in double precision floating point
+// number if no errors.
 absl::optional<FloatSize2D> ValidateAndCalculateConv2dOutputSizes(
     const uint32_t input_height,
     const uint32_t input_width,
@@ -325,7 +375,13 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
 
   // Validate windowDimensions and get its values. If not present, the window
   // dimensions are assumed to be the height and width dimensions of the input
-  // shape.
+  // shape. The current WebNN spec defines the windowDimensions as signed
+  // integer:
+  // https://www.w3.org/TR/webnn/#dom-mlpool2doptions-windowdimensions
+  // However, there is a proposal of using unsigned integer:
+  // https://github.com/webmachinelearning/webnn/pull/294
+  // Before the change merged, the signed integers are checked_cast to
+  // unsigned integers for output shape calculation.
   uint32_t window_height = input_height;
   uint32_t window_width = input_width;
   if (options->hasWindowDimensions()) {
@@ -371,8 +427,8 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
 
   uint32_t output_height, output_width;
   if (options->hasOutputSizes()) {
-    // TODO(ningxin.hu@intel.com): report a DevTools warning message if rounding
-    // type is provided but ignored.
+    // TODO(ningxin.hu@intel.com): report a DevTools warning message if
+    // rounding type is provided but ignored.
     if (options->outputSizes().size() != 2) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
@@ -438,8 +494,8 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
                       input_channels};
       break;
   }
-  // Create pool2d operator and its output operand. Connect the pool2d operator
-  // to its input and output operands.
+  // Create pool2d operator and its output operand. Connect the pool2d
+  // operator to its input and output operands.
   auto* pool2d = MakeGarbageCollected<MLOperator>(builder, kind, options);
   String error_message;
   auto* output = MLOperand::ValidateAndCreateOutput(
@@ -720,8 +776,8 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
                       output_channels};
       break;
   }
-  // Create conv2d operator and its output operand. Connect the conv2d operator
-  // to its input and output operands.
+  // Create conv2d operator and its output operand. Connect the conv2d
+  // operator to its input and output operands.
   auto* conv2d = MakeGarbageCollected<MLOperator>(
       this, MLOperator::OperatorKind::kConv2d, options);
   HeapVector<Member<const MLOperand>> inputs = {input, filter};
@@ -766,8 +822,8 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
   }
   // According to WebNN spec:
   // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-gemm, the first input 2-D
-  // tensor with shape [M, K] if aTranspose is false, or [K, M] if aTranspose is
-  // true.
+  // tensor with shape [M, K] if aTranspose is false, or [K, M] if aTranspose
+  // is true.
   auto shape_a = a->Dimensions();
   if (shape_a.size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
@@ -814,15 +870,16 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
     }
     const auto shape_c = options->c()->Dimensions();
     if (shape_c.size() > 2) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          "The third input tensor should be either a scalar or a 2-D tensor.");
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The third input tensor should be "
+                                        "either a scalar or a 2-D tensor.");
       return nullptr;
     }
     if (!BroadcastShapes(shape_c, output_shape, false)) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
-          "The third input tensor isn't unidirectionally broadcastable to the "
+          "The third input tensor isn't unidirectionally broadcastable to "
+          "the "
           "output tensor.");
       return nullptr;
     }
@@ -1118,8 +1175,8 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
 MLOperand* MLGraphBuilder::softmax(const MLOperand* input,
                                    ExceptionState& exception_state) {
   // According to WebNN spec:
-  // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-softmax, The input must be
-  // a 2-D tensor.
+  // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-softmax, The input must
+  // be a 2-D tensor.
   if (input->Dimensions().size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "The input must be a 2-D tensor.");
@@ -1205,6 +1262,20 @@ ScriptPromise MLGraphBuilder::buildAsync(ScriptState* script_state,
   }
 #endif
 
+  // The Context is GPU device or low power preference, the graph is built by
+  // MojoGraph object.
+  if (GetContext()->GetDevicePreference() == V8MLDevicePreference::Enum::kGpu) {
+    if (ml_context_->IsWebnnMojoContextEnabled()) {
+      MojoGraph::ValidateAndBuildAsync(ml_context_, named_outputs, resolver);
+    } else {
+      resolver->Reject(MakeGarbageCollected<DOMException>(
+          DOMExceptionCode::kNotSupportedError,
+          "The context for mojo must be enable with "
+          "the option \"--enable-features=WebnnMojoContext\" in the command "
+          "line"));
+    }
+    return promise;
+  }
   resolver->Reject(MakeGarbageCollected<DOMException>(
       DOMExceptionCode::kNotSupportedError, "Not implemented"));
   return promise;
@@ -1234,6 +1305,48 @@ MLGraph* MLGraphBuilder::buildSync(const MLNamedOperands& named_outputs,
 void MLGraphBuilder::SetBackendForTesting(
     MLGraphBuilder::BackendForTesting* backend_for_testing) {
   g_backend_for_testing = backend_for_testing;
-}
+  // static
+  void MLGraphBuilder::SortOperators(
+      const MLNamedOperands& named_outputs,
+      HeapVector<Member<const MLOperand>>& inputs,
+      HeapVector<Member<const MLOperand>>& constants,
+      HeapVector<Member<const MLOperator>>& sorted_operators) {
+    HeapDeque<Member<const MLOperator>> operators_to_do;
+    HeapHashSet<Member<const MLOperator>> operators_done;
+    for (const auto& output : named_outputs) {
+      operators_to_do.push_back(output.second->Operator());
+    }
+    while (operators_to_do.size() > 0) {
+      const auto& op = operators_to_do.back();
+      if (!operators_done.Contains(op.Get())) {
+        bool can_add = true;
+        for (const auto& input : op->Inputs()) {
+          const auto* dependent_op = input->Operator();
+          if (dependent_op && !operators_done.Contains(dependent_op)) {
+            // As the dependent operator is not done, skip processing of this
+            // operator and push the dependent operator into the to-do stack.
+            can_add = false;
+            operators_to_do.push_back(dependent_op);
+          }
+        }
+        if (can_add) {
+          // All dependent operators are done, process and add it into the
+          // done set.
+          for (const auto& input : op->Inputs()) {
+            if (input->Kind() == MLOperand::kInput) {
+              inputs.push_back(input.Get());
+            } else if (input->Kind() == MLOperand::kConstant) {
+              constants.push_back(input.Get());
+            }
+          }
+          sorted_operators.push_back(op.Get());
+          operators_done.insert(op.Get());
+          operators_to_do.pop_back();
+        }
+      } else {
+        operators_to_do.pop_back();
+      }
+    }
+  }
 
 }  // namespace blink

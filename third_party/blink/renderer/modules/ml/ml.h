@@ -6,6 +6,7 @@
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_ML_H_
 
 #include "components/ml/mojom/ml_service.mojom-blink.h"
+#include "components/ml/mojom/webnn_service.mojom-blink.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context_lifecycle_observer.h"
@@ -15,12 +16,18 @@
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 #include "third_party/blink/renderer/platform/mojo/heap_mojo_remote.h"
+#include "third_party/blink/renderer/platform/supplementable.h"
 
 namespace blink {
 
 class MLContextOptions;
 class ScriptPromise;
 class ScriptState;
+class ScriptPromise;
+class MojoClient;
+
+using ml::webnn::mojom::blink::ContextOptionsPtr;
+using ml::webnn::mojom::blink::MojoServer;
 
 // This class represents the "Machine Learning" object "navigator.ml" and will
 // be shared between the Model Loader API and WebNN API.
@@ -41,6 +48,11 @@ class MODULES_EXPORT ML final : public ScriptWrappable,
       ml::model_loader::mojom::blink::MLService::CreateModelLoaderCallback
           callback);
 
+  // Create Webnn mojo context with MojoServer interface.
+  void CreateWebnnMojoContext(ScriptPromiseResolver* resolver,
+                              ContextOptionsPtr options,
+                              MojoServer::CreateContextCallback callback);
+
   void Trace(blink::Visitor*) const override;
 
   // IDL interface:
@@ -60,6 +72,11 @@ class MODULES_EXPORT ML final : public ScriptWrappable,
                                        ExceptionState& exception_state);
 
   HeapMojoRemote<ml::model_loader::mojom::blink::MLService> remote_service_;
+
+  // There is only one WebNN service run in server side, the MojoServer mojo
+  // interface represents the object "navigator.ml", the WebNN mojo client is
+  // another end pointer in blink side, the interface is used to create context.
+  Member<MojoClient> webnn_mojo_client_;
 };
 
 }  // namespace blink
