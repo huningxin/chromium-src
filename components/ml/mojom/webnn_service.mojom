@@ -8,7 +8,7 @@ import "components/ml/mojom/web_platform_model.mojom";
 import "components/ml/mojom/webnn_context.mojom";
 import "sandbox/policy/mojom/sandbox.mojom";
 
-const sandbox.mojom.Sandbox kWebnnSandbox = sandbox.mojom.Sandbox.kUtility;
+const sandbox.mojom.Sandbox kWebnnSandbox = sandbox.mojom.Sandbox.kGpu;
 
 [Stable]
 struct ContextOptions {

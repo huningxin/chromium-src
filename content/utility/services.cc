@@ -13,7 +13,6 @@
 #include "build/chromeos_buildflags.h"
 #include "components/services/storage/public/mojom/storage_service.mojom.h"
 #include "components/services/storage/storage_service_impl.h"
-#include "content/browser/ml/webnn/buildflags.h"
 #include "content/child/child_process.h"
 #include "content/public/common/content_switches.h"
 #include "content/public/utility/content_utility_client.h"
@@ -76,11 +75,6 @@ extern sandbox::TargetServices* g_utility_target_services;
 #include "services/shape_detection/public/mojom/shape_detection_service.mojom.h"  // nogncheck
 #include "services/shape_detection/shape_detection_service.h"  // nogncheck
 #endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING) && BUILDFLAG(IS_CHROMEOS_ASH)
-
-#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_UTILITY_PROCESS)
-#include "components/ml/mojom/webnn_service.mojom.h"
-#include "content/browser/ml/webnn/dml/webnn_service_dml_impl.h"
-#endif
 
 #if BUILDFLAG(IS_WIN)
 #include "media/mojo/mojom/media_foundation_service.mojom.h"      // nogncheck
@@ -254,17 +248,6 @@ auto RunShapeDetectionService(
 }
 #endif
 
-#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_UTILITY_PROCESS)
-auto RunWebnnService(
-    mojo::PendingReceiver<ml::webnn::mojom::WebnnService> receiver) {
-#if BUILDFLAG(IS_WIN)
-  return std::make_unique<webnn::WebnnServiceDMLImpl>(std::move(receiver));
-#else
-  NOTIMPLEMENTED();
-#endif
-}
-#endif
-
 #if BUILDFLAG(ENABLE_LIBRARY_CDMS)
 auto RunCdmServiceBroker(
     mojo::PendingReceiver<media::mojom::CdmServiceBroker> receiver) {
@@ -386,10 +369,6 @@ void RegisterMainThreadServices(mojo::ServiceFactory& services) {
 
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && BUILDFLAG(IS_CHROMEOS)
   services.Add(RunShapeDetectionService);
-#endif
-
-#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_UTILITY_PROCESS)
-  services.Add(RunWebnnService);
 #endif
 
 #if BUILDFLAG(ENABLE_LIBRARY_CDMS)

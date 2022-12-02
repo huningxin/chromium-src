@@ -40,8 +40,7 @@ MLGraphBuilder* CreateMLGraphBuilder(V8TestingScope& scope,
   auto* ml = MakeGarbageCollected<ML>(scope.GetExecutionContext());
   auto* context = MakeGarbageCollected<MLContext>(
       options->devicePreference(), options->powerPreference(),
-      options->modelFormat(), options->numThreads(),
-      scope.GetExecutionContext(), ml);
+      options->modelFormat(), options->numThreads(), ml);
   auto* builder = MLGraphBuilder::Create(context);
   EXPECT_NE(builder, nullptr);
   return builder;
@@ -2321,14 +2320,6 @@ class FakeMLGraphBackend final : public MLGraph {
                        ExceptionState& exception_state) override {
     return;
   }
-
-  ScriptPromise ComputeImpl(ScriptState* script_state,
-                            MLNamedArrayInputs inputs,
-                            MLNamedArrayOutputs outputs,
-                            ExceptionState& exception_state) override {}
-  void ComputeSyncImpl(MLNamedArrayInputs inputs,
-                       MLNamedArrayOutputs outputs,
-                       ExceptionState& exception_state) override {}
 };
 
 FakeMLGraphBackend* ToFakeMLGraphBackend(V8TestingScope* scope,
@@ -2360,8 +2351,8 @@ MLGraphTestBase::BuildResult MLGraphTestBase::BuildGraph(
     case ExecutionMode::kAsync: {
       ScriptPromiseTester tester(
           scope.GetScriptState(),
-          builder->buildAsync(scope.GetScriptState(), named_operands,
-                              scope.GetExceptionState()));
+          builder->build(scope.GetScriptState(), named_operands,
+                         scope.GetExceptionState()));
       tester.WaitUntilSettled();
       if (tester.IsFulfilled()) {
         return BuildResult{.graph = ToMLGraph(&scope, tester.Value()),

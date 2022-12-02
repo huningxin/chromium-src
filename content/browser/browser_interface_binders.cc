@@ -236,16 +236,11 @@ shape_detection::mojom::ShapeDetectionService* GetShapeDetectionService() {
       mojo::Remote<shape_detection::mojom::ShapeDetectionService>>
       remote;
   if (!*remote) {
-#if BUILDFLAG(GOOGLE_CHROME_BRANDING) && BUILDFLAG(IS_CHROMEOS)
-    ServiceProcessHost::Launch<shape_detection::mojom::ShapeDetectionService>(
-        remote->BindNewPipeAndPassReceiver(),
-        ServiceProcessHost::Options()
-            .WithDisplayName("Shape Detection Service")
-            .Pass());
-#else
+#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_GPU_PROCESS)
     auto* gpu = GpuProcessHost::Get();
-    if (gpu)
+    if (gpu) {
       gpu->RunService(remote->BindNewPipeAndPassReceiver());
+    }
 #endif
     remote->reset_on_disconnect();
   }
@@ -270,15 +265,15 @@ void BindTextDetection(
   GetShapeDetectionService()->BindTextDetection(std::move(receiver));
 }
 
-#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_UTILITY_PROCESS)
+#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_GPU_PROCESS)
 ml::webnn::mojom::WebnnService* GetWebnnService() {
   static base::NoDestructor<mojo::Remote<ml::webnn::mojom::WebnnService>>
       remote;
   if (!*remote) {
-    // Running WebNN Service in Utility process.
-    ServiceProcessHost::Launch<ml::webnn::mojom::WebnnService>(
-        remote->BindNewPipeAndPassReceiver(),
-        ServiceProcessHost::Options().WithDisplayName("WebNN Service").Pass());
+    auto* gpu = GpuProcessHost::Get();
+    if (gpu) {
+      gpu->RunService(remote->BindNewPipeAndPassReceiver());
+    }
     remote->reset_on_disconnect();
   }
 
@@ -891,7 +886,7 @@ void PopulateFrameBinders(RenderFrameHostImpl* host, mojo::BinderMap* map) {
         base::BindRepeating(&CreateMLService));
   }
 
-#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_UTILITY_PROCESS)
+#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_GPU_PROCESS)
   if (base::FeatureList::IsEnabled(
           blink::features::kEnableMachineLearningNeuralNetworkApi)) {
     map->Add<ml::webnn::mojom::MojoServer>(

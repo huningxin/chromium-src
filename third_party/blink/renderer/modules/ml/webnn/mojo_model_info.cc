@@ -165,13 +165,13 @@ ml::webnn::mojom::blink::Conv2dOptionsPtr BlinkConv2dOptioinToMojo(
     const HeapHashMap<Member<const MLOperand>, size_t>& operand_index_map) {
   auto options = ml::webnn::mojom::blink::Conv2dOptions::New();
   options->padding =
-      ml_options->hasPadding() ? ml_options->padding() : Vector<int32_t>(4, 0);
+      ml_options->hasPadding() ? ml_options->padding() : Vector<uint32_t>(4, 0);
   options->strides = ml_options->hasStrides()
                          ? ml_options->strides()
-                         : Vector<int32_t>(2, static_cast<uint32_t>(1));
+                         : Vector<uint32_t>(2, static_cast<uint32_t>(1));
   options->dilations = ml_options->hasDilations()
                            ? ml_options->dilations()
-                           : Vector<int32_t>(2, static_cast<uint32_t>(1));
+                           : Vector<uint32_t>(2, static_cast<uint32_t>(1));
   options->auto_pad = BlinkAutoPadToMojo(ml_options->autoPad().AsEnum());
   options->groups = ml_options->groups();
   options->inputLayout =
@@ -193,15 +193,15 @@ ml::webnn::mojom::blink::Pool2dOptionsPtr BlinkPool2dOptioinToMojo(
   auto options = ml::webnn::mojom::blink::Pool2dOptions::New();
   options->window_dimensions = ml_options->hasWindowDimensions()
                                    ? ml_options->windowDimensions()
-                                   : Vector<int32_t>();
+                                   : Vector<uint32_t>();
   options->padding =
-      ml_options->hasPadding() ? ml_options->padding() : Vector<int32_t>(4, 0);
+      ml_options->hasPadding() ? ml_options->padding() : Vector<uint32_t>(4, 0);
   options->strides = ml_options->hasStrides()
                          ? ml_options->strides()
-                         : Vector<int32_t>(2, static_cast<uint32_t>(1));
+                         : Vector<uint32_t>(2, static_cast<uint32_t>(1));
   options->dilations = ml_options->hasDilations()
                            ? ml_options->dilations()
-                           : Vector<int32_t>(2, static_cast<uint32_t>(1));
+                           : Vector<uint32_t>(2, static_cast<uint32_t>(1));
   options->auto_pad = BlinkAutoPadToMojo(ml_options->autoPad().AsEnum());
   options->layout =
       BlinkInputOperandLayoutToMojo(ml_options->layout().AsEnum());
@@ -209,7 +209,7 @@ ml::webnn::mojom::blink::Pool2dOptionsPtr BlinkPool2dOptioinToMojo(
       BlinkRoundingTypeToMojo(ml_options->roundingType().AsEnum());
   options->output_sizes = ml_options->hasOutputSizes()
                               ? ml_options->outputSizes()
-                              : Vector<int32_t>();
+                              : Vector<uint32_t>();
   return options;
 }
 

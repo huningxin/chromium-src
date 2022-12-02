@@ -38,19 +38,6 @@ std::pair<size_t, T> Align(T& memory_info_map, UINT alignment) {
   return std::make_pair(aligned_offset, std::move(aligned_memory_info_map));
 }
 
-inline std::vector<UINT> ConvertDimensions(
-    const std::vector<int32_t>& dimensions) {
-  std::vector<UINT> convertedDimensions;
-  for (auto dim : dimensions) {
-    if (dim < 0) {
-      LOG(ERROR) << "DML doesn't support the negative dimension value";
-      assert(0);
-    }
-    convertedDimensions.push_back(dim);
-  }
-  return convertedDimensions;
-}
-
 template <typename T>
 void ComputeImplicitPaddingForAutoPad(AutoPad auto_pad,
                                       T dilation,

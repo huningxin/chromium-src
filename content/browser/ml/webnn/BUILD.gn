@@ -8,7 +8,7 @@ import("//content/browser/ml/webnn/dml/features.gni")
 buildflag_header("buildflags") {
   header = "buildflags.h"
 
-  flags = [ "ENABLE_MOJO_WEBNN_IN_UTILITY_PROCESS=$build_webnn_with_directml" ]
+  flags = [ "ENABLE_MOJO_WEBNN_IN_GPU_PROCESS=$build_webnn_with_directml" ]
 }
 
 source_set("lib") {

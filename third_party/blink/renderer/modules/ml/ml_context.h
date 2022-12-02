@@ -30,7 +30,6 @@ class MODULES_EXPORT MLContext : public ScriptWrappable {
             const V8MLPowerPreference power_preference,
             const V8MLModelFormat model_format,
             const unsigned int num_threads,
-            ExecutionContext* execution_context,
             ML* ml);
 
   MLContext(const MLContext&) = delete;
@@ -63,13 +62,13 @@ class MODULES_EXPORT MLContext : public ScriptWrappable {
   // ml_context.idl
   ScriptPromise compute(ScriptState* script_state,
                         MLGraph* graph,
-                        const MLNamedArrayInputs& inputs,
-                        const MLNamedArrayOutputs& outputs,
+                        const MLNamedArrayBufferViews& inputs,
+                        const MLNamedArrayBufferViews& outputs,
                         ExceptionState& exception_state);
 
   void computeSync(MLGraph* graph,
-                   const MLNamedArrayInputs& inputs,
-                   const MLNamedArrayOutputs& outputs,
+                   const MLNamedArrayBufferViews& inputs,
+                   const MLNamedArrayBufferViews& outputs,
                    ExceptionState& exception_state);
 
  private:

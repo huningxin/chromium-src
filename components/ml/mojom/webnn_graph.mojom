@@ -73,16 +73,16 @@ enum AutoPad { [Default] kExplicit, kSameUpper, kSameLower };
 struct Conv2dOptions {
   // The additional rows and columns added to the beginning and ending of each
   // spatial dimension of input.
-  array<int32> padding@0;
+  array<uint32> padding@0;
   // The stride of the sliding window for each spatial dimension of input.
-  array<int32> strides@1;
+  array<uint32> strides@1;
   // The dilation factor for each spatial dimension of input.
-  array<int32> dilations@2;
+  array<uint32> dilations@2;
   // The automatic input padding options.
   AutoPad auto_pad@3 = AutoPad.kExplicit;
   // The number of groups that input channels and output channels are divided
   // into.
-  int32 groups@4 = 1;
+  uint32 groups@4 = 1;
   // The layout format of the input.
   InputOperandLayout inputLayout@5 = InputOperandLayout.kNchw;
   // The layout format of the filter.
@@ -195,14 +195,14 @@ enum RoundingType { [Default] kFloor, kCeil };
 [Stable]
 struct Pool2dOptions {
   // The dimensions of the sliding window.
-  array<int32> window_dimensions@0;
+  array<uint32> window_dimensions@0;
   // The additional rows and columns added to the beginning and ending of each
   // spatial dimension of input.
-  array<int32> padding@1;
+  array<uint32> padding@1;
   // The stride of the sliding window for each spatial dimension of input.
-  array<int32> strides@2;
+  array<uint32> strides@2;
   // The dilation factor for each spatial dimension of input.
-  array<int32> dilations@3;
+  array<uint32> dilations@3;
   // The automatic input padding options.
   AutoPad auto_pad@4 = AutoPad.kExplicit;
   // The layout format of the input.
@@ -210,7 +210,7 @@ struct Pool2dOptions {
   // The rounding function used to compute the output shape.
   RoundingType rounding_type@6 = RoundingType.kFloor;
   // The sizes of the two spacial dimensions of the output tensor.
-  array<int32> output_sizes@7;
+  array<uint32> output_sizes@7;
 };
 
 // Add a mean, L2 norm, or max reduction operation defined in `Pool2dType`

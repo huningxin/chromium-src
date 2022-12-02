@@ -139,9 +139,9 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperand* sigmoid(const MLOperand* input, ExceptionState& exception_state);
   MLOperator* sigmoid(ExceptionState& exception_state);
 
-  ScriptPromise buildAsync(ScriptState* script_state,
-                           const MLNamedOperands& named_outputs,
-                           ExceptionState& exception_state);
+  ScriptPromise build(ScriptState* script_state,
+                      const MLNamedOperands& named_outputs,
+                      ExceptionState& exception_state);
   static void SortOperators(
       const MLNamedOperands& named_outputs,
       HeapVector<Member<const MLOperand>>& inputs,

@@ -53,6 +53,8 @@ target(link_target_type, "gpu_sources") {
     "//components/ml/mojom",
     "//components/viz/service",
     "//content:export",
+    "//content/browser/ml/webnn:buildflags",
+    "//content/browser/ml/webnn:lib",
     "//content/child",
     "//content/common",
     "//content/common:mojo_bindings",

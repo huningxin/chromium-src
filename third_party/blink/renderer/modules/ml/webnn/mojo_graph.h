@@ -35,12 +35,15 @@ class MojoGraph : public MLGraph {
   void BuildAsyncImpl(const MLNamedOperands& outputs,
                       ScriptPromiseResolver* resolver) override;
 
-  ScriptPromise ComputeImpl(ScriptState* script_state,
-                            MLNamedArrayInputs inputs,
-                            MLNamedArrayOutputs outputs,
-                            ExceptionState& exception_state) override;
-  void ComputeSyncImpl(MLNamedArrayInputs inputs,
-                       MLNamedArrayOutputs outputs,
+  MLGraph* BuildSyncImpl(const MLNamedOperands& outputs,
+                         ExceptionState& exception_state) override;
+
+  void ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,
+                        const MLNamedArrayBufferViews& outputs,
+                        ScriptPromiseResolver* resolver) override;
+
+  void ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
+                       const MLNamedArrayBufferViews& outputs,
                        ExceptionState& exception_state) override;
 
  private:

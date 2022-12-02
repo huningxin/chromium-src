@@ -1236,9 +1236,9 @@ MLOperator* MLGraphBuilder::sigmoid(ExceptionState& exception_state) {
                                           MLOperator::OperatorKind::kSigmoid);
 }
 
-ScriptPromise MLGraphBuilder::buildAsync(ScriptState* script_state,
-                                         const MLNamedOperands& named_outputs,
-                                         ExceptionState& exception_state) {
+ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
+                                    const MLNamedOperands& named_outputs,
+                                    ExceptionState& exception_state) {
   if (!script_state->ContextIsValid()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
                                       "Invalid script state");
@@ -1305,48 +1305,50 @@ MLGraph* MLGraphBuilder::buildSync(const MLNamedOperands& named_outputs,
 void MLGraphBuilder::SetBackendForTesting(
     MLGraphBuilder::BackendForTesting* backend_for_testing) {
   g_backend_for_testing = backend_for_testing;
-  // static
-  void MLGraphBuilder::SortOperators(
-      const MLNamedOperands& named_outputs,
-      HeapVector<Member<const MLOperand>>& inputs,
-      HeapVector<Member<const MLOperand>>& constants,
-      HeapVector<Member<const MLOperator>>& sorted_operators) {
-    HeapDeque<Member<const MLOperator>> operators_to_do;
-    HeapHashSet<Member<const MLOperator>> operators_done;
-    for (const auto& output : named_outputs) {
-      operators_to_do.push_back(output.second->Operator());
-    }
-    while (operators_to_do.size() > 0) {
-      const auto& op = operators_to_do.back();
-      if (!operators_done.Contains(op.Get())) {
-        bool can_add = true;
+}
+
+// static
+void MLGraphBuilder::SortOperators(
+    const MLNamedOperands& named_outputs,
+    HeapVector<Member<const MLOperand>>& inputs,
+    HeapVector<Member<const MLOperand>>& constants,
+    HeapVector<Member<const MLOperator>>& sorted_operators) {
+  HeapDeque<Member<const MLOperator>> operators_to_do;
+  HeapHashSet<Member<const MLOperator>> operators_done;
+  for (const auto& output : named_outputs) {
+    operators_to_do.push_back(output.second->Operator());
+  }
+  while (operators_to_do.size() > 0) {
+    const auto& op = operators_to_do.back();
+    if (!operators_done.Contains(op.Get())) {
+      bool can_add = true;
+      for (const auto& input : op->Inputs()) {
+        const auto* dependent_op = input->Operator();
+        if (dependent_op && !operators_done.Contains(dependent_op)) {
+          // As the dependent operator is not done, skip processing of this
+          // operator and push the dependent operator into the to-do stack.
+          can_add = false;
+          operators_to_do.push_back(dependent_op);
+        }
+      }
+      if (can_add) {
+        // All dependent operators are done, process and add it into the
+        // done set.
         for (const auto& input : op->Inputs()) {
-          const auto* dependent_op = input->Operator();
-          if (dependent_op && !operators_done.Contains(dependent_op)) {
-            // As the dependent operator is not done, skip processing of this
-            // operator and push the dependent operator into the to-do stack.
-            can_add = false;
-            operators_to_do.push_back(dependent_op);
+          if (input->Kind() == MLOperand::kInput) {
+            inputs.push_back(input.Get());
+          } else if (input->Kind() == MLOperand::kConstant) {
+            constants.push_back(input.Get());
           }
         }
-        if (can_add) {
-          // All dependent operators are done, process and add it into the
-          // done set.
-          for (const auto& input : op->Inputs()) {
-            if (input->Kind() == MLOperand::kInput) {
-              inputs.push_back(input.Get());
-            } else if (input->Kind() == MLOperand::kConstant) {
-              constants.push_back(input.Get());
-            }
-          }
-          sorted_operators.push_back(op.Get());
-          operators_done.insert(op.Get());
-          operators_to_do.pop_back();
-        }
-      } else {
+        sorted_operators.push_back(op.Get());
+        operators_done.insert(op.Get());
         operators_to_do.pop_back();
       }
+    } else {
+      operators_to_do.pop_back();
     }
   }
+}
 
 }  // namespace blink

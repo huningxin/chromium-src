@@ -13,8 +13,7 @@
 // a dictionary may be insufficient.
 
 // TODO: align MLArrayInput and MLTensor
-typedef record<DOMString, ([AllowShared] ArrayBufferView or MLTensor)> MLNamedArrayInputs;
-typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayBuffer)> MLNamedArrayOutputs;
+typedef record<DOMString, ArrayBufferView> MLNamedArrayBufferViews;
 
 [
   RuntimeEnabled=MachineLearningCommon,
@@ -22,8 +21,8 @@ typedef record<DOMString, ([AllowShared] ArrayBufferView or [AllowShared] ArrayB
   Exposed=(Window, DedicatedWorker)
 ] interface MLContext {
   [RuntimeEnabled=MachineLearningNeuralNetwork, CallWith=ScriptState, RaisesException]
-      Promise<void> compute(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
+      Promise<void> compute(MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
 
   [RuntimeEnabled=MachineLearningNeuralNetwork, RaisesException, Exposed=DedicatedWorker]
-      void computeSync(MLGraph graph, MLNamedArrayInputs inputs, MLNamedArrayOutputs outputs);
+      void computeSync(MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
 };

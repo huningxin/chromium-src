@@ -17,14 +17,13 @@ MLContext::MLContext(const V8MLDevicePreference device_preference,
                      const V8MLPowerPreference power_preference,
                      const V8MLModelFormat model_format,
                      const unsigned int num_threads,
-                     ExecutionContext* execution_context,
                      ML* ml)
     : device_preference_(device_preference),
       power_preference_(power_preference),
       model_format_(model_format),
       num_threads_(num_threads),
       ml_(ml),
-      webnn_context_(execution_context) {}
+      webnn_context_(ml->GetExecutionContext()) {}
 
 MLContext::~MLContext() = default;
 
@@ -107,22 +106,24 @@ void MLContext::OnWebnnContextCreated(
 
 ScriptPromise MLContext::compute(ScriptState* script_state,
                                  MLGraph* graph,
-                                 const MLNamedArrayInputs& inputs,
-                                 const MLNamedArrayOutputs& outputs,
+                                 const MLNamedArrayBufferViews& inputs,
+                                 const MLNamedArrayBufferViews& outputs,
                                  ExceptionState& exception_state) {
   if (!script_state->ContextIsValid()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
                                       "Invalid script state");
     return ScriptPromise();
   }
-  return graph->ComputeImpl(script_state, inputs, outputs, exception_state);
+  auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
+  graph->ComputeAsync(inputs, outputs, resolver);
+  return resolver->Promise();
 }
 
 void MLContext::computeSync(MLGraph* graph,
-                            const MLNamedArrayInputs& inputs,
-                            const MLNamedArrayOutputs& outputs,
+                            const MLNamedArrayBufferViews& inputs,
+                            const MLNamedArrayBufferViews& outputs,
                             ExceptionState& exception_state) {
-  return graph->ComputeSyncImpl(inputs, outputs, exception_state);
+  graph->ComputeSync(inputs, outputs, exception_state);
 }
 
 }  // namespace blink

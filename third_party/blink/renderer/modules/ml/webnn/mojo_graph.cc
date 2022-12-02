@@ -61,7 +61,7 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kReshape:
       model_info->AddReshape(op);
       break;
-    case MLOperator::OperatorKind::kHardSwish:
+    default:
       NOTIMPLEMENTED();
       break;
   }
@@ -92,24 +92,28 @@ void MojoGraph::BuildAsyncImpl(const MLNamedOperands& outputs,
                     WrapPersistent(named_outputs), WrapPersistent(resolver)));
 }
 
-ScriptPromise MojoGraph::ComputeImpl(ScriptState* script_state,
-                                     MLNamedArrayInputs inputs,
-                                     MLNamedArrayOutputs outputs,
-                                     ExceptionState& exception_state) {
+MLGraph* MojoGraph::BuildSyncImpl(const MLNamedOperands& outputs,
+                                  ExceptionState& exception_state) {
+  NOTIMPLEMENTED();
+  exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                    "Not implemented");
+  return nullptr;
+}
+
+void MojoGraph::ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,
+                                 const MLNamedArrayBufferViews& outputs,
+                                 ScriptPromiseResolver* resolver) {
   if (inputs.size() != input_resources_info_.size()) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      "The number of inputs is invalid");
-    return ScriptPromise();
+    resolver->Reject(MakeGarbageCollected<DOMException>(
+        DOMExceptionCode::kDataError, "The number of inputs is invalid"));
   }
   auto named_inputs = ml::webnn::mojom::blink::NamedResources::New();
   for (const auto& input : inputs) {
     String error_message;
-    DOMArrayBufferView* array_buffer_view =
-        ValidateInputBuffer(input, error_message);
-    if (array_buffer_view == nullptr) {
-      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                        error_message);
-      return ScriptPromise();
+    auto* input_array_buffer_view = input.second.Get();
+    if (input_array_buffer_view == nullptr) {
+      resolver->Reject(MakeGarbageCollected<DOMException>(
+          DOMExceptionCode::kDataError, error_message));
     }
     const String& input_name = input.first;
     auto memory_info = ml::webnn::mojom::blink::MemoryInfo::New();
@@ -117,25 +121,21 @@ ScriptPromise MojoGraph::ComputeImpl(ScriptState* script_state,
     memory_info->byte_length = input_resources_info_.at(input_name).byte_length;
     uint8_t* address = inputs_shm_region_.mapping.GetMemoryAs<uint8_t>() +
                        memory_info->byte_offset;
-    memcpy(address, array_buffer_view->BaseAddressMaybeShared(),
-           array_buffer_view->byteLength());
+    memcpy(address, input_array_buffer_view->BaseAddressMaybeShared(),
+           input_array_buffer_view->byteLength());
     named_inputs->resources.insert(input_name, std::move(memory_info));
   }
   named_inputs->shared_memory = inputs_shm_region_.region.Duplicate();
-
-  ScriptPromiseResolver* resolver =
-      MakeGarbageCollected<ScriptPromiseResolver>(script_state);
   auto* request = MakeGarbageCollected<ComputeRequest>(std::move(inputs),
                                                        std::move(outputs));
   remote_graph_->Compute(
       std::move(named_inputs),
       WTF::BindOnce(&MojoGraph::OnGraphComputed, WrapPersistent(this),
                     WrapPersistent(resolver), WrapPersistent(request)));
-  return resolver->Promise();
 }
 
-void MojoGraph::ComputeSyncImpl(MLNamedArrayInputs inputs,
-                                MLNamedArrayOutputs outputs,
+void MojoGraph::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
+                                const MLNamedArrayBufferViews& outputs,
                                 ExceptionState& exception_state) {
   NOTIMPLEMENTED();
   exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
@@ -225,7 +225,7 @@ void MojoGraph::OnGraphComputed(ScriptPromiseResolver* resolver,
   }
   for (const auto& output : request->outputs_) {
     String error_message;
-    void* output_buffer_address = ValidateOutputBuffer(output, error_message);
+    void* output_buffer_address = output.second->BaseAddressMaybeShared();
     if (output_buffer_address == nullptr) {
       resolver->Reject(MakeGarbageCollected<DOMException>(
           DOMExceptionCode::kOperationError, error_message));

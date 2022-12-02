@@ -41,7 +41,8 @@ void ML::CreateWebnnMojoContext(ScriptPromiseResolver* resolver,
                                 ContextOptionsPtr options,
                                 MojoServer::CreateContextCallback callback) {
   if (!webnn_mojo_client_) {
-    webnn_mojo_client_ = MakeGarbageCollected<MojoClient>(execution_context_);
+    webnn_mojo_client_ =
+        MakeGarbageCollected<MojoClient>(this->GetExecutionContext());
   }
 
   webnn_mojo_client_->CreateMojoContext(resolver, std::move(options),
@@ -67,9 +68,12 @@ ScriptPromise ML::createContext(ScriptState* script_state,
   ScriptPromiseResolver* resolver =
       MakeGarbageCollected<ScriptPromiseResolver>(script_state);
 
-  MLContext* ml_context = MakeGarbageCollected<MLContext>(
+  // Notice that currently, we just create the context in the renderer. In the
+  // future we may add backend query ability to check whether a context is
+  // supportable or not. At that time, this function will be truly asynced.
+  auto* ml_context = MakeGarbageCollected<MLContext>(
       option->devicePreference(), option->powerPreference(),
-      option->modelFormat(), option->numThreads(), execution_context_, this);
+      option->modelFormat(), option->numThreads(), this);
   if (ml_context->IsWebnnMojoContextEnabled()) {
     // WebNN mojo context need to be created in server side to map different
     // hardware acceleration and manage the processes of graph execution, so the

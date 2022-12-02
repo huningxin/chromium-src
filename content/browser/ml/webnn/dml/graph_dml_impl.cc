@@ -539,8 +539,8 @@ void GraphDMLImpl::AddConv2d(UINT64 input_index,
 
   // FIXME(nhu): strides, dilations, padding should be uint32_t
   // need to fix the spec.
-  std::vector<UINT> strides = ConvertDimensions(options->strides);
-  std::vector<UINT> dilations = ConvertDimensions(options->dilations);
+  std::vector<UINT> strides = options->strides;
+  std::vector<UINT> dilations = options->dilations;
 
   std::vector<UINT> padding =
       options->auto_pad == AutoPad::kExplicit
@@ -716,12 +716,12 @@ void GraphDMLImpl::AddPool2d(UINT64 input_index,
     input_tensor_desc = nhwc_input_tensor.Get();
   }
 
-  std::vector<UINT> strides = ConvertDimensions(options->strides);
-  std::vector<UINT> dilations = ConvertDimensions(options->dilations);
+  std::vector<UINT> strides = options->strides;
+  std::vector<UINT> dilations = options->dilations;
 
   std::vector<UINT> windowSizes;
   if (!options->window_dimensions.empty()) {
-    windowSizes = ConvertDimensions(options->window_dimensions);
+    windowSizes = options->window_dimensions;
   } else {
     windowSizes = {input_nchw_dims[2], input_nchw_dims[3]};
   }
