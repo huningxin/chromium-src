@@ -8,6 +8,7 @@
 #include "base/memory/scoped_refptr.h"
 #include "components/ml/mojom/webnn_service.mojom-blink.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
+#include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 #include "third_party/blink/renderer/platform/mojo/heap_mojo_remote.h"
@@ -34,6 +35,10 @@ class MojoClient final : public GarbageCollected<MojoClient> {
   void CreateMojoContext(ScriptPromiseResolver*,
                          ContextOptionsPtr,
                          MojoServer::CreateContextCallback);
+  void CreateMojoContextSync(
+      ContextOptionsPtr options,
+      ::mojo::PendingRemote<::ml::webnn::mojom::blink::Context>* pending_remote,
+      ExceptionState& exception_state);
 
   void Trace(Visitor* visitor) const;
 

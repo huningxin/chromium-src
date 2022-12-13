@@ -60,4 +60,29 @@ void MojoServerDMLImpl::CreateContext(
   std::move(callback).Run(std::move(blink_remote));
 }
 
+bool MojoServerDMLImpl::CreateContext(
+    ContextOptionsPtr options,
+    ::mojo::PendingRemote<::ml::webnn::mojom::Context>* out_remote) {
+  auto adapter = webnn_service_->RequestAdapter(options->power_preference);
+  if (!adapter) {
+    DLOG(ERROR) << "Failed to request the adapter.";
+    return false;
+  }
+
+  auto context = std::make_unique<ContextDMLImpl>(adapter);
+  HRESULT hr = context->Initialize();
+  if (FAILED(hr)) {
+    DLOG(ERROR) << "Failed to initialize the context: "
+                << logging::SystemErrorCodeToString(hr);
+    return false;
+  }
+
+  // The receiver bind to ContextDMLImpl.
+  mojo::MakeSelfOwnedReceiver<Context>(
+      base::WrapUnique(context.release()),
+      out_remote->InitWithNewPipeAndPassReceiver());
+
+  return true;
+}
+
 }  // namespace content::webnn

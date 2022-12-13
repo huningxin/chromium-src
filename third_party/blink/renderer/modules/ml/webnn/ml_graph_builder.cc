@@ -1281,20 +1281,37 @@ ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
   return promise;
 }
 
-MLGraph* MLGraphBuilder::buildSync(const MLNamedOperands& named_outputs,
+MLGraph* MLGraphBuilder::buildSync(ScriptState* script_state,
+                                   const MLNamedOperands& named_outputs,
                                    ExceptionState& exception_state) {
   if (g_backend_for_testing) {
-    return g_backend_for_testing->BuildGraphSyncImpl(ml_context_, named_outputs,
-                                                     exception_state);
+    return g_backend_for_testing->BuildGraphSyncImpl(
+        script_state, ml_context_, named_outputs, exception_state);
   }
 
 #if BUILDFLAG(BUILD_WEBNN_WITH_XNNPACK)
   if (ml_context_->GetDevicePreference() == V8MLDevicePreference::Enum::kAuto ||
       ml_context_->GetDevicePreference() == V8MLDevicePreference::Enum::kCpu) {
-    return MLGraphXnnpack::ValidateAndBuildSync(ml_context_, named_outputs,
-                                                exception_state);
+    return MLGraphXnnpack::ValidateAndBuildSync(script_state, ml_context_,
+                                                named_outputs, exception_state);
   }
 #endif
+
+  // The Context is GPU device or low power preference, the graph is built by
+  // MojoGraph object.
+  if (GetContext()->GetDevicePreference() == V8MLDevicePreference::Enum::kGpu) {
+    if (ml_context_->IsWebnnMojoContextEnabled()) {
+      return MojoGraph::ValidateAndBuildSync(script_state, ml_context_,
+                                             named_outputs, exception_state);
+    } else {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kNotSupportedError,
+          "The context for mojo must be enable with "
+          "the option \"--enable-features=WebnnMojoContext\" in the command "
+          "line");
+      return nullptr;
+    }
+  }
 
   exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
                                     "Not implemented");

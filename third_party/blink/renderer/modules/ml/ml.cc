@@ -49,6 +49,18 @@ void ML::CreateWebnnMojoContext(ScriptPromiseResolver* resolver,
                                         std::move(callback));
 }
 
+void ML::CreateWebnnMojoContextSync(
+    ContextOptionsPtr options,
+    ::mojo::PendingRemote<::ml::webnn::mojom::blink::Context>* pending_remote,
+    ExceptionState& exception_state) {
+  if (!webnn_mojo_client_) {
+    webnn_mojo_client_ =
+        MakeGarbageCollected<MojoClient>(this->GetExecutionContext());
+  }
+  webnn_mojo_client_->CreateMojoContextSync(std::move(options), pending_remote,
+                                            exception_state);
+}
+
 void ML::Trace(Visitor* visitor) const {
   visitor->Trace(remote_service_);
   ExecutionContextClient::Trace(visitor);
@@ -68,9 +80,6 @@ ScriptPromise ML::createContext(ScriptState* script_state,
   ScriptPromiseResolver* resolver =
       MakeGarbageCollected<ScriptPromiseResolver>(script_state);
 
-  // Notice that currently, we just create the context in the renderer. In the
-  // future we may add backend query ability to check whether a context is
-  // supportable or not. At that time, this function will be truly asynced.
   auto* ml_context = MakeGarbageCollected<MLContext>(
       option->devicePreference(), option->powerPreference(),
       option->modelFormat(), option->numThreads(), this);
@@ -82,7 +91,6 @@ ScriptPromise ML::createContext(ScriptState* script_state,
   } else {
     resolver->Resolve(ml_context);
   }
-
   return resolver->Promise();
 }
 
@@ -95,11 +103,16 @@ MLContext* ML::createContextSync(ScriptState* script_state,
     return nullptr;
   }
 
-  // TODO(crbug/1405354): Query browser about whether the given context is
-  // supported.
-  return MakeGarbageCollected<MLContext>(
+  auto* ml_context = MakeGarbageCollected<MLContext>(
       options->devicePreference(), options->powerPreference(),
       options->modelFormat(), options->numThreads(), this);
+  if (ml_context->IsWebnnMojoContextEnabled()) {
+    // WebNN mojo context need to be created in server side to map different
+    // hardware acceleration and manage the processes of graph execution, we use
+    // synchronous calls to wait for the server side.
+    ml_context->CreateWebnnMojoContextSync(script_state, exception_state);
+  }
+  return ml_context;
 }
 
 bool ML::BootstrapMojoConnectionIfNeeded(ScriptState* script_state,

@@ -27,6 +27,11 @@ class MojoGraph : public MLGraph {
   static void ValidateAndBuildAsync(MLContext* context,
                                     const MLNamedOperands& named_outputs,
                                     ScriptPromiseResolver* resolver);
+  static MLGraph* ValidateAndBuildSync(ScriptState* script_state,
+                                       MLContext* context,
+                                       const MLNamedOperands& named_outputs,
+                                       ExceptionState& exception_state);
+
   MojoGraph(ScriptState* script_state, MLContext* context);
   ~MojoGraph() override;
 
@@ -35,7 +40,8 @@ class MojoGraph : public MLGraph {
   void BuildAsyncImpl(const MLNamedOperands& outputs,
                       ScriptPromiseResolver* resolver) override;
 
-  MLGraph* BuildSyncImpl(const MLNamedOperands& outputs,
+  MLGraph* BuildSyncImpl(ScriptState* script_state,
+                         const MLNamedOperands& outputs,
                          ExceptionState& exception_state) override;
 
   void ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,

@@ -16,7 +16,6 @@
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 #include "third_party/blink/renderer/platform/mojo/heap_mojo_remote.h"
-#include "third_party/blink/renderer/platform/supplementable.h"
 
 namespace blink {
 
@@ -52,12 +51,16 @@ class MODULES_EXPORT ML final : public ScriptWrappable,
   void CreateWebnnMojoContext(ScriptPromiseResolver* resolver,
                               ContextOptionsPtr options,
                               MojoServer::CreateContextCallback callback);
+  void CreateWebnnMojoContextSync(
+      ContextOptionsPtr options,
+      ::mojo::PendingRemote<::ml::webnn::mojom::blink::Context>* pending_remote,
+      ExceptionState& exception_state);
 
   void Trace(blink::Visitor*) const override;
 
   // IDL interface:
-  ScriptPromise createContext(ScriptState* state,
-                              MLContextOptions* option,
+  ScriptPromise createContext(ScriptState* script_state,
+                              MLContextOptions* options,
                               ExceptionState& exception_state);
   MLContext* createContextSync(ScriptState* script_state,
                                MLContextOptions* options,

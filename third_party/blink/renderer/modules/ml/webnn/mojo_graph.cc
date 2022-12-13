@@ -78,6 +78,15 @@ void MojoGraph::ValidateAndBuildAsync(MLContext* context,
   graph->BuildAsync(named_outputs, resolver);
 }
 
+// static
+MLGraph* MojoGraph::ValidateAndBuildSync(ScriptState* script_state,
+                                         MLContext* context,
+                                         const MLNamedOperands& named_outputs,
+                                         ExceptionState& exception_state) {
+  return MakeGarbageCollected<MojoGraph>(script_state, context)
+      ->BuildSync(script_state, named_outputs, exception_state);
+}
+
 MojoGraph::MojoGraph(ScriptState* script_state, MLContext* context)
     : MLGraph(context), remote_graph_(ExecutionContext::From(script_state)) {}
 
@@ -92,12 +101,58 @@ void MojoGraph::BuildAsyncImpl(const MLNamedOperands& outputs,
                     WrapPersistent(named_outputs), WrapPersistent(resolver)));
 }
 
-MLGraph* MojoGraph::BuildSyncImpl(const MLNamedOperands& outputs,
+MLGraph* MojoGraph::BuildSyncImpl(ScriptState* script_state,
+                                  const MLNamedOperands& outputs,
                                   ExceptionState& exception_state) {
-  NOTIMPLEMENTED();
-  exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                    "Not implemented");
-  return nullptr;
+  auto* named_outputs = MakeGarbageCollected<MLNamedOperands>(outputs);
+  ::mojo::PendingRemote<::ml::webnn::mojom::blink::Graph> pending_remote;
+  ml_context_->CreateWebnnGraphSync(named_outputs, &pending_remote,
+                                    exception_state);
+  auto* execution_context = ExecutionContext::From(script_state);
+  remote_graph_.Bind(
+      std::move(pending_remote),
+      execution_context->GetTaskRunner(TaskType::kInternalDefault));
+
+  HeapVector<Member<const MLOperand>> inputs;
+  HeapVector<Member<const MLOperand>> constants;
+  HeapVector<Member<const MLOperator>> sorted_operators;
+  MLGraphBuilder::SortOperators(*named_outputs, inputs, constants,
+                                sorted_operators);
+
+  auto* model_info = MakeGarbageCollected<MojoModelInfo>();
+  base::CheckedNumeric<size_t> aligned_offset(0);
+  for (const auto& input : inputs) {
+    model_info->AddInput(input.Get());
+    // Create shared memory for inputs
+    size_t input_byte_length =
+        input_resources_info_.at(input->Name()).byte_length;
+    inputs_byte_offset_.insert(input->Name(), aligned_offset.ValueOrDie());
+    aligned_offset += Align(input_byte_length, kBufferAlignment).ValueOrDie();
+  }
+  size_t inputs_buffer_length = aligned_offset.ValueOrDie();
+  inputs_shm_region_ =
+      base::ReadOnlySharedMemoryRegion::Create(inputs_buffer_length);
+
+  for (const auto& constant : constants) {
+    model_info->AddConstant(constant.Get());
+  }
+  model_info->FillConstantsWithArrayBuffer();
+
+  for (const auto& op : sorted_operators) {
+    // Add the operation to model
+    AddOperation(model_info, op.Get());
+  }
+
+  for (const auto& [name, operand] : *named_outputs) {
+    // Add the output operand to model.
+    model_info->AddOutput(std::move(name), operand);
+  }
+  BuildResult result;
+  if (!remote_graph_->Build(model_info->GetModelInfo(), &result)) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kUnknownError,
+                                      "Failed to build the graph.");
+  };
+  return this;
 }
 
 void MojoGraph::ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,
@@ -137,9 +192,62 @@ void MojoGraph::ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,
 void MojoGraph::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
                                 const MLNamedArrayBufferViews& outputs,
                                 ExceptionState& exception_state) {
-  NOTIMPLEMENTED();
-  exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
-                                    "Not implemented");
+  if (inputs.size() != input_resources_info_.size()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The number of inputs is invalid.");
+    return;
+  }
+  auto named_inputs = ml::webnn::mojom::blink::NamedResources::New(),
+       named_outputs = ml::webnn::mojom::blink::NamedResources::New();
+  for (const auto& input : inputs) {
+    String error_message;
+    auto* input_array_buffer_view = input.second.Get();
+    if (input_array_buffer_view == nullptr) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        error_message);
+    }
+    const String& input_name = input.first;
+    auto memory_info = ml::webnn::mojom::blink::MemoryInfo::New();
+    memory_info->byte_offset = inputs_byte_offset_.at(input_name);
+    memory_info->byte_length = input_resources_info_.at(input_name).byte_length;
+    uint8_t* address = inputs_shm_region_.mapping.GetMemoryAs<uint8_t>() +
+                       memory_info->byte_offset;
+    memcpy(address, input_array_buffer_view->BaseAddressMaybeShared(),
+           input_array_buffer_view->byteLength());
+    named_inputs->resources.insert(input_name, std::move(memory_info));
+  }
+  named_inputs->shared_memory = inputs_shm_region_.region.Duplicate();
+  ComputeResult result;
+  if (!remote_graph_->Compute(std::move(named_inputs), &result,
+                              &named_outputs)) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kUnknownError,
+                                      "Failed to compute the graph.");
+    return;
+  };
+  for (const auto& output : outputs) {
+    String error_message;
+    void* output_buffer_address = output.second->BaseAddressMaybeShared();
+    if (output_buffer_address == nullptr) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                        error_message);
+      return;
+    }
+    auto iter = named_outputs->resources.find(output.first);
+    if (iter == named_outputs->resources.end()) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                        "Failed to get result for the output.");
+      return;
+    }
+    MemoryInfoPtr memory_info = std::move(iter->value);
+    base::ReadOnlySharedMemoryRegion& shared_memory_region =
+        named_outputs->shared_memory;
+    DCHECK(shared_memory_region.IsValid());
+    size_t byte_length = base::checked_cast<size_t>(memory_info->byte_length);
+    base::ReadOnlySharedMemoryMapping shared_memory_mapping =
+        shared_memory_region.MapAt(memory_info->byte_offset, byte_length);
+    memcpy(output_buffer_address, shared_memory_mapping.GetMemoryAs<uint8_t>(),
+           byte_length);
+  }
 }
 
 void MojoGraph::Trace(Visitor* visitor) const {

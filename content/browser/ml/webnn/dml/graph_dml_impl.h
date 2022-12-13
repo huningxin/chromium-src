@@ -102,9 +102,12 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                   UINT64 output_index);
 
   void Build(ModelInfoPtr model_info, BuildCallback callback) override;
+  bool Build(ModelInfoPtr model_info, BuildResult* out_result) override;
   void Compute(NamedResourcesPtr named_inputs,
                ComputeCallback callback) override;
-
+  bool Compute(NamedResourcesPtr named_inputs,
+               ComputeResult* out_result,
+               NamedResourcesPtr* out_named_outputs) override;
   std::unique_ptr<NodeOutput> Clamp(NodeOutput* input_node,
                                     const ClampOptions* options);
   void EmulateFusedOperator(const OperationInfo* activation,
@@ -112,7 +115,6 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                             const std::vector<UINT>& inputDims);
   void TransposeOutputToNhwc(std::unique_ptr<NodeOutput>& input_node,
                              const std::vector<UINT>& nchwOutputDims);
-
   void AddOutput(const std::string&, UINT64);
 
   scoped_refptr<ExecutionContext> execution_context_;

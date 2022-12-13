@@ -28,6 +28,21 @@ void MojoClient::CreateMojoContext(ScriptPromiseResolver* resolver,
   mojo_server_->CreateContext(std::move(options), std::move(callback));
 }
 
+void MojoClient::CreateMojoContextSync(
+    ContextOptionsPtr options,
+    ::mojo::PendingRemote<::ml::webnn::mojom::blink::Context>* pending_remote,
+    ExceptionState& exception_state) {
+  if (!mojo_server_.is_bound()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
+                                      "WebNN server unavailable.");
+    return;
+  }
+  if (!mojo_server_->CreateContext(std::move(options), pending_remote)) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kUnknownError,
+                                      "Failed to create the context.");
+  };
+}
+
 void MojoClient::Trace(Visitor* visitor) const {
   visitor->Trace(mojo_server_);
 }

@@ -34,4 +34,12 @@ void ContextDMLImpl::CreateGraph(CreateGraphCallback callback) {
   std::move(callback).Run(std::move(blink_remote));
 }
 
+bool ContextDMLImpl::CreateGraph(
+    ::mojo::PendingRemote<::ml::webnn::mojom::Graph>* out_remote) {
+  // The receiver bind to GraphDMLImpl.
+  GraphDMLImpl::Create(out_remote->InitWithNewPipeAndPassReceiver(),
+                       execution_context_);
+  return true;
+}
+
 }  // namespace content::webnn

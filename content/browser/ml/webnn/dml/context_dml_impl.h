@@ -27,6 +27,8 @@ class ContextDMLImpl : public ml::webnn::mojom::Context {
  private:
   // ml::webnn::mojom::context
   void CreateGraph(CreateGraphCallback) override;
+  bool CreateGraph(
+      ::mojo::PendingRemote<::ml::webnn::mojom::Graph>* out_remote) override;
   scoped_refptr<ExecutionContext> execution_context_;
 };
 

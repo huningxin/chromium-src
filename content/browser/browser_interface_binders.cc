@@ -1222,6 +1222,13 @@ void PopulateDedicatedWorkerBinders(DedicatedWorkerHost* host,
       base::BindRepeating(&BindBarcodeDetectionProvider));
   map->Add<shape_detection::mojom::FaceDetectionProvider>(
       base::BindRepeating(&BindFaceDetectionProvider));
+#if BUILDFLAG(ENABLE_MOJO_WEBNN_IN_GPU_PROCESS)
+  if (base::FeatureList::IsEnabled(
+          blink::features::kEnableMachineLearningNeuralNetworkApi)) {
+    map->Add<ml::webnn::mojom::MojoServer>(
+        base::BindRepeating(&BindMojoServer));
+  }
+#endif
   map->Add<shape_detection::mojom::TextDetection>(
       base::BindRepeating(&BindTextDetection));
   map->Add<ukm::mojom::UkmRecorderInterface>(

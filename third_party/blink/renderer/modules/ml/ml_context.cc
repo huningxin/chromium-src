@@ -76,6 +76,27 @@ void MLContext::CreateWebnnMojoContext(ScriptPromiseResolver* resolver) {
                     WrapPersistent(resolver)));
 }
 
+void MLContext::CreateWebnnMojoContextSync(ScriptState* script_state,
+                                           ExceptionState& exception_state) {
+  auto options = ml::webnn::mojom::blink::ContextOptions::New();
+  // TODO(crbug.com/1273291): Set power preference in the context option.
+  options->device_preference =
+      ml::model_loader::mojom::blink::DevicePreference::kGpu;
+  ::mojo::PendingRemote<::ml::webnn::mojom::blink::Context> pending_remote;
+  ml_->CreateWebnnMojoContextSync(std::move(options), &pending_remote,
+                                  exception_state);
+
+  if (!script_state->ContextIsValid()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kInvalidStateError,
+                                      "Invalid script state.");
+    return;
+  }
+  auto* execution_context = ExecutionContext::From(script_state);
+  webnn_context_.Bind(
+      std::move(pending_remote),
+      execution_context->GetTaskRunner(TaskType::kInternalDefault));
+}
+
 void MLContext::CreateWebnnGraph(
     ScriptPromiseResolver* resolver,
     ml::webnn::mojom::blink::Context::CreateGraphCallback callback) {
@@ -85,6 +106,22 @@ void MLContext::CreateWebnnGraph(
     return;
   }
   webnn_context_->CreateGraph(std::move(callback));
+}
+
+void MLContext::CreateWebnnGraphSync(
+    MLNamedOperands* named_outputs,
+    mojo::PendingRemote<::ml::webnn::mojom::blink::Graph>* out_remote,
+    ExceptionState& exception_state) {
+  if (!webnn_context_.is_bound()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kUnknownError,
+                                      "Remote context isn't bound.");
+    return;
+  }
+  if (!webnn_context_->CreateGraph(out_remote)) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kUnknownError,
+                                      "Failed to create the webnn graph.");
+    return;
+  };
 }
 
 void MLContext::OnWebnnContextCreated(

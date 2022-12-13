@@ -54,10 +54,16 @@ class MODULES_EXPORT MLContext : public ScriptWrappable {
   // Create WebNN mojo context in server side and await the callback to resolve
   // the ml context.
   void CreateWebnnMojoContext(ScriptPromiseResolver* resolver);
+  void CreateWebnnMojoContextSync(ScriptState* script_state,
+                                  ExceptionState& exception_state);
   // Create WebNN graph message pipe with WebNN mojo context interface, the
   // graph mojo interface is used to build and compute the computational graph.
   void CreateWebnnGraph(ScriptPromiseResolver*,
                         ml::webnn::mojom::blink::Context::CreateGraphCallback);
+  void CreateWebnnGraphSync(
+      MLNamedOperands* named_outputs,
+      mojo::PendingRemote<::ml::webnn::mojom::blink::Graph>* out_remote,
+      ExceptionState& exception_state);
 
   // ml_context.idl
   ScriptPromise compute(ScriptState* script_state,

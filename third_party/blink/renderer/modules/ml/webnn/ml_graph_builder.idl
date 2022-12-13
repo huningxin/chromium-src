@@ -107,4 +107,7 @@ dictionary MLResample2dOptions {
   [RaisesException] MLOperator sigmoid();
 
   [CallWith=ScriptState, RaisesException] Promise<MLGraph> build(MLNamedOperands outputs);
+  
+  [RuntimeEnabled=MachineLearningNeuralNetwork, CallWith=ScriptState, Exposed=DedicatedWorker, RaisesException]
+  MLGraph buildSync(MLNamedOperands outputs);
 };

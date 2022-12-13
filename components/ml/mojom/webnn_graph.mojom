@@ -351,12 +351,14 @@ interface Graph {
   // Compile the `MLGraphBuild` state up to the specified output operands into
   // a compiled graph according to the type of `MLContext` that creates it.
   // `result` is the status of building graph.
+  [Sync]
   Build@0(ModelInfo model_info) => (BuildResult result);
 
   // Carries out the computational workload of a compiled graph.
   // `named_inputs` is the resources of inputs with shared memory,
   // `named_outputs` is the result of inference which return to renderer process
   // with shared memory.
+  [Sync]
   Compute@1(NamedResources named_inputs)
       => (ComputeResult result, NamedResources? named_outputs);
 };

@@ -1011,6 +1011,142 @@ void GraphDMLImpl::Build(ModelInfoPtr model_info, BuildCallback callback) {
   return;
 }
 
+bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
+  // Add Input
+  for (auto& input : model_info->inputs) {
+    auto& operand_desc = model_info->operands[input->index];
+    AddInput(std::move(input->name), std::move(operand_desc), input->index);
+  }
+
+  // Add Constant
+  std::unique_ptr<UploadResource> uploader =
+      std::make_unique<UploadResource>(execution_context_.get());
+  ComPtr<gpgmm::d3d12::ResourceAllocation> constants_resource = nullptr;
+  auto constants_info = std::move(model_info->constants);
+  if (constants_info.get() != nullptr) {
+    for (auto& [index, _] : constants_info->memory_info) {
+      auto& operand_desc = model_info->operands[index];
+      AddConstant(std::move(operand_desc), index);
+    }
+    // Upload the data to GPU so that the constant data are not saved as member
+    // variable.
+    base::ReadOnlySharedMemoryRegion& shared_memory_region =
+        constants_info->shared_memory;
+    size_t constants_byte_length = shared_memory_region.GetSize();
+    ExecutionResources* execution_resources =
+        execution_context_->GetExecutionResources();
+    constants_resource = execution_resources->Allocate(constants_byte_length);
+    uploader->UploadConstants(constants_resource->GetResource(),
+                              constants_info);
+  }
+
+  // Add operations
+  for (auto& operation : model_info->operations) {
+    switch (operation->which()) {
+      case OperationInfo::Tag::kClamp: {
+        auto& clamp = operation->get_clamp();
+        AddClamp(clamp->input_index, std::move(clamp->options),
+                 clamp->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kConv2d: {
+        auto& conv2d = operation->get_conv2d();
+        auto& output_operand = model_info->operands[conv2d->output_index];
+        AddConv2d(conv2d->input_index, conv2d->filter_index,
+                  std::move(conv2d->options), std::move(output_operand),
+                  conv2d->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kElementWiseBinary: {
+        auto& binary = operation->get_element_wise_binary();
+        auto& output_operand = model_info->operands[binary->output_index];
+        AddElementWiseBinary(binary->a_index, binary->b_index, binary->type,
+                             std::move(output_operand), binary->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kGemm: {
+        auto& gemm = operation->get_gemm();
+        auto& output_operand = model_info->operands[gemm->output_index];
+        AddGemm(gemm->a_index, gemm->b_index, std::move(gemm->options),
+                std::move(output_operand), gemm->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kPool2d: {
+        auto& pool2d = operation->get_pool2d();
+        auto& output_operand = model_info->operands[pool2d->output_index];
+        AddPool2d(pool2d->input_index, std::move(pool2d->options), pool2d->type,
+                  std::move(output_operand), pool2d->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kRelu: {
+        auto& relu = operation->get_relu();
+        auto& output_operand = model_info->operands[relu->output_index];
+        AddRelu(relu->input_index, std::move(output_operand),
+                relu->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kReshape: {
+        auto& reshape = operation->get_reshape();
+        auto& output_operand = model_info->operands[reshape->output_index];
+        AddReshape(reshape->input_index, std::move(output_operand),
+                   reshape->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kSoftmax: {
+        auto& softmax = operation->get_softmax();
+        auto& output_operand = model_info->operands[softmax->output_index];
+        AddSoftmax(softmax->input_index, std::move(output_operand),
+                   softmax->output_index);
+        break;
+      }
+      default:
+        NOTREACHED();
+    }
+  }
+
+  // Add Output with named operands.
+  for (auto& output : model_info->outputs) {
+    AddOutput(std::move(output->name), output->index);
+  }
+
+  // Finish the graph build.
+  mCompiledOperator = graph_desc_builder_->Compile(DML_EXECUTION_FLAG_NONE);
+
+  auto input_nodes = graph_desc_builder_->GetInputNodes();
+  std::vector<DML_BUFFER_BINDING> input_buffer_binding(input_nodes.size());
+  for (size_t i = 0; i < input_nodes.size(); ++i) {
+    auto input = input_nodes[i];
+    if (input.type == NodeType::kConstant) {
+      input_buffer_binding[i].Buffer = constants_resource->GetResource();
+      auto& memory_info = constants_info->memory_info[input.object_id];
+      input_buffer_binding[i].Offset = memory_info->byte_offset;
+      input_buffer_binding[i].SizeInBytes = memory_info->byte_length;
+    }
+  }
+
+  DML_BUFFER_ARRAY_BINDING input_buffer_array_binding = {};
+  input_buffer_array_binding.BindingCount = input_buffer_binding.size();
+  input_buffer_array_binding.Bindings = input_buffer_binding.data();
+  DML_BINDING_DESC input_binding_desc{DML_BINDING_TYPE_BUFFER_ARRAY,
+                                      &input_buffer_array_binding};
+
+  execution_context_->InitializeGraph(this, mCompiledOperator.Get(),
+                                      input_binding_desc);
+
+  execution_context_->Flush();
+  execution_context_->WaitForSignal();
+  execution_context_->ReleaseCompletedResources();
+
+  auto& named_outputs = graph_desc_builder_->GetNamedOutputs();
+  HRESULT hr = output_resource_readback_->InitializeResource(named_outputs);
+  if (FAILED(hr)) {
+    *out_result = BuildResult::kUnknownError;
+    return false;
+  }
+  *out_result = BuildResult::kOk;
+  return true;
+}
+
 void GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
                            ComputeCallback callback) {
   ExecutionResources* execution_resources =
@@ -1082,6 +1218,81 @@ void GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
   }
 
   std::move(callback).Run(ComputeResult::kOk, std::move(named_outputs));
+}
+
+bool GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
+                           ComputeResult* out_result,
+                           NamedResourcesPtr* out_named_outputs) {
+  ExecutionResources* execution_resources =
+      execution_context_->GetExecutionResources();
+  ID3D12Resource* inputs_resource =
+      execution_resources->GetResource(this, ResourceType::kInput);
+  if (inputs_resource == nullptr) {
+    base::ReadOnlySharedMemoryRegion& shared_memory_region =
+        named_inputs->shared_memory;
+    DCHECK(shared_memory_region.IsValid());
+    size_t inputs_byte_length = shared_memory_region.GetSize();
+    inputs_resource = execution_resources->Allocate(ResourceType::kInput,
+                                                    inputs_byte_length, this);
+  }
+  input_resource_uploader_->UploadInputs(inputs_resource, named_inputs);
+  auto input_nodes = graph_desc_builder_->GetInputNodes();
+  std::vector<DML_BUFFER_BINDING> input_buffer_binding(input_nodes.size());
+  std::vector<DML_BINDING_DESC> input_binding_desc(input_nodes.size());
+  for (size_t i = 0; i < input_nodes.size(); ++i) {
+    auto input = input_nodes[i];
+    if (input.type == NodeType::kInput) {
+      input_buffer_binding[i].Buffer = inputs_resource;
+      auto& memory_info = named_inputs->resources[input.name];
+      input_buffer_binding[i].Offset = memory_info->byte_offset;
+      input_buffer_binding[i].SizeInBytes = memory_info->byte_length;
+
+      input_binding_desc[i] = {DML_BINDING_TYPE_BUFFER,
+                               &input_buffer_binding[i]};
+    }
+  }
+
+  ID3D12Resource* outputs_resource =
+      execution_resources->GetResource(this, ResourceType::kOutput);
+  if (outputs_resource == nullptr) {
+    size_t outputs_resource_size =
+        output_resource_readback_->GetOutputsResourceSize();
+    outputs_resource = execution_resources->Allocate(
+        ResourceType::kOutput, outputs_resource_size, this);
+  }
+  auto& output_length_map = graph_desc_builder_->GetNamedOutputs();
+  std::vector<DML_BINDING_DESC> output_binding_desc(output_length_map.size());
+  // The sort of the outputs from Graph Compute is different from the
+  // outputs from Graph Build, so the offset need to be found the correct output
+  // with name to read back from GPU buffer.
+  base::flat_map<std::string, DML_BUFFER_BINDING> output_buffer_binding;
+  uint64_t aligned_offset = 0;
+  size_t i = 0;
+  for (auto& [name, byte_length] : output_length_map) {
+    DML_BUFFER_BINDING buffer_binding;
+    buffer_binding.Buffer = outputs_resource;
+    buffer_binding.Offset = aligned_offset;
+    buffer_binding.SizeInBytes = byte_length;
+    output_buffer_binding[name] = buffer_binding;
+    output_binding_desc[i] = {DML_BINDING_TYPE_BUFFER,
+                              &output_buffer_binding[name]};
+    aligned_offset += Align(byte_length, DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT);
+    ++i;
+  }
+
+  execution_context_->ExecuteGraph(this, mCompiledOperator.Get(),
+                                   input_binding_desc, output_binding_desc);
+
+  *out_named_outputs = ml::webnn::mojom::NamedResources::New();
+  HRESULT hr = output_resource_readback_->ReadResourceFromGpu(
+      *out_named_outputs, outputs_resource);
+  if (FAILED(hr)) {
+    *out_result = ComputeResult::kUnknownError;
+    *out_named_outputs = nullptr;
+    return false;
+  }
+  *out_result = ComputeResult::kOk;
+  return true;
 }
 
 }  // namespace content::webnn
