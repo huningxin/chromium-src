@@ -7,7 +7,7 @@ config("pthreadpool_config") {
     "src/include",
     "src/src",
   ]
-  defines = [ "PTHREADPOOL_USE_GCD=0" ]
+  defines = [ "PTHREADPOOL_USE_CHROMIUM=1" ]
 }
 
 source_set("pthreadpool") {
@@ -23,11 +23,14 @@ source_set("pthreadpool") {
     "src/src/threadpool-utils.h",
   ]
 
-  if (is_win) {
-    sources += [ "src/src/windows.c" ]
-  } else {
-    sources += [ "src/src/pthreads.c" ]
-  }
+  # Experimental chromium threadpool integration.
+  sources += [ "src/src/chromium.cc" ]
+
+  #if (is_win) {
+  #  sources += [ "src/src/windows.c" ]
+  #} else {
+  #  sources += [ "src/src/pthreads.c" ]
+  #}
 
   configs -= [ "//build/config/compiler:chromium_code" ]
   configs += [ "//build/config/compiler:no_chromium_code" ]
@@ -35,5 +38,5 @@ source_set("pthreadpool") {
 
   public_configs = [ ":pthreadpool_config" ]
 
-  deps = [ "//third_party/fxdiv" ]
+  deps = [ "//third_party/fxdiv", "//base" ]
 }
