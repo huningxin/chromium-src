@@ -9,6 +9,7 @@
 #include "base/numerics/checked_math.h"
 #include "base/ranges/algorithm.h"
 #include "base/synchronization/lock.h"
+#include "base/system/sys_info.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/thread_annotations.h"
@@ -154,12 +155,15 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
         return nullptr;
       }
 
-      // TODO(crbug.com/1273291): Integrate XNNPACK pthreadpool with
-      // base::ThreadPool for performance optimziation on multi-cores in the
-      // future.
+      pthreadpool_t pthreadpool_ptr = pthreadpool_create(1);
+      // std::max(1, base::SysInfo::NumberOfProcessors() / 2));
+      if (pthreadpool_ptr == nullptr) {
+        error_message = "Failed to create pthreadpool";
+        return nullptr;
+      }
 
       // Create a new instance of SharedXnnpackContext.
-      return base::MakeRefCounted<SharedXnnpackContext>();
+      return base::MakeRefCounted<SharedXnnpackContext>(pthreadpool_ptr);
     } else {
       // Add a reference to the existing SharedXnnpackContext instance.
       return base::WrapRefCounted(instance_);
@@ -169,12 +173,17 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   SharedXnnpackContext(const SharedXnnpackContext&) = delete;
   SharedXnnpackContext& operator=(const SharedXnnpackContext&) = delete;
 
+  pthreadpool_t Pthreadpool() { return pthreadpool_.get(); }
+
  private:
   friend class ThreadSafeRefCounted<SharedXnnpackContext>;
   template <typename T, typename... Args>
   friend scoped_refptr<T> base::MakeRefCounted(Args&&... args);
 
-  explicit SharedXnnpackContext() { instance_ = this; }
+  explicit SharedXnnpackContext(pthreadpool_t pthreadpool_ptr)
+      : pthreadpool_(pthreadpool_ptr, &pthreadpool_destroy) {
+    instance_ = this;
+  }
 
   ~SharedXnnpackContext() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
@@ -197,6 +206,8 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   }
 
   static SharedXnnpackContext* instance_ GUARDED_BY(SharedXnnpackContextLock());
+
+  std::unique_ptr<pthreadpool, decltype(&pthreadpool_destroy)> pthreadpool_;
 };
 
 SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
@@ -1398,8 +1409,8 @@ xnn_status MLGraphXnnpack::CreateXnnSubgraphAndRuntime(
   }
 
   xnn_runtime_t runtime_ptr = nullptr;
-  XNN_CHECK_STATUS_AND_SET_ERROR_MESSAGE(
-      xnn_create_runtime(subgraph.get(), &runtime_ptr));
+  XNN_CHECK_STATUS_AND_SET_ERROR_MESSAGE(xnn_create_runtime_v2(
+      subgraph.get(), xnn_context_->Pthreadpool(), 0, &runtime_ptr));
   DCHECK_NE(runtime_ptr, nullptr);
   xnn_runtime_.reset(runtime_ptr);
   return xnn_status_success;
