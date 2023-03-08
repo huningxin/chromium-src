@@ -35,5 +35,8 @@ source_set("pthreadpool") {
 
   public_configs = [ ":pthreadpool_config" ]
 
-  deps = [ "//third_party/fxdiv" ]
+  deps = [
+    "//base",
+    "//third_party/fxdiv",
+  ]
 }
