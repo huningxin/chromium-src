@@ -155,8 +155,8 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
         return nullptr;
       }
 
-      pthreadpool_t pthreadpool_ptr = pthreadpool_create(1);
-      // std::max(1, base::SysInfo::NumberOfProcessors() / 2));
+      pthreadpool_t pthreadpool_ptr = pthreadpool_create(2);
+      // std::max(1, std::min(4, base::SysInfo::NumberOfProcessors() / 2)));
       if (pthreadpool_ptr == nullptr) {
         error_message = "Failed to create pthreadpool";
         return nullptr;
@@ -1146,6 +1146,8 @@ void MLGraphXnnpack::BuildAsyncImpl(const MLNamedOperands& named_outputs,
   auto* toposorted_operators = GetOperatorsInTopologicalOrder(named_outputs);
   worker_pool::PostTask(
       FROM_HERE,
+      {base::TaskPriority::BEST_EFFORT, base::WithBaseSyncPrimitives(),
+       base::ThreadPolicy::PREFER_BACKGROUND},
       CrossThreadBindOnce(
           &BuildOnBackgroundThread, WrapCrossThreadPersistent(this),
           WrapCrossThreadPersistent(
@@ -1222,6 +1224,8 @@ void MLGraphXnnpack::ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,
                                       ScriptPromiseResolver* resolver) {
   worker_pool::PostTask(
       FROM_HERE,
+      {base::TaskPriority::BEST_EFFORT, base::WithBaseSyncPrimitives(),
+       base::ThreadPolicy::PREFER_BACKGROUND},
       CrossThreadBindOnce(
           &ComputeOnBackgroundThread, WrapCrossThreadPersistent(this),
           WrapCrossThreadPersistent(
