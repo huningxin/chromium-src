@@ -140,6 +140,7 @@ DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
 class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
  public:
   static scoped_refptr<SharedXnnpackContext> GetInstance(
+      unsigned int num_threads,
       String& error_message) {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
     if (instance_ == nullptr) {
@@ -155,7 +156,10 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
         return nullptr;
       }
 
-      pthreadpool_t pthreadpool_ptr = pthreadpool_create(std::max(1, std::min(4, base::SysInfo::NumberOfProcessors() / 2)));
+      pthreadpool_t pthreadpool_ptr = pthreadpool_create(std::max(
+          1u,
+          std::min(num_threads, base::checked_cast<uint32_t>(
+                                    base::SysInfo::NumberOfProcessors() / 2))));
       if (pthreadpool_ptr == nullptr) {
         error_message = "Failed to create pthreadpool";
         return nullptr;
@@ -1167,7 +1171,8 @@ void MLGraphXnnpack::BuildOnBackgroundThread(
   // Get or create the SharedXnnpackContext.
   String error_message;
   xnn_status status = xnn_status_success;
-  graph->xnn_context_ = SharedXnnpackContext::GetInstance(error_message);
+  graph->xnn_context_ = SharedXnnpackContext::GetInstance(
+      graph->Context()->GetNumThreads(), error_message);
   if (!graph->xnn_context_) {
     status = xnn_status_uninitialized;
   } else {
@@ -1197,7 +1202,8 @@ MLGraph* MLGraphXnnpack::BuildSyncImpl(const MLNamedOperands& named_outputs,
                                        ExceptionState& exception_state) {
   DCHECK(!xnn_context_);
   String error_message;
-  xnn_context_ = SharedXnnpackContext::GetInstance(error_message);
+  xnn_context_ = SharedXnnpackContext::GetInstance(ml_context_->GetNumThreads(),
+                                                   error_message);
   if (!xnn_context_) {
     exception_state.ThrowDOMException(
         XnnStatusToDOMExceptionCode(xnn_status_uninitialized), error_message);
