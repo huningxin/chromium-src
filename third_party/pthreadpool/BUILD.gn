@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("//testing/test.gni")
+
 config("pthreadpool_config") {
   include_dirs = [
     "src/include",
@@ -41,5 +43,27 @@ source_set("pthreadpool") {
   deps = [
     "//base",
     "//third_party/fxdiv",
+  ]
+}
+
+test("pthreadpool_test") {
+  testonly = true
+
+  sources = [ "src/test/pthreadpool.cc" ]
+
+  # For src/test/pthreadpool.cc, macro 'ATOMIC_VAR_INIT' has been marked as deprecated
+  cflags = [ "-Wno-deprecated-pragma" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:test_support",
+    "//base/test:run_all_unittests",
+    "//testing/gtest",
   ]
 }
