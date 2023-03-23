@@ -10,7 +10,7 @@ config("pthreadpool_config") {
     "src/src",
   ]
   defines = [
-    "PTHREADPOOL_USE_POSTJOB=1",
+    "PTHREADPOOL_USE_JOB=1",
     "PTHREADPOOL_USE_EVENT=0",
     "PTHREADPOOL_USE_FUTEX=0",
     "PTHREADPOOL_USE_GCD=0",
@@ -31,8 +31,8 @@ source_set("pthreadpool") {
     "src/src/threadpool-utils.h",
   ]
 
-  # Experimental chromium postjob integration.
-  sources += [ "src/src/postjob.cc" ]
+  # Experimental Chromium Jobs API integration.
+  sources += [ "src/src/chromium.cc" ]
 
   configs -= [ "//build/config/compiler:chromium_code" ]
   configs += [ "//build/config/compiler:no_chromium_code" ]
