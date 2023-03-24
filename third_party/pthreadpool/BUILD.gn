@@ -86,3 +86,35 @@ test("pthreadpool_cxx_test") {
     "//testing/gtest",
   ]
 }
+
+test("pthreadpool_latency_bench") {
+  sources = [ "src/bench/latency.cc" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:test_support",
+    "//third_party/google_benchmark",
+  ]
+}
+
+test("pthreadpool_throughput_bench") {
+  sources = [ "src/bench/throughput.cc" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:test_support",
+    "//third_party/google_benchmark",
+  ]
+}
