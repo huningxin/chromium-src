@@ -67,3 +67,22 @@ test("pthreadpool_test") {
     "//testing/gtest",
   ]
 }
+
+test("pthreadpool_cxx_test") {
+  testonly = true
+
+  sources = [ "src/test/pthreadpool-cxx.cc" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:test_support",
+    "//base/test:run_all_unittests",
+    "//testing/gtest",
+  ]
+}
