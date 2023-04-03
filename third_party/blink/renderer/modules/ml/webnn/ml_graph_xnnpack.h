@@ -91,6 +91,7 @@ class MODULES_EXPORT MLGraphXnnpack final : public MLGraph {
                       ScriptPromiseResolver* resolver) override;
 
   static void GetSharedXnnpackContextOnBackgroundThread(
+      unsigned int num_threads,
       CrossThreadHandle<MLGraphXnnpack> graph,
       CrossThreadHandle<MLNamedOperands> named_outputs,
       CrossThreadHandle<ScriptPromiseResolver> resolver,

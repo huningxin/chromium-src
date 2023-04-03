@@ -9,6 +9,7 @@
 #include "base/numerics/checked_math.h"
 #include "base/ranges/algorithm.h"
 #include "base/synchronization/lock.h"
+#include "base/system/sys_info.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/thread_annotations.h"
@@ -143,6 +144,7 @@ DOMExceptionCode XnnStatusToDOMExceptionCode(xnn_status status) {
 class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
  public:
   static scoped_refptr<SharedXnnpackContext> GetInstance(
+      unsigned int num_threads,
       String& error_message) {
     TRACE_EVENT("blink", "SharedXnnpackContext::GetInstance");
     base::AutoLock auto_lock(SharedXnnpackContextLock());
@@ -159,12 +161,17 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
         return nullptr;
       }
 
-      // TODO(crbug.com/1273291): Integrate XNNPACK pthreadpool with
-      // base::ThreadPool for performance optimziation on multi-cores in the
-      // future.
+      pthreadpool_t pthreadpool_ptr = pthreadpool_create(std::max(
+          1u,
+          std::min(num_threads, base::checked_cast<uint32_t>(
+                                    base::SysInfo::NumberOfProcessors() / 2))));
+      if (pthreadpool_ptr == nullptr) {
+        error_message = "Failed to create pthreadpool";
+        return nullptr;
+      }
 
       // Create a new instance of SharedXnnpackContext.
-      return base::MakeRefCounted<SharedXnnpackContext>();
+      return base::MakeRefCounted<SharedXnnpackContext>(pthreadpool_ptr);
     } else {
       // Add a reference to the existing SharedXnnpackContext instance.
       return base::WrapRefCounted(instance_);
@@ -174,12 +181,17 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   SharedXnnpackContext(const SharedXnnpackContext&) = delete;
   SharedXnnpackContext& operator=(const SharedXnnpackContext&) = delete;
 
+  pthreadpool_t Pthreadpool() { return pthreadpool_.get(); }
+
  private:
   friend class ThreadSafeRefCounted<SharedXnnpackContext>;
   template <typename T, typename... Args>
   friend scoped_refptr<T> base::MakeRefCounted(Args&&... args);
 
-  explicit SharedXnnpackContext() { instance_ = this; }
+  explicit SharedXnnpackContext(pthreadpool_t pthreadpool_ptr)
+      : pthreadpool_(pthreadpool_ptr, &pthreadpool_destroy) {
+    instance_ = this;
+  }
 
   ~SharedXnnpackContext() {
     base::AutoLock auto_lock(SharedXnnpackContextLock());
@@ -202,6 +214,8 @@ class SharedXnnpackContext : public ThreadSafeRefCounted<SharedXnnpackContext> {
   }
 
   static SharedXnnpackContext* instance_ GUARDED_BY(SharedXnnpackContextLock());
+
+  std::unique_ptr<pthreadpool, decltype(&pthreadpool_destroy)> pthreadpool_;
 };
 
 SharedXnnpackContext* SharedXnnpackContext::instance_ = nullptr;
@@ -239,7 +253,8 @@ class XnnRuntimeWrapper : public ThreadSafeRefCounted<XnnRuntimeWrapper> {
     CHECK(xnn_context);
     CHECK(subgraph);
     xnn_runtime_t runtime_ptr = nullptr;
-    xnn_status status = xnn_create_runtime(subgraph.get(), &runtime_ptr);
+    xnn_status status = xnn_create_runtime_v2(
+        subgraph.get(), xnn_context->Pthreadpool(), 0, &runtime_ptr);
     if (status != xnn_status_success) {
       error_message = "Failed to create XNNPACK Runtime.";
       return nullptr;
@@ -1519,7 +1534,7 @@ void MLGraphXnnpack::BuildAsyncImpl(const MLNamedOperands& named_outputs,
       *xnnpack_task_runner_, FROM_HERE,
       CrossThreadBindOnce(
           &GetSharedXnnpackContextOnBackgroundThread,
-          MakeCrossThreadHandle(this),
+          ml_context_->GetNumThreads(), MakeCrossThreadHandle(this),
           MakeCrossThreadHandle(
               MakeGarbageCollected<MLNamedOperands>(named_outputs)),
           MakeCrossThreadHandle(resolver), resolver_task_runner_));
@@ -1527,6 +1542,7 @@ void MLGraphXnnpack::BuildAsyncImpl(const MLNamedOperands& named_outputs,
 
 // static
 void MLGraphXnnpack::GetSharedXnnpackContextOnBackgroundThread(
+    unsigned int num_threads,
     CrossThreadHandle<MLGraphXnnpack> graph,
     CrossThreadHandle<MLNamedOperands> named_outputs,
     CrossThreadHandle<ScriptPromiseResolver> resolver,
@@ -1534,7 +1550,8 @@ void MLGraphXnnpack::GetSharedXnnpackContextOnBackgroundThread(
   CHECK(!IsMainThread());
   // Get or create the SharedXnnpackContext.
   String error_message;
-  auto xnn_context = SharedXnnpackContext::GetInstance(error_message);
+  auto xnn_context =
+      SharedXnnpackContext::GetInstance(num_threads, error_message);
   PostCrossThreadTask(
       *resolver_task_runner, FROM_HERE,
       CrossThreadBindOnce(
@@ -1619,7 +1636,8 @@ MLGraph* MLGraphXnnpack::BuildSyncImpl(const MLNamedOperands& named_outputs,
                                        ExceptionState& exception_state) {
   CHECK(!xnn_runtime_wrapper_);
   String error_message;
-  auto xnn_context = SharedXnnpackContext::GetInstance(error_message);
+  auto xnn_context = SharedXnnpackContext::GetInstance(
+      ml_context_->GetNumThreads(), error_message);
   if (!xnn_context) {
     exception_state.ThrowDOMException(
         XnnStatusToDOMExceptionCode(xnn_status_uninitialized), error_message);
