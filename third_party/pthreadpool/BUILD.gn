@@ -2,12 +2,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("//testing/test.gni")
+
 config("pthreadpool_config") {
   include_dirs = [
     "src/include",
     "src/src",
   ]
-  defines = [ "PTHREADPOOL_USE_GCD=0" ]
+  defines = [
+    "PTHREADPOOL_USE_JOBS=1",
+    "PTHREADPOOL_USE_EVENT=0",
+    "PTHREADPOOL_USE_FUTEX=0",
+    "PTHREADPOOL_USE_GCD=0",
+    "PTHREADPOOL_USE_CONDVAR=0",
+  ]
 }
 
 source_set("pthreadpool") {
@@ -23,11 +31,8 @@ source_set("pthreadpool") {
     "src/src/threadpool-utils.h",
   ]
 
-  if (is_win) {
-    sources += [ "src/src/windows.c" ]
-  } else {
-    sources += [ "src/src/pthreads.c" ]
-  }
+  # Use Chromium Jobs API.
+  sources += [ "jobs.cc" ]
 
   configs -= [ "//build/config/compiler:chromium_code" ]
   configs += [ "//build/config/compiler:no_chromium_code" ]
@@ -35,5 +40,81 @@ source_set("pthreadpool") {
 
   public_configs = [ ":pthreadpool_config" ]
 
-  deps = [ "//third_party/fxdiv" ]
+  deps = [
+    "//base",
+    "//third_party/fxdiv",
+  ]
+}
+
+test("pthreadpool_test") {
+  testonly = true
+
+  sources = [ "src/test/pthreadpool.cc" ]
+
+  # For src/test/pthreadpool.cc, macro 'ATOMIC_VAR_INIT' has been marked as deprecated
+  cflags = [ "-Wno-deprecated-pragma" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:run_all_unittests",
+    "//base/test:test_support",
+    "//testing/gtest",
+  ]
+}
+
+test("pthreadpool_cxx_test") {
+  testonly = true
+
+  sources = [ "src/test/pthreadpool-cxx.cc" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:run_all_unittests",
+    "//base/test:test_support",
+    "//testing/gtest",
+  ]
+}
+
+test("pthreadpool_latency_bench") {
+  sources = [ "src/bench/latency.cc" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:test_support",
+    "//third_party/google_benchmark",
+  ]
+}
+
+test("pthreadpool_throughput_bench") {
+  sources = [ "src/bench/throughput.cc" ]
+
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [ "//build/config/compiler:no_chromium_code" ]
+  configs += [ "//build/config/sanitizers:cfi_icall_disable" ]
+
+  public_configs = [ ":pthreadpool_config" ]
+
+  deps = [
+    ":pthreadpool",
+    "//base/test:test_support",
+    "//third_party/google_benchmark",
+  ]
 }
