@@ -6,12 +6,16 @@
 
 #include "base/logging.h"
 #include "base/memory/ptr_util.h"
+#include "base/containers/span.h"
 #include "content/browser/ml/webnn/dml/execution_context.h"
 #include "content/browser/ml/webnn/dml/execution_resources.h"
 #include "content/browser/ml/webnn/dml/graph_dml_impl.h"
 #include "content/browser/ml/webnn/dml/upload_resource.h"
 #include "mojo/public/c/system/types.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
+
+// HACK:::
+#pragma optimize("", off)
 
 namespace content::webnn {
 
@@ -50,6 +54,19 @@ std::vector<UINT> transposeStrides(TransposeType transposeType,
       DCHECK(0);
       break;
   }
+}
+
+std::vector<uint32_t> transposeStrides(base::span<const uint32_t> original_strides, base::span<const uint32_t> permutation)
+{
+  auto dimension_count = original_strides.size();
+  std::vector<uint32_t> new_strides;
+  new_strides.reserve(dimension_count);
+  for (auto axis : permutation)
+  {
+    DCHECK(axis < dimension_count); // This should have already been validated.
+    new_strides.push_back(original_strides[axis]);
+  }
+  return new_strides;
 }
 
 std::vector<UINT> transposeStridesToNchw(
@@ -92,13 +109,19 @@ DML_OPERATOR_DESC* CreateFusedOperator(
   return &dmlFusedOperatorDesc;
 }
 
-std::vector<UINT> ExpandDimensions(const std::vector<UINT>& dims, size_t rank) {
-  DCHECK(rank >= dims.size());
-  std::vector<UINT> newDims(rank, 1);
-  for (size_t i = 0; i < dims.size(); ++i) {
-    newDims[newDims.size() - i - 1] = dims[dims.size() - i - 1];
-  }
-  return newDims;
+// Increases the rank to a minimum count by padding with leading ones.
+std::vector<uint32_t> ExpandDimensions(
+    const base::span<const uint32_t> original_dimensions,
+    size_t minimum_rank) {
+
+  size_t old_rank = original_dimensions.size();
+  size_t new_rank = std::max(minimum_rank, old_rank);
+  size_t leading_filler_count = new_rank - old_rank;
+
+  std::vector<uint32_t> expanded_dimensions(new_rank, 1u);
+  std::copy(original_dimensions.begin(), original_dimensions.end(),
+            expanded_dimensions.begin() + leading_filler_count);
+  return expanded_dimensions;
 }
 
 std::vector<UINT> transposeDimensions(TransposeType transposeType,
@@ -186,19 +209,21 @@ std::vector<UINT> transposeFilterStridesAsOihw(
 }
 
 DML_TENSOR_DATA_TYPE GetTensorDataType(OperandType type) {
+  // clang-format off
   DML_TENSOR_DATA_TYPE data_type;
-  if (type == OperandType::kFloat32) {
-    data_type = DML_TENSOR_DATA_TYPE_FLOAT32;
-  } else if (type == OperandType::kFloat16) {
-    data_type = DML_TENSOR_DATA_TYPE_FLOAT16;
-  } else if (type == OperandType::kInt32) {
-    data_type = DML_TENSOR_DATA_TYPE_INT32;
-  } else if (type == OperandType::kUint32) {
-    data_type = DML_TENSOR_DATA_TYPE_UINT32;
-  } else {
+  switch (type)
+  {
+  case OperandType::kFloat32: data_type = DML_TENSOR_DATA_TYPE_FLOAT32; break;
+  case OperandType::kFloat16: data_type = DML_TENSOR_DATA_TYPE_FLOAT16; break;
+  case OperandType::kInt32:   data_type = DML_TENSOR_DATA_TYPE_INT32;   break;
+  case OperandType::kUint32:  data_type = DML_TENSOR_DATA_TYPE_UINT32;  break;
+  case OperandType::kInt8:    data_type = DML_TENSOR_DATA_TYPE_INT8;    break;
+  case OperandType::kUint8:   data_type = DML_TENSOR_DATA_TYPE_UINT8;   break;
+  default:
     LOG(ERROR) << "This data type is not supported";
     return DML_TENSOR_DATA_TYPE_UNKNOWN;
   }
+  // clang-format on
 
   return data_type;
 }
@@ -213,13 +238,15 @@ std::vector<UINT> CalculateStridesForBroadcast(
     std::vector<UINT> broadcasted_dims) {
   auto& tensor_desc = node_output->GetTensorDesc();
   auto original_dims = tensor_desc.GetDimensions();
-  auto original_rank = original_dims.size(),
-       broadcasted_rank = broadcasted_dims.size();
+  auto original_rank = original_dims.size();
+  auto broadcasted_rank = broadcasted_dims.size();
   std::vector<bool> broadcast_flags(broadcasted_rank, false);
+
   auto rank_gap = broadcasted_rank - original_rank;
   for (size_t i = 0; i < rank_gap; ++i) {
     broadcast_flags[i] = true;
   }
+
   for (size_t i = 0; i < original_rank; ++i) {
     if (original_dims[i] == 1 && broadcasted_dims[rank_gap + i] != 1) {
       broadcast_flags[rank_gap + i] = true;
@@ -231,29 +258,32 @@ std::vector<UINT> CalculateStridesForBroadcast(
       broadcasted_dims[i] = 1;
     }
   }
+
   std::vector<UINT> strides(broadcasted_rank);
-  auto existed_strides = tensor_desc.GetStrides();
-  if (existed_strides) {
-    auto indexBegin = broadcasted_rank - original_rank;
-    for (size_t i = 0, j = 0; i < broadcasted_rank; ++i) {
-      if (i < indexBegin) {
-        strides[i] = 0;
-      } else {
-        strides[i] = broadcast_flags[i] ? 0 : existed_strides.value()[j];
-        ++j;
-      }
-    }
-  } else {
-    strides[broadcasted_rank - 1] =
-        broadcast_flags[broadcasted_rank - 1] ? 0 : 1;
-    size_t elements = 1;
-    for (size_t i = 1; i < broadcasted_rank; i++) {
-      size_t j = broadcasted_rank - i - 1;
-      elements *= broadcasted_dims[j + 1];
-      strides[j] = broadcast_flags[j] ? 0 : elements;
+  auto existing_strides = tensor_desc.GetStridesOrDefaultStrides();
+  auto indexBegin = broadcasted_rank - original_rank;
+
+  for (size_t i = 0, j = 0; i < broadcasted_rank; ++i) {
+    if (i < indexBegin) {
+      strides[i] = 0;
+    } else {
+      strides[i] = broadcast_flags[i] ? 0 : existing_strides[j];
+      ++j;
     }
   }
   return strides;
+}
+
+TensorDesc GetBroadcastedTensorDesc(NodeOutput* input_node,
+                                    std::vector<UINT> broadcasted_dims) {
+  auto broadcasted_strides =
+      CalculateStridesForBroadcast(input_node, broadcasted_dims);
+
+  auto& tensor_desc = input_node->GetTensorDesc();
+  TensorDesc broadcasted_tensor(tensor_desc.GetDataType(),
+                                tensor_desc.GetFlags(), broadcasted_dims,
+                                broadcasted_strides);
+  return broadcasted_tensor;
 }
 
 }  // namespace
@@ -267,21 +297,24 @@ std::vector<UINT> CalculateStridesForBroadcast(
   } while (0)
 
 #define CREATE_BINARY_OPERATOR(type, a_tensor_desc, b_tensor_desc, \
-                               output_tensor, node)                \
+                               output_tensor_desc, node)           \
   DML_ELEMENT_WISE_##type##_OPERATOR_DESC operator_desc{};         \
   operator_desc.ATensor = a_tensor_desc;                           \
   operator_desc.BTensor = b_tensor_desc;                           \
-  operator_desc.OutputTensor = output_tensor;                      \
+  operator_desc.OutputTensor = output_tensor_desc;                 \
   node = graph_desc_builder_->CreateOperatorNode(                  \
       DML_OPERATOR_ELEMENT_WISE_##type, &operator_desc);
 
-#define CREATE_UNARY_OPERATOR(type, input_tensor_desc, node)          \
+#define CREATE_UNARY_OPERATOR(type, input_tensor_desc,                \
+                              output_tensor_desc, node)               \
   DML_##type##_OPERATOR_DESC operator_desc{};                         \
   operator_desc.InputTensor = input_tensor_desc;                      \
-  operator_desc.OutputTensor = input_tensor_desc;                     \
+  operator_desc.OutputTensor = output_tensor_desc;                    \
   node = graph_desc_builder_->CreateOperatorNode(DML_OPERATOR_##type, \
                                                  &operator_desc);
 
+// TODO::: Delete
+#if 0
 // Append IDENTITY to remove the strides of input tensor. Use this to implement
 // Reshape, Squeeze, Transpose and avoid creating an invalid graph with input =
 // output.
@@ -291,6 +324,7 @@ std::vector<UINT> CalculateStridesForBroadcast(
   operator_desc.OutputTensor = output_tensor;              \
   node = graph_desc_builder_->CreateOperatorNode(          \
       DML_OPERATOR_ELEMENT_WISE_IDENTITY, &operator_desc);
+#endif
 
 // static
 void GraphDMLImpl::Create(mojo::PendingReceiver<Graph> receiver,
@@ -338,9 +372,62 @@ void GraphDMLImpl::AddConstant(OperandDescriptorPtr desc, UINT64 index) {
   return;
 }
 
+void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
+                                        OperatorType operator_type,
+                                        OperandDescriptorPtr output_desc,
+                                        UINT64 output_index) {
+  DCHECK(node_output_map_.find(input_index) != node_output_map_.end());
+
+  auto* input_node_output = node_output_map_[input_index].get();
+  auto output_dims = output_desc->dimensions;
+
+  auto& input_tensor_desc = input_node_output->GetTensorDesc();
+  TensorDesc output_tensor(input_tensor_desc.GetDataType(), output_dims);
+  Node node;
+
+  switch (operator_type) {
+    case OperatorType::kCos: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_COS, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kErf: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_ERF, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kExp: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_EXP, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kIdentity: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_IDENTITY, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kSin: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_SIN, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kTan: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_TAN, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kSqrt: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_SQRT, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kSigmoid: {
+      CREATE_UNARY_OPERATOR(ACTIVATION_SIGMOID, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    } break;
+    // case OperatorType::kHardSwish: {
+    //   HardSwish requires multiple operators: y = x * max(0, min(6, (x + 3))) / 6
+    //   CREATE_UNARY_OPERATOR(ELEMENT_WISE_NA, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
+    // } break;
+    default:
+      DAWN_INTERNAL_ERROR(" Unary elementwise op is not implemented.");
+  }
+
+  graph_desc_builder_->Connect({input_node_output}, {node});
+  auto node_output =
+      graph_desc_builder_->CreateNodeOutput(node, 0, std::move(output_tensor));
+  node_output_map_[output_index] = std::move(node_output);
+  return;
+}
+
 void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
                                         UINT64 b_index,
-                                        ElementWiseBinaryType type,
+                                        OperatorType operator_type,
                                         OperandDescriptorPtr output_desc,
                                         UINT64 output_index) {
   // TODO: return directly if BuildResult has error message.
@@ -350,7 +437,6 @@ void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
   auto* a_node_output = node_output_map_[a_index].get();
   auto* b_node_output = node_output_map_[b_index].get();
   auto output_dims = output_desc->dimensions;
-  std::vector<UINT> output_new_dims = output_dims;
 
   auto a_broadcasted_strides =
       CalculateStridesForBroadcast(a_node_output, output_dims);
@@ -366,41 +452,66 @@ void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
                                   b_tensor_desc.GetFlags(), output_dims,
                                   b_broadcasted_strides);
 
-  TensorDesc output_tensor(b_tensor_desc.GetDataType(), output_new_dims);
+  TensorDesc output_tensor(GetTensorDataType(output_desc->data_type), output_dims);
   Node node;
-  switch (type) {
-    case ElementWiseBinaryType::kAdd: {
+  switch (operator_type) {
+    case OperatorType::kAdd: {
       CREATE_BINARY_OPERATOR(ADD, a_broadcasted_tensor.Get(),
                              b_broadcasted_tensor.Get(), output_tensor.Get(),
                              node);
     } break;
-    case ElementWiseBinaryType::kDiv: {
+    case OperatorType::kDiv: {
       CREATE_BINARY_OPERATOR(DIVIDE, a_broadcasted_tensor.Get(),
                              b_broadcasted_tensor.Get(), output_tensor.Get(),
                              node);
     } break;
-    case ElementWiseBinaryType::kMul: {
+    case OperatorType::kMul: {
       CREATE_BINARY_OPERATOR(MULTIPLY, a_broadcasted_tensor.Get(),
                              b_broadcasted_tensor.Get(), output_tensor.Get(),
                              node);
     } break;
-    case ElementWiseBinaryType::kSub: {
+    case OperatorType::kSub: {
       CREATE_BINARY_OPERATOR(SUBTRACT, a_broadcasted_tensor.Get(),
                              b_broadcasted_tensor.Get(), output_tensor.Get(),
                              node);
     } break;
-    case ElementWiseBinaryType::kMax: {
+    case OperatorType::kMax: {
       CREATE_BINARY_OPERATOR(MAX, a_broadcasted_tensor.Get(),
                              b_broadcasted_tensor.Get(), output_tensor.Get(),
                              node);
     } break;
-    case ElementWiseBinaryType::kMin: {
+    case OperatorType::kMin: {
       CREATE_BINARY_OPERATOR(MIN, a_broadcasted_tensor.Get(),
                              b_broadcasted_tensor.Get(), output_tensor.Get(),
                              node);
     } break;
+    case OperatorType::kEqual: {
+      CREATE_BINARY_OPERATOR(LOGICAL_EQUALS, a_broadcasted_tensor.Get(),
+                             b_broadcasted_tensor.Get(), output_tensor.Get(),
+                             node);
+    } break;
+    case OperatorType::kGreater: {
+      CREATE_BINARY_OPERATOR(LOGICAL_GREATER_THAN, a_broadcasted_tensor.Get(),
+                             b_broadcasted_tensor.Get(), output_tensor.Get(),
+                             node);
+    } break;
+    case OperatorType::kLesser: {
+      CREATE_BINARY_OPERATOR(LOGICAL_LESS_THAN, a_broadcasted_tensor.Get(),
+                             b_broadcasted_tensor.Get(), output_tensor.Get(),
+                             node);
+    } break;
+    case OperatorType::kPow: {
+      DML_ELEMENT_WISE_POW_OPERATOR_DESC operator_desc{};
+      operator_desc.InputTensor = a_tensor_desc.Get();
+      operator_desc.ExponentTensor = b_tensor_desc.Get();
+      operator_desc.OutputTensor = output_tensor.Get();
+      node = graph_desc_builder_->CreateOperatorNode(
+          DML_OPERATOR_ELEMENT_WISE_POW, &operator_desc);
+    } break;
+    ////////////////////////////////////////////////////////////////////////////////
+    // NEWOPS::: Add new case statements here
     default:
-      DAWN_INTERNAL_ERROR(" Binary op is not implemented.");
+      DAWN_INTERNAL_ERROR(" Binary elementwise op is not implemented.");
   }
   graph_desc_builder_->Connect({a_node_output, b_node_output}, {node});
   auto node_output =
@@ -542,11 +653,16 @@ void GraphDMLImpl::AddConv2d(UINT64 input_index,
   std::vector<UINT> strides = options->strides;
   std::vector<UINT> dilations = options->dilations;
 
+  base::span<UINT> input_nchw_dims_span(input_nchw_dims);
+  base::span<UINT> filter_nchw_dims_span(filter_nchw_dims);
   std::vector<UINT> padding =
       options->auto_pad == AutoPad::kExplicit
           ? ExplicitPadding<Conv2dOptions>(options.get())
-          : ImplicitPadding<Conv2dOptions>(options.get(), input_nchw_dims,
-                                           filter_nchw_dims);
+          : ImplicitPadding<Conv2dOptions>(
+              options.get(),
+              input_nchw_dims_span,
+              filter_nchw_dims_span
+          );
   std::vector<UINT> startPadding = {padding[0], padding[2]};
   std::vector<UINT> endPadding = {padding[1], padding[3]};
   std::vector<UINT> defaultOutPadding = {0, 0};
@@ -619,31 +735,21 @@ void GraphDMLImpl::AddGemm(UINT64 a_index,
   DCHECK(node_output_map_.find(a_index) != node_output_map_.end());
   DCHECK(node_output_map_.find(b_index) != node_output_map_.end());
 
-  // The shape of a tensor is 2D definited in WebNN Spec, but DML only support
-  // 4D, so expand dimensions to 4D.
-  // TODO: DML_FEATURE_LEVEL_4_0 and above support 2D.
-  // DCHECK(a_dims.size() == 2);
   auto* a_node_output = node_output_map_[a_index].get();
-  auto& a_tensor_desc = a_node_output->GetTensorDesc();
-  auto a_expand_dims = ExpandDimensions(a_tensor_desc.GetDimensions(), 4);
-  TensorDesc a_expand_tensor(a_tensor_desc.GetDataType(),
-                             a_tensor_desc.GetFlags(), a_expand_dims);
-
-  // DCHECK(b_dims.size() == 2);
   auto* b_node_output = node_output_map_[b_index].get();
-  auto& b_tensor_desc = b_node_output->GetTensorDesc();
-  auto b_expand_dims = ExpandDimensions(b_tensor_desc.GetDimensions(), 4);
-  TensorDesc b_expand_tensor(b_tensor_desc.GetDataType(),
-                             b_tensor_desc.GetFlags(), b_expand_dims);
+  auto& output_dims = output_desc->dimensions;
 
-  auto output_dims = output_desc->dimensions;
-  DCHECK(output_dims.size() == 2);
-  auto output_expand_dims = ExpandDimensions(output_dims, 4);
-  TensorDesc output_expand_tensor(b_tensor_desc.GetDataType(),
-                                  output_expand_dims);
+  TensorDesc a_broadcasted_tensor =
+      GetBroadcastedTensorDesc(a_node_output, output_dims);
+  TensorDesc b_broadcasted_tensor =
+      GetBroadcastedTensorDesc(b_node_output, output_dims);
+  TensorDesc output_tensor(a_broadcasted_tensor.GetDataType(), output_dims);
+
+  DCHECK(a_broadcasted_tensor.GetDimensions().size() == b_broadcasted_tensor.GetDimensions().size());
+  DCHECK(a_broadcasted_tensor.GetDimensions().size() == b_broadcasted_tensor.GetDimensions().size());
 
   // The operand c is optional.
-  TensorDesc c_expand_tensor;
+  TensorDesc c_tensor_desc;
   std::vector<NodeOutput*> input_nodes = {a_node_output, b_node_output};
   if (options->c_index != std::numeric_limits<uint64_t>::max()) {
     DCHECK(node_output_map_.find(options->c_index) != node_output_map_.end());
@@ -653,11 +759,8 @@ void GraphDMLImpl::AddGemm(UINT64 a_index,
     // support 4D, so broadCast the Shape of optional C to {1, 1, M, N }
     // supported in DML.
     auto c_broadcasted_strides =
-        CalculateStridesForBroadcast(c_node_output, output_expand_dims);
-    auto& c_tensor_desc = c_node_output->GetTensorDesc();
-    c_expand_tensor =
-        TensorDesc(c_tensor_desc.GetDataType(), c_tensor_desc.GetFlags(),
-                   output_expand_dims, c_broadcasted_strides);
+        CalculateStridesForBroadcast(c_node_output, output_dims);
+    c_tensor_desc = c_node_output->GetTensorDesc();
     input_nodes.push_back(c_node_output);
   }
 
@@ -668,10 +771,10 @@ void GraphDMLImpl::AddGemm(UINT64 a_index,
                                         ? DML_MATRIX_TRANSFORM_TRANSPOSE
                                         : DML_MATRIX_TRANSFORM_NONE;
   DML_GEMM_OPERATOR_DESC gemm_desc = {};
-  gemm_desc.ATensor = a_expand_tensor.Get();
-  gemm_desc.BTensor = b_expand_tensor.Get();
-  gemm_desc.CTensor = c_expand_tensor.Get();
-  gemm_desc.OutputTensor = output_expand_tensor.Get();
+  gemm_desc.ATensor = a_broadcasted_tensor.Get();
+  gemm_desc.BTensor = b_broadcasted_tensor.Get();
+  gemm_desc.CTensor = c_tensor_desc.Get();
+  gemm_desc.OutputTensor = output_tensor.Get();
   gemm_desc.TransA = aTranspose;
   gemm_desc.TransB = bTranspose;
   gemm_desc.Alpha = options->alpha;
@@ -680,8 +783,6 @@ void GraphDMLImpl::AddGemm(UINT64 a_index,
   Node operator_node =
       graph_desc_builder_->CreateOperatorNode(DML_OPERATOR_GEMM, &gemm_desc);
   graph_desc_builder_->Connect(std::move(input_nodes), {operator_node});
-  DCHECK_LT(output_dims.size(), output_expand_dims.size());
-  TensorDesc output_tensor(b_tensor_desc.GetDataType(), output_dims);
   node_output_map_[output_index] = graph_desc_builder_->CreateNodeOutput(
       operator_node, 0, std::move(output_tensor));
   return;
@@ -819,7 +920,7 @@ void GraphDMLImpl::AddRelu(UINT64 input_index,
   auto* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   Node node;
-  CREATE_UNARY_OPERATOR(ACTIVATION_RELU, input_tensor_desc.Get(), node);
+  CREATE_UNARY_OPERATOR(ACTIVATION_RELU, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
   graph_desc_builder_->Connect({input_node}, {node});
   TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(),
                                 input_tensor_desc.GetDimensions());
@@ -838,7 +939,7 @@ void GraphDMLImpl::AddSoftmax(UINT64 input_index,
   auto* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   Node node;
-  CREATE_UNARY_OPERATOR(ACTIVATION_SOFTMAX, input_tensor_desc.Get(), node);
+  CREATE_UNARY_OPERATOR(ACTIVATION_SOFTMAX, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
   graph_desc_builder_->Connect({input_node}, {node});
   TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(),
                                 input_tensor_desc.GetDimensions());
@@ -846,6 +947,513 @@ void GraphDMLImpl::AddSoftmax(UINT64 input_index,
       node, 0, std::move(output_tensor_desc));
   node_output_map_[output_index] = std::move(node_output);
   return;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// NEWOPS:::
+
+using DML_XXXX_OPERATOR_DESC = DML_ELEMENT_WISE_SIN_OPERATOR_DESC;
+constexpr DML_OPERATOR_TYPE DML_OPERATOR_XXXX = DML_OPERATOR_ELEMENT_WISE_SIN;
+
+void GraphDMLImpl::AddElementWiseIf(UINT64 condition_index,
+                                    UINT64 true_value_index,
+                                    UINT64 false_value_index,
+                                    OperandDescriptorPtr output_desc,
+                                    UINT64 output_index) {
+  DCHECK(node_output_map_.contains(condition_index));
+  DCHECK(node_output_map_.contains(true_value_index));
+  DCHECK(node_output_map_.contains(false_value_index));
+
+  auto* condition_node = node_output_map_[condition_index].get();
+  auto* true_value_node = node_output_map_[true_value_index].get();
+  auto* false_value_node = node_output_map_[false_value_index].get();
+
+  // Broadcast each of the inputs to the output.
+  auto output_dims = output_desc->dimensions;
+  TensorDesc condition_broadcasted_tensor =
+      GetBroadcastedTensorDesc(condition_node, output_dims);
+  TensorDesc true_value_broadcasted_tensor =
+      GetBroadcastedTensorDesc(true_value_node, output_dims);
+  TensorDesc false_value_broadcasted_tensor =
+      GetBroadcastedTensorDesc(false_value_node, output_dims);
+  TensorDesc output_tensor_desc(true_value_broadcasted_tensor.GetDataType(),
+                                output_dims);
+
+  DML_ELEMENT_WISE_IF_OPERATOR_DESC operator_desc = {};
+  operator_desc.ConditionTensor = condition_broadcasted_tensor.Get();
+  operator_desc.ATensor = true_value_broadcasted_tensor.Get();
+  operator_desc.BTensor = false_value_broadcasted_tensor.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_ELEMENT_WISE_IF, &operator_desc);
+
+  graph_desc_builder_->Connect(
+      {condition_node, true_value_node, false_value_node}, {node});
+
+  // TODO: CreateNodeOutput is being passed a hardcoded 0 instead of
+  // output_index?? Elsewhere too.
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddArgMax(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddArgMin(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddCast(UINT64 input_index,
+                           OperandType data_type,
+                           OperandDescriptorPtr output_desc,
+                           UINT64 output_index) {
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  auto output_data_type = GetTensorDataType(data_type);
+  TensorDesc output_tensor_desc(output_data_type, output_dims);
+
+  DML_CAST_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_CAST, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddConcat(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddExpand(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc =
+      GetBroadcastedTensorDesc(input_node, output_dims);
+
+  Node node;
+  CREATE_UNARY_OPERATOR(ELEMENT_WISE_IDENTITY, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddFlattenTo2d(UINT64 input_index,
+                                  OperandDescriptorPtr output_desc,
+                                  UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddGather(UINT64 input_index,
+                             UINT64 indices_index,
+                             uint32_t axis,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto* indices_node = node_output_map_[indices_index].get();
+  auto& indices_tensor_desc = indices_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+
+  size_t maximum_rank = std::max({input_tensor_desc.GetDimensions().size(),
+                                  indices_tensor_desc.GetDimensions().size(),
+                                  output_dims.size()});
+
+  // Expanded all tensor ranks to match.
+  auto input_expanded_dims = ExpandDimensions(input_tensor_desc.GetDimensions(), maximum_rank);
+  TensorDesc input_expanded_desc(input_tensor_desc.GetDataType(),
+                             input_tensor_desc.GetFlags(), input_expanded_dims);
+  auto indices_expanded_dims = ExpandDimensions(indices_tensor_desc.GetDimensions(), maximum_rank);
+  TensorDesc indices_expanded_desc(indices_tensor_desc.GetDataType(),
+                             indices_tensor_desc.GetFlags(), indices_expanded_dims);
+  auto output_expanded_dims = ExpandDimensions(indices_tensor_desc.GetDimensions(), maximum_rank);
+  TensorDesc output_expanded_desc(input_tensor_desc.GetDataType(),
+                             output_expanded_dims);
+
+  DML_GATHER_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_expanded_desc.Get();
+  operator_desc.IndicesTensor = indices_expanded_desc.Get();
+  operator_desc.OutputTensor = output_expanded_desc.Get();
+  operator_desc.IndexDimensions = indices_expanded_desc.GetDimensions().size();
+  operator_desc.Axis = axis;
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_GATHER, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_expanded_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddInstanceNormalization(UINT64 input_index,
+                                            OperandDescriptorPtr output_desc,
+                                            UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddPad(UINT64 input_index,
+                          OperandDescriptorPtr output_desc,
+                          UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddFillSequence(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddReduceL2(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddReduceMean(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddReduceSum(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddResample2d(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddShape(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+
+void GraphDMLImpl::AddSlice(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddTranspose(UINT64 input_index,
+                                base::span<const uint32_t> permutation,
+                                OperandDescriptorPtr output_desc,
+                                UINT64 output_index) {
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& input_dimensions = output_desc->dimensions;
+  auto& output_dimensions = output_desc->dimensions;
+  DCHECK(input_dimensions.size() == output_dimensions.size());
+  input_tensor_desc.EnsureStridesExist();
+
+  auto output_strides = transposeStrides(*input_tensor_desc.GetStrides(), permutation);
+
+  // Construct a new output tensor description based on the input's dimensions
+  // (not the output, which have already been permuted) but with permuted
+  // strides. That way the input and output have compatible dimensions.
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(),
+                                input_tensor_desc.GetFlags(), input_dimensions,
+                                output_strides);
+
+  Node node;
+  CREATE_UNARY_OPERATOR(ELEMENT_WISE_IDENTITY, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddTriangularMatrix(UINT64 input_index,
+                             OperandDescriptorPtr output_desc,
+                             UINT64 output_index) {
+  // TODO::---------------------------------------------
+  DCHECK(node_output_map_.contains(input_index));
+
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dims = output_desc->dimensions;
+  TensorDesc output_tensor_desc(input_tensor_desc.GetDataType(), output_dims);
+
+  DML_XXXX_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_XXXX, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
 }
 
 void GraphDMLImpl::AddOutput(const std::string& name, UINT64 index) {
@@ -862,7 +1470,9 @@ void GraphDMLImpl::AddOutput(const std::string& name, UINT64 index) {
 
     TensorDesc output_tensor(input_tensor.GetDataType(),
                              input_tensor.GetDimensions());
-    APPEND_IDENTITY(input_tensor.Get(), output_tensor.Get(), node);
+
+    CREATE_UNARY_OPERATOR(ELEMENT_WISE_IDENTITY, input_tensor.Get(), output_tensor.Get(), node);
+
     graph_desc_builder_->Connect({output_node}, {node});
     std::unique_ptr<NodeOutput> identity_output_node =
         graph_desc_builder_->CreateNodeOutput(node, 0,
@@ -886,6 +1496,7 @@ void GraphDMLImpl::Build(ModelInfoPtr model_info, BuildCallback callback) {
       std::make_unique<UploadResource>(execution_context_.get());
   ComPtr<gpgmm::d3d12::ResourceAllocation> constants_resource = nullptr;
   auto constants_info = std::move(model_info->constants);
+
   if (constants_info.get() != nullptr) {
     for (auto& [index, _] : constants_info->memory_info) {
       auto& operand_desc = model_info->operands[index];
@@ -920,14 +1531,23 @@ void GraphDMLImpl::Build(ModelInfoPtr model_info, BuildCallback callback) {
                   conv2d->output_index);
         break;
       }
+      case OperationInfo::Tag::kElementWiseUnary: {
+        auto& mojom_operator = operation->get_element_wise_unary();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddElementWiseUnary(mojom_operator->input_index, mojom_operator->operator_type,
+                            std::move(output_operand),
+                            mojom_operator->output_index);
+        break;
+      }
       case OperationInfo::Tag::kElementWiseBinary: {
         auto& binary = operation->get_element_wise_binary();
         auto& output_operand = model_info->operands[binary->output_index];
-        AddElementWiseBinary(binary->a_index, binary->b_index, binary->type,
+        AddElementWiseBinary(binary->a_index, binary->b_index, binary->operator_type,
                              std::move(output_operand), binary->output_index);
         break;
       }
       case OperationInfo::Tag::kGemm: {
+        // GEMM and MatMul.
         auto& gemm = operation->get_gemm();
         auto& output_operand = model_info->operands[gemm->output_index];
         AddGemm(gemm->a_index, gemm->b_index, std::move(gemm->options),
@@ -962,6 +1582,205 @@ void GraphDMLImpl::Build(ModelInfoPtr model_info, BuildCallback callback) {
                    softmax->output_index);
         break;
       }
+
+      ////////////////////////////////////////////////////////////////////////////////
+      // NEWOPS:::
+      case OperationInfo::Tag::kArgMax: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kCast: {
+        auto& mojom_operator = operation->get_cast();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddCast(mojom_operator->input_index,
+                mojom_operator->data_type,
+                std::move(output_operand),
+                mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kConcat: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kExpand: {
+        auto& mojom_operator = operation->get_expand();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddExpand(mojom_operator->input_index,
+                  std::move(output_operand),
+                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kFlattenTo2d: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kGather: {
+        auto& mojom_operator = operation->get_gather();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddGather(mojom_operator->input_index,
+                  mojom_operator->indices_index,
+                  mojom_operator->axis,
+                  std::move(output_operand),
+                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kInstanceNormalization: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kPad: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kFillSequence: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kReduceL2: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kReduceMean: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kReduceSum: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kResample2d: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kShape: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kSlice: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kTranspose: {
+        auto& mojom_operator = operation->get_transpose();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddTranspose(mojom_operator->input_index, mojom_operator->permutation,
+                     std::move(output_operand),
+                     mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kTriangularMatrix: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kSqueeze: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kUnsqueeze: {
+        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& output_operand = model_info->operands[mojom_operator->output_index];
+        //AddSomeOperator__(mojom_operator->condition_index,
+        //                  mojom_operator->true_value_index,
+        //                  mojom_operator->false_value_index,
+        //                  std::move(output_operand),
+        //                  mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kElementWiseIf: {
+        auto& mojom_operator = operation->get_element_wise_if();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddElementWiseIf(mojom_operator->condition_index,
+                         mojom_operator->true_value_index,
+                         mojom_operator->false_value_index,
+                         std::move(output_operand),
+                         mojom_operator->output_index);
+        break;
+      }
+
       default:
         NOTREACHED();
     }
@@ -1057,14 +1876,23 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                   conv2d->output_index);
         break;
       }
+      case OperationInfo::Tag::kElementWiseUnary: {
+        auto& mojom_operator = operation->get_element_wise_unary();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddElementWiseUnary(mojom_operator->input_index, mojom_operator->operator_type,
+                            std::move(output_operand),
+                            mojom_operator->output_index);
+        break;
+      }
       case OperationInfo::Tag::kElementWiseBinary: {
         auto& binary = operation->get_element_wise_binary();
         auto& output_operand = model_info->operands[binary->output_index];
-        AddElementWiseBinary(binary->a_index, binary->b_index, binary->type,
+        AddElementWiseBinary(binary->a_index, binary->b_index, binary->operator_type,
                              std::move(output_operand), binary->output_index);
         break;
       }
       case OperationInfo::Tag::kGemm: {
+        // GEMM and MatMul.
         auto& gemm = operation->get_gemm();
         auto& output_operand = model_info->operands[gemm->output_index];
         AddGemm(gemm->a_index, gemm->b_index, std::move(gemm->options),
@@ -1099,6 +1927,70 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                    softmax->output_index);
         break;
       }
+
+      ////////////////////////////////////////////////////////////////////////////////
+      // NEWOPS:::
+      //case OperationInfo::Tag::kArgMax:
+      case OperationInfo::Tag::kCast: {
+        auto& mojom_operator = operation->get_cast();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddCast(mojom_operator->input_index,
+                mojom_operator->data_type,
+                std::move(output_operand),
+                mojom_operator->output_index);
+        break;
+      }
+      //case OperationInfo::Tag::kConcat:
+      case OperationInfo::Tag::kExpand: {
+        auto& mojom_operator = operation->get_expand();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddExpand(mojom_operator->input_index,
+                  std::move(output_operand),
+                  mojom_operator->output_index);
+        break;
+      }
+      //case OperationInfo::Tag::kFlattenTo2d:
+      case OperationInfo::Tag::kGather: {
+        auto& mojom_operator = operation->get_gather();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddGather(mojom_operator->input_index,
+                  mojom_operator->indices_index,
+                  mojom_operator->axis,
+                  std::move(output_operand),
+                  mojom_operator->output_index);
+        break;
+      }
+      //case OperationInfo::Tag::kInstanceNormalization:
+      //case OperationInfo::Tag::kPad:
+      //case OperationInfo::Tag::kFillSequence:
+      //case OperationInfo::Tag::kReduceL2:
+      //case OperationInfo::Tag::kReduceMean:
+      //case OperationInfo::Tag::kReduceSum:
+      //case OperationInfo::Tag::kResample2d:
+      //case OperationInfo::Tag::kShape:
+      //case OperationInfo::Tag::kSlice:
+      case OperationInfo::Tag::kTranspose: {
+        auto& mojom_operator = operation->get_transpose();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddTranspose(mojom_operator->input_index, mojom_operator->permutation,
+                     std::move(output_operand),
+                     mojom_operator->output_index);
+        break;
+      }
+      //case OperationInfo::Tag::kTriangularMatrix:
+      //case OperationInfo::Tag::kSqueeze:
+      //case OperationInfo::Tag::kUnsqueeze:
+      case OperationInfo::Tag::kElementWiseIf: {
+        auto& mojom_operator = operation->get_element_wise_if();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddElementWiseIf(mojom_operator->condition_index,
+                         mojom_operator->true_value_index,
+                         mojom_operator->false_value_index,
+                         std::move(output_operand),
+                         mojom_operator->output_index);
+        break;
+      }
+
       default:
         NOTREACHED();
     }

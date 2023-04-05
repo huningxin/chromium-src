@@ -4,6 +4,9 @@
 
 #include "content/browser/ml/webnn/dml/graph_desc_builder.h"
 
+// HACK:::
+#pragma optimize("", off)
+
 namespace content::webnn {
 
 GraphDescBuilder::GraphDescBuilder(ComPtr<IDMLDevice> device)
@@ -65,6 +68,7 @@ std::unique_ptr<NodeOutput> GraphDescBuilder::CreateNodeOutput(
                                       std::move(tensor_desc));
 }
 
+// TODO: Can std::vector<NodeOutput*> inputs be a base::span<const NodeOutput*>?
 void GraphDescBuilder::Connect(std::vector<NodeOutput*> inputs,
                                Node operator_node) {
   for (size_t input_index = 0; input_index < inputs.size(); ++input_index) {

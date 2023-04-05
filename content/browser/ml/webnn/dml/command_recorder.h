@@ -32,7 +32,7 @@ class CommandRecorder final {
 
   HRESULT Initialize();
 
-  void ResourceBarrier(std::vector<const D3D12_RESOURCE_BARRIER> barriers);
+  void ResourceBarrier(const std::vector<D3D12_RESOURCE_BARRIER>& barriers);
 
   void CopyBufferRegion(ID3D12Resource* dst_buffer,
                         uint64_t dst_offset,

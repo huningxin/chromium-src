@@ -21,6 +21,9 @@
 
 #include <memory>
 
+// HACK:::
+#pragma optimize("", off)
+
 namespace blink {
 
 namespace {
@@ -30,6 +33,8 @@ using ml::webnn::mojom::blink::ComputeResult;
 using ml::webnn::mojom::blink::MemoryInfoPtr;
 
 void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 50);
+
   switch (op->Kind()) {
     case MLOperator::OperatorKind::kClamp:
       model_info->AddClamp(op);
@@ -43,9 +48,14 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kDiv:
     case MLOperator::OperatorKind::kMin:
     case MLOperator::OperatorKind::kMax:
+    case MLOperator::OperatorKind::kEqual:
+    case MLOperator::OperatorKind::kGreater:
+    case MLOperator::OperatorKind::kLesser:
+    case MLOperator::OperatorKind::kPow:
       model_info->AddElementWiseBinary(op);
       break;
     case MLOperator::OperatorKind::kGemm:
+    case MLOperator::OperatorKind::kMatmul:
       model_info->AddGemm(op);
       break;
     case MLOperator::OperatorKind::kAveragePool2d:
@@ -55,12 +65,90 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kRelu:
       model_info->AddRelu(op);
       break;
+    case MLOperator::OperatorKind::kResample2d:
+      model_info->AddResample2d(op);
+      break;
     case MLOperator::OperatorKind::kSoftmax:
       model_info->AddSoftmax(op);
       break;
     case MLOperator::OperatorKind::kReshape:
       model_info->AddReshape(op);
       break;
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // NEWOPS::: Add new operators here.
+    case MLOperator::OperatorKind::kArgMax:
+      model_info->AddArgMax(op);
+      break;
+    case MLOperator::OperatorKind::kArgMin:
+      model_info->AddArgMin(op);
+      break;
+    case MLOperator::OperatorKind::kCast:
+      model_info->AddCast(op);
+      break;
+    case MLOperator::OperatorKind::kConcat:
+      model_info->AddConcat(op);
+      break;
+    case MLOperator::OperatorKind::kExpand:
+      model_info->AddExpand(op);
+      break;
+    case MLOperator::OperatorKind::kCos:
+    case MLOperator::OperatorKind::kErf:
+    case MLOperator::OperatorKind::kExp:
+    case MLOperator::OperatorKind::kIdentity:
+    case MLOperator::OperatorKind::kSin:
+    case MLOperator::OperatorKind::kTan:
+    case MLOperator::OperatorKind::kSqrt:
+    case MLOperator::OperatorKind::kSigmoid:
+    case MLOperator::OperatorKind::kHardSwish:
+      model_info->AddElementWiseUnary(op);
+      break;
+    case MLOperator::OperatorKind::kFlattenTo2d:
+      model_info->AddFlattenTo2d(op);
+      break;
+    case MLOperator::OperatorKind::kGather:
+      model_info->AddGather(op);
+      break;
+    case MLOperator::OperatorKind::kInstanceNormalization:
+      model_info->AddInstanceNormalization(op);
+      break;
+    case MLOperator::OperatorKind::kPad:
+      model_info->AddPad(op);
+      break;
+    case MLOperator::OperatorKind::kFillSequence:
+      model_info->AddFillSequence(op);
+      break;
+    case MLOperator::OperatorKind::kReduceL2:
+      model_info->AddReduceL2(op);
+      break;
+    case MLOperator::OperatorKind::kReduceMean:
+      model_info->AddReduceMean(op);
+      break;
+    case MLOperator::OperatorKind::kReduceSum:
+      model_info->AddReduceSum(op);
+      break;
+    case MLOperator::OperatorKind::kShape:
+      model_info->AddShape(op);
+      break;
+    case MLOperator::OperatorKind::kSlice:
+      model_info->AddSlice(op);
+      break;
+    case MLOperator::OperatorKind::kTranspose:
+      model_info->AddTranspose(op);
+      break;
+    case MLOperator::OperatorKind::kTriangularMatrix:
+      model_info->AddTriangularMatrix(op);
+      break;
+    case MLOperator::OperatorKind::kSqueeze:
+      model_info->AddSqueeze(op);
+      break;
+    case MLOperator::OperatorKind::kUnsqueeze:
+      model_info->AddUnsqueeze(op);
+      break;
+    case MLOperator::OperatorKind::kElementWiseIf:
+      model_info->AddElementWiseIf(op);
+      break;
+
     default:
       NOTIMPLEMENTED();
       break;

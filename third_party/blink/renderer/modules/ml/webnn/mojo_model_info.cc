@@ -9,11 +9,18 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_concat_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gather_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_arg_min_max_options.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/mojo_graph.h"
 #include "third_party/blink/renderer/platform/bindings/exception_code.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+
+// HACK:::
+#pragma optimize("", off)
 
 namespace blink {
 
@@ -30,7 +37,7 @@ namespace {
 
 using ml::webnn::mojom::blink::AutoPad;
 using ml::webnn::mojom::blink::Conv2dFilterOperandLayout;
-using ml::webnn::mojom::blink::ElementWiseBinaryType;
+using ml::webnn::mojom::blink::OperatorType;
 using ml::webnn::mojom::blink::InputOperandLayout;
 using ml::webnn::mojom::blink::OperandType;
 using ml::webnn::mojom::blink::OperationInfo;
@@ -39,6 +46,9 @@ using ml::webnn::mojom::blink::Pool2dType;
 using ml::webnn::mojom::blink::RoundingType;
 
 OperandType BlinkOperandTypeToMojo(V8MLOperandType::Enum type) {
+  static_assert(int32_t(ml::webnn::mojom::blink::OperandType::kMaxValue) + 1 == 6);
+  static_assert(int32_t(V8MLOperandType::kEnumSize) == 6);
+
   switch (type) {
     case V8MLOperandType::Enum::kFloat32:
       return OperandType::kFloat32;
@@ -109,18 +119,121 @@ Pool2dType BlinkPool2dTypeToMojo(MLOperator::OperatorKind type) {
   }
 }
 
-ElementWiseBinaryType BlinkElementWiseBinaryTypeToMojo(
+OperatorType BlinkOperatorKindToMojoType(
     MLOperator::OperatorKind type) {
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 50);
+  static_assert(int32_t(OperatorType::kMaxValue) + 1 == 50);
+
   switch (type) {
+    case MLOperator::OperatorKind::kClamp:
+      return OperatorType::kClamp;
+    case MLOperator::OperatorKind::kConv2d:
+      return OperatorType::kConv2d;
     case MLOperator::OperatorKind::kAdd:
-      return ElementWiseBinaryType::kAdd;
+      return OperatorType::kAdd;
+    case MLOperator::OperatorKind::kSub:
+      return OperatorType::kSub;
+    case MLOperator::OperatorKind::kMul:
+      return OperatorType::kMul;
+    case MLOperator::OperatorKind::kDiv:
+      return OperatorType::kDiv;
+    case MLOperator::OperatorKind::kMax:
+      return OperatorType::kMax;
+    case MLOperator::OperatorKind::kMin:
+      return OperatorType::kMin;
+    case MLOperator::OperatorKind::kGemm:
+      return OperatorType::kGemm;
+    case MLOperator::OperatorKind::kHardSwish:
+      return OperatorType::kHardSwish;
+    case MLOperator::OperatorKind::kAveragePool2d:
+      return OperatorType::kAveragePool2d;
+    case MLOperator::OperatorKind::kMaxPool2d:
+      return OperatorType::kMaxPool2d;
+    case MLOperator::OperatorKind::kRelu:
+      return OperatorType::kRelu;
+    case MLOperator::OperatorKind::kReshape:
+      return OperatorType::kReshape;
+    case MLOperator::OperatorKind::kResample2d:
+      return OperatorType::kResample2d;
+    case MLOperator::OperatorKind::kSoftmax:
+      return OperatorType::kSoftmax;
+    case MLOperator::OperatorKind::kSigmoid:
+      return OperatorType::kSigmoid;
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // NEWOPS:::
+    case MLOperator::OperatorKind::kArgMax:
+      return OperatorType::kArgMax;
+    case MLOperator::OperatorKind::kArgMin:
+      return OperatorType::kArgMin;
+    case MLOperator::OperatorKind::kCast:
+      return OperatorType::kCast;
+    case MLOperator::OperatorKind::kConcat:
+      return OperatorType::kConcat;
+    case MLOperator::OperatorKind::kExpand:
+      return OperatorType::kExpand;
+    case MLOperator::OperatorKind::kCos:
+      return OperatorType::kCos;
+    case MLOperator::OperatorKind::kEqual:
+      return OperatorType::kEqual;
+    case MLOperator::OperatorKind::kErf:
+      return OperatorType::kErf;
+    case MLOperator::OperatorKind::kExp:
+      return OperatorType::kExp;
+    case MLOperator::OperatorKind::kFlattenTo2d:
+      return OperatorType::kFlattenTo2d;
+    case MLOperator::OperatorKind::kGather:
+      return OperatorType::kGather;
+    case MLOperator::OperatorKind::kGreater:
+      return OperatorType::kGreater;
+    case MLOperator::OperatorKind::kLesser:
+      return OperatorType::kLesser;
+    case MLOperator::OperatorKind::kIdentity:
+      return OperatorType::kIdentity;
+    case MLOperator::OperatorKind::kInstanceNormalization:
+      return OperatorType::kInstanceNormalization;
+    case MLOperator::OperatorKind::kMatmul:
+      return OperatorType::kMatmul;
+    case MLOperator::OperatorKind::kPad:
+      return OperatorType::kPad;
+    case MLOperator::OperatorKind::kPow:
+      return OperatorType::kPow;
+    case MLOperator::OperatorKind::kFillSequence:
+      return OperatorType::kFillSequence;
+    case MLOperator::OperatorKind::kReduceL2:
+      return OperatorType::kReduceL2;
+    case MLOperator::OperatorKind::kReduceMean:
+      return OperatorType::kReduceMean;
+    case MLOperator::OperatorKind::kReduceSum:
+      return OperatorType::kReduceSum;
+    case MLOperator::OperatorKind::kShape:
+      return OperatorType::kShape;
+    case MLOperator::OperatorKind::kSin:
+      return OperatorType::kSin;
+    case MLOperator::OperatorKind::kSlice:
+      return OperatorType::kSlice;
+    case MLOperator::OperatorKind::kSqrt:
+      return OperatorType::kSqrt;
+    case MLOperator::OperatorKind::kTranspose:
+      return OperatorType::kTranspose;
+    case MLOperator::OperatorKind::kTriangularMatrix:
+      return OperatorType::kTriangularMatrix;
+    case MLOperator::OperatorKind::kTan:
+      return OperatorType::kTan;
+    case MLOperator::OperatorKind::kSqueeze:
+      return OperatorType::kSqueeze;
+    case MLOperator::OperatorKind::kUnsqueeze:
+      return OperatorType::kUnsqueeze;
+    case MLOperator::OperatorKind::kElementWiseIf:
+      return OperatorType::kElementWiseIf;
+
     default:
       NOTREACHED();
-      return ElementWiseBinaryType::kUnknown;
+      return OperatorType::kUnknown;
   }
 }
 
-ml::webnn::mojom::blink::ClampOptionsPtr BlinkClampOptioinToMojo(
+ml::webnn::mojom::blink::ClampOptionsPtr BlinkClampOptionsToMojo(
     const MLClampOptions* ml_options) {
   const float min = ml_options->hasMinValue()
                         ? ml_options->minValue()
@@ -140,7 +253,7 @@ OperationInfoPtr FusionOperation(const MLOperator* activation) {
     case MLOperator::OperatorKind::kClamp: {
       auto clamp = ml::webnn::mojom::blink::Clamp::New();
       clamp->input_index = std::numeric_limits<uint64_t>::max();
-      clamp->options = BlinkClampOptioinToMojo(
+      clamp->options = BlinkClampOptionsToMojo(
           static_cast<const MLClampOptions*>(activation->Options()));
       clamp->output_index = std::numeric_limits<uint64_t>::max();
       auto operation = OperationInfo::NewClamp(std::move(clamp));
@@ -160,7 +273,7 @@ OperationInfoPtr FusionOperation(const MLOperator* activation) {
   }
 }
 
-ml::webnn::mojom::blink::Conv2dOptionsPtr BlinkConv2dOptioinToMojo(
+ml::webnn::mojom::blink::Conv2dOptionsPtr BlinkConv2dOptionsToMojo(
     const MLConv2dOptions* ml_options,
     const HeapHashMap<Member<const MLOperand>, size_t>& operand_index_map) {
   auto options = ml::webnn::mojom::blink::Conv2dOptions::New();
@@ -188,7 +301,7 @@ ml::webnn::mojom::blink::Conv2dOptionsPtr BlinkConv2dOptioinToMojo(
   return options;
 }
 
-ml::webnn::mojom::blink::Pool2dOptionsPtr BlinkPool2dOptioinToMojo(
+ml::webnn::mojom::blink::Pool2dOptionsPtr BlinkPool2dOptionsToMojo(
     const MLPool2dOptions* ml_options) {
   auto options = ml::webnn::mojom::blink::Pool2dOptions::New();
   options->window_dimensions = ml_options->hasWindowDimensions()
@@ -213,7 +326,7 @@ ml::webnn::mojom::blink::Pool2dOptionsPtr BlinkPool2dOptioinToMojo(
   return options;
 }
 
-ml::webnn::mojom::blink::GemmOptionsPtr BlinkGemmOptioinToMojo(
+ml::webnn::mojom::blink::GemmOptionsPtr BlinkGemmOptionsToMojo(
     const MLGemmOptions* ml_options,
     const HeapHashMap<Member<const MLOperand>, size_t>& operand_index_map) {
   auto options = ml::webnn::mojom::blink::GemmOptions::New();
@@ -225,6 +338,14 @@ ml::webnn::mojom::blink::GemmOptionsPtr BlinkGemmOptioinToMojo(
       ml_options->hasATranspose() ? ml_options->aTranspose() : false;
   options->b_transpose =
       ml_options->hasBTranspose() ? ml_options->bTranspose() : false;
+  return options;
+}
+
+ml::webnn::mojom::blink::ArgMinMaxOptionsPtr BlinkArgMinMaxOptionsToMojo(
+    const MLArgMinMaxOptions* ml_options) {
+  auto options = ml::webnn::mojom::blink::ArgMinMaxOptions::New();
+  options->axis = ml_options->axis();
+  options->keep_dimensions = ml_options->keepDimensions();
   return options;
 }
 
@@ -269,6 +390,16 @@ void MojoModelInfo::AddOutput(String name, const MLOperand* output) {
   model_info_->outputs.push_back(std::move(named_output));
 }
 
+bool MojoModelInfo::OperandsInIndexMap(const Member<const MLOperand>* operands,
+                                       size_t operand_count) const {
+  for (size_t i = 0; i < operand_count; ++i) {
+    if (!operand_index_map_.Contains(operands[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void MojoModelInfo::AddClamp(const MLOperator* ml_clamp) {
   DCHECK_EQ(ml_clamp->Inputs().size(), static_cast<uint32_t>(1));
   auto* input = ml_clamp->Inputs()[0].Get();
@@ -283,7 +414,7 @@ void MojoModelInfo::AddClamp(const MLOperator* ml_clamp) {
   // Add clamp operation to the model.
   auto clamp = ml::webnn::mojom::blink::Clamp::New();
   clamp->input_index = operand_index_map_.at(input);
-  clamp->options = BlinkClampOptioinToMojo(
+  clamp->options = BlinkClampOptionsToMojo(
       static_cast<const MLClampOptions*>(ml_clamp->Options()));
   clamp->output_index = output_index;
   auto operation = OperationInfo::NewClamp(std::move(clamp));
@@ -309,26 +440,52 @@ void MojoModelInfo::AddConv2d(const MLOperator* ml_conv2d) {
   conv2d->filter_index = operand_index_map_.at(filter);
   const MLConv2dOptions* ml_options =
       static_cast<const MLConv2dOptions*>(ml_conv2d->Options());
-  conv2d->options = BlinkConv2dOptioinToMojo(ml_options, operand_index_map_);
+  conv2d->options = BlinkConv2dOptionsToMojo(ml_options, operand_index_map_);
   conv2d->output_index = output_index;
   auto operation = OperationInfo::NewConv2d(std::move(conv2d));
   model_info_->operations.push_back(std::move(operation));
 }
 
-void MojoModelInfo::AddElementWiseBinary(const MLOperator* ml_binary) {
-  DCHECK_EQ(ml_binary->Inputs().size(), static_cast<uint32_t>(2));
-  auto* a = ml_binary->Inputs()[0].Get();
-  auto* b = ml_binary->Inputs()[1].Get();
-  if (operand_index_map_.find(a) == operand_index_map_.end() ||
-      operand_index_map_.find(b) == operand_index_map_.end()) {
+void MojoModelInfo::AddElementWiseUnary(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), static_cast<uint32_t>(1));
+  DCHECK_EQ(ml_operator->Outputs().size(), static_cast<uint32_t>(1));
+
+  // Verify inputs exist and output does not yet exist.
+  auto* input = ml_operator->Inputs()[0].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(input)) {
     return;
   }
-  DCHECK_EQ(ml_binary->Outputs().size(), static_cast<uint32_t>(1));
-  auto* output = ml_binary->Outputs()[0].Get();
-  DCHECK(operand_index_map_.find(output) == operand_index_map_.end());
+  DCHECK(!operand_index_map_.Contains(output));
   size_t output_index = AddOperandToModel(output);
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::ElementWiseUnary::New();
+  mojom_operator->operator_type = BlinkOperatorKindToMojoType(ml_operator->Kind());
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->output_index = output_index;
+  auto operation = OperationInfo::NewElementWiseUnary(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation));
+}
+
+void MojoModelInfo::AddElementWiseBinary(const MLOperator* ml_binary) {
+  DCHECK_EQ(ml_binary->Inputs().size(), static_cast<uint32_t>(2));
+  DCHECK_EQ(ml_binary->Outputs().size(), static_cast<uint32_t>(1));
+
+  // Verify inputs exist and output does not yet exist.
+  auto* a = ml_binary->Inputs()[0].Get();
+  auto* b = ml_binary->Inputs()[1].Get();
+  auto* output = ml_binary->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(a) ||
+      !operand_index_map_.Contains(b)) {
+    return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  // Create mojom operator from JS blink type.
   auto binary = ml::webnn::mojom::blink::ElementWiseBinary::New();
-  binary->type = BlinkElementWiseBinaryTypeToMojo(ml_binary->Kind());
+  binary->operator_type = BlinkOperatorKindToMojoType(ml_binary->Kind());
   binary->a_index = operand_index_map_.at(a);
   binary->b_index = operand_index_map_.at(b);
   binary->output_index = output_index;
@@ -355,7 +512,7 @@ void MojoModelInfo::AddGemm(const MLOperator* ml_gemm) {
   gemm->b_index = operand_index_map_.at(b);
   const MLGemmOptions* ml_options =
       static_cast<const MLGemmOptions*>(ml_gemm->Options());
-  gemm->options = BlinkGemmOptioinToMojo(ml_options, operand_index_map_);
+  gemm->options = BlinkGemmOptionsToMojo(ml_options, operand_index_map_);
   gemm->output_index = output_index;
   auto operation = OperationInfo::NewGemm(std::move(gemm));
   model_info_->operations.push_back(std::move(operation));
@@ -378,7 +535,7 @@ void MojoModelInfo::AddPool2d(const MLOperator* ml_pool2d) {
   pool2d->input_index = operand_index_map_.at(input);
   const MLPool2dOptions* ml_options =
       static_cast<const MLPool2dOptions*>(ml_pool2d->Options());
-  pool2d->options = BlinkPool2dOptioinToMojo(ml_options);
+  pool2d->options = BlinkPool2dOptionsToMojo(ml_options);
   pool2d->output_index = output_index;
   auto operation = OperationInfo::NewPool2d(std::move(pool2d));
   model_info_->operations.push_back(std::move(operation));
@@ -439,6 +596,258 @@ void MojoModelInfo::AddSoftmax(const MLOperator* ml_softmax) {
   softmax->output_index = output_index;
   auto operation = OperationInfo::NewSoftmax(std::move(softmax));
   model_info_->operations.push_back(std::move(operation));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// NEWOPS:::
+
+void MojoModelInfo::AddArgMax(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 1u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  auto* input = ml_operator->Inputs()[0].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+
+  size_t output_index = AddOperandToModel(output);
+
+  const MLArgMinMaxOptions* ml_options =
+      static_cast<const MLArgMinMaxOptions*>(ml_operator->Options());
+
+  auto mojom_operator = ml::webnn::mojom::blink::ArgMax::New();
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->output_index = output_index;
+  mojom_operator->options = BlinkArgMinMaxOptionsToMojo(ml_options);
+
+  auto operation_info = OperationInfo::NewArgMax(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddArgMin(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 1u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  // Verify inputs exist and output does not yet exist.
+  auto* input = ml_operator->Inputs()[0].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLArgMinMaxOptions* ml_options =
+      static_cast<const MLArgMinMaxOptions*>(ml_operator->Options());
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::ArgMin::New();
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->output_index = output_index;
+  mojom_operator->options = BlinkArgMinMaxOptionsToMojo(ml_options);
+  auto operation_info = OperationInfo::NewArgMin(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddCast(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 1u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  // Verify inputs exist and output does not yet exist.
+  auto* input = ml_operator->Inputs()[0].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::Cast::New();
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->output_index = output_index;
+  mojom_operator->data_type = BlinkOperandTypeToMojo(output->Type());
+  auto operation_info = OperationInfo::NewCast(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddConcat(const MLOperator* ml_operator) {
+  DCHECK_GE(ml_operator->Inputs().size(), 0u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  // Verify inputs exist and output does not yet exist.
+  auto& inputs = ml_operator->Inputs();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!OperandsInIndexMap(inputs.data(), inputs.size()))
+  {
+      return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLConcatOptions* ml_options = static_cast<const MLConcatOptions*>(ml_operator->Options());
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::Concat::New();
+  for (const Member<const MLOperand>& input : inputs)
+  {
+    mojom_operator->input_indices.push_back(operand_index_map_.at(input));
+  }
+  mojom_operator->output_index = output_index;
+  mojom_operator->axis = ml_options->axis();
+  auto operation_info = OperationInfo::NewConcat(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddExpand(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 1u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  auto* input = ml_operator->Inputs()[0].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  auto mojom_operator = ml::webnn::mojom::blink::Expand::New();
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->output_index = output_index;
+
+  auto operation_info = OperationInfo::NewExpand(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddFlattenTo2d(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddGather(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 2u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  auto& inputs = ml_operator->Inputs();
+  auto* input = inputs[0].Get();
+  auto* indices = inputs[1].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!OperandsInIndexMap(inputs.data(), inputs.size()))
+  {
+      return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLGatherOptions* ml_options =
+      static_cast<const MLGatherOptions*>(ml_operator->Options());
+
+  auto mojom_operator = ml::webnn::mojom::blink::Gather::New();
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->indices_index = operand_index_map_.at(indices);
+  mojom_operator->axis = ml_options->axis();
+  mojom_operator->output_index = output_index;
+
+  auto operation_info = OperationInfo::NewGather(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddInstanceNormalization(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddPad(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddFillSequence(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddReduceL2(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddReduceMean(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddReduceSum(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddResample2d(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddShape(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddSlice(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddTranspose(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 1u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  auto* input = ml_operator->Inputs()[0].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLTransposeOptions* ml_options =
+      static_cast<const MLTransposeOptions*>(ml_operator->Options());
+
+  auto mojom_operator = ml::webnn::mojom::blink::Transpose::New();
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->output_index = output_index;
+  mojom_operator->permutation = ml_options->permutation();
+
+  auto operation_info = OperationInfo::NewTranspose(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddTriangularMatrix(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddSqueeze(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddUnsqueeze(const MLOperator* ml_operator) {
+    // TODO:
+}
+
+void MojoModelInfo::AddElementWiseIf(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 3u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  auto& inputs = ml_operator->Inputs();
+  if (!OperandsInIndexMap(inputs.data(), inputs.size()))
+  {
+      return;
+  }
+  auto* condition = inputs[0].Get();
+  auto* true_value = inputs[1].Get();
+  auto* false_value = inputs[2].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  auto mojom_operator = ml::webnn::mojom::blink::ElementWiseIf::New();
+  mojom_operator->condition_index = operand_index_map_.at(condition);
+  mojom_operator->true_value_index = operand_index_map_.at(true_value);
+  mojom_operator->false_value_index = operand_index_map_.at(false_value);
+  mojom_operator->output_index = output_index;
+  auto operation_info = OperationInfo::NewElementWiseIf(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
 }
 
 void MojoModelInfo::FillConstantsWithArrayBuffer() {

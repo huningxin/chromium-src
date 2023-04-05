@@ -8,6 +8,7 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_auto_pad.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_type.h"
 #include "third_party/blink/renderer/core/typed_arrays/array_buffer_view_helpers.h"
 #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer_view.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
@@ -26,11 +27,43 @@ class MLConv2dOptions;
 class MLGemmOptions;
 class MLGraph;
 class MLPool2dOptions;
+class MLConcatOptions;
+class MLGatherOptions;
 class MLResample2dOptions;
+class MLArgMinMaxOptions;
+class MLSqueezeOptions;
+class MLSliceOptions;
+class MLTransposeOptions;
+class MLPadOptions;
+class MLInstanceNormalizationOptions;
+class MLFillSequenceOptions;
+class MLTriangularMatrixOptions;
+class MLReduceOptions;
 class MLOperand;
 class MLOperandDescriptor;
 class ScriptPromiseResolver;
 class ScriptPromise;
+
+#if 0 // TODO::: Delete me?
+// Additional options 
+class MLInternalConcatOptions {
+  public:
+  static MLInternalConcatOptions* Create() {
+    return MakeGarbageCollected<MLInternalConcatOptions>();
+  }
+
+  uint32_t axis_{0};
+};
+
+class MLInternalGatherOptions : public bindings::DictionaryBase {
+  public:
+  static MLInternalGatherOptions* Create() {
+    return MakeGarbageCollected<MLInternalGatherOptions>();
+  }
+
+  uint32_t axis_{0};
+};
+#endif
 
 typedef HeapVector<std::pair<String, Member<MLOperand>>> MLNamedOperands;
 
@@ -138,6 +171,98 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
 
   MLOperand* sigmoid(const MLOperand* input, ExceptionState& exception_state);
   MLOperator* sigmoid(ExceptionState& exception_state);
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // NEWOPS:::
+
+  MLOperand* argMax(const MLOperand* input,
+                    const MLArgMinMaxOptions* options,
+                    ExceptionState& exception_state);
+  MLOperand* argMin(const MLOperand* input,
+                    const MLArgMinMaxOptions* options,
+                    ExceptionState& exception_state);
+  MLOperand* cast(const MLOperand* input,
+                  V8MLOperandType data_type,
+                  ExceptionState& exception_state);
+  MLOperand* concat(const HeapVector<Member<MLOperand>>& inputs,
+                    const MLConcatOptions* options,
+                    ExceptionState& exception_state);
+  MLOperand* expand(const MLOperand* input,
+                    const Vector<uint32_t>& new_shape,
+                    ExceptionState& exception_state);
+  MLOperand* cos(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* equal(const MLOperand* a,
+                   const MLOperand* b,
+                   ExceptionState& exception_state);
+  MLOperand* erf(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* exp(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* flattenTo2d(const MLOperand* input,
+                         uint32_t axis,
+                         ExceptionState& exception_state);
+  MLOperand* gather(const MLOperand* input,
+                    const MLOperand* indices,
+                    const MLGatherOptions* options,
+                    ExceptionState& exception_state);
+  MLOperand* greater(const MLOperand* a,
+                     const MLOperand* b,
+                     ExceptionState& exception_state);
+  MLOperand* identity(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* instanceNormalization(const MLOperand* input,
+                                   const MLInstanceNormalizationOptions* options,
+                                   ExceptionState& exception_state);
+  MLOperand* lesser(const MLOperand* a,
+                    const MLOperand* b,
+                    ExceptionState& exception_state);
+  MLOperand* matmul(const MLOperand* a,
+                    const MLOperand* b,
+                    ExceptionState& exception_state);
+  MLOperand* pad(const MLOperand* input,
+                 const Vector<uint32_t>& beginningPadding,
+                 const Vector<uint32_t>& endingPadding,
+                 const MLPadOptions* options,
+                 ExceptionState& exception_state);
+  MLOperand* pow(const MLOperand* a,
+                 const MLOperand* b,
+                 ExceptionState& exception_state);
+  MLOperand* fillSequence(const MLOperand* input,
+                          const MLFillSequenceOptions* options,
+                          ExceptionState& exception_state);
+  MLOperand* reduceL2(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
+  MLOperand* reduceMean(const MLOperand* input,
+                        const MLReduceOptions* options,
+                        ExceptionState& exception_state);
+  MLOperand* reduceSum(const MLOperand* input,
+                       const MLReduceOptions* options,
+                       ExceptionState& exception_state);
+  MLOperand* shape(const MLOperand* input,
+                   ExceptionState& exception_state);
+  MLOperand* sin(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* slice(const MLOperand* input,
+                   const Vector<int32_t>& starts,
+                   const Vector<int32_t>& sizes,
+                   const MLSliceOptions* options,
+                   ExceptionState& exception_state);
+  MLOperand* sqrt(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* tan(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* transpose(const MLOperand* input,
+                       const MLTransposeOptions* options,
+                       ExceptionState& exception_state);
+  MLOperand* triangularMatrix(const MLOperand* input,
+                              const MLTriangularMatrixOptions* options,
+                              ExceptionState& exception_state);
+  MLOperand* squeeze(const MLOperand* input,
+                     const MLSqueezeOptions* options,
+                     ExceptionState& exception_state);
+  MLOperand* unsqueeze(const MLOperand* input,
+                       const MLSqueezeOptions* options,
+                       ExceptionState& exception_state);
+
+  MLOperand* elementwiseIf(const MLOperand* condition,
+                           const MLOperand* true_value,
+                           const MLOperand* false_value,
+                           ExceptionState& exception_state);
 
   ScriptPromise build(ScriptState* script_state,
                       const MLNamedOperands& named_outputs,

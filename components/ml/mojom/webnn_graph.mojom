@@ -6,7 +6,85 @@ module ml.webnn.mojom;
 
 import "mojo/public/mojom/base/shared_memory.mojom";
 
-// Represents the `MLOperandType` that is the type of operand.
+// Enumeration for every distinct operator, regardless of how they may be
+// grouped together in the mojom messages. There should be a 1:1 mapping to
+// each OperatorKind::MLOperator::OperatorKind in ml_operator.h, and every
+// callable operator function in ml_graph_builder.idl should have an entry.
+// Note the OperationInfo::Tag enumerations are distinct and are subject to
+// message grouping, such as combining multiple elementwise binary messages
+// into a single struct.
+[Stable, Extensible]
+enum OperatorType {
+  [Default] kUnknown = 0, // Used to throw exception for unsupported types in blink.
+
+  kClamp,
+  kConv2d,
+  kGemm,
+
+  // ElementWiseBinary operations
+  kAdd,
+  kSub,
+  kMul,
+  kDiv,
+  kMax,
+  kMin,
+  kPow,
+
+  // Elementwise logical binary operations
+  kEqual,
+  kGreater,
+  kLesser,
+
+  kHardSwish,
+  kAveragePool2d,
+  kMaxPool2d,
+  kRelu,
+  kReshape,
+  kResample2d,
+  kSoftmax,
+  kSigmoid,
+
+  // NEWOPS::: New prototype operators added for Stable diffusion 1.5.
+
+  kMatmul, // Handled by GEMM.
+
+  // Shape modification operations.
+  kShape,
+  kSqueeze,
+  kUnsqueeze,
+  kConcat,
+  kSlice,
+  kTranspose,
+  kPad,
+  kExpand, // like ONNX Expand or ConstantOfShape, broadcasts
+  kGather,
+  kFlattenTo2d,
+
+  // ElementWiseUnary operations
+  kIdentity,
+  kExp,
+  kSqrt,
+  kSin,
+  kCos,
+  kTan,
+  kErf,
+
+  // Reduction operations
+  kReduceL2,
+  kReduceMean,
+  kReduceSum,
+
+  // Miscellaneous
+  kArgMax,
+  kArgMin,
+  kCast,
+  kInstanceNormalization,
+  kFillSequence, // ONNX Range
+  kTriangularMatrix,
+  kElementWiseIf, // ONNX Where
+};
+
+// Represents the element data type of a tensor, or `MLOperandType`.
 [Stable, Extensible]
 enum OperandType {
   [Default] kFloat32,
@@ -68,6 +146,20 @@ enum Conv2dFilterOperandLayout { [Default] kOihw, kHwio, kOhwi, kIhwo };
 [Stable, Extensible]
 enum AutoPad { [Default] kExplicit, kSameUpper, kSameLower };
 
+////////////////////////////////////////////////////////////////////////////////
+// NEWOPS::: New enums go here.
+
+[Stable, Extensible]
+enum TriangularPart { [Default] kUpper, kLower };
+
+[Stable, Extensible]
+enum PaddingMode { [Default] kConstant, kEdge, kReflection, kSymmetric };
+
+[Stable, Extensible]
+enum InterpolationMode { [Default] kNearestNeighbor, kLinear };
+// END NEWOPS:::
+////////////////////////////////////////////////////////////////////////////////
+
 // Represents the `MLConv2dOptions`.
 [Stable]
 struct Conv2dOptions {
@@ -115,29 +207,45 @@ struct Conv2d {
   uint64 output_index@3;
 };
 
-// Represents element-wise binary operation, the `kUnknown` is used to throw
-// exception for unsupported type in blink.
-[Stable, Extensible]
-enum ElementWiseBinaryType {
-  [Default] kUnknown = 0,
-  kAdd,
-  kSub,
-  kMul,
-  kDiv,
-  kMax,
-  kMin,
-  kPower,
+// Element-wise unary operators:
+// - identity: return same output as input.
+// - abs: Compute the absolute value of the input tensor, element-wise.
+// - ceil: Compute the ceiling of the input tensor, element-wise.
+// - cos: Compute the cosine of the input tensor, element-wise.
+// - exp: Compute the exponential of the input tensor, element-wise.
+// - erf: Compute the exponential of the input tensor, element-wise.
+// - floor: Compute the floor of the input tensor, element-wise.
+// - log: Compute the natural logarithm of the input tensor, element-wise.
+// - neg: Compute the numerical negative value of the input tensor, element-wise.
+// - sin: Compute the sine of the input tensor, element-wise.
+// - sqrt: Compute the square root of the input tensor, element-wise.
+// - tan: Compute the tangent of the input tensor, element-wise.
+//
+[Stable]
+struct ElementWiseUnary  {
+  OperatorType operator_type@0; // The type of unary operation.
+  uint64 input_index@1; // The index of a operand in the model's operand array.
+  uint64 output_index@2; // The index of output operand in the model's operand array.
 };
 
-// Add element-wise binary addition, subtraction, multiplication, division
-// defined in `ElementWiseBinaryType`. Corresponds to `MLOperand add(
-// MLOperand a, MLOperand b)` function in `MLGraphBuilder`. The a `MLOperand` is
-// mapping to the struct's a index, The b `MLOperand` is mapping to the struct's
-// b index, the return `MLOperand` is mapping to the struct's output index.
+// Element-wise binary operators:
+// - add: Add the values of the two input tensors, element-wise.
+// - sub: Subtract the values of the second input tensor from the values of the first input tensor, element-wise.
+// - mul: Multiply the values of the two input tensors, element-wise.
+// - div: Divide the values of the first input tensor with the values of the second tensor, element-wise.
+// - max: Select the greater values of the two input tensors, element-wise.
+// - min: Select the lesser values of the two input tensors, element-wise.
+// - pow: Compute the values of the values of the first input tensor to the power of the values of the second input tensor, element-wise.
+//
+// The `OperatorType` specifies the specific one. e.g. Add corresponds to
+// `MLOperand add(MLOperand a, MLOperand b)` function in `MLGraphBuilder`.
+// The 'a' `MLOperand` is mapped to the struct's a index, and the 'b'
+// `MLOperand` is mapped to the struct's b index, while the returned
+// `MLOperand` is mapped to the struct's output index.
 [Stable]
 struct ElementWiseBinary  {
   // The type of binary operation.
-  ElementWiseBinaryType type@0;
+  OperatorType operator_type@0;
   // The index of a operand in the model's operand array.
   uint64 a_index@1;
   // The index of b operand in the model's operand array.
@@ -147,9 +255,10 @@ struct ElementWiseBinary  {
 };
 
 // Represents the `MLGemmOptions`.
+// Also handles MatMul.
 [Stable]
 struct GemmOptions {
-  // The largest possible value for type uint64 identify the option index with
+  // The largest possible value for type uint64 identifies the empty optional index with
   // std::numeric_limits<uint64>::max().
   uint64 c_index@0;
   // The scalar multiplier for the first input.
@@ -209,7 +318,7 @@ struct Pool2dOptions {
   InputOperandLayout layout@5 = InputOperandLayout.kNchw;
   // The rounding function used to compute the output shape.
   RoundingType rounding_type@6 = RoundingType.kFloor;
-  // The sizes of the two spacial dimensions of the output tensor.
+  // The sizes of the two spatial dimensions of the output tensor.
   array<uint32> output_sizes@7;
 };
 
@@ -267,6 +376,297 @@ struct Softmax {
   uint64 output_index@1;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// NEWOPS::: New operators go here
+
+// Elementwise binary logical comparison operations
+
+/* todo: Delete
+[Stable]
+struct Equal {
+  uint64 a_index@0;         // Index of input operand in model's operand array.
+  uint64 b_index@1;         // Index of input operand in model's operand array.
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Greater {
+  uint64 a_index@0;         // Index of input operand in model's operand array.
+  uint64 b_index@1;         // Index of input operand in model's operand array.
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Lesser {
+  uint64 a_index@0;         // Index of input operand in model's operand array.
+  uint64 b_index@1;         // Index of input operand in model's operand array.
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+*/
+
+// Shape modification operations.
+
+[Stable]
+struct Shape {
+  uint64 input_index@0;     // Index of input operand in model's operand array.
+  uint64 output_index@1;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct SqueezeOptions {
+  array<uint32> axes@0;
+};
+
+[Stable]
+struct Squeeze {
+  uint64 input_index@0;     // Index of input operand in model's operand array.
+  SqueezeOptions squeeze_options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Unsqueeze {
+  uint64 input_index@0;     // Index of input operand in model's operand array.
+  SqueezeOptions squeeze_options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Concat {
+  array<uint64> input_indices@0;
+  uint32 axis@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct SliceOptions {
+  array<uint32> axes@0;
+};
+
+[Stable]
+struct Slice {
+  uint64 input_index@0;
+  array<int32> starts@1;
+  array<int32> sizes@2;
+  SliceOptions options@3;
+  uint64 output_index@4;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Transpose {
+  uint64 input_index@0;
+  array<uint32> permutation@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct PadOptions {
+  PaddingMode mode@0 = PaddingMode.kConstant;
+  float value@1;
+};
+
+[Stable]
+struct Pad {
+  uint64 input_index@0;
+  array<uint32> beginningPadding@1;
+  array<uint32> endingPadding@2;
+  PadOptions options@3;
+  uint64 output_index@4;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Expand {
+  uint64 input_index@0;
+  array<uint32> new_shape@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Gather {
+  uint64 input_index@0;
+  uint64 indices_index@1;
+  uint32 axis@2;
+  uint64 output_index@3;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct FlattenTo2d {
+  uint64 input_index@0;
+  uint32 axis@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+// Reduction operations
+
+[Stable]
+struct ReduceOptions {
+  array<uint32> axes@0; // = null; TODO: Can this be optional?
+  bool keep_dimensions@1 = false;
+};
+
+[Stable]
+struct reduceL1 {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceL2 {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceLogSum {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceLogSumExp {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceMax {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceMean {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceMin {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceProduct {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceSum {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ReduceSumSquare {
+  uint64 input_index@0;
+  ReduceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ArgMinMaxOptions {
+  uint32 axis@0 = 0;
+  bool keep_dimensions@1 = false;
+};
+
+[Stable]
+struct ArgMax {
+  uint64 input_index@0;
+  ArgMinMaxOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ArgMin {
+  uint64 input_index@0;
+  ArgMinMaxOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct Cast {
+  uint64 input_index@0;
+  OperandType data_type@1 = OperandType.kFloat32;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct InstanceNormalizationOptions {
+  uint64 scale_index@0;
+  uint64 bias_index@1;
+  float epsilon@2;
+  InputOperandLayout layout@3 = InputOperandLayout.kNchw;
+};
+
+[Stable]
+struct InstanceNormalization {
+  uint64 input_index@0;
+  InstanceNormalizationOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct FillSequenceOptions {
+  float start@0;
+  float limit@1; // Stop at this value (end-exclusive).
+  float step@2;
+};
+
+[Stable]
+struct FillSequence {
+  uint64 input_index@0;
+  FillSequenceOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct TriangularMatrixOptions {
+  TriangularPart triangular_part@0 = TriangularPart.kUpper;
+  int32 diagonal_delta@1;
+};
+
+[Stable]
+struct TriangularMatrix {
+  uint64 input_index@0;
+  TriangularMatrixOptions options@1;
+  uint64 output_index@2;    // Index of output operand in model's operand array.
+};
+
+[Stable]
+struct ElementWiseIf {
+  uint64 condition_index@0;
+  uint64 true_value_index@1;    // Index of operand model's operand array
+  uint64 false_value_index@2;   // Index of operand model's operand array
+  uint64 output_index@3;        // Index of output operand in model's operand array.
+};
+
+// Represents `MLResample2DOptions`.
+[Stable]
+struct Resample2DOptions {
+  InterpolationMode mode@0 = InterpolationMode.kNearestNeighbor;
+  array<float> scales@1;
+  array<uint32> sizes@2;
+  array<uint32> axes@3;
+};
+
+[Stable]
+struct Resample2D {
+  uint64 input_index@0;
+  Resample2DOptions options@1;
+  uint64 output_index@2;        // Index of output operand in model's operand array.
+};
+
 // Describe the information of inputs / outputs data in shared buffer.
 [Stable]
 struct MemoryInfo {
@@ -290,12 +690,37 @@ union OperationInfo {
   // Keep the order as the same as build methods of `MLGraphBuilder`.
   Clamp clamp;
   Conv2d conv2d;
+  ElementWiseUnary element_wise_unary;
   ElementWiseBinary element_wise_binary;
   Gemm gemm;
   Pool2d pool2d;
   Relu relu;
   Reshape reshape;
   Softmax softmax;
+
+  //////////////////////////////////////////////////////////////////////
+  // NEWOPS::: New operators go here.
+  Shape shape;
+  Squeeze squeeze;
+  Unsqueeze unsqueeze;
+  Concat concat;
+  Slice slice;
+  Transpose transpose;
+  Pad pad;
+  Expand expand;
+  Gather gather;
+  FlattenTo2d flatten_to_2d;
+  ReduceL2 reduce_l2;
+  ReduceSum reduce_sum;
+  ReduceMean reduce_mean;
+  Resample2D resample2d;
+  ArgMax arg_max;
+  ArgMin arg_min;
+  Cast cast;
+  InstanceNormalization instance_normalization;
+  FillSequence fill_sequence;
+  TriangularMatrix triangular_matrix;
+  ElementWiseIf element_wise_if;
 };
 
 // Represents the input and output operands in the model.

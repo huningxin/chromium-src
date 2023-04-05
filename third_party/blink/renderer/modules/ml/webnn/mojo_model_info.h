@@ -40,9 +40,26 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
 
   void AddConv2d(const MLOperator* conv2d);
 
-  // Element-wise binary operations
+  // Element-wise operations:
+  // - Identity
+  // - Sin
+  // - Cos
+  // - Tan
+  // - Erf
+  // - Exp
+  // - Sqrt
+  void AddElementWiseUnary(const MLOperator* ml_operator);
+
+  // Elementwise binary operations:
+  // - Add
+  // - Sub
+  // - Mul
+  // - Div
+  // - Pow
   void AddElementWiseBinary(const MLOperator* binary);
 
+  // Gemm
+  // MatMul
   void AddGemm(const MLOperator* gemm);
 
   // Pooling operations
@@ -54,6 +71,32 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
 
   void AddSoftmax(const MLOperator* softmax);
 
+  ////////////////////////////////////////////////////////////////////////////////
+  // NEWOPS:::
+
+  // TODO::: Combine ArgMin and ArgMax?
+  void AddArgMax(const MLOperator* ml_operator);
+  void AddArgMin(const MLOperator* ml_operator);
+  void AddCast(const MLOperator* ml_operator);
+  void AddConcat(const MLOperator* ml_operator);
+  void AddExpand(const MLOperator* ml_operator);
+  void AddFlattenTo2d(const MLOperator* ml_operator);
+  void AddGather(const MLOperator* ml_operator);
+  void AddInstanceNormalization(const MLOperator* ml_operator);
+  void AddPad(const MLOperator* ml_operator);
+  void AddFillSequence(const MLOperator* ml_operator);
+  void AddReduceL2(const MLOperator* ml_operator);
+  void AddReduceMean(const MLOperator* ml_operator);
+  void AddReduceSum(const MLOperator* ml_operator);
+  void AddResample2d(const MLOperator* ml_operator);
+  void AddShape(const MLOperator* ml_operator);
+  void AddSlice(const MLOperator* ml_operator);
+  void AddTranspose(const MLOperator* ml_operator);
+  void AddTriangularMatrix(const MLOperator* ml_operator);
+  void AddSqueeze(const MLOperator* ml_operator);
+  void AddUnsqueeze(const MLOperator* ml_operator);
+  void AddElementWiseIf(const MLOperator* ml_operator);
+
   void FillConstantsWithArrayBuffer();
 
   ModelInfoPtr GetModelInfo();
@@ -61,6 +104,9 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
  private:
   // Add a operand to model which is output of the operation.
   size_t AddOperandToModel(const MLOperand* output);
+
+  bool OperandsInIndexMap(const Member<const MLOperand>* operands, size_t operand_count) const;
+
   // Hold all operands of model to index the operand.
   HeapHashMap<Member<const MLOperand>, size_t> operand_index_map_;
   // All constant data will share a big shared memory, so hold the index of

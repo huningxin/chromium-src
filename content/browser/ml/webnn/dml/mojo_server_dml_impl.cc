@@ -9,6 +9,9 @@
 #include "content/browser/ml/webnn/dml/webnn_service_dml_impl.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 
+// HACK:::
+#pragma optimize("", off)
+
 namespace content::webnn {
 
 namespace {

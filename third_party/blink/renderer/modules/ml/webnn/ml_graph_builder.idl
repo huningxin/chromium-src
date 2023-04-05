@@ -12,6 +12,8 @@ enum MLConv2dFilterOperandLayout { "oihw", "hwio", "ohwi", "ihwo" };
 
 enum MLAutoPad { "explicit", "same-upper", "same-lower" };
 
+enum MLTriangularPart { "upper", "lower" };
+
 dictionary MLConv2dOptions {
   sequence<[EnforceRange] unsigned long> padding;
   sequence<[EnforceRange] unsigned long> strides;
@@ -53,13 +55,82 @@ dictionary MLClampOptions {
   float maxValue;
 };
 
+dictionary MLSliceOptions {
+  sequence<[EnforceRange] unsigned long> axes;
+};
+
 enum MLInterpolationMode {"nearest-neighbor", "linear" };
 
 dictionary MLResample2dOptions {
   MLInterpolationMode mode = "nearest-neighbor";
   sequence<float> scales;
   sequence<[EnforceRange] unsigned long> sizes;
-  sequence<long> axes;
+  sequence<[EnforceRange] unsigned long> axes;
+};
+
+dictionary MLInstanceNormalizationOptions {
+  MLOperand scale;
+  MLOperand bias;
+  float epsilon = 1e-5;
+  MLInputOperandLayout layout = "nchw";
+};
+
+dictionary MLTransposeOptions {
+  sequence<[EnforceRange] unsigned long> permutation;
+};
+
+dictionary MLSqueezeOptions {
+  sequence<[EnforceRange] unsigned long> axes;
+};
+
+dictionary MLArgMinMaxOptions {
+  unsigned long axis = 0;
+  boolean keepDimensions = false;
+};
+
+dictionary MLConcatOptions {
+  unsigned long axis = 0;
+};
+
+dictionary MLGatherOptions {
+  unsigned long axis = 0;
+};
+
+enum MLPaddingMode {
+  "constant",
+  "edge",
+  "reflection",
+  "symmetric"
+};
+
+dictionary MLPadOptions {
+  MLPaddingMode mode = "constant";
+  float value = 0;
+};
+
+// diagonalDelta is a horizontal shift. So positive delta means that for an the upper triangular matrix,
+// the value mask is shifted rightward.
+// Related:
+// https://numpy.org/doc/stable/reference/generated/numpy.tril.html#numpy.tril
+// https://numpy.org/doc/stable/reference/generated/numpy.triu.html#numpy.triu
+// https://www.tensorflow.org/probability/api_docs/python/tfp/math/fill_triangular
+dictionary MLTriangularMatrixOptions {
+  MLTriangularPart triangularPart;
+  long diagonalDelta;
+};
+
+dictionary MLReduceOptions {
+  sequence<unsigned long> axes; // = null;
+  // TODO:::, saying " = null" above causes a build failure and binding assert? AssertionError from Python build scripts.
+  // File "d:\ChromiumDml\src\third_party\blink\renderer\bindings\scripts\bind_gen\blink_v8_bridge.py", line 551, in make_default_value_expr
+  //   assert default_value.is_type_compatible_with(idl_type)
+  boolean keepDimensions = false;
+};
+
+dictionary MLFillSequenceOptions {
+  float start;
+  float limit; // Stop at this value (end-exclusive).
+  float step;
 };
 
 [
@@ -77,16 +148,24 @@ dictionary MLResample2dOptions {
 
   [RaisesException] MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
 
-  // Element-wise binary operations
+  // Elementwise binary operations
   [RaisesException] MLOperand add(MLOperand a, MLOperand b);
   [RaisesException] MLOperand sub(MLOperand a, MLOperand b);
   [RaisesException] MLOperand mul(MLOperand a, MLOperand b);
   [RaisesException] MLOperand div(MLOperand a, MLOperand b);
   [RaisesException] MLOperand max(MLOperand a, MLOperand b);
   [RaisesException] MLOperand min(MLOperand a, MLOperand b);
+  [RaisesException] MLOperand pow(MLOperand a, MLOperand b);
+
+  // Elementwise binary logical comparison operations
+  [RaisesException] MLOperand equal(MLOperand a, MLOperand b);
+  [RaisesException] MLOperand greater(MLOperand a, MLOperand b);
+  [RaisesException] MLOperand lesser(MLOperand a, MLOperand b);
 
   [RaisesException] MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
 
+  // Elementwise unary activation operations.
+  // TODO::: Rename MLOperator to MLActivation in this cases.
   [RaisesException] MLOperand hardSwish(MLOperand x);
   [RaisesException] MLOperator hardSwish();
 
@@ -94,6 +173,7 @@ dictionary MLResample2dOptions {
   [RaisesException] MLOperand averagePool2d(MLOperand input, optional MLPool2dOptions options = {});
   [RaisesException] MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
 
+  // TODO::: Combine into unary operators? Likewise for hardSwish.
   [RaisesException] MLOperand relu(MLOperand input);
   [RaisesException] MLOperator relu();
 
@@ -105,6 +185,57 @@ dictionary MLResample2dOptions {
 
   [RaisesException] MLOperand sigmoid(MLOperand input);
   [RaisesException] MLOperator sigmoid();
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // NEWOPS::: New operators go here.
+  [RaisesException] MLOperand matmul(MLOperand a, MLOperand b);
+
+  // Shape modification operations.
+  [RaisesException] MLOperand shape(MLOperand input);
+  [RaisesException] MLOperand squeeze(MLOperand input, optional MLSqueezeOptions options = {});
+  [RaisesException] MLOperand unsqueeze(MLOperand input, optional MLSqueezeOptions options = {});
+  [RaisesException] MLOperand concat(sequence<MLOperand> inputs, optional MLConcatOptions options = {});
+  [RaisesException] MLOperand slice(MLOperand input, sequence<long> starts, sequence<long> sizes, optional MLSliceOptions options = {});
+  [RaisesException] MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
+  [RaisesException] MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
+  [RaisesException] MLOperand expand(MLOperand input, sequence<unsigned long> newShape);
+  [RaisesException] MLOperand gather(MLOperand input, MLOperand indices, optional MLGatherOptions options = {});
+  [RaisesException] MLOperand flattenTo2d(MLOperand input, unsigned long axis);
+
+  // Elementwise unary operations
+  [RaisesException] MLOperand identity(MLOperand input);
+  [RaisesException] MLOperand exp(MLOperand input);
+  [RaisesException] MLOperand sqrt(MLOperand input);
+  [RaisesException] MLOperand sin(MLOperand input);
+  [RaisesException] MLOperand cos(MLOperand input);
+  [RaisesException] MLOperand tan(MLOperand input);
+  [RaisesException] MLOperand erf(MLOperand input);
+
+  // Reduction operations
+  [RaisesException] MLOperand reduceL2(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceMean(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceSum(MLOperand input, optional MLReduceOptions options = {});
+  //[RaisesException] MLOperand reduceL1(MLOperand input, optional MLReduceOptions options = {});
+  //[RaisesException] MLOperand reduceLogSum(MLOperand input, optional MLReduceOptions options = {});
+  //[RaisesException] MLOperand reduceLogSumExp(MLOperand input, optional MLReduceOptions options = {});
+  //[RaisesException] MLOperand reduceMax(MLOperand input, optional MLReduceOptions options = {});
+  //[RaisesException] MLOperand reduceMin(MLOperand input, optional MLReduceOptions options = {});
+  //[RaisesException] MLOperand reduceProduct(MLOperand input, optional MLReduceOptions options = {});
+  //[RaisesException] MLOperand reduceSumSquare(MLOperand input, optional MLReduceOptions options = {});
+
+  [RaisesException] MLOperand argMax(MLOperand input, optional MLArgMinMaxOptions options = {});
+  [RaisesException] MLOperand argMin(MLOperand input, optional MLArgMinMaxOptions options = {});
+
+  [RaisesException] MLOperand cast(MLOperand input, MLOperandType operandType);
+
+  [RaisesException] MLOperand instanceNormalization(MLOperand input, optional MLInstanceNormalizationOptions options = {});
+  [RaisesException] MLOperand fillSequence(MLOperand input, optional MLFillSequenceOptions options = {});
+
+  [RaisesException] MLOperand triangularMatrix(MLOperand input, optional MLTriangularMatrixOptions options = {});
+
+  // This trinary elementwise operator corresponds to the ONNX where operator.
+  // "elementwise" is one word, not 2. https://en.wiktionary.org/wiki/elementwise
+  [RaisesException] MLOperand elementwiseIf(MLOperand condition, MLOperand trueValue, MLOperand falseValue);
 
   [CallWith=ScriptState, RaisesException] Promise<MLGraph> build(MLNamedOperands outputs);
   

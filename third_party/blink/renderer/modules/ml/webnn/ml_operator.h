@@ -17,20 +17,32 @@ namespace blink {
 class MLGraphBuilder;
 class MLOperand;
 
+// TODO::: Can we just use the mojom enumeration instead? That's one less enumeration to worry about.
 class MODULES_EXPORT MLOperator final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
   enum class OperatorKind {
+    kUnknown,
+
     // Keep the order as the same as build methods of MLGraphBuilder.
     kClamp,
     kConv2d,
+
+    // Elementwise binary operations
     kAdd,
     kSub,
     kMul,
     kDiv,
     kMax,
     kMin,
+    kPow,
+
+    // Elementwise binary logical comparison operations
+    kEqual,
+    kGreater,
+    kLesser,
+
     kGemm,
     kHardSwish,
     kAveragePool2d,
@@ -39,7 +51,51 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kReshape,
     kResample2d,
     kSoftmax,
-    kSigmoid
+    kSigmoid,
+
+    //////////////////////////////////////////////////////////////////////
+    // NEWOPS:::
+    // New prototype operators added for Stable diffusion 1.5.
+    // Rename OperatorKind to OperatorType, to be consistent with mojom types.
+
+    kMatmul,
+
+    // Shape modification operations.
+    kShape,
+    kSqueeze,
+    kUnsqueeze,
+    kConcat,
+    kSlice,
+    kTranspose,
+    kPad,
+    kExpand, // like ONNX Expand or ConstantOfShape, broadcasts
+    kGather,
+    kFlattenTo2d,
+
+    // Elementwise unary operations
+    kIdentity,
+    kExp,
+    kSqrt,
+    kSin,
+    kCos,
+    kTan,
+    kErf,
+
+    // Reduction operations
+    kReduceL2,
+    kReduceMean,
+    kReduceSum,
+
+    // Miscellaneous
+    kArgMax,
+    kArgMin,
+    kCast,
+    kInstanceNormalization,
+    kFillSequence, // ONNX Range
+    kTriangularMatrix,
+    kElementWiseIf, // ONNX Where
+
+    kTotal, // Total number of enumerants for static assertions.
   };
 
   static String OperatorKindToString(MLOperator::OperatorKind kind);
@@ -48,7 +104,7 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
   // that passes the reference of the options dictionary argument received from
   // Blink to MLOperator constructor and stores it in this object. This is
   // because that WebIDL spec (https://webidl.spec.whatwg.org/#idl-dictionaries)
-  // mentiones that "an operation that accepts a dictionary as an argument will
+  // mentions that "an operation that accepts a dictionary as an argument will
   // perform a one-time conversion from the given ECMAScript value into the
   // dictionary, based on the current properties of the ECMAScript object.
   // Modifications to the dictionary will not be reflected in the corresponding

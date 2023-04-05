@@ -7,6 +7,9 @@
 #include "content/browser/ml/webnn/dml/adapter_dml.h"
 #include "content/browser/ml/webnn/dml/upload_resource.h"
 
+// HACK:::
+#pragma optimize("", off)
+
 namespace content::webnn {
 
 ExecutionContext::ExecutionContext(scoped_refptr<AdapterDML> adapter)
@@ -49,15 +52,29 @@ void ExecutionContext::CopyBufferRegion(ID3D12Resource* dest_resource,
       D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
   transition_barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
   transition_barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+  // The resource barrier needs to be before CopyBufferRegion when reading back from the GPU.
+  if (state == D3D12_RESOURCE_STATE_COPY_SOURCE)
+  {
+      command_recorder_.ResourceBarrier({transition_barrier});
+  }
+
   command_recorder_.CopyBufferRegion(dest_resource, 0, src_resource, 0,
                                      resource_size);
   D3D12_RESOURCE_BARRIER reset_barrier = transition_barrier;
   reset_barrier.Transition.StateBefore = state;
   reset_barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  // TODO: This comment is fishy, because calling CopyBufferRegion before ResourceBarrier
+  // yields all 0's in the output because Computation hasn't finished yet. Ask Mingming/
   // Both transitions to/from UAV can be combined into a single ResourceBarrier
   // call, and the transition barrier command can be enqueued after
   // CopyBufferRegion.
-  command_recorder_.ResourceBarrier({transition_barrier, reset_barrier});
+
+  // TODO: Verify that can be safely elided when state != D3D12_RESOURCE_STATE_COPY_SOURCE.
+  // It appears to work fine.
+  // command_recorder_.ResourceBarrier({transition_barrier, reset_barrier});
+
+  command_recorder_.ResourceBarrier({reset_barrier});
 }
 
 HRESULT ExecutionContext::Initialize() {

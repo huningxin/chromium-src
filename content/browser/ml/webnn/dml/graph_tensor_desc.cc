@@ -6,6 +6,10 @@
 
 #include "base/check_op.h"
 #include "base/numerics/checked_math.h"
+#include "base/containers/span.h"
+
+// HACK:::
+#pragma optimize("", off)
 
 namespace content::webnn {
 
@@ -21,9 +25,29 @@ size_t GetBytesOfDataType(DML_TENSOR_DATA_TYPE data_type) {
       return sizeof(int32_t);
     case DML_TENSOR_DATA_TYPE_UINT32:
       return sizeof(uint32_t);
+    case DML_TENSOR_DATA_TYPE_INT8:
+      return sizeof(int8_t);
+    case DML_TENSOR_DATA_TYPE_UINT8:
+      return sizeof(uint8_t);
     default:
       return 0;
   }
+}
+
+// Returns the default decreasing order packed strides for the given 
+std::vector<uint32_t> ComputeDecreasingStrides(base::span<const uint32_t> dimensions)
+{
+  std::vector<uint32_t> strides;
+  strides.reserve(dimensions.size());
+
+  uint32_t stride = 1;
+  for (auto i = dimensions.rbegin(); i != dimensions.rend(); ++i)
+  {
+      strides.push_back(stride);
+      stride *= *i;
+  }
+
+  return strides;
 }
 
 absl::optional<UINT64> CalculateElementsNumber(
@@ -122,8 +146,10 @@ void TensorDesc::Initialize(DML_TENSOR_DATA_TYPE data_type,
   buffer_desc_.Flags = flags;
 }
 
-TensorDesc::TensorDesc(TensorDesc&& other) = default;
-TensorDesc& TensorDesc::operator=(TensorDesc&& other) = default;
+TensorDesc::TensorDesc(TensorDesc const& other) = default;
+// TODO::: Bring these back after figuring out the deleted copy constructor issue?
+//TensorDesc::TensorDesc(TensorDesc&& other) = default;
+//TensorDesc& TensorDesc::operator=(TensorDesc&& other) = default;
 
 TensorDesc::~TensorDesc() = default;
 
@@ -149,6 +175,18 @@ std::vector<UINT>& TensorDesc::GetDimensions() {
 
 absl::optional<std::vector<UINT>>& TensorDesc::GetStrides() {
   return strides_;
+}
+
+std::vector<UINT> TensorDesc::GetStridesOrDefaultStrides() const {
+  return strides_ ? *strides_ : ComputeDecreasingStrides(dimensions_);
+}
+
+void TensorDesc::EnsureStridesExist() {
+  if (!strides_)
+  {
+    std::vector<uint32_t> new_strides = ComputeDecreasingStrides(dimensions_);
+    strides_ = std::move(new_strides);
+  }
 }
 
 UINT64 TensorDesc::GetTotalTensorSizeInBytes() {

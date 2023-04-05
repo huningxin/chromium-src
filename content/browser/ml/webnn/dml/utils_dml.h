@@ -66,8 +66,8 @@ void ComputeImplicitPaddingForAutoPad(AutoPad auto_pad,
 
 template <typename S, typename T>
 std::vector<T> ComputeImplicitPaddingForAutoPad(const S* options,
-                                                std::vector<T> inputSize,
-                                                std::vector<T> filterSize) {
+                                                base::span<const T> inputSize,
+                                                base::span<const T> filterSize) {
   std::vector<T> padding(4);
   ComputeImplicitPaddingForAutoPad<T>(
       options->auto_pad, options->dilations[0], inputSize[0], filterSize[0],
@@ -80,11 +80,11 @@ std::vector<T> ComputeImplicitPaddingForAutoPad(const S* options,
 
 template <typename T>
 std::vector<UINT> ImplicitPadding(const T* options,
-                                  const std::vector<UINT>& inputDims,
-                                  const std::vector<UINT>& filterDims) {
-  return ComputeImplicitPaddingForAutoPad<T, UINT>(
-      options, {inputDims[2], inputDims[3]},
-      {filterDims[filterDims.size() - 2], filterDims[filterDims.size() - 1]});
+                                  base::span<const UINT> inputDims,
+                                  base::span<const UINT> filterDims) {
+  auto inputSize = {inputDims[2], inputDims[3]};
+  auto filterSize = {filterDims[filterDims.size() - 2], filterDims[filterDims.size() - 1]};
+  return ComputeImplicitPaddingForAutoPad<T, UINT>(options, inputSize, filterSize);
 }
 
 template <typename T>

@@ -7,6 +7,9 @@
 #include "content/browser/ml/webnn/dml/adapter_dml.h"
 #include "content/browser/ml/webnn/dml/execution_resources.h"
 
+// HACK:::
+#pragma optimize("", off)
+
 namespace content::webnn {
 
 CommandRecorder::~CommandRecorder() = default;
@@ -16,7 +19,7 @@ CommandRecorder::CommandRecorder(scoped_refptr<AdapterDML> adapter,
     : adapter_(std::move(adapter)), dml_device_(std::move(dml_device)) {}
 
 void CommandRecorder::ResourceBarrier(
-    std::vector<const D3D12_RESOURCE_BARRIER> barriers) {
+    const std::vector<D3D12_RESOURCE_BARRIER>& barriers) {
   command_list_->ResourceBarrier(barriers.size(), barriers.data());
 }
 

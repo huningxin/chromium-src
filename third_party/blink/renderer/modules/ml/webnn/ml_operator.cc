@@ -11,6 +11,8 @@ namespace blink {
 
 // static
 String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
+  static_assert(MLOperator::OperatorKind::kTotal == MLOperator::OperatorKind(50));
+
   switch (kind) {
     case MLOperator::OperatorKind::kClamp:
       return "clamp";
@@ -46,6 +48,75 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "softmax";
     case MLOperator::OperatorKind::kSigmoid:
       return "sigmoid";
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // NEWOPS:::
+    case MLOperator::OperatorKind::kArgMax:
+      return "argMax";
+    case MLOperator::OperatorKind::kArgMin:
+      return "argMin";
+    case MLOperator::OperatorKind::kCast:
+      return "cast";
+    case MLOperator::OperatorKind::kConcat:
+      return "concat";
+    case MLOperator::OperatorKind::kExpand:
+      return "expand";
+    case MLOperator::OperatorKind::kCos:
+      return "cos";
+    case MLOperator::OperatorKind::kEqual:
+      return "equal";
+    case MLOperator::OperatorKind::kErf:
+      return "erf";
+    case MLOperator::OperatorKind::kExp:
+      return "exp";
+    case MLOperator::OperatorKind::kFlattenTo2d:
+      return "flattenTo2d";
+    case MLOperator::OperatorKind::kGather:
+      return "gather";
+    case MLOperator::OperatorKind::kGreater:
+      return "greater";
+    case MLOperator::OperatorKind::kLesser:
+      return "lesser";
+    case MLOperator::OperatorKind::kIdentity:
+      return "identity";
+    case MLOperator::OperatorKind::kInstanceNormalization:
+      return "instanceNormalization";
+    case MLOperator::OperatorKind::kMatmul:
+      return "matmul";
+    case MLOperator::OperatorKind::kPad:
+      return "pad";
+    case MLOperator::OperatorKind::kPow:
+      return "pow";
+    case MLOperator::OperatorKind::kFillSequence:
+      return "fillSequence";
+    case MLOperator::OperatorKind::kReduceL2:
+      return "reduceL2";
+    case MLOperator::OperatorKind::kReduceMean:
+      return "reduceMean";
+    case MLOperator::OperatorKind::kReduceSum:
+      return "reduceSum";
+    case MLOperator::OperatorKind::kShape:
+      return "shape";
+    case MLOperator::OperatorKind::kSin:
+      return "sin";
+    case MLOperator::OperatorKind::kSlice:
+      return "slice";
+    case MLOperator::OperatorKind::kSqrt:
+      return "sqrt";
+    case MLOperator::OperatorKind::kTranspose:
+      return "transpose";
+    case MLOperator::OperatorKind::kTriangularMatrix:
+      return "triangularMatrix";
+    case MLOperator::OperatorKind::kTan:
+      return "tan";
+    case MLOperator::OperatorKind::kSqueeze:
+      return "squeeze";
+    case MLOperator::OperatorKind::kUnsqueeze:
+      return "unsqueeze";
+    case MLOperator::OperatorKind::kElementWiseIf:
+      return "elementwiseIf";
+    default:
+      return "unknown";
   }
 }
 

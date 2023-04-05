@@ -26,15 +26,27 @@ class TensorDesc final {
              DML_TENSOR_FLAGS flags,
              std::vector<UINT> dimensions,
              absl::optional<std::vector<UINT>> strides);
-  TensorDesc(TensorDesc&& other);
-  TensorDesc& operator=(TensorDesc&& other);
+  TensorDesc(TensorDesc const& other);
+  // TODO::: Bring these back after figuring out the compiler issue.
+  //TensorDesc(TensorDesc&& other);
+  //TensorDesc& operator=(TensorDesc&& other);
   ~TensorDesc();
 
   DML_TENSOR_DESC* Get();
   DML_TENSOR_DATA_TYPE GetDataType() const;
   DML_TENSOR_FLAGS GetFlags() const;
   std::vector<UINT>& GetDimensions();
+
+  // Returns the strides, or empty if none exist.
   absl::optional<std::vector<UINT>>& GetStrides();
+
+  // Returns valid strides, either the explicit ones contained or the generated
+  // ones (packed with no padding in descending order left-to-right) if empty.
+  std::vector<UINT> GetStridesOrDefaultStrides() const;
+
+  // Ensures strides are not empty, computing them from dimensions if needed.
+  void EnsureStridesExist();
+
   UINT64 GetTotalTensorSizeInBytes();
 
  private:

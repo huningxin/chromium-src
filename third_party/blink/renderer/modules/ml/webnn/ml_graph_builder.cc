@@ -14,6 +14,12 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_resample_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_arg_min_max_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_concat_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gather_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_squeeze_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/core/inspector/console_message.h"
 #include "third_party/blink/renderer/modules/ml/ml.h"
@@ -28,6 +34,9 @@
 #if BUILDFLAG(BUILD_WEBNN_WITH_XNNPACK)
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 #endif
+
+// HACK:::
+#pragma optimize("", off)
 
 namespace blink {
 
@@ -45,6 +54,34 @@ bool IsFloatingPointType(V8MLOperandType::Enum operand_type) {
     case V8MLOperandType::Enum::kInt8:
     case V8MLOperandType::Enum::kUint8:
       return false;
+  }
+}
+
+bool IsBooleanType(V8MLOperandType::Enum operand_type) {
+  // Boolean types are unsigned 8-bit values.
+  switch (operand_type) {
+    case V8MLOperandType::Enum::kFloat32:
+    case V8MLOperandType::Enum::kFloat16:
+    case V8MLOperandType::Enum::kInt32:
+    case V8MLOperandType::Enum::kUint32:
+    case V8MLOperandType::Enum::kInt8:
+      return false;
+    case V8MLOperandType::Enum::kUint8:
+      return true;
+  }
+}
+
+bool IsIndexType(V8MLOperandType::Enum operand_type) {
+  // Boolean types are unsigned 8-bit values.
+  switch (operand_type) {
+    case V8MLOperandType::Enum::kFloat32:
+    case V8MLOperandType::Enum::kFloat16:
+    case V8MLOperandType::Enum::kInt8:
+    case V8MLOperandType::Enum::kUint8:
+      return false;
+    case V8MLOperandType::Enum::kInt32:
+    case V8MLOperandType::Enum::kUint32:
+      return true;
   }
 }
 
@@ -66,20 +103,44 @@ bool ValidateClampOptions(const MLClampOptions* options,
   return true;
 }
 
+// Increases the rank to a minimum count by padding with leading ones.
+Vector<uint32_t> ExpandDimensions(
+    const base::span<const uint32_t> original_dimensions,
+    wtf_size_t minimum_rank) {
+
+  wtf_size_t old_rank = static_cast<wtf_size_t>(original_dimensions.size());
+  wtf_size_t new_rank = std::max(minimum_rank, static_cast<wtf_size_t>(old_rank));
+  wtf_size_t leading_filler_count = new_rank - old_rank;
+
+  Vector<uint32_t> expanded_dimensions(new_rank, 1u);
+  std::copy(original_dimensions.begin(), original_dimensions.end(),
+            expanded_dimensions.begin() + leading_filler_count);
+  return expanded_dimensions;
+}
+
 // Broadcast the input shapes and return the output shape.
 // If bidirectional is true, its behavior follows the numpy-broadcasting-rule:
 // https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules.
 // Otherwise, it unidirectionally broadcasts the lhs to the rhs.
+// The ignorable tail count is useful for cases like MatMul, where you want
+// to ignore the trailing tail of dimensions and only broadcast the leading
+// ones.
 absl::optional<Vector<uint32_t>> BroadcastShapes(
-    const Vector<uint32_t>& dims_lhs,
-    const Vector<uint32_t>& dims_rhs,
-    bool bidirectional = true) {
+    base::span<const uint32_t> dims_lhs,
+    base::span<const uint32_t> dims_rhs,
+    bool bidirectional = true,
+    wtf_size_t ignorable_tail_count = 0
+) {
   // If bidirectional is true, the rank of the output shape is the maximum
   // rank of the input shapes. Otherwise it is as the same as the rhs' rank.
-  auto rank_lhs = dims_lhs.size(), rank_rhs = dims_rhs.size();
+  auto rank_lhs = static_cast<wtf_size_t>(dims_lhs.size());
+  auto rank_rhs = static_cast<wtf_size_t>(dims_rhs.size());
   auto rank_output = bidirectional ? std::max(rank_lhs, rank_rhs) : rank_rhs;
   Vector<uint32_t> dims_output(rank_output);
-  for (wtf_size_t i = 0; i < rank_output; ++i) {
+  auto loop_count = rank_output - std::min(ignorable_tail_count, rank_output);
+
+  for (wtf_size_t i = 0; i < loop_count; ++i) {
+
     auto dim_lhs = i < rank_lhs ? dims_lhs[rank_lhs - i - 1] : 1;
     DCHECK_GT(dim_lhs, uint32_t(0));
     auto dim_rhs = i < rank_rhs ? dims_rhs[rank_rhs - i - 1] : 1;
@@ -103,10 +164,55 @@ absl::optional<Vector<uint32_t>> BroadcastShapes(
   return dims_output;
 }
 
-MLOperand* BuildElementWiseBinary(MLGraphBuilder* builder,
+MLOperand* BuildUnaryOperator(MLGraphBuilder* builder,
+                              MLOperator::OperatorKind kind,
+                              const MLOperand* input,
+                              ExceptionState& exception_state) {
+  String error_message;
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(builder, kind);
+
+  Vector<uint32_t> output_dimensions = input->Dimensions();
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      builder, input->Type(), std::move(output_dimensions), ml_operator, /*out*/ error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+
+  ml_operator->Connect({input}, {output});
+  return output;
+}
+
+MLOperand* BuildUnaryOperator(
+    MLGraphBuilder* builder,
+    MLOperator::OperatorKind kind,
+    const MLOperand* input,
+    Vector<uint32_t> output_dimensions,
+    V8MLOperandType::Enum output_data_type,
+    const bindings::DictionaryBase* options,
+    ExceptionState& exception_state) {
+  String error_message;
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(builder, kind, options);
+
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      builder, output_data_type, std::move(output_dimensions), ml_operator,
+      /*out*/ error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+
+  ml_operator->Connect({input}, {output});
+  return output;
+}
+
+MLOperand* BuildElementwiseBinary(MLGraphBuilder* builder,
                                   MLOperator::OperatorKind kind,
                                   const MLOperand* a,
                                   const MLOperand* b,
+                                  V8MLOperandType::Enum output_data_type,
                                   ExceptionState& exception_state) {
   if (a->Type() != b->Type()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
@@ -121,10 +227,11 @@ MLOperand* BuildElementWiseBinary(MLGraphBuilder* builder,
         "The input shapes are not broadcastable.");
     return nullptr;
   }
+
   auto* binary = MakeGarbageCollected<MLOperator>(builder, kind);
   String error_message;
   auto* output = MLOperand::ValidateAndCreateOutput(
-      builder, a->Type(), dims_output.value(), binary, error_message);
+      builder, output_data_type, std::move(dims_output.value()), binary, error_message);
   if (!output) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       error_message);
@@ -132,6 +239,39 @@ MLOperand* BuildElementWiseBinary(MLGraphBuilder* builder,
   }
   binary->Connect({a, b}, {output});
   return output;
+}
+
+MLOperand* BuildArgMinMax(MLGraphBuilder* graph_builder,
+                          MLOperator::OperatorKind operator_kind,
+                          const MLOperand* input,
+                          const MLArgMinMaxOptions* options,
+                          ExceptionState& exception_state) {
+  // Validate axis.
+  uint32_t axis = options->axis();
+  auto& input_dimensions = input->Dimensions();
+  if (axis >= input_dimensions.size()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        String::Format(
+            "The axis (%u) must be within the dimension count (%u).",
+            axis, input_dimensions.size()));
+    return nullptr;
+  }
+
+  // Determine output size, eliminating the active axis or keeping it with size 1.
+  Vector<uint32_t> output_dimensions = input_dimensions;
+  if (options->keepDimensions())
+  {
+    output_dimensions[axis] = 1;
+  }
+  else
+  {
+    output_dimensions.EraseAt(axis);
+  }
+
+  return BuildUnaryOperator(graph_builder, operator_kind, input,
+                            output_dimensions, V8MLOperandType::Enum::kInt32, options,
+                            exception_state);
 }
 
 struct PaddingSizes {
@@ -799,8 +939,8 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
 #define BUILD_ELEMENTWISE_BINARY_OP(op, op_kind)                              \
   MLOperand* MLGraphBuilder::op(const MLOperand* a, const MLOperand* b,       \
                                 ExceptionState& exception_state) {            \
-    return BuildElementWiseBinary(this, MLOperator::OperatorKind::op_kind, a, \
-                                  b, exception_state);                        \
+    return BuildElementwiseBinary(this, MLOperator::OperatorKind::op_kind, a, \
+                                  b, a->Type(), exception_state);             \
   }
 
 BUILD_ELEMENTWISE_BINARY_OP(add, kAdd)
@@ -855,7 +995,8 @@ MLOperand* MLGraphBuilder::gemm(const MLOperand* a,
             shape_a[1], options->aTranspose() ? "transposed " : "", shape_b[0],
             options->bTranspose() ? "transposed " : ""));
     return nullptr;
-  };
+  }
+
   // The output is 2-D tensor of shape [M, N].
   Vector<uint32_t> output_shape = {shape_a[0], shape_b[1]};
   // The third input tensor c is either a scalar, or of the shape that is
@@ -1018,7 +1159,7 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
           &newshape_number_of_elements)) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
-        "The number of elements implied by new shape is too large.");
+        "The number of elements in the new shape is too large.");
     return nullptr;
   }
   DCHECK_NE(newshape_number_of_elements, size_t(0));
@@ -1030,8 +1171,8 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
           DOMExceptionCode::kDataError,
           String::Format(
               "The number of elements (%zu) in the input tensor can't be "
-              "divided evenly by the number of elements (%zu) implied by new "
-              "shape.",
+              "divided evenly by the number of elements (%zu) in the "
+              "new shape.",
               input->NumberOfElements(), newshape_number_of_elements));
       return nullptr;
     }
@@ -1051,7 +1192,7 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
           String::Format(
-              "The number of elements (%zu) implied by new shape doesn't match "
+              "The number of elements (%zu) in the new shape doesn't match "
               "the number of elements (%zu) in the input tensor.",
               newshape_number_of_elements, input->NumberOfElements()));
       return nullptr;
@@ -1234,6 +1375,612 @@ MLOperator* MLGraphBuilder::sigmoid(ExceptionState& exception_state) {
   // Create the sigmoid operator that would be used as an activation function.
   return MakeGarbageCollected<MLOperator>(this,
                                           MLOperator::OperatorKind::kSigmoid);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// NEWOPS:::
+
+MLOperand* MLGraphBuilder::elementwiseIf(const MLOperand* condition,
+                                         const MLOperand* true_value,
+                                         const MLOperand* false_value,
+                                         ExceptionState& exception_state) {
+  if (!IsBooleanType(condition->Type())) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The input condition type must be a Boolean data type.");
+    return nullptr;
+  }
+
+  if (true_value->Type() != false_value->Type()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, "The input types don't match.");
+    return nullptr;
+  }
+  absl::optional<Vector<uint32_t>> value_dimensions = BroadcastShapes(true_value->Dimensions(), false_value->Dimensions());
+  if (!value_dimensions) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, "The input shapes are not broadcastable.");
+    return nullptr;
+  }
+  absl::optional<Vector<uint32_t>> output_dimensions = BroadcastShapes(condition->Dimensions(), *value_dimensions);
+  if (!output_dimensions) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, "The input shapes are not broadcastable.");
+    return nullptr;
+  }
+
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kElementWiseIf);
+  String error_message;
+  auto* output = MLOperand::ValidateAndCreateOutput(this, true_value->Type(), output_dimensions.value(), ml_operator, error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, error_message);
+    return nullptr;
+  }
+  ml_operator->Connect({condition, true_value, false_value}, {output});
+  return output;
+}
+
+MLOperand* MLGraphBuilder::argMax(const MLOperand* input,
+                                  const MLArgMinMaxOptions* options,
+                                  ExceptionState& exception_state) {
+  return BuildArgMinMax(this, MLOperator::OperatorKind::kArgMax, input, options,
+                        exception_state);
+}
+
+MLOperand* MLGraphBuilder::argMin(const MLOperand* input,
+                                  const MLArgMinMaxOptions* options,
+                                  ExceptionState& exception_state) {
+  return BuildArgMinMax(this, MLOperator::OperatorKind::kArgMax, input, options,
+                        exception_state);
+}
+
+MLOperand* MLGraphBuilder::cast(const MLOperand* input,
+                                V8MLOperandType data_type,
+                                ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kCast, input,
+                            input->Dimensions(), data_type.AsEnum(), /*options*/ nullptr,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
+                                  const MLConcatOptions* options,
+                                  ExceptionState& exception_state) {
+  wtf_size_t input_count = inputs.size();
+  if (input_count <= 0) {
+    exception_state.ThrowDOMException(
+         DOMExceptionCode::kDataError,
+         "Concat requires at least one input.");
+     return nullptr;
+  }
+
+  uint32_t axis = options->axis();
+
+  // Set the output dimensions initially to the first input,
+  // concatenating each successive one in the loop below.
+  auto& first_input = inputs.front();
+  Vector<uint32_t> output_dimensions = first_input->Dimensions();
+  if (axis >= output_dimensions.size()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          String::Format(
+              "The axis (%u) must be within the dimension count (%u).",
+              axis, output_dimensions.size()));
+      return nullptr;
+  }
+
+  base::CheckedNumeric<size_t> checked_output_axis_length = 0;
+
+  // Validate input dimensions are compatible with each other, and compute the
+  // total length of the active axis dimension.
+  for (wtf_size_t i = 1; i < input_count; ++i) {
+    auto& input = inputs[i];
+    auto& input_dimensions = input->Dimensions();
+
+    if (input_dimensions.size() != output_dimensions.size()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          String::Format(
+              "All input tensors must have the same size. Input %u has a size of %u but input 0 has a size of %u.",
+              i, input_dimensions.size(), output_dimensions.size()));
+      return nullptr;
+    }
+
+    checked_output_axis_length += input_dimensions[axis];
+  }
+
+  // Set the length of the active axis.
+  uint32_t output_axis_length;
+  if (!checked_output_axis_length.AssignIfValid(&output_axis_length)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The number of elements in the new shape is too large.");
+    return nullptr;
+  }
+  output_dimensions[axis] = output_axis_length;
+
+  String error_message;
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kConcat, /*options*/ nullptr);
+
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      this, first_input->Type(), std::move(output_dimensions), ml_operator,
+      /*out*/ error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+
+  HeapVector<Member<const MLOperand>> copiedInputs(inputs);
+  ml_operator->Connect(std::move(copiedInputs), {output});
+  return output;
+}
+
+MLOperand* MLGraphBuilder::expand(const MLOperand* input,
+                                  const Vector<uint32_t>& new_shape,
+                                  ExceptionState& exception_state) {
+  const auto& input_dimensions = input->Dimensions();
+  const auto new_shape_dimension_count = new_shape.size();
+  base::CheckedNumeric<size_t> checked_new_shape_number_of_elements = 1;
+
+  if (new_shape_dimension_count != input_dimensions.size()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        String::Format(
+            "The new shape's dimension count (%u) must match the input tensor's (%u).",
+            new_shape_dimension_count, input->Dimensions().size()));
+    return nullptr;
+  }
+
+  for (wtf_size_t i = 0; i < new_shape_dimension_count; ++i) {
+    auto old_size = input_dimensions[i];
+    auto new_size = new_shape[i];
+    if (new_size < old_size || (new_size > old_size && old_size != 1)) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+        String::Format(
+          "The each value in the new shape (%u) must either equal the old shape (%u) "
+          "or broadcast a single size dimension input to a greater size.",
+          new_size, old_size));
+      return nullptr;
+    }
+    checked_new_shape_number_of_elements *= new_size;
+  }
+
+  // Check for overflow.
+  size_t new_shape_number_of_elements;
+  if (!checked_new_shape_number_of_elements.AssignIfValid(
+          &new_shape_number_of_elements)) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The number of elements in the new shape is too large.");
+    return nullptr;
+  }
+
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(
+      this, MLOperator::OperatorKind::kExpand);
+  String error_message;
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      this, input->Type(), std::move(new_shape), ml_operator, error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+  ml_operator->Connect({input}, {output});
+  return output;
+}
+
+MLOperand* MLGraphBuilder::cos(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kCos, input,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::equal(const MLOperand* a,
+                                 const MLOperand* b,
+                                 ExceptionState& exception_state) {
+  return BuildElementwiseBinary(this, MLOperator::OperatorKind::kEqual, a, b,
+                                V8MLOperandType::Enum::kUint8,
+                                exception_state);
+}
+
+MLOperand* MLGraphBuilder::erf(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kErf, input,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::exp(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kExp, input,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::flattenTo2d(const MLOperand* input,
+                                       uint32_t axis,
+                                       ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::gather(const MLOperand* input,
+                                  const MLOperand* indices,
+                                  const MLGatherOptions* options,
+                                  ExceptionState& exception_state) {
+  wtf_size_t input_rank = input->Dimensions().size();
+  wtf_size_t indices_rank = indices->Dimensions().size(); // >= 0
+  wtf_size_t output_rank = input_rank + indices_rank - 1;
+  uint32_t axis = options->axis();
+
+  if (input_rank <= 0) {
+    exception_state.ThrowDOMException(
+         DOMExceptionCode::kDataError,
+          String::Format(
+              "Gather's input rank (%u) requires at least 1 dimension.",
+              input_rank));
+     return nullptr;
+  }
+  if (axis >= input_rank) {
+    exception_state.ThrowDOMException(
+         DOMExceptionCode::kDataError,
+          String::Format(
+              "Gather's axis (%u) must be within the input tensor rank (%u).",
+              axis, input_rank));
+     return nullptr;
+  }
+  if (input_rank + indices_rank < 1) {
+    exception_state.ThrowDOMException(
+         DOMExceptionCode::kDataError,
+          String::Format(
+              "Gather's input rank (%u) and indices rank (%u) combined must be at least 1.",
+              input_rank, indices_rank));
+     return nullptr;
+  }
+
+  const Vector<uint32_t>& inputDimensions = input->Dimensions();
+  const Vector<uint32_t>& indicesDimensions = indices->Dimensions();
+  Vector<uint32_t> output_dimensions(output_rank, 1u);
+
+  // The input dimensions following the gather axis determine the final output dimensions.
+  int32_t output_dimension = output_rank - 1;
+  int32_t input_dimension = input_rank - 1;
+  for (; input_dimension > int32_t(axis); --output_dimension, --input_dimension)
+  {
+      output_dimensions[output_dimension] = inputDimensions[input_dimension];
+  }
+
+  // The shape of the index tensor is reflected in the middle dimensions of the output tensor.
+  int32_t index_dimension = indices_rank - 1;
+  for (; index_dimension >= 0; --output_dimension, --index_dimension)
+  {
+      output_dimensions[output_dimension] = indicesDimensions[index_dimension];
+  }
+
+  // The gather dimension is skipped for the purposes of sizing because the
+  // index values choose slices across it. Preceding input dimensions
+  // determine the shape of the output's leading dimensions.
+  input_dimension = axis - 1;
+  for (; output_dimension >= 0 && input_dimension >= 0; --output_dimension, --input_dimension)
+  {
+      output_dimensions[output_dimension] = inputDimensions[input_dimension];
+  }
+
+  String error_message;
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kGather, options);
+
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      this, input->Type(), std::move(output_dimensions), ml_operator,
+      /*out*/ error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+
+  ml_operator->Connect({input, indices}, {output});
+  return output;
+}
+
+MLOperand* MLGraphBuilder::greater(const MLOperand* a,
+                                   const MLOperand* b,
+                                   ExceptionState& exception_state) {
+  return BuildElementwiseBinary(this, MLOperator::OperatorKind::kGreater, a, b,
+                                V8MLOperandType::Enum::kUint8,
+                                exception_state);
+}
+
+MLOperand* MLGraphBuilder::lesser(const MLOperand* a,
+                                   const MLOperand* b,
+                                   ExceptionState& exception_state) {
+  return BuildElementwiseBinary(this, MLOperator::OperatorKind::kLesser, a, b,
+                                V8MLOperandType::Enum::kUint8,
+                                exception_state);
+}
+
+MLOperand* MLGraphBuilder::identity(const MLOperand* input,
+                                    ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kIdentity, input,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::instanceNormalization(
+    const MLOperand* input,
+    const MLInstanceNormalizationOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
+                                  const MLOperand* b,
+                                  ExceptionState& exception_state) {
+  // Massage the two input tensor's rank accordingly:
+  // - If a is 1-D, it is converted to a 2-D tensor by prepending a 1 to its dimensions.
+  // - If b is 1-D, it is converted to a 2-D tensor by by appending a 1 to its dimensions.
+  // - If either a or b have rank N > 2, the higher dimensions are broadcast to each other,
+  //   with the output rank being the greater of the two.
+  // Then the inputs are treated as a stack of matrices. If both were 1D, it's treated as
+  // as dot product (which happens naturally as a by-product of expansion).
+
+  if (a->Type() != b->Type()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The types of first two inputs don't match.");
+    return nullptr;
+  }
+
+  Vector<uint32_t> a_dimensions = a->Dimensions();
+  Vector<uint32_t> b_dimensions = b->Dimensions();
+  // MLGraphBuilder::input should have coerced to 1 already.
+  DCHECK_GT(a_dimensions.size(), uint32_t(0));
+  DCHECK_GT(b_dimensions.size(), uint32_t(0));
+
+  // Massage the sizes first, before additional broadcastability checks.
+  // After this point, both arrays are at least the same size, simplifying
+  // later checks in the code.
+  wtf_size_t output_rank = std::max(a_dimensions.size(), b_dimensions.size());
+  if (a_dimensions.size() == 1)
+  {
+    a_dimensions.push_front(1u);
+  }
+  if (a_dimensions.size() == 1)
+  {
+    b_dimensions.push_back(1u);
+  }
+  a_dimensions = ExpandDimensions(a_dimensions, output_rank);
+  b_dimensions = ExpandDimensions(b_dimensions, output_rank);
+
+  // The number of columns in the first matrix must be equal to the number of
+  // rows in the second matrix.
+  const uint32_t a_cols = a_dimensions.rend()[0];
+  const uint32_t a_rows = a_dimensions.rend()[1];
+  const uint32_t b_cols = b_dimensions.rend()[0];
+  const uint32_t b_rows = b_dimensions.rend()[1];
+  if (a_cols != b_rows) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        String::Format(
+            "The number of columns (%u) in the first matrix isn't equal to "
+            "the number of rows (%u) in the second matrix.",
+            a_cols, b_rows));
+    return nullptr;
+  }
+
+  // Figure out the output shape by broadcasting all the dimensions except the last two.
+  // The output is 2-D tensor of shape [M, N].
+  absl::optional<Vector<uint32_t>> optional_output_dimensions = BroadcastShapes(a_dimensions, b_dimensions, true, 2);
+  if (!optional_output_dimensions) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, "The input shapes are not broadcastable.");
+    return nullptr;
+  }
+  auto& output_dimensions = *optional_output_dimensions;
+  DCHECK(output_rank == output_dimensions.size());
+  output_dimensions[output_rank - 2] = a_rows;
+  output_dimensions[output_rank - 1] = b_cols;
+
+  // Because the input operands may have been adjusted for broadcasting,
+  // recreate them rather than use the originals. This simplifies
+  // later shared back-end code.
+
+  String error_message;
+
+  auto* a_adjusted = MLOperand::ValidateAndCreateInput(
+      this, a->Type(), std::move(a_dimensions), a->Name(), error_message);
+  if (!a_adjusted) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+
+  auto* b_adjusted = MLOperand::ValidateAndCreateInput(
+      this, b->Type(), std::move(b_dimensions), b->Name(), error_message);
+  if (!b_adjusted) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+
+  // Create empty options for gemm, since MatMul uses the defaults.
+  auto* options = MLGemmOptions::Create();
+
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(
+      this, MLOperator::OperatorKind::kGemm, options);
+  HeapVector<Member<const MLOperand>> inputs = {a_adjusted, b_adjusted};
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      this, a->Type(), std::move(output_dimensions), ml_operator, error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+  ml_operator->Connect(std::move(inputs), {output});
+  return output;
+}
+
+MLOperand* MLGraphBuilder::pad(
+    const MLOperand* input,
+    const Vector<uint32_t>& beginningPadding,
+    const Vector<uint32_t>& endingPadding,
+    const MLPadOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::pow(const MLOperand* a,
+                               const MLOperand* b,
+                               ExceptionState& exception_state) {
+  return BuildElementwiseBinary(this, MLOperator::OperatorKind::kPow, a, b, a->Type(),
+                               exception_state);
+}
+
+MLOperand* MLGraphBuilder::fillSequence(
+    const MLOperand* input,
+    const MLFillSequenceOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::reduceL2(
+    const MLOperand* input,
+    const MLReduceOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::reduceMean(
+    const MLOperand* input,
+    const MLReduceOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::reduceSum(const MLOperand* input,
+                                     const MLReduceOptions* options,
+                                     ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::shape(
+    const MLOperand* input,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::sin(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kSin, input,
+                               exception_state);
+}
+
+MLOperand* MLGraphBuilder::slice(const MLOperand* input,
+                                 const Vector<int32_t>& starts,
+                                 const Vector<int32_t>& sizes,
+                                 const MLSliceOptions* options,
+                                 ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::sqrt(const MLOperand* input,
+                                ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kSqrt, input,
+                               exception_state);
+}
+
+MLOperand* MLGraphBuilder::squeeze(
+    const MLOperand* input,
+    const MLSqueezeOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::tan(const MLOperand* input,
+                                ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kTan, input,
+                               exception_state);
+}
+
+MLOperand* MLGraphBuilder::transpose(
+    const MLOperand* input,
+    const MLTransposeOptions* options,
+    ExceptionState& exception_state) {
+  const auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+
+  Vector<uint32_t> permutation;
+
+  // Verify the permutations are within the input rank and not duplicated.
+  if (options->hasPermutation())
+  {
+    permutation = options->permutation();
+    Vector<uint32_t> seen_axes(input_rank);
+
+    for (auto axis : permutation)
+    {
+      if (axis >= input_rank)
+      {
+        exception_state.ThrowDOMException(
+             DOMExceptionCode::kDataError,
+              String::Format(
+                  "Transposes's permutation axis (%u) must be within the input rank (%u).",
+                  axis, input_rank));
+         return nullptr;
+      }
+      if (seen_axes[axis])
+      {
+        exception_state.ThrowDOMException(
+             DOMExceptionCode::kDataError,
+              String::Format(
+                  "Transposes's permutation axis (%u) must only occur once.",
+                  axis));
+         return nullptr;
+      }
+      seen_axes[axis] = true;
+    }
+  }
+  else // Reverse all dimensions if permutations are missing.
+  {
+    for (wtf_size_t i = 0; i < input_rank; ++i)
+    {
+      permutation.push_back(input_rank - i);
+    }
+  }
+
+  // Permute the dimensions.
+  Vector<uint32_t> output_dimensions(input_rank);
+  for (wtf_size_t i = 0; i < input_rank; ++i)
+  {
+    output_dimensions[i] = input_dimensions[permutation[i]];
+  }
+
+  // Save the transposition from the permutation parameter
+  // into transposition options to easily ferry them along.
+  // TODO::: Do I need to check for failure here?
+  MLTransposeOptions* normalized_options = MLTransposeOptions::Create();
+  normalized_options->setPermutation(permutation);
+
+  String error_message;
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kTranspose, options);
+
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      this, input->Type(), std::move(output_dimensions), ml_operator,
+      /*out*/ error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+
+  ml_operator->Connect({input}, {output});
+  return output;
+}
+
+MLOperand* MLGraphBuilder::triangularMatrix(
+    const MLOperand* input,
+    const MLTriangularMatrixOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
+}
+
+MLOperand* MLGraphBuilder::unsqueeze(
+    const MLOperand* input,
+    const MLSqueezeOptions* options,
+    ExceptionState& exception_state) {
+  return nullptr;  // TODO:::
 }
 
 ScriptPromise MLGraphBuilder::build(ScriptState* script_state,
