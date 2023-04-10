@@ -167,6 +167,7 @@ HRESULT CommandRecorder::ExecuteGraph(
     IDMLCompiledOperator* compiled_operator,
     const std::vector<DML_BINDING_DESC>& input_bindings,
     const std::vector<DML_BINDING_DESC>& output_bindings) {
+  DCHECK(mBindingTable != nullptr);
   // Bind and execute the operator on the GPU.
   // Reset the binding table to bind for the operator we want to execute (it
   // was previously used to bind for the initializer).

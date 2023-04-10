@@ -17,11 +17,11 @@ namespace blink {
 class MLGraphBuilder;
 class MLOperand;
 
-// TODO::: Can we just use the mojom enumeration instead? That's one less enumeration to worry about.
 class MODULES_EXPORT MLOperator final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
+   // TODO::: Delete this one, in favor of the mojo generated one - one fewer enum to keep in sync.
   enum class OperatorKind {
     kUnknown,
 
@@ -82,9 +82,16 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kErf,
 
     // Reduction operations
+    kReduceL1,
     kReduceL2,
+    kReduceLogSum,
+    kReduceLogSumExp,
+    kReduceMax,
     kReduceMean,
+    kReduceMin,
+    kReduceProduct,
     kReduceSum,
+    kReduceSumSquare,
 
     // Miscellaneous
     kArgMax,

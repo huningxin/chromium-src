@@ -5,6 +5,8 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 
 #include <algorithm>
+#include <numeric>
+#include <utility>
 
 #include "base/numerics/checked_math.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
@@ -20,6 +22,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_squeeze_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_reduce_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/core/inspector/console_message.h"
 #include "third_party/blink/renderer/modules/ml/ml.h"
@@ -72,7 +75,7 @@ bool IsBooleanType(V8MLOperandType::Enum operand_type) {
 }
 
 bool IsIndexType(V8MLOperandType::Enum operand_type) {
-  // Boolean types are unsigned 8-bit values.
+  // Index types are integers, signed or unsigned.
   switch (operand_type) {
     case V8MLOperandType::Enum::kFloat32:
     case V8MLOperandType::Enum::kFloat16:
@@ -101,6 +104,92 @@ bool ValidateClampOptions(const MLClampOptions* options,
     }
   }
   return true;
+}
+
+bool ValidateAxis(uint32_t axis,
+                  uint32_t dimension_count,
+                  const char* operator_name,
+                  ExceptionState& exception_state) {
+  if (axis >= dimension_count)
+  {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          String::Format(
+              "The %s axis (%u) must be within the dimension count (%u).",
+              operator_name,
+              axis, dimension_count));
+      return false;
+  }
+  return true;
+}
+
+bool ValidateAxes(base::span<const uint32_t> axes,
+                  uint32_t dimension_count,
+                  const char* operator_name,
+                  ExceptionState& exception_state) {
+  Vector<uint32_t> seen_axes(dimension_count);
+
+  for (auto axis : axes)
+  {
+    if (axis >= dimension_count)
+    {
+      exception_state.ThrowDOMException(
+           DOMExceptionCode::kDataError,
+            String::Format(
+                "The %s axis (%u) must be less than the dimension count (%u).",
+                operator_name,
+                axis, dimension_count));
+       return false;
+    }
+    if (seen_axes[axis])
+    {
+      exception_state.ThrowDOMException(
+           DOMExceptionCode::kDataError,
+            String::Format(
+                "Each %s axis (%u) must only occur once.",
+                operator_name, axis));
+       return false;
+    }
+    seen_axes[axis] = true;
+  }
+  return true;
+}
+
+// Generates a 32-bit mask, validating all axes fit within 32 dimensions.
+bool ValidateAxesMask(base::span<const uint32_t> axes,
+                      const char* operator_name,
+                      ExceptionState& exception_state,
+                      /*out*/ uint32_t& axes_mask) {
+  uint32_t current_mask = 0x00000000;
+  axes_mask = current_mask;
+
+  const uint32_t maximum_rank = 32; // Only have 32 bits available.
+
+  for (auto axis : axes)
+  {
+    if (axis >= maximum_rank)
+    {
+      exception_state.ThrowDOMException(
+           DOMExceptionCode::kDataError,
+            String::Format(
+                "%s axis (%u) is beyond the maximum (%u).",
+                operator_name,
+                axis, maximum_rank));
+      return false;
+    }
+    current_mask |= 1 << axis;
+  }
+  axes_mask = current_mask;
+  return true;
+}
+
+// Computes the number of elements given the dimensions.
+// Note this expects dimensions that are already known and validated
+// and thus cannot overflow, rather than untrusted parameters like
+// reshape's new shape before validation.
+uint32_t ComputeElementCount(base::span<const uint32_t> dimensions)
+{
+  return std::accumulate(dimensions.begin(), dimensions.end(), 1u, std::multiplies<uint32_t>{});
 }
 
 // Increases the rank to a minimum count by padding with leading ones.
@@ -271,6 +360,69 @@ MLOperand* BuildArgMinMax(MLGraphBuilder* graph_builder,
 
   return BuildUnaryOperator(graph_builder, operator_kind, input,
                             output_dimensions, V8MLOperandType::Enum::kInt32, options,
+                            exception_state);
+}
+
+MLOperand* BuildReductionOperator(MLGraphBuilder* graph_builder,
+                                  MLOperator::OperatorKind operator_kind,
+                                  const char* operator_name,
+                                  const MLOperand* input,
+                                  const MLReduceOptions* options,
+                                  ExceptionState& exception_state) {
+  const auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+
+  Vector<uint32_t> axes;
+  uint32_t axes_mask = 0xFFFFFFFF; // Remove all axes by default, if none passed.
+
+  // Verify the axes are within the input rank and not duplicated.
+  if (options->hasAxes())
+  {
+    axes = options->axes();
+    if (!ValidateAxes(axes, input_rank, operator_name, exception_state)) {
+      return nullptr;
+    }
+    if (!ValidateAxesMask(options->axes(),
+                          operator_name,
+                          exception_state,
+                          /*out*/ axes_mask)) {
+      return nullptr;
+    }
+  }
+  else // Reduce all dimensions if permutations are missing.
+  {
+    axes.resize(input_rank);
+    std::iota(axes.begin(), axes.end(), 0u);
+    // axes_mask already 0xFFFFFFFF.
+  }
+
+  // Set dimension to 1 that are reduced.
+  // or erase them entirely if MLReduceOptions::keepDimensions = false.
+  Vector<uint32_t> output_dimensions = input_dimensions;
+  wtf_size_t output_rank = input_rank;
+  bool keep_dimensions = options->keepDimensions();
+  for (wtf_size_t i = 0; i < output_rank; /*increment in loop*/)
+  {
+    wtf_size_t advance_count = 1;
+    if (axes_mask & (1 << i)) {
+      if (keep_dimensions) {
+        output_dimensions[i] = 1u; // Reduce dimension.
+      }
+      else {
+          output_dimensions.EraseAt(i); // Remove reduced dimension.
+          advance_count = 0; // Stay at the current index.
+          --output_rank;
+      }
+    }
+    i += advance_count;
+  }
+
+  // Pass the normalized options onward, simplifying the lower level's job.
+  MLReduceOptions* normalized_options = MLReduceOptions::Create();
+  normalized_options->setAxes(axes);
+
+  return BuildUnaryOperator(graph_builder, operator_kind, input,
+                            output_dimensions, input->Type(), normalized_options,
                             exception_state);
 }
 
@@ -1596,7 +1748,29 @@ MLOperand* MLGraphBuilder::exp(const MLOperand* input,
 MLOperand* MLGraphBuilder::flattenTo2d(const MLOperand* input,
                                        uint32_t axis,
                                        ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  const auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+
+  if (!ValidateAxis(axis,
+                    input_rank,
+                    "flattenTo2d",
+                    exception_state)) {
+    return nullptr;
+  }
+
+  // Flatten the leading and trailing portion of the dimensions
+  // (where axis is the split point) into a 2D tensor.
+  Vector<uint32_t> output_dimensions(2, 0u);
+  base::span<const uint32_t> input_dimensions_span = input_dimensions;
+  base::span<const uint32_t> leading_dimensions = input_dimensions_span.first(axis);
+  base::span<const uint32_t> trailing_dimensions = input_dimensions_span.subspan(axis);
+  output_dimensions[0] = ComputeElementCount(leading_dimensions);
+  output_dimensions[1] = ComputeElementCount(trailing_dimensions);
+
+  // Resolve unsqueeze into a reshape operator.
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kReshape, input,
+                            output_dimensions, input->Type(), /*options*/nullptr,
+                            exception_state);
 }
 
 MLOperand* MLGraphBuilder::gather(const MLOperand* input,
@@ -1607,6 +1781,13 @@ MLOperand* MLGraphBuilder::gather(const MLOperand* input,
   wtf_size_t indices_rank = indices->Dimensions().size(); // >= 0
   wtf_size_t output_rank = input_rank + indices_rank - 1;
   uint32_t axis = options->axis();
+
+  if (!IsIndexType(indices->Type())) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Gather's indices element type must be int32/uint32.");
+    return nullptr;
+  }
 
   if (input_rank <= 0) {
     exception_state.ThrowDOMException(
@@ -1747,10 +1928,10 @@ MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
 
   // The number of columns in the first matrix must be equal to the number of
   // rows in the second matrix.
-  const uint32_t a_cols = a_dimensions.rend()[0];
-  const uint32_t a_rows = a_dimensions.rend()[1];
-  const uint32_t b_cols = b_dimensions.rend()[0];
-  const uint32_t b_rows = b_dimensions.rend()[1];
+  const uint32_t a_cols = a_dimensions[output_rank - 1];
+  const uint32_t a_rows = a_dimensions[output_rank - 2];
+  const uint32_t b_cols = b_dimensions[output_rank - 1];
+  const uint32_t b_rows = b_dimensions[output_rank - 2];
   if (a_cols != b_rows) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
@@ -1774,11 +1955,12 @@ MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
   output_dimensions[output_rank - 1] = b_cols;
 
   // Because the input operands may have been adjusted for broadcasting,
-  // recreate them rather than use the originals. This simplifies
+  // normalize them rather than use the originals. This simplifies
   // later shared back-end code.
 
   String error_message;
 
+#if 1 // TODO:::DELETE?
   auto* a_adjusted = MLOperand::ValidateAndCreateInput(
       this, a->Type(), std::move(a_dimensions), a->Name(), error_message);
   if (!a_adjusted) {
@@ -1794,6 +1976,7 @@ MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
                                       error_message);
     return nullptr;
   }
+#endif
 
   // Create empty options for gemm, since MatMul uses the defaults.
   auto* options = MLGemmOptions::Create();
@@ -1835,24 +2018,78 @@ MLOperand* MLGraphBuilder::fillSequence(
   return nullptr;  // TODO:::
 }
 
-MLOperand* MLGraphBuilder::reduceL2(
-    const MLOperand* input,
-    const MLReduceOptions* options,
-    ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+MLOperand* MLGraphBuilder::reduceL1(const MLOperand* input,
+                                    const MLReduceOptions* options,
+                                    ExceptionState& exception_state) {
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceL1,
+                                "reduceL1", input, options, exception_state);
 }
 
-MLOperand* MLGraphBuilder::reduceMean(
-    const MLOperand* input,
-    const MLReduceOptions* options,
-    ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+MLOperand* MLGraphBuilder::reduceL2(const MLOperand* input,
+                                    const MLReduceOptions* options,
+                                    ExceptionState& exception_state) {
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceL2,
+                                "reduceL2", input, options, exception_state);
+}
+
+MLOperand* MLGraphBuilder::reduceLogSum(const MLOperand* input,
+                                        const MLReduceOptions* options,
+                                        ExceptionState& exception_state) {
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceLogSum,
+                                "reduceLogSum", input, options,
+                                exception_state);
+}
+
+MLOperand* MLGraphBuilder::reduceLogSumExp(const MLOperand* input,
+                                           const MLReduceOptions* options,
+                                           ExceptionState& exception_state) {
+  return BuildReductionOperator(
+      this, MLOperator::OperatorKind::kReduceLogSumExp, "reduceLogSumExp",
+      input, options, exception_state);
+}
+
+MLOperand* MLGraphBuilder::reduceMax(const MLOperand* input,
+                                     const MLReduceOptions* options,
+                                     ExceptionState& exception_state) {
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceMax,
+                                "reduceMax", input, options, exception_state);
+}
+
+MLOperand* MLGraphBuilder::reduceMean(const MLOperand* input,
+                                      const MLReduceOptions* options,
+                                      ExceptionState& exception_state) {
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceMean,
+                                "reduceMean", input, options, exception_state);
+}
+
+MLOperand* MLGraphBuilder::reduceMin(const MLOperand* input,
+                                     const MLReduceOptions* options,
+                                     ExceptionState& exception_state) {
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceMin,
+                                "reduceMin", input, options, exception_state);
+}
+
+MLOperand* MLGraphBuilder::reduceProduct(const MLOperand* input,
+                                         const MLReduceOptions* options,
+                                         ExceptionState& exception_state) {
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceProduct,
+                                "reduceProduct", input, options,
+                                exception_state);
 }
 
 MLOperand* MLGraphBuilder::reduceSum(const MLOperand* input,
                                      const MLReduceOptions* options,
                                      ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  return BuildReductionOperator(this, MLOperator::OperatorKind::kReduceSum,
+                                "reduceSum", input, options, exception_state);
+}
+
+MLOperand* MLGraphBuilder::reduceSumSquare(const MLOperand* input,
+                                           const MLReduceOptions* options,
+                                           ExceptionState& exception_state) {
+  return BuildReductionOperator(
+      this, MLOperator::OperatorKind::kReduceSumSquare, "reduceSumSquare",
+      input, options, exception_state);
 }
 
 MLOperand* MLGraphBuilder::shape(
@@ -1885,7 +2122,41 @@ MLOperand* MLGraphBuilder::squeeze(
     const MLOperand* input,
     const MLSqueezeOptions* options,
     ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  const auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+
+  uint32_t axes_mask = 0xFFFFFFFF; // Remove all axes by default, if none passed.
+  if (options->hasAxes()) {
+    auto& axes = options->axes();
+    if (!ValidateAxes(axes, input_rank, "squeeze", exception_state)) {
+      return nullptr;
+    }
+    if (!ValidateAxesMask(options->axes(),
+                          "squeeze",
+                          exception_state,
+                          /*out*/ axes_mask)) {
+      return nullptr;
+    }
+  }
+
+  // Strip any dimensions of size 1 from the output.
+  Vector<uint32_t> output_dimensions = input_dimensions;
+  for (wtf_size_t i = 0, output_rank = output_dimensions.size(); i < output_rank; )
+  {
+    if (axes_mask & (1 << i) && output_dimensions[i] == 1u) {
+      output_dimensions.EraseAt(i);
+      --output_rank;
+    }
+    else
+    {
+      ++i; // Preserve this dimension.
+    }
+  }
+
+  // Resolve unsqueeze into a reshape operator.
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kReshape, input,
+                            output_dimensions, input->Type(), /*options*/nullptr,
+                            exception_state);
 }
 
 MLOperand* MLGraphBuilder::tan(const MLOperand* input,
@@ -1907,36 +2178,28 @@ MLOperand* MLGraphBuilder::transpose(
   if (options->hasPermutation())
   {
     permutation = options->permutation();
+    if (permutation.size() != input_rank)
+    {
+        exception_state.ThrowDOMException(
+             DOMExceptionCode::kDataError,
+              String::Format(
+                  "Transposes's permutation rank (%u) must must match the input rank (%u).",
+                  permutation.size(), input_rank));
+         return nullptr;
+    }
+
     Vector<uint32_t> seen_axes(input_rank);
 
-    for (auto axis : permutation)
+    if (!ValidateAxes(permutation, input_rank, "transpose", exception_state))
     {
-      if (axis >= input_rank)
-      {
-        exception_state.ThrowDOMException(
-             DOMExceptionCode::kDataError,
-              String::Format(
-                  "Transposes's permutation axis (%u) must be within the input rank (%u).",
-                  axis, input_rank));
-         return nullptr;
-      }
-      if (seen_axes[axis])
-      {
-        exception_state.ThrowDOMException(
-             DOMExceptionCode::kDataError,
-              String::Format(
-                  "Transposes's permutation axis (%u) must only occur once.",
-                  axis));
-         return nullptr;
-      }
-      seen_axes[axis] = true;
+        return nullptr;
     }
   }
   else // Reverse all dimensions if permutations are missing.
   {
     for (wtf_size_t i = 0; i < input_rank; ++i)
     {
-      permutation.push_back(input_rank - i);
+      permutation.push_back(input_rank - i - 1);
     }
   }
 
@@ -1947,12 +2210,16 @@ MLOperand* MLGraphBuilder::transpose(
     output_dimensions[i] = input_dimensions[permutation[i]];
   }
 
-  // Save the transposition from the permutation parameter
-  // into transposition options to easily ferry them along.
-  // TODO::: Do I need to check for failure here?
+  // Pass the normalized options onward, simplifying the lower level's job.
+  // Then the permutation parameter consistently exists.
   MLTransposeOptions* normalized_options = MLTransposeOptions::Create();
   normalized_options->setPermutation(permutation);
 
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kTranspose, input,
+                            output_dimensions, input->Type(), normalized_options,
+                            exception_state);
+
+#if 0 // TODO:::DELETE
   String error_message;
   auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kTranspose, options);
 
@@ -1967,6 +2234,7 @@ MLOperand* MLGraphBuilder::transpose(
 
   ml_operator->Connect({input}, {output});
   return output;
+#endif
 }
 
 MLOperand* MLGraphBuilder::triangularMatrix(
@@ -1980,7 +2248,29 @@ MLOperand* MLGraphBuilder::unsqueeze(
     const MLOperand* input,
     const MLSqueezeOptions* options,
     ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  const auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+
+  // Verify all axes are within bounds and not duplicated.
+  Vector<uint32_t> ordered_axes = options->getAxesOr({});
+  if (!ValidateAxes(ordered_axes, input_rank + ordered_axes.size(), "unsqueeze", exception_state)) {
+      return nullptr;
+  }
+
+  // Axes are allowed in any order, but insertion wants them in ascending order.
+  std::sort(ordered_axes.begin(), ordered_axes.end());
+
+  // Insert dimensions of size 1 into the output.
+  Vector<uint32_t> output_dimensions = input_dimensions;
+  for (uint32_t axis : ordered_axes)
+  {
+    output_dimensions.insert(axis, 1u);
+  }
+
+  // Resolve unsqueeze into a reshape operator.
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kReshape, input,
+                            output_dimensions, input->Type(), /*options*/nullptr,
+                            exception_state);
 }
 
 ScriptPromise MLGraphBuilder::build(ScriptState* script_state,

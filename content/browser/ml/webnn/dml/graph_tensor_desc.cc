@@ -34,22 +34,6 @@ size_t GetBytesOfDataType(DML_TENSOR_DATA_TYPE data_type) {
   }
 }
 
-// Returns the default decreasing order packed strides for the given 
-std::vector<uint32_t> ComputeDecreasingStrides(base::span<const uint32_t> dimensions)
-{
-  std::vector<uint32_t> strides;
-  strides.reserve(dimensions.size());
-
-  uint32_t stride = 1;
-  for (auto i = dimensions.rbegin(); i != dimensions.rend(); ++i)
-  {
-      strides.push_back(stride);
-      stride *= *i;
-  }
-
-  return strides;
-}
-
 absl::optional<UINT64> CalculateElementsNumber(
     const std::vector<UINT>& dimensions) {
   base::CheckedNumeric<UINT64> checked_elements_number = 1;
@@ -103,6 +87,15 @@ absl::optional<UINT64> TotalTensorSizeInBytes(
   return checked_total_size_in_bytes.ValueOrDie();
 }
 
+void FillLeadingSideWithOnes(/*inout*/ std::vector<uint32_t>& values, size_t minimum_size)
+{
+  size_t old_size = values.size();
+  size_t new_size = std::max(minimum_size, old_size);
+  size_t leading_filler_count = new_size - old_size;
+
+  values.insert(values.begin(), leading_filler_count, 1u);
+}
+
 }  // namespace
 
 TensorDesc::TensorDesc() = default;
@@ -146,14 +139,30 @@ void TensorDesc::Initialize(DML_TENSOR_DATA_TYPE data_type,
   buffer_desc_.Flags = flags;
 }
 
-TensorDesc::TensorDesc(TensorDesc const& other) = default;
-// TODO::: Bring these back after figuring out the deleted copy constructor issue?
-//TensorDesc::TensorDesc(TensorDesc&& other) = default;
-//TensorDesc& TensorDesc::operator=(TensorDesc&& other) = default;
+TensorDesc::TensorDesc(TensorDesc const& other)
+    : dimensions_(other.dimensions_),
+      strides_(other.strides_),
+      buffer_desc_(other.buffer_desc_),
+      tensor_desc_(other.tensor_desc_) {
+  // Update the internal self-referential pointers.
+  buffer_desc_.Sizes = dimensions_.data();
+  buffer_desc_.Strides = strides_ ? strides_.value().data() : nullptr;
+}
+
+
+TensorDesc::TensorDesc(TensorDesc&& other) = default;
+TensorDesc& TensorDesc::operator=(TensorDesc&& other) = default;
+TensorDesc& TensorDesc::operator=(const TensorDesc& other) = default;
 
 TensorDesc::~TensorDesc() = default;
 
 DML_TENSOR_DESC* TensorDesc::Get() {
+  DCHECK(buffer_desc_.Sizes == dimensions_.data());
+  DCHECK(buffer_desc_.Strides == nullptr || buffer_desc_.Strides == strides_.value().data());
+
+  // Refresh the pointers to avoid them being stale after move
+  // or copy construction.
+
   if (buffer_desc_.DataType == DML_TENSOR_DATA_TYPE_UNKNOWN) {
     return nullptr;
   }
@@ -179,6 +188,37 @@ absl::optional<std::vector<UINT>>& TensorDesc::GetStrides() {
 
 std::vector<UINT> TensorDesc::GetStridesOrDefaultStrides() const {
   return strides_ ? *strides_ : ComputeDecreasingStrides(dimensions_);
+}
+
+void TensorDesc::EnsureMinimumRankRightAligned(size_t minimum_rank)
+{
+    // Note this does not change the TotalTensorSizeInBytes, since leading 1's
+    // make no difference, nor any other field.
+    FillLeadingSideWithOnes(/*inout*/ dimensions_, minimum_rank);
+    buffer_desc_.DimensionCount = dimensions_.size();
+    buffer_desc_.Sizes = dimensions_.data();
+
+    if (strides_)
+    {
+        FillLeadingSideWithOnes(/*inout*/ *strides_, minimum_rank);
+        buffer_desc_.Strides = strides_.value().data();
+    }
+}
+
+// Returns the default decreasing order packed strides for the given 
+std::vector<uint32_t> TensorDesc::ComputeDecreasingStrides(base::span<const uint32_t> dimensions)
+{
+  auto dimension_count = dimensions.size();
+  std::vector<uint32_t> strides(dimension_count);
+
+  uint32_t stride = 1;
+  for (auto i = dimension_count; i-- > 0; )
+  {
+      strides[i] = stride;
+      stride *= dimensions[i];
+  }
+
+  return strides;
 }
 
 void TensorDesc::EnsureStridesExist() {

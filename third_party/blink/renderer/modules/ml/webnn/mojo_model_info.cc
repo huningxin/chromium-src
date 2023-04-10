@@ -12,6 +12,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_concat_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gather_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_reduce_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_arg_min_max_options.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
@@ -121,8 +122,8 @@ Pool2dType BlinkPool2dTypeToMojo(MLOperator::OperatorKind type) {
 
 OperatorType BlinkOperatorKindToMojoType(
     MLOperator::OperatorKind type) {
-  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 50);
-  static_assert(int32_t(OperatorType::kMaxValue) + 1 == 50);
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 57);
+  static_assert(int32_t(OperatorType::kMaxValue) + 1 == 57);
 
   switch (type) {
     case MLOperator::OperatorKind::kClamp:
@@ -200,12 +201,26 @@ OperatorType BlinkOperatorKindToMojoType(
       return OperatorType::kPow;
     case MLOperator::OperatorKind::kFillSequence:
       return OperatorType::kFillSequence;
+    case MLOperator::OperatorKind::kReduceL1:
+      return OperatorType::kReduceL1;
     case MLOperator::OperatorKind::kReduceL2:
       return OperatorType::kReduceL2;
+    case MLOperator::OperatorKind::kReduceLogSum:
+      return OperatorType::kReduceLogSum;
+    case MLOperator::OperatorKind::kReduceLogSumExp:
+      return OperatorType::kReduceLogSumExp;
+    case MLOperator::OperatorKind::kReduceMax:
+      return OperatorType::kReduceMax;
     case MLOperator::OperatorKind::kReduceMean:
       return OperatorType::kReduceMean;
+    case MLOperator::OperatorKind::kReduceMin:
+      return OperatorType::kReduceMin;
+    case MLOperator::OperatorKind::kReduceProduct:
+      return OperatorType::kReduceProduct;
     case MLOperator::OperatorKind::kReduceSum:
       return OperatorType::kReduceSum;
+    case MLOperator::OperatorKind::kReduceSumSquare:
+      return OperatorType::kReduceSumSquare;
     case MLOperator::OperatorKind::kShape:
       return OperatorType::kShape;
     case MLOperator::OperatorKind::kSin:
@@ -721,10 +736,6 @@ void MojoModelInfo::AddExpand(const MLOperator* ml_operator) {
   model_info_->operations.push_back(std::move(operation_info));
 }
 
-void MojoModelInfo::AddFlattenTo2d(const MLOperator* ml_operator) {
-    // TODO:
-}
-
 void MojoModelInfo::AddGather(const MLOperator* ml_operator) {
   DCHECK_EQ(ml_operator->Inputs().size(), 2u);
   DCHECK_EQ(ml_operator->Outputs().size(), 1u);
@@ -765,16 +776,33 @@ void MojoModelInfo::AddFillSequence(const MLOperator* ml_operator) {
     // TODO:
 }
 
-void MojoModelInfo::AddReduceL2(const MLOperator* ml_operator) {
-    // TODO:
-}
+void MojoModelInfo::AddReduce(const MLOperator* ml_operator) {
+  // TODO:
+  DCHECK_EQ(ml_operator->Inputs().size(), static_cast<uint32_t>(1));
+  DCHECK_EQ(ml_operator->Outputs().size(), static_cast<uint32_t>(1));
 
-void MojoModelInfo::AddReduceMean(const MLOperator* ml_operator) {
-    // TODO:
-}
+  // Verify inputs exist and output does not yet exist.
+  auto* input = ml_operator->Inputs()[0].Get();
+  auto* output = ml_operator->Outputs()[0].Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
 
-void MojoModelInfo::AddReduceSum(const MLOperator* ml_operator) {
-    // TODO:
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLReduceOptions* ml_options =
+      static_cast<const MLReduceOptions*>(ml_operator->Options());
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::Reduce::New();
+  mojom_operator->operator_type = BlinkOperatorKindToMojoType(ml_operator->Kind());
+  mojom_operator->axes = ml_options->axes();
+  mojom_operator->keep_dimensions = ml_options->keepDimensions();
+  mojom_operator->input_index = operand_index_map_.at(input);
+  mojom_operator->output_index = output_index;
+  auto operation = OperationInfo::NewReduce(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation));
 }
 
 void MojoModelInfo::AddResample2d(const MLOperator* ml_operator) {
@@ -814,14 +842,6 @@ void MojoModelInfo::AddTranspose(const MLOperator* ml_operator) {
 }
 
 void MojoModelInfo::AddTriangularMatrix(const MLOperator* ml_operator) {
-    // TODO:
-}
-
-void MojoModelInfo::AddSqueeze(const MLOperator* ml_operator) {
-    // TODO:
-}
-
-void MojoModelInfo::AddUnsqueeze(const MLOperator* ml_operator) {
     // TODO:
 }
 

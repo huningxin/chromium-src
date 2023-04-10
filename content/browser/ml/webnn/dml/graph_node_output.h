@@ -44,7 +44,7 @@ struct InputNode final : public Node {
   std::string name;
   // The object id identify constant node which is to find memory info when
   // binding input for initializing graph.
-  uint32_t object_id;
+  uint32_t object_id = 0;
 };
 
 struct OperatorNode final : public Node {

@@ -227,15 +227,36 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperand* fillSequence(const MLOperand* input,
                           const MLFillSequenceOptions* options,
                           ExceptionState& exception_state);
+  MLOperand* reduceL1(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
   MLOperand* reduceL2(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
+  MLOperand* reduceLogSum(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
+  MLOperand* reduceLogSumExp(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
+  MLOperand* reduceMax(const MLOperand* input,
                       const MLReduceOptions* options,
                       ExceptionState& exception_state);
   MLOperand* reduceMean(const MLOperand* input,
                         const MLReduceOptions* options,
                         ExceptionState& exception_state);
+  MLOperand* reduceMin(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
+  MLOperand* reduceProduct(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
   MLOperand* reduceSum(const MLOperand* input,
-                       const MLReduceOptions* options,
-                       ExceptionState& exception_state);
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
+  MLOperand* reduceSumSquare(const MLOperand* input,
+                      const MLReduceOptions* options,
+                      ExceptionState& exception_state);
   MLOperand* shape(const MLOperand* input,
                    ExceptionState& exception_state);
   MLOperand* sin(const MLOperand* input, ExceptionState& exception_state);

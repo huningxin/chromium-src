@@ -10,6 +10,7 @@
 #include <wrl.h>
 #include "DirectML.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
+#include "base/containers/span.h"
 
 namespace content::webnn {
 
@@ -26,10 +27,10 @@ class TensorDesc final {
              DML_TENSOR_FLAGS flags,
              std::vector<UINT> dimensions,
              absl::optional<std::vector<UINT>> strides);
-  TensorDesc(TensorDesc const& other);
-  // TODO::: Bring these back after figuring out the compiler issue.
-  //TensorDesc(TensorDesc&& other);
-  //TensorDesc& operator=(TensorDesc&& other);
+  TensorDesc(const TensorDesc& other);
+  TensorDesc(TensorDesc&& other);
+  TensorDesc& operator=(TensorDesc&& other);
+  TensorDesc& operator=(const TensorDesc& other);
   ~TensorDesc();
 
   DML_TENSOR_DESC* Get();
@@ -47,17 +48,26 @@ class TensorDesc final {
   // Ensures strides are not empty, computing them from dimensions if needed.
   void EnsureStridesExist();
 
+  // Ensures the rank is at least the minimum rank, filling the leading left side
+  // with 1's if needed. e.g. [4,5] with minimum rank of 4 yields [1,1,4,5].
+  void EnsureMinimumRankRightAligned(size_t minimum_rank);
+
   UINT64 GetTotalTensorSizeInBytes();
+
+  // Static helper functions.
+  static std::vector<uint32_t> ComputeDecreasingStrides(base::span<const uint32_t> dimensions);
 
  private:
   void Initialize(DML_TENSOR_DATA_TYPE data_type,
                   DML_TENSOR_FLAGS flags,
                   std::vector<UINT> dimensions,
                   absl::optional<std::vector<UINT>> strides);
-  // DML_BUFFER_TENSOR_DESC only has a pointer of dimensions and strides, the
-  // data hold in dimensions_ and strides_.
+
+  // DML_BUFFER_TENSOR_DESC only has a pointer to dimensions and strides,
+  // which points to dimensions_ and strides_.
   std::vector<UINT> dimensions_;
   absl::optional<std::vector<UINT>> strides_;
+
   // Describes a tensor that will be stored in a Direct3D 12 buffer resource.
   DML_BUFFER_TENSOR_DESC buffer_desc_ = {};
   DML_TENSOR_DESC tensor_desc_;

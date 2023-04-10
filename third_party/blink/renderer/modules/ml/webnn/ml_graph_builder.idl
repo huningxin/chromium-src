@@ -59,6 +59,14 @@ dictionary MLSliceOptions {
   sequence<[EnforceRange] unsigned long> axes;
 };
 
+// Complete representation for ferrying from IDL to Mojo.
+// The parameters have been folded into the options.
+dictionary MLSliceOptionsInternal {
+  sequence<long> starts;
+  sequence<long> sizes;
+  sequence<[EnforceRange] unsigned long> axes;
+};
+
 enum MLInterpolationMode {"nearest-neighbor", "linear" };
 
 dictionary MLResample2dOptions {
@@ -193,7 +201,7 @@ dictionary MLFillSequenceOptions {
   // Shape modification operations.
   [RaisesException] MLOperand shape(MLOperand input);
   [RaisesException] MLOperand squeeze(MLOperand input, optional MLSqueezeOptions options = {});
-  [RaisesException] MLOperand unsqueeze(MLOperand input, optional MLSqueezeOptions options = {});
+  [RaisesException] MLOperand unsqueeze(MLOperand input, MLSqueezeOptions options);
   [RaisesException] MLOperand concat(sequence<MLOperand> inputs, optional MLConcatOptions options = {});
   [RaisesException] MLOperand slice(MLOperand input, sequence<long> starts, sequence<long> sizes, optional MLSliceOptions options = {});
   [RaisesException] MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
@@ -212,16 +220,16 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand erf(MLOperand input);
 
   // Reduction operations
+  [RaisesException] MLOperand reduceL1(MLOperand input, optional MLReduceOptions options = {});
   [RaisesException] MLOperand reduceL2(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceLogSum(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceLogSumExp(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceMax(MLOperand input, optional MLReduceOptions options = {});
   [RaisesException] MLOperand reduceMean(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceMin(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceProduct(MLOperand input, optional MLReduceOptions options = {});
   [RaisesException] MLOperand reduceSum(MLOperand input, optional MLReduceOptions options = {});
-  //[RaisesException] MLOperand reduceL1(MLOperand input, optional MLReduceOptions options = {});
-  //[RaisesException] MLOperand reduceLogSum(MLOperand input, optional MLReduceOptions options = {});
-  //[RaisesException] MLOperand reduceLogSumExp(MLOperand input, optional MLReduceOptions options = {});
-  //[RaisesException] MLOperand reduceMax(MLOperand input, optional MLReduceOptions options = {});
-  //[RaisesException] MLOperand reduceMin(MLOperand input, optional MLReduceOptions options = {});
-  //[RaisesException] MLOperand reduceProduct(MLOperand input, optional MLReduceOptions options = {});
-  //[RaisesException] MLOperand reduceSumSquare(MLOperand input, optional MLReduceOptions options = {});
+  [RaisesException] MLOperand reduceSumSquare(MLOperand input, optional MLReduceOptions options = {});
 
   [RaisesException] MLOperand argMax(MLOperand input, optional MLArgMinMaxOptions options = {});
   [RaisesException] MLOperand argMin(MLOperand input, optional MLArgMinMaxOptions options = {});

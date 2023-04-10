@@ -41,7 +41,6 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   void AddConv2d(const MLOperator* conv2d);
 
   // Element-wise operations:
-  // - Identity
   // - Sin
   // - Cos
   // - Tan
@@ -67,6 +66,12 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
 
   void AddRelu(const MLOperator* relu);
 
+  // Reshaping operators (do not change the data, just interpretation):
+  // - Reshape
+  // - Squeeze
+  // - Unsqueeze
+  // - FlattenTo2d
+  // - Identity (included here because it's a no-op)
   void AddReshape(const MLOperator* reshape);
 
   void AddSoftmax(const MLOperator* softmax);
@@ -80,21 +85,29 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   void AddCast(const MLOperator* ml_operator);
   void AddConcat(const MLOperator* ml_operator);
   void AddExpand(const MLOperator* ml_operator);
-  void AddFlattenTo2d(const MLOperator* ml_operator);
   void AddGather(const MLOperator* ml_operator);
   void AddInstanceNormalization(const MLOperator* ml_operator);
   void AddPad(const MLOperator* ml_operator);
   void AddFillSequence(const MLOperator* ml_operator);
-  void AddReduceL2(const MLOperator* ml_operator);
-  void AddReduceMean(const MLOperator* ml_operator);
-  void AddReduceSum(const MLOperator* ml_operator);
+
+  // Reduction operators:
+  // - ReduceL1
+  // - ReduceL2
+  // - ReduceLogSum
+  // - ReduceLogSumExp
+  // - ReduceMax
+  // - ReduceMean
+  // - ReduceMin
+  // - ReduceProduct
+  // - ReduceSum
+  // - ReduceSumSquare
+  void AddReduce(const MLOperator* ml_operator);
+
   void AddResample2d(const MLOperator* ml_operator);
   void AddShape(const MLOperator* ml_operator);
   void AddSlice(const MLOperator* ml_operator);
   void AddTranspose(const MLOperator* ml_operator);
   void AddTriangularMatrix(const MLOperator* ml_operator);
-  void AddSqueeze(const MLOperator* ml_operator);
-  void AddUnsqueeze(const MLOperator* ml_operator);
   void AddElementWiseIf(const MLOperator* ml_operator);
 
   void FillConstantsWithArrayBuffer();

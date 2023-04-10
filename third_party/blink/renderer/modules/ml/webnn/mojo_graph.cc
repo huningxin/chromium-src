@@ -33,7 +33,7 @@ using ml::webnn::mojom::blink::ComputeResult;
 using ml::webnn::mojom::blink::MemoryInfoPtr;
 
 void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
-  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 50);
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 57);
 
   switch (op->Kind()) {
     case MLOperator::OperatorKind::kClamp:
@@ -72,6 +72,9 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
       model_info->AddSoftmax(op);
       break;
     case MLOperator::OperatorKind::kReshape:
+    case MLOperator::OperatorKind::kSqueeze:
+    case MLOperator::OperatorKind::kUnsqueeze:
+    case MLOperator::OperatorKind::kFlattenTo2d:
       model_info->AddReshape(op);
       break;
 
@@ -103,9 +106,6 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kHardSwish:
       model_info->AddElementWiseUnary(op);
       break;
-    case MLOperator::OperatorKind::kFlattenTo2d:
-      model_info->AddFlattenTo2d(op);
-      break;
     case MLOperator::OperatorKind::kGather:
       model_info->AddGather(op);
       break;
@@ -118,14 +118,17 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kFillSequence:
       model_info->AddFillSequence(op);
       break;
+    case MLOperator::OperatorKind::kReduceL1:
     case MLOperator::OperatorKind::kReduceL2:
-      model_info->AddReduceL2(op);
-      break;
+    case MLOperator::OperatorKind::kReduceLogSum:
+    case MLOperator::OperatorKind::kReduceLogSumExp:
+    case MLOperator::OperatorKind::kReduceMax:
     case MLOperator::OperatorKind::kReduceMean:
-      model_info->AddReduceMean(op);
-      break;
+    case MLOperator::OperatorKind::kReduceMin:
+    case MLOperator::OperatorKind::kReduceProduct:
     case MLOperator::OperatorKind::kReduceSum:
-      model_info->AddReduceSum(op);
+    case MLOperator::OperatorKind::kReduceSumSquare:
+      model_info->AddReduce(op);
       break;
     case MLOperator::OperatorKind::kShape:
       model_info->AddShape(op);
@@ -138,12 +141,6 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
       break;
     case MLOperator::OperatorKind::kTriangularMatrix:
       model_info->AddTriangularMatrix(op);
-      break;
-    case MLOperator::OperatorKind::kSqueeze:
-      model_info->AddSqueeze(op);
-      break;
-    case MLOperator::OperatorKind::kUnsqueeze:
-      model_info->AddUnsqueeze(op);
       break;
     case MLOperator::OperatorKind::kElementWiseIf:
       model_info->AddElementWiseIf(op);

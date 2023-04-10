@@ -83,7 +83,7 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                            UINT64 output_index);
   void AddElementWiseBinary(UINT64 a_index,
                             UINT64 b_index,
-                            OperatorType type,
+                            OperatorType operator_type,
                             OperandDescriptorPtr output_desc,
                             UINT64 output_index);
   void AddGemm(UINT64 a_index,
@@ -105,15 +105,16 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
   void AddSoftmax(UINT64 input_index,
                   OperandDescriptorPtr desc,
                   UINT64 output_index);
-  void AddArgMax(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddArgMin(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
+  void AddArgMinMax(UINT64 input_index, OperatorType operator_type, OperandDescriptorPtr desc, UINT64 output_index);
   void AddCast(UINT64 input_index,
                OperandType data_type,
                OperandDescriptorPtr output_desc,
                UINT64 output_index);
-  void AddConcat(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
+  void AddConcat(base::span<const uint64_t> input_indices,
+                 uint32_t axis,
+                 OperandDescriptorPtr desc,
+                 UINT64 output_index);
   void AddExpand(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddFlattenTo2d(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
   void AddGather(UINT64 input_index,
                  UINT64 indices_index,
                  uint32_t axis,
@@ -122,9 +123,7 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
   void AddInstanceNormalization(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
   void AddPad(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
   void AddFillSequence(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddReduceL2(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddReduceMean(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddReduceSum(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
+  void AddReduce(UINT64 input_index, OperatorType operator_type, base::span<const uint32_t> axes, OperandDescriptorPtr desc, UINT64 output_index);
   void AddResample2d(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
   void AddShape(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
   void AddSlice(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
@@ -133,8 +132,6 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                     OperandDescriptorPtr output_desc,
                     UINT64 output_index);
   void AddTriangularMatrix(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddSqueeze(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddUnsqueeze(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
 
   void AddElementWiseIf(UINT64 condition_index,
                         UINT64 true_value_index,

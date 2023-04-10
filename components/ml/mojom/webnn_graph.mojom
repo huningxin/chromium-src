@@ -70,9 +70,16 @@ enum OperatorType {
   kErf,
 
   // Reduction operations
+  kReduceL1,
   kReduceL2,
+  kReduceLogSum,
+  kReduceLogSumExp,
+  kReduceMax,
   kReduceMean,
+  kReduceMin,
+  kReduceProduct,
   kReduceSum,
+  kReduceSumSquare,
 
   // Miscellaneous
   kArgMax,
@@ -236,6 +243,9 @@ struct ElementWiseUnary  {
 // - max: Select the greater values of the two input tensors, element-wise.
 // - min: Select the lesser values of the two input tensors, element-wise.
 // - pow: Compute the values of the values of the first input tensor to the power of the values of the second input tensor, element-wise.
+// - equal: Return bool if a == b per element.
+// - greater: Return bool if a > b per element.
+// - lesser: Return bool if a < b per element.
 //
 // The `OperatorType` specifies the specific one. e.g. Add corresponds to
 // `MLOperand add(MLOperand a, MLOperand b)` function in `MLGraphBuilder`.
@@ -352,6 +362,12 @@ struct Relu {
   uint64 output_index@1;
 };
 
+// Reshape operations:
+// - Reshape
+// - Squeeze
+// - Unsqueeze
+// - FlattenTo2d
+//
 // Corresponds to `MLOperand reshape(MLOperand input, sequence<long> shape)`
 // function in `MLGraphBuilder`.The input `MLOperand` is mapping to the struct's
 // input index, the `shape` is set with the dimensions of output OperandDesc.
@@ -380,29 +396,6 @@ struct Softmax {
 // NEWOPS::: New operators go here
 
 // Elementwise binary logical comparison operations
-
-/* todo: Delete
-[Stable]
-struct Equal {
-  uint64 a_index@0;         // Index of input operand in model's operand array.
-  uint64 b_index@1;         // Index of input operand in model's operand array.
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct Greater {
-  uint64 a_index@0;         // Index of input operand in model's operand array.
-  uint64 b_index@1;         // Index of input operand in model's operand array.
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct Lesser {
-  uint64 a_index@0;         // Index of input operand in model's operand array.
-  uint64 b_index@1;         // Index of input operand in model's operand array.
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-*/
 
 // Shape modification operations.
 
@@ -489,89 +482,15 @@ struct Gather {
   uint64 output_index@3;    // Index of output operand in model's operand array.
 };
 
-[Stable]
-struct FlattenTo2d {
-  uint64 input_index@0;
-  uint32 axis@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
 // Reduction operations
 
 [Stable]
-struct ReduceOptions {
-  array<uint32> axes@0; // = null; TODO: Can this be optional?
-  bool keep_dimensions@1 = false;
-};
-
-[Stable]
-struct reduceL1 {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceL2 {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceLogSum {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceLogSumExp {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceMax {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceMean {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceMin {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceProduct {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceSum {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ReduceSumSquare {
-  uint64 input_index@0;
-  ReduceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
+struct Reduce {
+  OperatorType operator_type@0; // The type of unary operation.
+  uint64 input_index@1;
+  array<uint32> axes@2;
+  bool keep_dimensions@3 = false;
+  uint64 output_index@4;        // Index of output operand in model's operand array.
 };
 
 [Stable]
@@ -709,10 +628,7 @@ union OperationInfo {
   Pad pad;
   Expand expand;
   Gather gather;
-  FlattenTo2d flatten_to_2d;
-  ReduceL2 reduce_l2;
-  ReduceSum reduce_sum;
-  ReduceMean reduce_mean;
+  Reduce reduce;
   Resample2D resample2d;
   ArgMax arg_max;
   ArgMin arg_min;

@@ -11,7 +11,7 @@ namespace blink {
 
 // static
 String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
-  static_assert(MLOperator::OperatorKind::kTotal == MLOperator::OperatorKind(50));
+  static_assert(MLOperator::OperatorKind::kTotal == MLOperator::OperatorKind(57));
 
   switch (kind) {
     case MLOperator::OperatorKind::kClamp:
@@ -89,12 +89,26 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "pow";
     case MLOperator::OperatorKind::kFillSequence:
       return "fillSequence";
+    case MLOperator::OperatorKind::kReduceL1:
+      return "reduceL1";
     case MLOperator::OperatorKind::kReduceL2:
       return "reduceL2";
+    case MLOperator::OperatorKind::kReduceLogSum:
+      return "reduceLogSum";
+    case MLOperator::OperatorKind::kReduceLogSumExp:
+      return "reduceLogSumExp";
+    case MLOperator::OperatorKind::kReduceMax:
+      return "reduceMax";
     case MLOperator::OperatorKind::kReduceMean:
       return "reduceMean";
+    case MLOperator::OperatorKind::kReduceMin:
+      return "reduceMin";
+    case MLOperator::OperatorKind::kReduceProduct:
+      return "reduceProduct";
     case MLOperator::OperatorKind::kReduceSum:
       return "reduceSum";
+    case MLOperator::OperatorKind::kReduceSumSquare:
+      return "reduceSumSquare";
     case MLOperator::OperatorKind::kShape:
       return "shape";
     case MLOperator::OperatorKind::kSin:
