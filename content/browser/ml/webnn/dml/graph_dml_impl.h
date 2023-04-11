@@ -124,9 +124,17 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
   void AddPad(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
   void AddFillSequence(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
   void AddReduce(UINT64 input_index, OperatorType operator_type, base::span<const uint32_t> axes, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddResample2d(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddShape(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddSlice(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
+  void AddResample2d(UINT64 input_index,
+                     ml::webnn::mojom::InterpolationMode interpolation_mode,
+                     base::span<const float> scales,
+                     base::span<const uint32_t> axes,
+                     OperandDescriptorPtr desc,
+                     UINT64 output_index);
+  void AddSlice(UINT64 input_index,
+                base::span<const uint32_t> starts,
+                base::span<const uint32_t> sizes,
+                OperandDescriptorPtr desc,
+                UINT64 output_index);
   void AddTranspose(UINT64 input_index,
                     base::span<const uint32_t> permutation,
                     OperandDescriptorPtr output_desc,

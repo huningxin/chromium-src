@@ -61,7 +61,6 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kMatmul,
 
     // Shape modification operations.
-    kShape,
     kSqueeze,
     kUnsqueeze,
     kConcat,

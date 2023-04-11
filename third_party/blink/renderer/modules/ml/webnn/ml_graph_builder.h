@@ -27,7 +27,6 @@ class MLConv2dOptions;
 class MLGemmOptions;
 class MLGraph;
 class MLPool2dOptions;
-class MLConcatOptions;
 class MLGatherOptions;
 class MLResample2dOptions;
 class MLArgMinMaxOptions;
@@ -43,27 +42,6 @@ class MLOperand;
 class MLOperandDescriptor;
 class ScriptPromiseResolver;
 class ScriptPromise;
-
-#if 0 // TODO::: Delete me?
-// Additional options 
-class MLInternalConcatOptions {
-  public:
-  static MLInternalConcatOptions* Create() {
-    return MakeGarbageCollected<MLInternalConcatOptions>();
-  }
-
-  uint32_t axis_{0};
-};
-
-class MLInternalGatherOptions : public bindings::DictionaryBase {
-  public:
-  static MLInternalGatherOptions* Create() {
-    return MakeGarbageCollected<MLInternalGatherOptions>();
-  }
-
-  uint32_t axis_{0};
-};
-#endif
 
 typedef HeapVector<std::pair<String, Member<MLOperand>>> MLNamedOperands;
 
@@ -160,7 +138,7 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperator* relu(ExceptionState& exception_state);
 
   MLOperand* reshape(const MLOperand* input,
-                     const Vector<int32_t>& new_shape,
+                     const Vector<uint32_t>& new_shape,
                      ExceptionState& exception_state);
 
   MLOperand* resample2d(const MLOperand* input,
@@ -185,7 +163,7 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
                   V8MLOperandType data_type,
                   ExceptionState& exception_state);
   MLOperand* concat(const HeapVector<Member<MLOperand>>& inputs,
-                    const MLConcatOptions* options,
+                    uint32_t axis,
                     ExceptionState& exception_state);
   MLOperand* expand(const MLOperand* input,
                     const Vector<uint32_t>& new_shape,
@@ -257,13 +235,12 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperand* reduceSumSquare(const MLOperand* input,
                       const MLReduceOptions* options,
                       ExceptionState& exception_state);
-  MLOperand* shape(const MLOperand* input,
+  Vector<uint32_t> shape(const MLOperand* input,
                    ExceptionState& exception_state);
   MLOperand* sin(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* slice(const MLOperand* input,
-                   const Vector<int32_t>& starts,
-                   const Vector<int32_t>& sizes,
-                   const MLSliceOptions* options,
+                   const Vector<uint32_t>& starts,
+                   const Vector<uint32_t>& sizes,
                    ExceptionState& exception_state);
   MLOperand* sqrt(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* tan(const MLOperand* input, ExceptionState& exception_state);

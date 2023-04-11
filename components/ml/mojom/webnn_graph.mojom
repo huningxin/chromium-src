@@ -49,7 +49,6 @@ enum OperatorType {
   kMatmul, // Handled by GEMM.
 
   // Shape modification operations.
-  kShape,
   kSqueeze,
   kUnsqueeze,
   kConcat,
@@ -399,30 +398,25 @@ struct Softmax {
 
 // Shape modification operations.
 
-[Stable]
-struct Shape {
-  uint64 input_index@0;     // Index of input operand in model's operand array.
-  uint64 output_index@1;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct SqueezeOptions {
-  array<uint32> axes@0;
-};
-
-[Stable]
-struct Squeeze {
-  uint64 input_index@0;     // Index of input operand in model's operand array.
-  SqueezeOptions squeeze_options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct Unsqueeze {
-  uint64 input_index@0;     // Index of input operand in model's operand array.
-  SqueezeOptions squeeze_options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
+// TODO:::DELETE
+//[Stable]
+//struct SqueezeOptions {
+//  array<uint32> axes@0;
+//};
+//
+//[Stable]
+//struct Squeeze {
+//  uint64 input_index@0;     // Index of input operand in model's operand array.
+//  SqueezeOptions squeeze_options@1;
+//  uint64 output_index@2;    // Index of output operand in model's operand array.
+//};
+//
+//[Stable]
+//struct Unsqueeze {
+//  uint64 input_index@0;     // Index of input operand in model's operand array.
+//  SqueezeOptions squeeze_options@1;
+//  uint64 output_index@2;    // Index of output operand in model's operand array.
+//};
 
 [Stable]
 struct Concat {
@@ -439,8 +433,8 @@ struct SliceOptions {
 [Stable]
 struct Slice {
   uint64 input_index@0;
-  array<int32> starts@1;
-  array<int32> sizes@2;
+  array<uint32> starts@1;
+  array<uint32> sizes@2;
   SliceOptions options@3;
   uint64 output_index@4;    // Index of output operand in model's operand array.
 };
@@ -570,20 +564,14 @@ struct ElementWiseIf {
   uint64 output_index@3;        // Index of output operand in model's operand array.
 };
 
-// Represents `MLResample2DOptions`.
 [Stable]
-struct Resample2DOptions {
-  InterpolationMode mode@0 = InterpolationMode.kNearestNeighbor;
-  array<float> scales@1;
-  array<uint32> sizes@2;
-  array<uint32> axes@3;
-};
-
-[Stable]
-struct Resample2D {
+struct Resample2d {
   uint64 input_index@0;
-  Resample2DOptions options@1;
-  uint64 output_index@2;        // Index of output operand in model's operand array.
+  InterpolationMode mode@1 = InterpolationMode.kNearestNeighbor;
+  array<float> scales@2;
+  array<uint32> axes@3;
+  // No need to store sizes because the output dimensions suffice.
+  uint64 output_index@4;        // Index of output operand in model's operand array.
 };
 
 // Describe the information of inputs / outputs data in shared buffer.
@@ -619,9 +607,6 @@ union OperationInfo {
 
   //////////////////////////////////////////////////////////////////////
   // NEWOPS::: New operators go here.
-  Shape shape;
-  Squeeze squeeze;
-  Unsqueeze unsqueeze;
   Concat concat;
   Slice slice;
   Transpose transpose;
@@ -629,7 +614,7 @@ union OperationInfo {
   Expand expand;
   Gather gather;
   Reduce reduce;
-  Resample2D resample2d;
+  Resample2d resample2d;
   ArgMax arg_max;
   ArgMin arg_min;
   Cast cast;

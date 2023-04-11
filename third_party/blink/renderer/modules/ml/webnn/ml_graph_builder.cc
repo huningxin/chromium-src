@@ -17,10 +17,11 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_resample_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_arg_min_max_options.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_concat_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_concat_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gather_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_squeeze_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_slice_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_reduce_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
@@ -1270,10 +1271,10 @@ MLOperator* MLGraphBuilder::relu(ExceptionState& exception_state) {
 }
 
 MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
-                                   const Vector<int32_t>& new_shape,
+                                   const Vector<uint32_t>& new_shape,
                                    ExceptionState& exception_state) {
   bool has_minus1 = false;
-  wtf_size_t minus1_dim_index;
+  wtf_size_t minus1_dim_index = 0;
   base::CheckedNumeric<size_t> checked_newshape_number_of_elements = 1;
   Vector<uint32_t> output_shape;
   if (new_shape.size() == 0) {
@@ -1286,6 +1287,9 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
     // component of new shape can be the special value of -1.
     for (wtf_size_t i = 0; i < new_shape.size(); ++i) {
       auto d = new_shape[i];
+      // TODO::: Delete this special behavior, which has changed in the spec to
+      // passing null instead of -1.
+#if 0
       if (d < -1 || d == 0) {
         exception_state.ThrowDOMException(
             DOMExceptionCode::kDataError,
@@ -1300,6 +1304,13 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
         }
         has_minus1 = true;
         minus1_dim_index = i;
+#else
+      if (d <= 0) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            "The value of new shape may not have 0 in it.");
+        return nullptr;
+#endif
       } else {
         checked_newshape_number_of_elements *= d;
         output_shape[i] = d;
@@ -1370,7 +1381,7 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
   // According to WebNN spec:
   // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-resample2d, the input
   // must be a 4-D tensor.
-  const auto input_shape = input->Dimensions();
+  const auto& input_shape = input->Dimensions();
   if (input_shape.size() != 4) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "The input must be a 4-D tensor.");
@@ -1378,6 +1389,11 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
   }
 
   const auto axes = options->getAxesOr({2, 3});
+  const wtf_size_t input_rank = input_shape.size();
+  if (!ValidateAxes(axes, input_rank, "resample2d", exception_state)) {
+    return nullptr;
+  }
+
   if (axes.size() != 2) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "The length of axes should be 2.");
@@ -1394,6 +1410,8 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
   }
 
   Vector<uint32_t> output_shape(input_shape);
+  Vector<float> scales(axes.size(), 1.0f);
+
   if (options->hasSizes()) {
     if (options->hasScales()) {
       auto* execution_context = GetContext()->GetML()->GetExecutionContext();
@@ -1418,10 +1436,17 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
                                         "All sizes should be greater than 0.");
       return nullptr;
     }
+
     output_shape[axes[0]] = options->sizes()[0];
     output_shape[axes[1]] = options->sizes()[1];
+
+    // Compute the scales from the new shape.
+    for (wtf_size_t i = 0; i < input_rank; ++i)
+    {
+      scales[i] = static_cast<float>(output_shape[i]) / input_shape[i];
+    }
   } else {
-    const auto scales = options->getScalesOr({1.0f, 1.0f});
+    scales = options->getScalesOr({1.0f, 1.0f});
     if (scales.size() != 2) {
       exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                         "The length of scales should be 2.");
@@ -1448,8 +1473,16 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
     }
   }
 
+  // Pass the normalized options onward, simplifying the lower level's job.
+  // Then the axes parameter and scales consistently exists.
+  MLResample2dOptions* normalized_options = MLResample2dOptions::Create();
+  normalized_options->setAxes(axes);
+  normalized_options->setScales(scales);
+  // Do not set sizes, since the output shape is already set,
+  // and since it would potentially conflict with scales.
+
   auto* resample2d = MakeGarbageCollected<MLOperator>(
-      this, MLOperator::OperatorKind::kResample2d, options);
+      this, MLOperator::OperatorKind::kResample2d, normalized_options);
   String error_message;
   // According to WebNN spec
   // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-resample2d, the output
@@ -1592,7 +1625,7 @@ MLOperand* MLGraphBuilder::cast(const MLOperand* input,
 }
 
 MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
-                                  const MLConcatOptions* options,
+                                  uint32_t axis,
                                   ExceptionState& exception_state) {
   wtf_size_t input_count = inputs.size();
   if (input_count <= 0) {
@@ -1601,8 +1634,6 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
          "Concat requires at least one input.");
      return nullptr;
   }
-
-  uint32_t axis = options->axis();
 
   // Set the output dimensions initially to the first input,
   // concatenating each successive one in the loop below.
@@ -1647,8 +1678,11 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
   }
   output_dimensions[axis] = output_axis_length;
 
+  MLConcatOptionsInternal* options = MLConcatOptionsInternal::Create();
+  options->setAxis(axis);
+
   String error_message;
-  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kConcat, /*options*/ nullptr);
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kConcat, options);
 
   auto* output = MLOperand::ValidateAndCreateOutput(
       this, first_input->Type(), std::move(output_dimensions), ml_operator,
@@ -2092,10 +2126,10 @@ MLOperand* MLGraphBuilder::reduceSumSquare(const MLOperand* input,
       input, options, exception_state);
 }
 
-MLOperand* MLGraphBuilder::shape(
+Vector<uint32_t> MLGraphBuilder::shape(
     const MLOperand* input,
     ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  return {};  // TODO:::
 }
 
 MLOperand* MLGraphBuilder::sin(const MLOperand* input,
@@ -2105,11 +2139,45 @@ MLOperand* MLGraphBuilder::sin(const MLOperand* input,
 }
 
 MLOperand* MLGraphBuilder::slice(const MLOperand* input,
-                                 const Vector<int32_t>& starts,
-                                 const Vector<int32_t>& sizes,
-                                 const MLSliceOptions* options,
+                                 const Vector<uint32_t>& starts,
+                                 const Vector<uint32_t>& sizes,
                                  ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  const auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+
+  if (starts.size() != input_rank || sizes.size() != input_rank) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        String::Format("Slice's starts length (%u) and sizes length (%u) must "
+                       "match the input rank (%u).",
+                       starts.size(), sizes.size(), input_rank));
+    return nullptr;
+  }
+
+  // Ensure starts and sizes are within valid dimensions.
+  for (wtf_size_t i = 0; i < input_rank; ++i)
+  {
+      uint32_t dimension_length = input_dimensions[i];
+      if (sizes[i] > dimension_length ||
+          sizes[i] == 0 ||
+          starts[i] > dimension_length - sizes[i])
+      {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            String::Format("Slice's starts (%u) and sizes (%u) must fit within the dimension length (%u) and be non-empty.",
+                           starts[i], sizes[i], dimension_length));
+        return nullptr;
+      }
+  }
+
+  MLSliceOptionsInternal* options = MLSliceOptionsInternal::Create();
+  options->setStarts(starts);
+  options->setSizes(sizes);
+
+  // Resolve unsqueeze into a reshape operator.
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kSlice, input,
+                            sizes, input->Type(), /*options*/nullptr,
+                            exception_state);
 }
 
 MLOperand* MLGraphBuilder::sqrt(const MLOperand* input,
@@ -2218,23 +2286,6 @@ MLOperand* MLGraphBuilder::transpose(
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kTranspose, input,
                             output_dimensions, input->Type(), normalized_options,
                             exception_state);
-
-#if 0 // TODO:::DELETE
-  String error_message;
-  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kTranspose, options);
-
-  auto* output = MLOperand::ValidateAndCreateOutput(
-      this, input->Type(), std::move(output_dimensions), ml_operator,
-      /*out*/ error_message);
-  if (!output) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      error_message);
-    return nullptr;
-  }
-
-  ml_operator->Connect({input}, {output});
-  return output;
-#endif
 }
 
 MLOperand* MLGraphBuilder::triangularMatrix(

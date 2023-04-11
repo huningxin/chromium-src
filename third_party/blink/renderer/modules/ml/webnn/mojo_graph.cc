@@ -33,7 +33,7 @@ using ml::webnn::mojom::blink::ComputeResult;
 using ml::webnn::mojom::blink::MemoryInfoPtr;
 
 void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
-  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 57);
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 56);
 
   switch (op->Kind()) {
     case MLOperator::OperatorKind::kClamp:
@@ -129,9 +129,6 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kReduceSum:
     case MLOperator::OperatorKind::kReduceSumSquare:
       model_info->AddReduce(op);
-      break;
-    case MLOperator::OperatorKind::kShape:
-      model_info->AddShape(op);
       break;
     case MLOperator::OperatorKind::kSlice:
       model_info->AddSlice(op);
