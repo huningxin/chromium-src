@@ -1652,7 +1652,7 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
 
   // Validate input dimensions are compatible with each other, and compute the
   // total length of the active axis dimension.
-  for (wtf_size_t i = 1; i < input_count; ++i) {
+  for (wtf_size_t i = 0; i < input_count; ++i) {
     auto& input = inputs[i];
     auto& input_dimensions = input->Dimensions();
 
@@ -1994,7 +1994,6 @@ MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
 
   String error_message;
 
-#if 1 // TODO:::DELETE?
   auto* a_adjusted = MLOperand::ValidateAndCreateInput(
       this, a->Type(), std::move(a_dimensions), a->Name(), error_message);
   if (!a_adjusted) {
@@ -2010,7 +2009,6 @@ MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
                                       error_message);
     return nullptr;
   }
-#endif
 
   // Create empty options for gemm, since MatMul uses the defaults.
   auto* options = MLGemmOptions::Create();

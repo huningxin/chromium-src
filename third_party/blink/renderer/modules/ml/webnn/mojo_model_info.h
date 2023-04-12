@@ -117,7 +117,9 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   // Add a operand to model which is output of the operation.
   size_t AddOperandToModel(const MLOperand* output);
 
-  bool OperandsInIndexMap(const Member<const MLOperand>* operands, size_t operand_count) const;
+  bool AreOperandsInIndexMap(const Member<const MLOperand>* operands, size_t operand_count) const;
+
+  uint64_t GetOperandIndex(/*nullable*/ const MLOperand* operand) const;
 
   // Hold all operands of model to index the operand.
   HeapHashMap<Member<const MLOperand>, size_t> operand_index_map_;

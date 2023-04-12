@@ -129,11 +129,17 @@ void TensorDesc::Initialize(DML_TENSOR_DATA_TYPE data_type,
   dimensions_ = std::move(dimensions);
   strides_ = std::move(strides);
 
+  // Round up to the nearest 4 bytes.
+  // The buffer allocation already aligned chunks up to
+  // DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT.
+  uint64_t minimum_implied_size_in_bytes =
+      TotalTensorSizeInBytes(data_type, dimensions_, strides_).value();
+  minimum_implied_size_in_bytes = (minimum_implied_size_in_bytes + 3) & ~3ull;
+
   buffer_desc_.DimensionCount = dimensions_.size();
   buffer_desc_.Sizes = dimensions_.data();
   buffer_desc_.Strides = strides_ ? strides_.value().data() : nullptr;
-  buffer_desc_.TotalTensorSizeInBytes =
-      TotalTensorSizeInBytes(data_type, dimensions_, strides_).value();
+  buffer_desc_.TotalTensorSizeInBytes = minimum_implied_size_in_bytes;
   buffer_desc_.GuaranteedBaseOffsetAlignment = 0;
   buffer_desc_.DataType = data_type;
   buffer_desc_.Flags = flags;
@@ -192,17 +198,17 @@ std::vector<UINT> TensorDesc::GetStridesOrDefaultStrides() const {
 
 void TensorDesc::EnsureMinimumRankRightAligned(size_t minimum_rank)
 {
-    // Note this does not change the TotalTensorSizeInBytes, since leading 1's
-    // make no difference, nor any other field.
-    FillLeadingSideWithOnes(/*inout*/ dimensions_, minimum_rank);
-    buffer_desc_.DimensionCount = dimensions_.size();
-    buffer_desc_.Sizes = dimensions_.data();
+  // Note this does not change the TotalTensorSizeInBytes, since leading 1's
+  // make no difference, nor any other field.
+  FillLeadingSideWithOnes(/*inout*/ dimensions_, minimum_rank);
+  buffer_desc_.DimensionCount = dimensions_.size();
+  buffer_desc_.Sizes = dimensions_.data();
 
-    if (strides_)
-    {
-        FillLeadingSideWithOnes(/*inout*/ *strides_, minimum_rank);
-        buffer_desc_.Strides = strides_.value().data();
-    }
+  if (strides_)
+  {
+    FillLeadingSideWithOnes(/*inout*/ *strides_, minimum_rank);
+    buffer_desc_.Strides = strides_.value().data();
+  }
 }
 
 // Returns the default decreasing order packed strides for the given 
@@ -214,11 +220,47 @@ std::vector<uint32_t> TensorDesc::ComputeDecreasingStrides(base::span<const uint
   uint32_t stride = 1;
   for (auto i = dimension_count; i-- > 0; )
   {
-      strides[i] = stride;
-      stride *= dimensions[i];
+    strides[i] = stride;
+    stride *= dimensions[i];
   }
 
   return strides;
+}
+
+void TensorDesc::PermuteDimensionsRightAligned(base::span<const uint32_t> permutation)
+{
+  // Ensure there are enough elements to apply the permutation by adding
+  // leading 1's if necessary.
+  EnsureMinimumRankRightAligned(permutation.size());
+
+  // Compute strides *before* the reordering, since callers use this function
+  // to rearrange the dimensions (depending on the affinity of the backend
+  // for a certain preference - e.g. NHWC vs NCHW) and need the strides to
+  // be adjusted accordingly. Otherwise strides would be computed using
+  // the permuted dimensions and read the wrong elements.
+  EnsureStridesExist();
+
+  // If there are more dimensions than permutation the size (e.g. maybe
+  // they were already padded out to some limit like 4D with leading 1's)
+  // then the permutation only applies to the significant right side.
+  // Any additional leading batch dimensions are ignorable.
+  size_t leading_filler_count = dimensions_.size() - permutation.size();
+  auto dimensions_span = base::span<uint32_t>(dimensions_).subspan(leading_filler_count);
+  auto strides_span = base::span<uint32_t>(*strides_).subspan(leading_filler_count);
+
+  auto permute = [](/*inout*/ base::span<uint32_t> values,
+                    base::span<const uint32_t> permutation) {
+    DCHECK(values.size() == permutation.size());
+
+    // Gather the original values via the permutation.
+    std::vector<uint32_t> temporary_values(values.begin(), values.end());
+    for (size_t i = 0, count = values.size(); i < count; ++i) {
+      values[i] = temporary_values[permutation[i]];
+    }
+  };
+
+  permute(/*inout*/ dimensions_span, permutation);
+  permute(/*inout*/ strides_span, permutation);
 }
 
 void TensorDesc::EnsureStridesExist() {
@@ -226,6 +268,7 @@ void TensorDesc::EnsureStridesExist() {
   {
     std::vector<uint32_t> new_strides = ComputeDecreasingStrides(dimensions_);
     strides_ = std::move(new_strides);
+    buffer_desc_.Strides = strides_.value().data();
   }
 }
 

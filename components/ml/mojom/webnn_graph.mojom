@@ -515,18 +515,13 @@ struct Cast {
 };
 
 [Stable]
-struct InstanceNormalizationOptions {
-  uint64 scale_index@0;
-  uint64 bias_index@1;
-  float epsilon@2;
-  InputOperandLayout layout@3 = InputOperandLayout.kNchw;
-};
-
-[Stable]
 struct InstanceNormalization {
   uint64 input_index@0;
-  InstanceNormalizationOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
+  uint64 scale_index@1;
+  uint64 bias_index@2;
+  float epsilon@3;
+  InputOperandLayout layout@4 = InputOperandLayout.kNchw;
+  uint64 output_index@5;    // Index of output operand in model's operand array.
 };
 
 [Stable]
@@ -567,7 +562,7 @@ struct ElementWiseIf {
 [Stable]
 struct Resample2d {
   uint64 input_index@0;
-  InterpolationMode mode@1 = InterpolationMode.kNearestNeighbor;
+  InterpolationMode interpolation_mode@1 = InterpolationMode.kNearestNeighbor;
   array<float> scales@2;
   array<uint32> axes@3;
   // No need to store sizes because the output dimensions suffice.

@@ -48,6 +48,7 @@ using ml::webnn::mojom::OperationInfoPtr;
 using ml::webnn::mojom::Pool2dOptions;
 using ml::webnn::mojom::Pool2dOptionsPtr;
 using ml::webnn::mojom::Pool2dType;
+using ml::webnn::mojom::InputOperandLayout;
 
 }  // namespace
 
@@ -105,30 +106,38 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
   void AddSoftmax(UINT64 input_index,
                   OperandDescriptorPtr desc,
                   UINT64 output_index);
-  void AddArgMinMax(UINT64 input_index, OperatorType operator_type, OperandDescriptorPtr desc, UINT64 output_index);
+
+  // TODO:::NEWOPS
+  void AddArgMinMax(UINT64 input_index, OperatorType operator_type, OperandDescriptorPtr output_desc, UINT64 output_index);
   void AddCast(UINT64 input_index,
                OperandType data_type,
                OperandDescriptorPtr output_desc,
                UINT64 output_index);
   void AddConcat(base::span<const uint64_t> input_indices,
                  uint32_t axis,
-                 OperandDescriptorPtr desc,
+                 OperandDescriptorPtr output_desc,
                  UINT64 output_index);
-  void AddExpand(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
+  void AddExpand(UINT64 input_index, OperandDescriptorPtr output_desc, UINT64 output_index);
   void AddGather(UINT64 input_index,
                  UINT64 indices_index,
                  uint32_t axis,
                  OperandDescriptorPtr output_desc,
                  UINT64 output_index);
-  void AddInstanceNormalization(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddPad(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddFillSequence(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-  void AddReduce(UINT64 input_index, OperatorType operator_type, base::span<const uint32_t> axes, OperandDescriptorPtr desc, UINT64 output_index);
+  void AddInstanceNormalization(uint64_t input_index,
+                                uint64_t scale_index,
+                                uint64_t bias_index,
+                                float epsilon,
+                                InputOperandLayout operand_layout,
+                                OperandDescriptorPtr output_desc,
+                                UINT64 output_index);
+  void AddPad(UINT64 input_index, OperandDescriptorPtr output_desc, UINT64 output_index);
+  void AddFillSequence(UINT64 input_index, OperandDescriptorPtr output_desc, UINT64 output_index);
+  void AddReduce(UINT64 input_index, OperatorType operator_type, base::span<const uint32_t> axes, OperandDescriptorPtr output_desc, UINT64 output_index);
   void AddResample2d(UINT64 input_index,
                      ml::webnn::mojom::InterpolationMode interpolation_mode,
                      base::span<const float> scales,
                      base::span<const uint32_t> axes,
-                     OperandDescriptorPtr desc,
+                     OperandDescriptorPtr output_desc,
                      UINT64 output_index);
   void AddSlice(UINT64 input_index,
                 base::span<const uint32_t> starts,

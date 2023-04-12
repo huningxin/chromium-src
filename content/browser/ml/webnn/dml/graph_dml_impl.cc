@@ -56,6 +56,25 @@ std::vector<UINT> transposeStrides(TransposeType transposeType,
   }
 }
 
+std::array<uint32_t, 4> getLayoutToLayoutPermutation(InputOperandLayout original_layout, InputOperandLayout new_layout)
+{
+  static_assert(uint32_t(InputOperandLayout::kMaxValue) == 1, "Update getLayoutToLayoutPermutation for the new layout.");
+  switch (original_layout) {
+    case InputOperandLayout::kNchw:
+      switch (new_layout) {
+        case InputOperandLayout::kNchw: return {0,1,2,3};
+        case InputOperandLayout::kNhwc: return {0,2,3,1};
+      }
+      break;
+    case InputOperandLayout::kNhwc:
+      switch (new_layout) {
+        case InputOperandLayout::kNchw: return {0,3,1,2};
+        case InputOperandLayout::kNhwc: return {0,1,2,3};
+      }
+      break;
+  }
+}
+
 std::vector<uint32_t> transposeStrides(base::span<const uint32_t> original_strides, base::span<const uint32_t> permutation)
 {
   auto dimension_count = original_strides.size();
@@ -129,6 +148,7 @@ std::vector<uint32_t> ExpandDimensions(
 
 std::vector<UINT> transposeDimensions(TransposeType transposeType,
                                       const std::vector<UINT>& input_dims) {
+  DCHECK(input_dims.size() == 4);
   std::vector<UINT> newInputDims(4);
   switch (transposeType) {
     case NhwcToNchw:
@@ -421,11 +441,6 @@ void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
     case OperatorType::kRelu: {
       CREATE_UNARY_OPERATOR(ACTIVATION_RELU, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
     } break;
-   // TODO:::DELETE
-    // case OperatorType::kHardSwish: {
-    //   HardSwish requires multiple operators: y = x * max(0, min(6, (x + 3))) / 6
-    //   CREATE_UNARY_OPERATOR(ELEMENT_WISE_NA, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
-    // } break;
     default:
       DAWN_INTERNAL_ERROR(" Unary elementwise op is not implemented.");
   }
@@ -450,19 +465,10 @@ void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
   auto* b_node_output = node_output_map_[b_index].get();
   auto output_dims = output_desc->dimensions;
 
-  auto a_broadcasted_strides =
-      CalculateStridesForBroadcast(a_node_output, output_dims);
-  auto& a_tensor_desc = a_node_output->GetTensorDesc();
-  TensorDesc a_broadcasted_tensor(a_tensor_desc.GetDataType(),
-                                  a_tensor_desc.GetFlags(), output_dims,
-                                  a_broadcasted_strides);
-
-  auto b_broadcasted_strides =
-      CalculateStridesForBroadcast(b_node_output, output_dims);
-  auto& b_tensor_desc = b_node_output->GetTensorDesc();
-  TensorDesc b_broadcasted_tensor(b_tensor_desc.GetDataType(),
-                                  b_tensor_desc.GetFlags(), output_dims,
-                                  b_broadcasted_strides);
+  TensorDesc a_broadcasted_tensor =
+      GetBroadcastedTensorDesc(a_node_output, output_dims);
+  TensorDesc b_broadcasted_tensor =
+      GetBroadcastedTensorDesc(b_node_output, output_dims);
 
   TensorDesc output_tensor(GetTensorDataType(output_desc->data_type), output_dims);
   Node node;
@@ -514,8 +520,8 @@ void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
     } break;
     case OperatorType::kPow: {
       DML_ELEMENT_WISE_POW_OPERATOR_DESC operator_desc{};
-      operator_desc.InputTensor = a_tensor_desc.Get();
-      operator_desc.ExponentTensor = b_tensor_desc.Get();
+      operator_desc.InputTensor = a_broadcasted_tensor.Get();
+      operator_desc.ExponentTensor = b_broadcasted_tensor.Get();
       operator_desc.OutputTensor = output_tensor.Get();
       node = graph_desc_builder_->CreateOperatorNode(
           DML_OPERATOR_ELEMENT_WISE_POW, &operator_desc);
@@ -770,29 +776,27 @@ void GraphDMLImpl::AddGemm(UINT64 a_index,
   if (options->c_index != std::numeric_limits<uint64_t>::max()) {
     DCHECK(node_output_map_.find(options->c_index) != node_output_map_.end());
     auto* c_node_output = node_output_map_[options->c_index].get();
-    // It is either a scalar, or of the shape that is unidirectionally
-    // broadcastable to the shape [M, N] definited in WebNN Spec, DML only
-    // support 4D, so broadCast the Shape of optional C to {1, 1, M, N }
-    // supported in DML.
-    auto c_broadcasted_strides =
-        CalculateStridesForBroadcast(c_node_output, output_dims);
-    c_tensor_desc = c_node_output->GetTensorDesc();
+
+    // Broadcast C's shape up to 4D for DML. It enters as either a scalar
+    // or as a shape that is unidirectionally broadcastable to the shape
+    // [M, N] as defined in WebNN Spec.
+    c_tensor_desc = GetBroadcastedTensorDesc(c_node_output, output_dims);
     input_nodes.push_back(c_node_output);
   }
 
-  DML_MATRIX_TRANSFORM aTranspose = options->a_transpose
-                                        ? DML_MATRIX_TRANSFORM_TRANSPOSE
-                                        : DML_MATRIX_TRANSFORM_NONE;
-  DML_MATRIX_TRANSFORM bTranspose = options->b_transpose
-                                        ? DML_MATRIX_TRANSFORM_TRANSPOSE
-                                        : DML_MATRIX_TRANSFORM_NONE;
+  DML_MATRIX_TRANSFORM a_transpose = options->a_transpose
+                                         ? DML_MATRIX_TRANSFORM_TRANSPOSE
+                                         : DML_MATRIX_TRANSFORM_NONE;
+  DML_MATRIX_TRANSFORM b_transpose = options->b_transpose
+                                         ? DML_MATRIX_TRANSFORM_TRANSPOSE
+                                         : DML_MATRIX_TRANSFORM_NONE;
   DML_GEMM_OPERATOR_DESC gemm_desc = {};
   gemm_desc.ATensor = a_tensor_desc.Get();
   gemm_desc.BTensor = b_tensor_desc.Get();
   gemm_desc.CTensor = c_tensor_desc.Get();
   gemm_desc.OutputTensor = output_tensor_desc.Get();
-  gemm_desc.TransA = aTranspose;
-  gemm_desc.TransB = bTranspose;
+  gemm_desc.TransA = a_transpose;
+  gemm_desc.TransB = b_transpose;
   gemm_desc.Alpha = options->alpha;
   gemm_desc.Beta = options->beta;
 
@@ -1074,9 +1078,9 @@ void GraphDMLImpl::AddExpand(UINT64 input_index,
   DCHECK(node_output_map_.contains(input_index));
 
   auto* input_node = node_output_map_[input_index].get();
-  auto& input_tensor_desc = input_node->GetTensorDesc();
   auto& output_dimensions = output_desc->dimensions;
-  TensorDesc output_tensor_desc =
+  TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
+  TensorDesc input_tensor_desc =
       GetBroadcastedTensorDesc(input_node, output_dimensions);
 
   Node node;
@@ -1130,30 +1134,65 @@ void GraphDMLImpl::AddGather(UINT64 input_index,
   node_output_map_[output_index] = std::move(node_output);
 }
 
-void GraphDMLImpl::AddInstanceNormalization(UINT64 input_index,
+void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
+                                            uint64_t scale_index,
+                                            uint64_t bias_index,
+                                            float epsilon,
+                                            InputOperandLayout operand_layout,
                                             OperandDescriptorPtr output_desc,
                                             UINT64 output_index) {
-  // TODO::---------------------------------------------
-#if 0
-  DCHECK(node_output_map_.contains(input_index));
-
   auto* input_node = node_output_map_[input_index].get();
-  auto& input_tensor_desc = input_node->GetTensorDesc();
+  TensorDesc input_tensor_desc = input_node->GetTensorDesc();
+  TensorDesc scale_tensor_desc;
+  TensorDesc bias_tensor_desc;
   auto& output_dimensions = output_desc->dimensions;
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
 
-  DML_XXXX_OPERATOR_DESC operator_desc = {};
-  operator_desc.InputTensor = input_tensor_desc.Get();
-  operator_desc.OutputTensor = output_tensor_desc.Get();
-  Node node = graph_desc_builder_->CreateOperatorNode(
-      DML_OPERATOR_XXXX, &operator_desc);
+  // DirectML expects NCHW. So permute the dimensions and strides accordingly
+  // if the input is anything else (e.g. NHWC).
+  std::array<uint32_t, 4> tensor_dimensions_permutation = getLayoutToLayoutPermutation(operand_layout, InputOperandLayout::kNchw);
+  input_tensor_desc.PermuteDimensionsRightAligned(tensor_dimensions_permutation);
+  output_tensor_desc.PermuteDimensionsRightAligned(tensor_dimensions_permutation);
 
-  graph_desc_builder_->Connect({input_node}, {node});
+  // DirectML expects the channel dimension to be at NCHW.
+  // So move the C dimension in 1D from XXXC to XCXX.
+  const std::array<uint32_t, 4> scale_bias_dimensions_permutation = {0,3,1,2};
+
+  std::vector<NodeOutput*> input_nodes;
+  input_nodes.reserve(3);
+  input_nodes.push_back(input_node);
+
+  if (scale_index != std::numeric_limits<uint64_t>::max()) {
+    auto* scale_node = node_output_map_[scale_index].get();
+    scale_tensor_desc = scale_node->GetTensorDesc();
+    scale_tensor_desc.PermuteDimensionsRightAligned(scale_bias_dimensions_permutation);
+    input_nodes.push_back(scale_node);
+  }
+  if (bias_index != std::numeric_limits<uint64_t>::max()) {
+    auto* bias_node = node_output_map_[bias_index].get();
+    bias_tensor_desc = bias_node->GetTensorDesc();
+    bias_tensor_desc.PermuteDimensionsRightAligned(scale_bias_dimensions_permutation);
+    input_nodes.push_back(bias_node);
+  }
+
+  std::array<uint32_t, 2> axes = {2, 3};
+  DML_MEAN_VARIANCE_NORMALIZATION1_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.ScaleTensor = input_tensor_desc.Get();
+  operator_desc.BiasTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  operator_desc.AxisCount = static_cast<uint32_t>(axes.size());
+  operator_desc.Axes = axes.data();
+  operator_desc.NormalizeVariance = true;
+  operator_desc.Epsilon = epsilon;
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_MEAN_VARIANCE_NORMALIZATION1, &operator_desc);
+
+  graph_desc_builder_->Connect(input_nodes, {node});
 
   auto node_output = graph_desc_builder_->CreateNodeOutput(
       node, 0, std::move(output_tensor_desc));
   node_output_map_[output_index] = std::move(node_output);
-#endif
 }
 
 void GraphDMLImpl::AddPad(UINT64 input_index,
@@ -1250,8 +1289,13 @@ void GraphDMLImpl::AddResample2d(UINT64 input_index,
       full_scales[axis] = scales[i];
   }
 
-  static_assert(uint32_t(DML_INTERPOLATION_MODE_NEAREST_NEIGHBOR) == uint32_t(ml::webnn::mojom::InterpolationMode::kNearestNeighbor));
-  static_assert(uint32_t(DML_INTERPOLATION_MODE_LINEAR) == uint32_t(ml::webnn::mojom::InterpolationMode::kLinear));
+  static_assert(uint32_t(ml::webnn::mojom::InterpolationMode::kMaxValue) ==
+                1);  // Update assert.
+  static_assert(
+      uint32_t(DML_INTERPOLATION_MODE_NEAREST_NEIGHBOR) ==
+      uint32_t(ml::webnn::mojom::InterpolationMode::kNearestNeighbor));
+  static_assert(uint32_t(DML_INTERPOLATION_MODE_LINEAR) ==
+                uint32_t(ml::webnn::mojom::InterpolationMode::kLinear));
 
   DML_RESAMPLE_OPERATOR_DESC operator_desc = {};
   operator_desc.InputTensor = input_tensor_desc.Get();
@@ -1532,7 +1576,7 @@ void GraphDMLImpl::Build(ModelInfoPtr model_info, BuildCallback callback) {
         break;
       }
       case OperationInfo::Tag::kInstanceNormalization: {
-        //auto& mojom_operator = operation->get_elementwise_if();
+        //auto& mojom_operator = operation->get_instance_normalization();
         //auto& output_operand = model_info->operands[mojom_operator->output_index];
         //AddSomeOperator__(mojom_operator->condition_index,
         //                  mojom_operator->true_value_index,
@@ -1788,7 +1832,15 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                 mojom_operator->output_index);
         break;
       }
-      //case OperationInfo::Tag::kConcat:
+      case OperationInfo::Tag::kConcat: {
+        auto& mojom_operator = operation->get_concat();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddConcat(mojom_operator->input_indices,
+                  mojom_operator->axis,
+                  std::move(output_operand),
+                  mojom_operator->output_index);
+        break;
+      }
       case OperationInfo::Tag::kExpand: {
         auto& mojom_operator = operation->get_expand();
         auto& output_operand = model_info->operands[mojom_operator->output_index];
@@ -1807,7 +1859,16 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                   mojom_operator->output_index);
         break;
       }
-      //case OperationInfo::Tag::kInstanceNormalization:
+      case OperationInfo::Tag::kInstanceNormalization: {
+        auto& mojom_operator = operation->get_instance_normalization();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddInstanceNormalization(
+            mojom_operator->input_index, mojom_operator->scale_index,
+            mojom_operator->bias_index, mojom_operator->epsilon,
+            mojom_operator->layout,
+            std::move(output_operand), mojom_operator->output_index);
+        break;
+      }
       //case OperationInfo::Tag::kPad:
       //case OperationInfo::Tag::kFillSequence:
       case OperationInfo::Tag::kReduce: {
@@ -1820,7 +1881,17 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                   mojom_operator->output_index);
         break;
       }
-      //case OperationInfo::Tag::kResample2d:
+      case OperationInfo::Tag::kResample2d: {
+        auto& mojom_operator = operation->get_resample2d();
+        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        AddResample2d(mojom_operator->input_index,
+                                         mojom_operator->interpolation_mode,
+                                         mojom_operator->scales,
+                                         mojom_operator->axes,
+                                         std::move(output_operand),
+                                         mojom_operator->output_index);
+        break;
+      }
       //case OperationInfo::Tag::kSlice:
       case OperationInfo::Tag::kTranspose: {
         auto& mojom_operator = operation->get_transpose();
@@ -1854,6 +1925,10 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
 
   // Finish the graph build.
   mCompiledOperator = graph_desc_builder_->Compile(DML_EXECUTION_FLAG_NONE);
+  if (!mCompiledOperator) {
+    *out_result = BuildResult::kUnknownError;
+    return false;
+  }
 
   auto input_nodes = graph_desc_builder_->GetInputNodes();
   std::vector<DML_BUFFER_BINDING> input_buffer_binding(input_nodes.size());

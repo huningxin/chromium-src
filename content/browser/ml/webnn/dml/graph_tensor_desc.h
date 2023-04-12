@@ -52,6 +52,8 @@ class TensorDesc final {
   // with 1's if needed. e.g. [4,5] with minimum rank of 4 yields [1,1,4,5].
   void EnsureMinimumRankRightAligned(size_t minimum_rank);
 
+  void PermuteDimensionsRightAligned(base::span<const uint32_t> permutation);
+
   UINT64 GetTotalTensorSizeInBytes();
 
   // Static helper functions.

@@ -102,6 +102,7 @@ HRESULT ExecutionContext::ExecuteGraph(
     IDMLCompiledOperator* compiled_operator,
     const std::vector<DML_BINDING_DESC>& input_bindings,
     const std::vector<DML_BINDING_DESC>& output_bindings) {
+  DCHECK(compiled_operator != nullptr);
   return command_recorder_.ExecuteGraph(graph, compiled_operator,
                                         input_bindings, output_bindings);
 }

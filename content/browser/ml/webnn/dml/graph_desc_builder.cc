@@ -155,6 +155,7 @@ ComPtr<IDMLCompiledOperator> GraphDescBuilder::Compile(
   ComPtr<IDMLCompiledOperator> compiled_graph;
   hr = device1->CompileGraph(&graph_desc, flags, IID_PPV_ARGS(&compiled_graph));
   if (FAILED(hr)) {
+    // TODO::: Log this failure reason.
     return nullptr;
   }
   return compiled_graph;
