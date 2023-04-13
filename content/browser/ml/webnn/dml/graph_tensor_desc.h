@@ -18,6 +18,12 @@ using Microsoft::WRL::ComPtr;
 
 class TensorDesc final {
  public:
+  enum Alignment : uint32_t
+  {
+    kLeading,  // Align to leading/left edge. e.g. the 1 in [1,2,3]
+    kTrailing, // Align to trailing/right edge. e.g. the 3 in [1,2,3]
+  };
+
   TensorDesc();
   TensorDesc(DML_TENSOR_DATA_TYPE data_type, std::vector<UINT> dimensions);
   TensorDesc(DML_TENSOR_DATA_TYPE data_type,
@@ -50,9 +56,9 @@ class TensorDesc final {
 
   // Ensures the rank is at least the minimum rank, filling the leading left side
   // with 1's if needed. e.g. [4,5] with minimum rank of 4 yields [1,1,4,5].
-  void EnsureMinimumRankRightAligned(size_t minimum_rank);
+  void EnsureMinimumRank(size_t minimum_rank, Alignment alignment);
 
-  void PermuteDimensionsRightAligned(base::span<const uint32_t> permutation);
+  void PermuteDimensions(base::span<const uint32_t> permutation, Alignment alignment);
 
   UINT64 GetTotalTensorSizeInBytes();
 

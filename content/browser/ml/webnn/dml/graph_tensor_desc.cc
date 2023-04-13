@@ -87,13 +87,22 @@ absl::optional<UINT64> TotalTensorSizeInBytes(
   return checked_total_size_in_bytes.ValueOrDie();
 }
 
-void FillLeadingSideWithOnes(/*inout*/ std::vector<uint32_t>& values, size_t minimum_size)
-{
+void InsertPaddingOnes(/*inout*/ std::vector<uint32_t>& values,
+                       size_t minimum_size,
+                       TensorDesc::Alignment alignment) {
+  // Insert's enough 1's to satisfy the minimum size.
+  // If already large enough, no additional 1's are added.
   size_t old_size = values.size();
   size_t new_size = std::max(minimum_size, old_size);
-  size_t leading_filler_count = new_size - old_size;
+  size_t filler_count = new_size - old_size;
 
-  values.insert(values.begin(), leading_filler_count, 1u);
+  // Insert filler values on:
+  // the leading edge if trailing aligned: [4,5] -> [1,1,1,4,5]
+  // the trailing edge if leading aligned: [4,5] -> [4,5,1,1,1]
+  auto insertion_point = (alignment == TensorDesc::Alignment::kTrailing)
+                             ? values.begin()
+                             : values.end();
+  values.insert(insertion_point, filler_count, 1u);
 }
 
 }  // namespace
@@ -196,17 +205,17 @@ std::vector<UINT> TensorDesc::GetStridesOrDefaultStrides() const {
   return strides_ ? *strides_ : ComputeDecreasingStrides(dimensions_);
 }
 
-void TensorDesc::EnsureMinimumRankRightAligned(size_t minimum_rank)
+void TensorDesc::EnsureMinimumRank(size_t minimum_rank, Alignment alignment)
 {
   // Note this does not change the TotalTensorSizeInBytes, since leading 1's
   // make no difference, nor any other field.
-  FillLeadingSideWithOnes(/*inout*/ dimensions_, minimum_rank);
+  InsertPaddingOnes(/*inout*/ dimensions_, minimum_rank, alignment);
   buffer_desc_.DimensionCount = dimensions_.size();
   buffer_desc_.Sizes = dimensions_.data();
 
   if (strides_)
   {
-    FillLeadingSideWithOnes(/*inout*/ *strides_, minimum_rank);
+    InsertPaddingOnes(/*inout*/ *strides_, minimum_rank, alignment);
     buffer_desc_.Strides = strides_.value().data();
   }
 }
@@ -227,11 +236,11 @@ std::vector<uint32_t> TensorDesc::ComputeDecreasingStrides(base::span<const uint
   return strides;
 }
 
-void TensorDesc::PermuteDimensionsRightAligned(base::span<const uint32_t> permutation)
+void TensorDesc::PermuteDimensions(base::span<const uint32_t> permutation, Alignment alignment)
 {
   // Ensure there are enough elements to apply the permutation by adding
   // leading 1's if necessary.
-  EnsureMinimumRankRightAligned(permutation.size());
+  EnsureMinimumRank(permutation.size(), alignment);
 
   // Compute strides *before* the reordering, since callers use this function
   // to rearrange the dimensions (depending on the affinity of the backend
@@ -242,11 +251,17 @@ void TensorDesc::PermuteDimensionsRightAligned(base::span<const uint32_t> permut
 
   // If there are more dimensions than permutation the size (e.g. maybe
   // they were already padded out to some limit like 4D with leading 1's)
-  // then the permutation only applies to the significant right side.
-  // Any additional leading batch dimensions are ignorable.
-  size_t leading_filler_count = dimensions_.size() - permutation.size();
-  auto dimensions_span = base::span<uint32_t>(dimensions_).subspan(leading_filler_count);
-  auto strides_span = base::span<uint32_t>(*strides_).subspan(leading_filler_count);
+  // then the permutation only applies to the significant portion,
+  // depending on alignment. Any additional leading/traling batch dimensions
+  // are ignorable.
+
+  // clang-format off
+  size_t permutation_size = permutation.size();
+  size_t preserved_size = dimensions_.size() - permutation_size;
+  size_t subset_offset = (alignment == Alignment::kLeading) ? 0 : preserved_size;
+  auto dimensions_span = base::span<uint32_t>(dimensions_).subspan(subset_offset, permutation_size);
+  auto strides_span = base::span<uint32_t>(*strides_).subspan(subset_offset, permutation_size);
+  // clang-format on
 
   auto permute = [](/*inout*/ base::span<uint32_t> values,
                     base::span<const uint32_t> permutation) {

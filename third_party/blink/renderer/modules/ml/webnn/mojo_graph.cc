@@ -81,10 +81,8 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     ////////////////////////////////////////////////////////////////////////////////
     // NEWOPS::: Add new operators here.
     case MLOperator::OperatorKind::kArgMax:
-      model_info->AddArgMax(op);
-      break;
     case MLOperator::OperatorKind::kArgMin:
-      model_info->AddArgMin(op);
+      model_info->AddArgMinMax(op);
       break;
     case MLOperator::OperatorKind::kCast:
       model_info->AddCast(op);
@@ -105,6 +103,9 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kSigmoid:
     case MLOperator::OperatorKind::kHardSwish:
       model_info->AddElementWiseUnary(op);
+      break;
+    case MLOperator::OperatorKind::kElementWiseIf:
+      model_info->AddElementWiseIf(op);
       break;
     case MLOperator::OperatorKind::kGather:
       model_info->AddGather(op);
@@ -138,9 +139,6 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
       break;
     case MLOperator::OperatorKind::kTriangularMatrix:
       model_info->AddTriangularMatrix(op);
-      break;
-    case MLOperator::OperatorKind::kElementWiseIf:
-      model_info->AddElementWiseIf(op);
       break;
 
     default:

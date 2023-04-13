@@ -80,8 +80,7 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   // NEWOPS:::
 
   // TODO::: Combine ArgMin and ArgMax?
-  void AddArgMax(const MLOperator* ml_operator);
-  void AddArgMin(const MLOperator* ml_operator);
+  void AddArgMinMax(const MLOperator* ml_operator);
   void AddCast(const MLOperator* ml_operator);
   void AddConcat(const MLOperator* ml_operator);
   void AddExpand(const MLOperator* ml_operator);

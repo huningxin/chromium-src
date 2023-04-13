@@ -89,6 +89,7 @@ dictionary MLSqueezeOptions {
 dictionary MLArgMinMaxOptions {
   unsigned long axis = 0;
   boolean keepDimensions = false;
+  boolean selectLastIndex = false;
 };
 
 dictionary MLConcatOptionsInternal {
@@ -131,9 +132,8 @@ dictionary MLReduceOptions {
 };
 
 dictionary MLFillSequenceOptions {
-  float start;
-  float limit; // Stop at this value (end-exclusive).
-  float step;
+  float start = 0;
+  float delta = 1;
 };
 
 [
@@ -146,10 +146,10 @@ dictionary MLFillSequenceOptions {
 
   [RaisesException] MLOperand constant(MLOperandDescriptor desc, MLBufferView bufferView);
 
-  [RaisesException] MLOperand clamp(MLOperand input, optional MLClampOptions options = {});
-  [RaisesException] MLOperator clamp(optional MLClampOptions options = {});
-
+  // Dot product operations.
   [RaisesException] MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
+  [RaisesException] MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
+  [RaisesException] MLOperand matmul(MLOperand a, MLOperand b);
 
   // Elementwise binary operations
   [RaisesException] MLOperand add(MLOperand a, MLOperand b);
@@ -165,47 +165,31 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand greater(MLOperand a, MLOperand b);
   [RaisesException] MLOperand lesser(MLOperand a, MLOperand b);
 
-  [RaisesException] MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
-
   // Elementwise unary activation operations.
   // TODO::: Rename MLOperator to MLActivation in this cases.
+  [RaisesException] MLOperand relu(MLOperand input);
+  [RaisesException] MLOperator relu();
+
+  [RaisesException] MLOperand clamp(MLOperand input, optional MLClampOptions options = {});
+  [RaisesException] MLOperator clamp(optional MLClampOptions options = {});
+
+  [RaisesException] MLOperand sigmoid(MLOperand input);
+  [RaisesException] MLOperator sigmoid();
+
   [RaisesException] MLOperand hardSwish(MLOperand x);
   [RaisesException] MLOperator hardSwish();
+
+  // Nonelementwise unary activation operations.
+  [RaisesException] MLOperand softmax(MLOperand input);
 
   // Pooling operations
   [RaisesException] MLOperand averagePool2d(MLOperand input, optional MLPool2dOptions options = {});
   [RaisesException] MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
 
-  // TODO::: Combine into unary operators? Likewise for hardSwish.
-  [RaisesException] MLOperand relu(MLOperand input);
-  [RaisesException] MLOperator relu();
-
-  [RaisesException] MLOperand reshape(MLOperand input, sequence<unsigned long> newShape);
-
   [RaisesException] MLOperand resample2d(MLOperand input, optional MLResample2dOptions options = {});
-
-  [RaisesException] MLOperand softmax(MLOperand input);
-
-  [RaisesException] MLOperand sigmoid(MLOperand input);
-  [RaisesException] MLOperator sigmoid();
 
   ////////////////////////////////////////////////////////////////////////////////
   // NEWOPS::: New operators go here.
-  [RaisesException] MLOperand matmul(MLOperand a, MLOperand b);
-
-  // Shape modification operations.
-  [RaisesException] MLOperand squeeze(MLOperand input, optional MLSqueezeOptions options = {});
-  [RaisesException] MLOperand unsqueeze(MLOperand input, MLSqueezeOptions options);
-  [RaisesException] MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
-  [RaisesException] MLOperand slice(MLOperand input, sequence<unsigned long> starts, sequence<unsigned long> sizes);
-  [RaisesException] MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
-  [RaisesException] MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
-  [RaisesException] MLOperand expand(MLOperand input, sequence<unsigned long> newShape);
-  [RaisesException] MLOperand gather(MLOperand input, MLOperand indices, optional MLGatherOptions options = {});
-  [RaisesException] MLOperand flattenTo2d(MLOperand input, unsigned long axis);
-
-  // Shape retrieval.
-  [RaisesException] sequence<unsigned long> shape(MLOperand input);
 
   // Elementwise unary operations
   [RaisesException] MLOperand identity(MLOperand input);
@@ -215,6 +199,24 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand cos(MLOperand input);
   [RaisesException] MLOperand tan(MLOperand input);
   [RaisesException] MLOperand erf(MLOperand input);
+
+  // This trinary elementwise operator corresponds to the ONNX where operator.
+  // "elementwise" is one word, not 2. https://en.wiktionary.org/wiki/elementwise
+  [RaisesException] MLOperand elementwiseIf(MLOperand condition, MLOperand trueValue, MLOperand falseValue);
+
+  // Shape dimension reinterpreting operations.
+  [RaisesException] MLOperand reshape(MLOperand input, sequence<unsigned long> newShape);
+  [RaisesException] MLOperand squeeze(MLOperand input, optional MLSqueezeOptions options = {});
+  [RaisesException] MLOperand unsqueeze(MLOperand input, MLSqueezeOptions options);
+  [RaisesException] MLOperand flattenTo2d(MLOperand input, unsigned long axis);
+
+  // Shape modification operations.
+  [RaisesException] MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
+  [RaisesException] MLOperand slice(MLOperand input, sequence<unsigned long> starts, sequence<unsigned long> sizes);
+  [RaisesException] MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
+  [RaisesException] MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
+  [RaisesException] MLOperand expand(MLOperand input, sequence<unsigned long> newShape);
+  [RaisesException] MLOperand gather(MLOperand input, MLOperand indices, optional MLGatherOptions options = {});
 
   // Reduction operations
   [RaisesException] MLOperand reduceL1(MLOperand input, optional MLReduceOptions options = {});
@@ -234,13 +236,12 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand cast(MLOperand input, MLOperandType operandType);
 
   [RaisesException] MLOperand instanceNormalization(MLOperand input, optional MLInstanceNormalizationOptions options = {});
-  [RaisesException] MLOperand fillSequence(MLOperand input, optional MLFillSequenceOptions options = {});
+  [RaisesException] MLOperand fillSequence(MLOperandType operandType, sequence<unsigned long> outputShape, optional MLFillSequenceOptions options = {});
 
   [RaisesException] MLOperand triangularMatrix(MLOperand input, optional MLTriangularMatrixOptions options = {});
 
-  // This trinary elementwise operator corresponds to the ONNX where operator.
-  // "elementwise" is one word, not 2. https://en.wiktionary.org/wiki/elementwise
-  [RaisesException] MLOperand elementwiseIf(MLOperand condition, MLOperand trueValue, MLOperand falseValue);
+  // Shape retrieval.
+  [RaisesException] sequence<unsigned long> shape(MLOperand input);
 
   [CallWith=ScriptState, RaisesException] Promise<MLGraph> build(MLNamedOperands outputs);
   

@@ -108,7 +108,12 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                   UINT64 output_index);
 
   // TODO:::NEWOPS
-  void AddArgMinMax(UINT64 input_index, OperatorType operator_type, OperandDescriptorPtr output_desc, UINT64 output_index);
+  void AddArgMinMax(OperatorType operator_type,
+                    UINT64 input_index,
+                    uint32_t axis,
+                    bool select_last_index,
+                    OperandDescriptorPtr output_desc,
+                    UINT64 output_index);
   void AddCast(UINT64 input_index,
                OperandType data_type,
                OperandDescriptorPtr output_desc,
@@ -131,8 +136,15 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                                 OperandDescriptorPtr output_desc,
                                 UINT64 output_index);
   void AddPad(UINT64 input_index, OperandDescriptorPtr output_desc, UINT64 output_index);
-  void AddFillSequence(UINT64 input_index, OperandDescriptorPtr output_desc, UINT64 output_index);
-  void AddReduce(UINT64 input_index, OperatorType operator_type, base::span<const uint32_t> axes, OperandDescriptorPtr output_desc, UINT64 output_index);
+  void AddFillSequence(float start,
+                       float step,
+                       OperandDescriptorPtr output_desc,
+                       UINT64 output_index);
+  void AddReduce(UINT64 input_index,
+                 OperatorType operator_type,
+                 base::span<const uint32_t> axes,
+                 OperandDescriptorPtr output_desc,
+                 UINT64 output_index);
   void AddResample2d(UINT64 input_index,
                      ml::webnn::mojom::InterpolationMode interpolation_mode,
                      base::span<const float> scales,
@@ -149,7 +161,6 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                     OperandDescriptorPtr output_desc,
                     UINT64 output_index);
   void AddTriangularMatrix(UINT64 input_index, OperandDescriptorPtr desc, UINT64 output_index);
-
   void AddElementWiseIf(UINT64 condition_index,
                         UINT64 true_value_index,
                         UINT64 false_value_index,

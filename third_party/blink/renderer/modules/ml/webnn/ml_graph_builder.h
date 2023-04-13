@@ -185,9 +185,10 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
                      const MLOperand* b,
                      ExceptionState& exception_state);
   MLOperand* identity(const MLOperand* input, ExceptionState& exception_state);
-  MLOperand* instanceNormalization(const MLOperand* input,
-                                   const MLInstanceNormalizationOptions* options,
-                                   ExceptionState& exception_state);
+  MLOperand* instanceNormalization(
+      const MLOperand* input,
+      const MLInstanceNormalizationOptions* options,
+      ExceptionState& exception_state);
   MLOperand* lesser(const MLOperand* a,
                     const MLOperand* b,
                     ExceptionState& exception_state);
@@ -202,7 +203,8 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperand* pow(const MLOperand* a,
                  const MLOperand* b,
                  ExceptionState& exception_state);
-  MLOperand* fillSequence(const MLOperand* input,
+  MLOperand* fillSequence(V8MLOperandType output_data_type,
+                          const Vector<uint32_t>& output_shape,
                           const MLFillSequenceOptions* options,
                           ExceptionState& exception_state);
   MLOperand* reduceL1(const MLOperand* input,
@@ -212,26 +214,26 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
                       const MLReduceOptions* options,
                       ExceptionState& exception_state);
   MLOperand* reduceLogSum(const MLOperand* input,
-                      const MLReduceOptions* options,
-                      ExceptionState& exception_state);
+                          const MLReduceOptions* options,
+                          ExceptionState& exception_state);
   MLOperand* reduceLogSumExp(const MLOperand* input,
-                      const MLReduceOptions* options,
-                      ExceptionState& exception_state);
+                             const MLReduceOptions* options,
+                             ExceptionState& exception_state);
   MLOperand* reduceMax(const MLOperand* input,
-                      const MLReduceOptions* options,
-                      ExceptionState& exception_state);
+                       const MLReduceOptions* options,
+                       ExceptionState& exception_state);
   MLOperand* reduceMean(const MLOperand* input,
                         const MLReduceOptions* options,
                         ExceptionState& exception_state);
   MLOperand* reduceMin(const MLOperand* input,
-                      const MLReduceOptions* options,
-                      ExceptionState& exception_state);
+                       const MLReduceOptions* options,
+                       ExceptionState& exception_state);
   MLOperand* reduceProduct(const MLOperand* input,
-                      const MLReduceOptions* options,
-                      ExceptionState& exception_state);
+                           const MLReduceOptions* options,
+                           ExceptionState& exception_state);
   MLOperand* reduceSum(const MLOperand* input,
-                      const MLReduceOptions* options,
-                      ExceptionState& exception_state);
+                       const MLReduceOptions* options,
+                       ExceptionState& exception_state);
   MLOperand* reduceSumSquare(const MLOperand* input,
                       const MLReduceOptions* options,
                       ExceptionState& exception_state);

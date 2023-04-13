@@ -23,11 +23,12 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
  public:
    // TODO::: Delete this one, in favor of the mojo generated one - one fewer enum to keep in sync.
   enum class OperatorKind {
+    // Keep the order as the same as build methods of MLGraphBuilder.
     kUnknown,
 
-    // Keep the order as the same as build methods of MLGraphBuilder.
-    kClamp,
     kConv2d,
+    kGemm,
+    kMatmul,
 
     // Elementwise binary operations
     kAdd,
@@ -43,33 +44,37 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kGreater,
     kLesser,
 
-    kGemm,
+  // Elementwise unary activation operations.
+    kRelu,
+    kClamp,
+    kSigmoid,
     kHardSwish,
+    kSoftmax,
+
+  // Pooling operations
     kAveragePool2d,
     kMaxPool2d,
-    kRelu,
-    kReshape,
+
     kResample2d,
-    kSoftmax,
-    kSigmoid,
 
     //////////////////////////////////////////////////////////////////////
     // NEWOPS:::
     // New prototype operators added for Stable diffusion 1.5.
     // Rename OperatorKind to OperatorType, to be consistent with mojom types.
 
-    kMatmul,
-
-    // Shape modification operations.
+    // Shape reinterpretation operations.
+    kReshape,
     kSqueeze,
     kUnsqueeze,
+    kFlattenTo2d,
+
+    // Shape modification operations.
     kConcat,
     kSlice,
     kTranspose,
     kPad,
-    kExpand, // like ONNX Expand or ConstantOfShape, broadcasts
+    kExpand,
     kGather,
-    kFlattenTo2d,
 
     // Elementwise unary operations
     kIdentity,
@@ -97,9 +102,9 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kArgMin,
     kCast,
     kInstanceNormalization,
-    kFillSequence, // ONNX Range
+    kFillSequence,
     kTriangularMatrix,
-    kElementWiseIf, // ONNX Where
+    kElementWiseIf,
 
     kTotal, // Total number of enumerants for static assertions.
   };

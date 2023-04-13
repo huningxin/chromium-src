@@ -231,6 +231,41 @@ std::vector<UINT> transposeFilterStridesAsOihw(
   return {oStride, iStride, hStride, wStride};
 }
 
+uint16_t CastFloat32ToFloat16(float float32_value) noexcept {
+  static uint32_t constexpr float16_mantissa_count = 10;
+  static int32_t constexpr float32to16_mantissa_count_difference = 23 - 10;
+  static int32_t constexpr float32vs16_exponent_adjustment = 127 - 15;
+  static uint32_t constexpr float16_sign_mask = 0b1'00000'0000000000;
+  static uint32_t constexpr float16_mantissa_mask = 0b0'00000'1111111111;
+  static uint32_t constexpr float16_exponent_mask = 0b0'11111'0000000000;
+  static uint32_t constexpr float16_mantissa_and_exponentMask = 0b0'11111'1111111111;
+  static uint32_t constexpr float32_mantissa_and_exponent_mask = 0b01111111'10000000'00000000'00000000;
+
+  // Shift the mantissa, exponent, and sign from the 32-bit locations to 16-bit.
+  // Sature the exponent if greater than float16 can represent.
+  // float32 denorms are flushed to zero.
+
+  uint32_t const float32_bit_value = reinterpret_cast<uint32_t&>(float32_value);
+  uint32_t const sign = (float32_bit_value >> 16) & float16_sign_mask;
+  int32_t const float32_mantissa_and_exponent =
+      float32_bit_value & float32_mantissa_and_exponent_mask;
+  int32_t const float16_mantissa_and_exponent =
+      (float32_mantissa_and_exponent >> float32to16_mantissa_count_difference) -
+      (float32vs16_exponent_adjustment << float16_mantissa_count);
+  uint32_t const float16_denorm_mask =
+      (float16_mantissa_and_exponent > int32_t(float16_mantissa_mask))
+          ? float16_mantissa_and_exponentMask
+          : 0;
+  uint32_t const float16_saturation_ask =
+      (float16_mantissa_and_exponent >= int32_t(float16_mantissa_and_exponentMask))
+          ? float16_exponent_mask
+          : 0;
+  uint32_t const float16_bit_value =
+      (float16_mantissa_and_exponent & float16_denorm_mask) | float16_saturation_ask |
+      sign;
+  return uint16_t(float16_bit_value);
+}
+
 DML_TENSOR_DATA_TYPE GetTensorDataType(OperandType type) {
   // clang-format off
   switch (type)
@@ -246,6 +281,32 @@ DML_TENSOR_DATA_TYPE GetTensorDataType(OperandType type) {
     return DML_TENSOR_DATA_TYPE_UNKNOWN;
   }
   // clang-format on
+}
+
+DML_SCALAR_UNION GetScalarUnion(DML_TENSOR_DATA_TYPE tensorDataType, float value)
+{
+  DML_SCALAR_UNION valueUnion = {};
+
+  // clang-format off
+  switch (tensorDataType)
+  {
+  case DML_TENSOR_DATA_TYPE_FLOAT32: valueUnion.Float32 = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_FLOAT16: valueUnion.UInt16  = CastFloat32ToFloat16(value); break;
+  case DML_TENSOR_DATA_TYPE_UINT32:  valueUnion.UInt32  = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_UINT16:  valueUnion.UInt16  = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_UINT8:   valueUnion.UInt8   = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_INT32:   valueUnion.Int32   = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_INT16:   valueUnion.Int16   = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_INT8:    valueUnion.Int8    = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_FLOAT64: valueUnion.Float64 = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_UINT64:  valueUnion.UInt64  = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_INT64:   valueUnion.Int64   = static_cast<float>(value); break;
+  case DML_TENSOR_DATA_TYPE_UNKNOWN: /* do nothing */ break;
+  default:                           /* do nothing */ break;
+  }
+  // clang-format on
+
+  return valueUnion;
 }
 
 DML_REDUCE_FUNCTION MapOperatorTypeToReductionFuntion(OperatorType operator_type) {
@@ -1002,11 +1063,59 @@ void GraphDMLImpl::AddElementWiseIf(UINT64 condition_index,
   node_output_map_[output_index] = std::move(node_output);
 }
 
-void GraphDMLImpl::AddArgMinMax(UINT64 input_index,
-                                OperatorType operator_type,
+void GraphDMLImpl::AddArgMinMax(OperatorType operator_type,
+                                UINT64 input_index,
+                                uint32_t axis,
+                                bool select_last_index,
                                 OperandDescriptorPtr output_desc,
                                 UINT64 output_index) {
-  // TODO:
+  auto* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& input_dimensions = input_tensor_desc.GetDimensions();
+  DCHECK(node_output_map_.contains(input_index));
+
+  // Determine output sizes. Ignore output_desc->dimensions for the dimensions,
+  // since DirectML expects the output dimensions to have the same rank as the
+  // input, and output_desc->dimensions may have removed dimensions if
+  // keepDimensions was false.
+  std::vector<uint32_t> output_dimensions = input_dimensions;
+  DCHECK(axis < output_dimensions.size());
+  output_dimensions[axis] = 1u;
+  auto output_data_type = GetTensorDataType(output_desc->data_type);
+  TensorDesc output_tensor_desc(output_data_type, output_dimensions);
+
+  // DML accepts multiple axes. So pass the single index along.
+  std::array<uint32_t, 1> axes = {axis};
+
+  // Note DML_ARGMIN_OPERATOR_DESC and DML_ARGMAX_OPERATOR_DESC are
+  // identical in structure layout. So we can use for either.
+  DML_ARGMIN_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  operator_desc.AxisCount = 1u;
+  operator_desc.Axes = axes.data();
+  operator_desc.AxisDirection =
+      static_cast<DML_AXIS_DIRECTION>(select_last_index);
+
+  DML_OPERATOR_TYPE dml_operator_type = DML_OPERATOR_INVALID;
+  switch (operator_type) {
+    case OperatorType::kArgMin:
+      dml_operator_type = DML_OPERATOR_ARGMIN;
+      break;
+    case OperatorType::kArgMax:
+      dml_operator_type = DML_OPERATOR_ARGMAX;
+      break;
+    default:
+      NOTREACHED();
+  }
+  Node node = graph_desc_builder_->CreateOperatorNode(dml_operator_type,
+                                                      &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
 }
 
 void GraphDMLImpl::AddCast(UINT64 input_index,
@@ -1114,9 +1223,9 @@ void GraphDMLImpl::AddGather(UINT64 input_index,
   TensorDesc input_expanded_desc(input_tensor_desc);
   TensorDesc indices_expanded_desc(indices_tensor_desc);
   TensorDesc output_expanded_desc(input_tensor_desc.GetDataType(), output_dimensions);
-  input_expanded_desc.EnsureMinimumRankRightAligned(maximum_rank);
-  indices_expanded_desc.EnsureMinimumRankRightAligned(maximum_rank);
-  output_expanded_desc.EnsureMinimumRankRightAligned(maximum_rank);
+  input_expanded_desc.EnsureMinimumRank(maximum_rank, TensorDesc::Alignment::kTrailing);
+  indices_expanded_desc.EnsureMinimumRank(maximum_rank, TensorDesc::Alignment::kTrailing);
+  output_expanded_desc.EnsureMinimumRank(maximum_rank, TensorDesc::Alignment::kTrailing);
 
   DML_GATHER_OPERATOR_DESC operator_desc = {};
   operator_desc.InputTensor = input_expanded_desc.Get();
@@ -1151,8 +1260,8 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
   // DirectML expects NCHW. So permute the dimensions and strides accordingly
   // if the input is anything else (e.g. NHWC).
   std::array<uint32_t, 4> tensor_dimensions_permutation = getLayoutToLayoutPermutation(operand_layout, InputOperandLayout::kNchw);
-  input_tensor_desc.PermuteDimensionsRightAligned(tensor_dimensions_permutation);
-  output_tensor_desc.PermuteDimensionsRightAligned(tensor_dimensions_permutation);
+  input_tensor_desc.PermuteDimensions(tensor_dimensions_permutation, TensorDesc::Alignment::kTrailing);
+  output_tensor_desc.PermuteDimensions(tensor_dimensions_permutation, TensorDesc::Alignment::kTrailing);
 
   // DirectML expects the channel dimension to be at NCHW.
   // So move the C dimension in 1D from XXXC to XCXX.
@@ -1165,21 +1274,21 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
   if (scale_index != std::numeric_limits<uint64_t>::max()) {
     auto* scale_node = node_output_map_[scale_index].get();
     scale_tensor_desc = scale_node->GetTensorDesc();
-    scale_tensor_desc.PermuteDimensionsRightAligned(scale_bias_dimensions_permutation);
+    scale_tensor_desc.PermuteDimensions(scale_bias_dimensions_permutation, TensorDesc::Alignment::kTrailing);
     input_nodes.push_back(scale_node);
   }
   if (bias_index != std::numeric_limits<uint64_t>::max()) {
     auto* bias_node = node_output_map_[bias_index].get();
     bias_tensor_desc = bias_node->GetTensorDesc();
-    bias_tensor_desc.PermuteDimensionsRightAligned(scale_bias_dimensions_permutation);
+    bias_tensor_desc.PermuteDimensions(scale_bias_dimensions_permutation, TensorDesc::Alignment::kTrailing);
     input_nodes.push_back(bias_node);
   }
 
   std::array<uint32_t, 2> axes = {2, 3};
   DML_MEAN_VARIANCE_NORMALIZATION1_OPERATOR_DESC operator_desc = {};
   operator_desc.InputTensor = input_tensor_desc.Get();
-  operator_desc.ScaleTensor = input_tensor_desc.Get();
-  operator_desc.BiasTensor = input_tensor_desc.Get();
+  operator_desc.ScaleTensor = scale_tensor_desc.Get();
+  operator_desc.BiasTensor = bias_tensor_desc.Get();
   operator_desc.OutputTensor = output_tensor_desc.Get();
   operator_desc.AxisCount = static_cast<uint32_t>(axes.size());
   operator_desc.Axes = axes.data();
@@ -1221,10 +1330,28 @@ void GraphDMLImpl::AddPad(UINT64 input_index,
 #endif
 }
 
-void GraphDMLImpl::AddFillSequence(UINT64 input_index,
-                             OperandDescriptorPtr output_desc,
-                             UINT64 output_index) {
-  // TODO:
+void GraphDMLImpl::AddFillSequence(float start,
+                                   float step,
+                                   OperandDescriptorPtr output_desc,
+                                   UINT64 output_index) {
+  auto& output_dimensions = output_desc->dimensions;
+  DML_TENSOR_DATA_TYPE dml_data_type =
+      GetTensorDataType(output_desc->data_type);
+  TensorDesc output_tensor_desc(dml_data_type, output_dimensions);
+
+  DML_FILL_VALUE_SEQUENCE_OPERATOR_DESC operator_desc = {};
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  operator_desc.ValueDataType = dml_data_type;
+  operator_desc.ValueStart = GetScalarUnion(operator_desc.ValueDataType, start);
+  operator_desc.ValueDelta = GetScalarUnion(operator_desc.ValueDataType, step);
+
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_FILL_VALUE_SEQUENCE, &operator_desc);
+
+  graph_desc_builder_->Connect({}, {node});
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
 }
 
 void GraphDMLImpl::AddReduce(UINT64 input_index,
@@ -1281,7 +1408,7 @@ void GraphDMLImpl::AddResample2d(UINT64 input_index,
   auto& output_dimensions = output_desc->dimensions;
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
 
-  std::vector<float> full_scales(output_dimensions.size());
+  std::vector<float> full_scales(output_dimensions.size(), 1u);
   for (size_t i = 0; i < axes.size(); ++i)
   {
       auto axis = axes[i];
@@ -1301,7 +1428,7 @@ void GraphDMLImpl::AddResample2d(UINT64 input_index,
   operator_desc.InputTensor = input_tensor_desc.Get();
   operator_desc.OutputTensor = output_tensor_desc.Get();
   operator_desc.InterpolationMode = static_cast<DML_INTERPOLATION_MODE>(interpolation_mode);
-  operator_desc.ScaleCount = static_cast<DML_INTERPOLATION_MODE>(interpolation_mode);
+  operator_desc.ScaleCount = static_cast<uint32_t>(full_scales.size());
   operator_desc.Scales = full_scales.data();
 
   Node node = graph_desc_builder_->CreateOperatorNode(
@@ -1419,306 +1546,10 @@ void GraphDMLImpl::AddOutput(const std::string& name, UINT64 index) {
 }
 
 void GraphDMLImpl::Build(ModelInfoPtr model_info, BuildCallback callback) {
-    // TODO:::DELETE this duplication.
-#if 0
-  // Add Input
-  for (auto& input : model_info->inputs) {
-    auto& operand_desc = model_info->operands[input->index];
-    AddInput(std::move(input->name), std::move(operand_desc), input->index);
-  }
-
-  // Add Constant
-  std::unique_ptr<UploadResource> uploader =
-      std::make_unique<UploadResource>(execution_context_.get());
-  ComPtr<gpgmm::d3d12::ResourceAllocation> constants_resource = nullptr;
-  auto constants_info = std::move(model_info->constants);
-
-  if (constants_info.get() != nullptr) {
-    for (auto& [index, _] : constants_info->memory_info) {
-      auto& operand_desc = model_info->operands[index];
-      AddConstant(std::move(operand_desc), index);
-    }
-    // Upload the data to GPU so that the constant data are not saved as member
-    // variable.
-    base::ReadOnlySharedMemoryRegion& shared_memory_region =
-        constants_info->shared_memory;
-    size_t constants_byte_length = shared_memory_region.GetSize();
-    ExecutionResources* execution_resources =
-        execution_context_->GetExecutionResources();
-    constants_resource = execution_resources->Allocate(constants_byte_length);
-    uploader->UploadConstants(constants_resource->GetResource(),
-                              constants_info);
-  }
-
-  // Add operations
-  for (auto& operation : model_info->operations) {
-    switch (operation->which()) {
-      case OperationInfo::Tag::kClamp: {
-        auto& clamp = operation->get_clamp();
-        AddClamp(clamp->input_index, std::move(clamp->options),
-                 clamp->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kConv2d: {
-        auto& conv2d = operation->get_conv2d();
-        auto& output_operand = model_info->operands[conv2d->output_index];
-        AddConv2d(conv2d->input_index, conv2d->filter_index,
-                  std::move(conv2d->options), std::move(output_operand),
-                  conv2d->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kElementWiseUnary: {
-        auto& mojom_operator = operation->get_element_wise_unary();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddElementWiseUnary(mojom_operator->input_index, mojom_operator->operator_type,
-                            std::move(output_operand),
-                            mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kElementWiseBinary: {
-        auto& binary = operation->get_element_wise_binary();
-        auto& output_operand = model_info->operands[binary->output_index];
-        AddElementWiseBinary(binary->a_index, binary->b_index, binary->operator_type,
-                             std::move(output_operand), binary->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kGemm: {
-        // GEMM and MatMul.
-        auto& gemm = operation->get_gemm();
-        auto& output_operand = model_info->operands[gemm->output_index];
-        AddGemm(gemm->a_index, gemm->b_index, std::move(gemm->options),
-                std::move(output_operand), gemm->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kPool2d: {
-        auto& pool2d = operation->get_pool2d();
-        auto& output_operand = model_info->operands[pool2d->output_index];
-        AddPool2d(pool2d->input_index, std::move(pool2d->options), pool2d->type,
-                  std::move(output_operand), pool2d->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kRelu: {
-        auto& relu = operation->get_relu();
-        auto& output_operand = model_info->operands[relu->output_index];
-        AddRelu(relu->input_index, std::move(output_operand),
-                relu->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kReshape: {
-        auto& reshape = operation->get_reshape();
-        auto& output_operand = model_info->operands[reshape->output_index];
-        AddReshape(reshape->input_index, std::move(output_operand),
-                   reshape->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kSoftmax: {
-        auto& softmax = operation->get_softmax();
-        auto& output_operand = model_info->operands[softmax->output_index];
-        AddSoftmax(softmax->input_index, std::move(output_operand),
-                   softmax->output_index);
-        break;
-      }
-
-      ////////////////////////////////////////////////////////////////////////////////
-      // NEWOPS:::
-      case OperationInfo::Tag::kArgMax: {
-        //auto& mojom_operator = operation->get_elementwise_if();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kCast: {
-        auto& mojom_operator = operation->get_cast();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddCast(mojom_operator->input_index,
-                mojom_operator->data_type,
-                std::move(output_operand),
-                mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kConcat: {
-        auto& mojom_operator = operation->get_concat();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddConcat(mojom_operator->input_indices,
-                  mojom_operator->axis,
-                  std::move(output_operand),
-                  mojom_operator->output_index);
-
-        //auto& mojom_operator = operation->get_elementwise_if();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kExpand: {
-        auto& mojom_operator = operation->get_expand();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddExpand(mojom_operator->input_index,
-                  std::move(output_operand),
-                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kGather: {
-        auto& mojom_operator = operation->get_gather();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddGather(mojom_operator->input_index,
-                  mojom_operator->indices_index,
-                  mojom_operator->axis,
-                  std::move(output_operand),
-                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kInstanceNormalization: {
-        //auto& mojom_operator = operation->get_instance_normalization();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kPad: {
-        //auto& mojom_operator = operation->get_elementwise_if();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kFillSequence: {
-        //auto& mojom_operator = operation->get_elementwise_if();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kReduce: {
-        auto& mojom_operator = operation->get_reduce();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddReduce(mojom_operator->input_index,
-                  mojom_operator->operator_type,
-                  mojom_operator->axes,
-                  std::move(output_operand),
-                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kResample2d: {
-        //auto& mojom_operator = operation->get_elementwise_if();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kSlice: {
-        //auto& mojom_operator = operation->get_elementwise_if();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kTranspose: {
-        auto& mojom_operator = operation->get_transpose();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddTranspose(mojom_operator->input_index, mojom_operator->permutation,
-                     std::move(output_operand),
-                     mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kTriangularMatrix: {
-        //auto& mojom_operator = operation->get_elementwise_if();
-        //auto& output_operand = model_info->operands[mojom_operator->output_index];
-        //AddSomeOperator__(mojom_operator->condition_index,
-        //                  mojom_operator->true_value_index,
-        //                  mojom_operator->false_value_index,
-        //                  std::move(output_operand),
-        //                  mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kElementWiseIf: {
-        auto& mojom_operator = operation->get_element_wise_if();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddElementWiseIf(mojom_operator->condition_index,
-                         mojom_operator->true_value_index,
-                         mojom_operator->false_value_index,
-                         std::move(output_operand),
-                         mojom_operator->output_index);
-        break;
-      }
-
-      default:
-        NOTREACHED();
-    }
-  }
-
-  // Add Output with named operands.
-  for (auto& output : model_info->outputs) {
-    AddOutput(std::move(output->name), output->index);
-  }
-
-  // Finish the graph build.
-  mCompiledOperator = graph_desc_builder_->Compile(DML_EXECUTION_FLAG_NONE);
-
-  auto input_nodes = graph_desc_builder_->GetInputNodes();
-  std::vector<DML_BUFFER_BINDING> input_buffer_binding(input_nodes.size());
-  for (size_t i = 0; i < input_nodes.size(); ++i) {
-    auto input = input_nodes[i];
-    if (input.type == NodeType::kConstant) {
-      input_buffer_binding[i].Buffer = constants_resource->GetResource();
-      auto& memory_info = constants_info->memory_info[input.object_id];
-      input_buffer_binding[i].Offset = memory_info->byte_offset;
-      input_buffer_binding[i].SizeInBytes = memory_info->byte_length;
-    }
-  }
-
-  DML_BUFFER_ARRAY_BINDING input_buffer_array_binding = {};
-  input_buffer_array_binding.BindingCount = input_buffer_binding.size();
-  input_buffer_array_binding.Bindings = input_buffer_binding.data();
-  DML_BINDING_DESC input_binding_desc{DML_BINDING_TYPE_BUFFER_ARRAY,
-                                      &input_buffer_array_binding};
-
-  execution_context_->InitializeGraph(this, mCompiledOperator.Get(),
-                                      input_binding_desc);
-
-  execution_context_->Flush();
-  execution_context_->WaitForSignal();
-  execution_context_->ReleaseCompletedResources();
-
-  auto& named_outputs = graph_desc_builder_->GetNamedOutputs();
-  HRESULT hr = output_resource_readback_->InitializeResource(named_outputs);
-
-  if (FAILED(hr)) {
-    std::move(callback).Run(BuildResult::kUnknownError);
-    return;
-  }
-
-  std::move(callback).Run(BuildResult::kOk);
+  BuildResult build_result = BuildResult::kOk;
+  Build(std::move(model_info), /*out*/ &build_result); // Bool return ignored.
+  std::move(callback).Run(build_result);
   return;
-#else
-
-    BuildResult build_result = BuildResult::kOk;
-    Build(std::move(model_info), /*out*/ &build_result); // Bool return ignored.
-    std::move(callback).Run(build_result);
-    return;
-#endif
 }
 
 bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
@@ -1822,94 +1653,119 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
 
       ////////////////////////////////////////////////////////////////////////////////
       // NEWOPS:::
-      //case OperationInfo::Tag::kArgMax:
+      case OperationInfo::Tag::kArgMinMax: {
+        auto& mojom_operator = operation->get_arg_min_max();
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddArgMinMax(mojom_operator->operator_type, mojom_operator->input_index,
+                     mojom_operator->axis,
+                     mojom_operator->select_last_index,
+                     std::move(output_operand), mojom_operator->output_index);
+        break;
+      }
       case OperationInfo::Tag::kCast: {
         auto& mojom_operator = operation->get_cast();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddCast(mojom_operator->input_index,
-                mojom_operator->data_type,
-                std::move(output_operand),
-                mojom_operator->output_index);
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddCast(mojom_operator->input_index, mojom_operator->data_type,
+                std::move(output_operand), mojom_operator->output_index);
         break;
       }
       case OperationInfo::Tag::kConcat: {
         auto& mojom_operator = operation->get_concat();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddConcat(mojom_operator->input_indices,
-                  mojom_operator->axis,
-                  std::move(output_operand),
-                  mojom_operator->output_index);
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddConcat(mojom_operator->input_indices, mojom_operator->axis,
+                  std::move(output_operand), mojom_operator->output_index);
         break;
       }
       case OperationInfo::Tag::kExpand: {
         auto& mojom_operator = operation->get_expand();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddExpand(mojom_operator->input_index,
-                  std::move(output_operand),
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddExpand(mojom_operator->input_index, std::move(output_operand),
                   mojom_operator->output_index);
         break;
       }
       case OperationInfo::Tag::kGather: {
         auto& mojom_operator = operation->get_gather();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddGather(mojom_operator->input_index,
-                  mojom_operator->indices_index,
-                  mojom_operator->axis,
-                  std::move(output_operand),
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddGather(mojom_operator->input_index, mojom_operator->indices_index,
+                  mojom_operator->axis, std::move(output_operand),
                   mojom_operator->output_index);
         break;
       }
       case OperationInfo::Tag::kInstanceNormalization: {
         auto& mojom_operator = operation->get_instance_normalization();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
         AddInstanceNormalization(
             mojom_operator->input_index, mojom_operator->scale_index,
             mojom_operator->bias_index, mojom_operator->epsilon,
-            mojom_operator->layout,
-            std::move(output_operand), mojom_operator->output_index);
+            mojom_operator->layout, std::move(output_operand),
+            mojom_operator->output_index);
         break;
       }
-      //case OperationInfo::Tag::kPad:
-      //case OperationInfo::Tag::kFillSequence:
+      case OperationInfo::Tag::kPad:
+        DCHECK(false);
+        break;
+      case OperationInfo::Tag::kFillSequence: {
+        auto& mojom_operator = operation->get_fill_sequence();
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddFillSequence(mojom_operator->start, mojom_operator->delta,
+                        std::move(output_operand),
+                        mojom_operator->output_index);
+        break;
+      }
       case OperationInfo::Tag::kReduce: {
         auto& mojom_operator = operation->get_reduce();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddReduce(mojom_operator->input_index,
-                  mojom_operator->operator_type,
-                  mojom_operator->axes,
-                  std::move(output_operand),
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddReduce(mojom_operator->input_index, mojom_operator->operator_type,
+                  mojom_operator->axes, std::move(output_operand),
                   mojom_operator->output_index);
         break;
       }
       case OperationInfo::Tag::kResample2d: {
         auto& mojom_operator = operation->get_resample2d();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
         AddResample2d(mojom_operator->input_index,
-                                         mojom_operator->interpolation_mode,
-                                         mojom_operator->scales,
-                                         mojom_operator->axes,
-                                         std::move(output_operand),
-                                         mojom_operator->output_index);
+                      mojom_operator->interpolation_mode,
+                      mojom_operator->scales, mojom_operator->axes,
+                      std::move(output_operand), mojom_operator->output_index);
         break;
       }
-      //case OperationInfo::Tag::kSlice:
+      case OperationInfo::Tag::kSlice: {
+        auto& mojom_operator = operation->get_slice();
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddSlice(mojom_operator->input_index, mojom_operator->starts,
+                 mojom_operator->sizes, std::move(output_operand),
+                 mojom_operator->output_index);
+        break;
+      }
       case OperationInfo::Tag::kTranspose: {
         auto& mojom_operator = operation->get_transpose();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
         AddTranspose(mojom_operator->input_index, mojom_operator->permutation,
-                     std::move(output_operand),
-                     mojom_operator->output_index);
+                     std::move(output_operand), mojom_operator->output_index);
         break;
       }
-      //case OperationInfo::Tag::kTriangularMatrix:
+      case OperationInfo::Tag::kTriangularMatrix:
+        DCHECK(false);
+        break;
       case OperationInfo::Tag::kElementWiseIf: {
         auto& mojom_operator = operation->get_element_wise_if();
-        auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddElementWiseIf(mojom_operator->condition_index,
-                         mojom_operator->true_value_index,
-                         mojom_operator->false_value_index,
-                         std::move(output_operand),
-                         mojom_operator->output_index);
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddElementWiseIf(
+            mojom_operator->condition_index, mojom_operator->true_value_index,
+            mojom_operator->false_value_index, std::move(output_operand),
+            mojom_operator->output_index);
         break;
       }
 

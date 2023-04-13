@@ -17,11 +17,12 @@ import "mojo/public/mojom/base/shared_memory.mojom";
 enum OperatorType {
   [Default] kUnknown = 0, // Used to throw exception for unsupported types in blink.
 
-  kClamp,
+  // Dot product operations.
   kConv2d,
   kGemm,
+  kMatmul, // Handled by GEMM.
 
-  // ElementWiseBinary operations
+  // ElementWise binary operations
   kAdd,
   kSub,
   kMul,
@@ -35,31 +36,36 @@ enum OperatorType {
   kGreater,
   kLesser,
 
+  // Fuseable elementwise activation operations.
+  kRelu,
+  kClamp,
+  kSigmoid,
   kHardSwish,
+  kSoftmax,
+
+  // Pooling operations
   kAveragePool2d,
   kMaxPool2d,
-  kRelu,
-  kReshape,
+
   kResample2d,
-  kSoftmax,
-  kSigmoid,
 
   // NEWOPS::: New prototype operators added for Stable diffusion 1.5.
 
-  kMatmul, // Handled by GEMM.
-
-  // Shape modification operations.
+  // Shape dimension reinterpreting operations.
+  kReshape,
   kSqueeze,
   kUnsqueeze,
+  kFlattenTo2d,
+
+  // Shape modification operations.
   kConcat,
   kSlice,
   kTranspose,
   kPad,
-  kExpand, // like ONNX Expand or ConstantOfShape, broadcasts
+  kExpand,
   kGather,
-  kFlattenTo2d,
 
-  // ElementWiseUnary operations
+  // Elementwise unary operations
   kIdentity,
   kExp,
   kSqrt,
@@ -85,9 +91,9 @@ enum OperatorType {
   kArgMin,
   kCast,
   kInstanceNormalization,
-  kFillSequence, // ONNX Range
+  kFillSequence,
   kTriangularMatrix,
-  kElementWiseIf, // ONNX Where
+  kElementWiseIf,
 };
 
 // Represents the element data type of a tensor, or `MLOperandType`.
@@ -426,17 +432,11 @@ struct Concat {
 };
 
 [Stable]
-struct SliceOptions {
-  array<uint32> axes@0;
-};
-
-[Stable]
 struct Slice {
   uint64 input_index@0;
   array<uint32> starts@1;
   array<uint32> sizes@2;
-  SliceOptions options@3;
-  uint64 output_index@4;    // Index of output operand in model's operand array.
+  uint64 output_index@3;    // Index of output operand in model's operand array.
 };
 
 [Stable]
@@ -488,23 +488,13 @@ struct Reduce {
 };
 
 [Stable]
-struct ArgMinMaxOptions {
-  uint32 axis@0 = 0;
-  bool keep_dimensions@1 = false;
-};
-
-[Stable]
-struct ArgMax {
-  uint64 input_index@0;
-  ArgMinMaxOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
-};
-
-[Stable]
-struct ArgMin {
-  uint64 input_index@0;
-  ArgMinMaxOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
+struct ArgMinMax {
+  OperatorType operator_type@0;
+  uint64 input_index@1;
+  uint32 axis@2 = 0;
+  bool keep_dimensions@3 = false;
+  bool select_last_index@4 = false;
+  uint64 output_index@5;    // Index of output operand in model's operand array.
 };
 
 [Stable]
@@ -525,17 +515,11 @@ struct InstanceNormalization {
 };
 
 [Stable]
-struct FillSequenceOptions {
-  float start@0;
-  float limit@1; // Stop at this value (end-exclusive).
-  float step@2;
-};
-
-[Stable]
 struct FillSequence {
   uint64 input_index@0;
-  FillSequenceOptions options@1;
-  uint64 output_index@2;    // Index of output operand in model's operand array.
+  float start@1;
+  float delta@2;
+  uint64 output_index@3;    // Index of output operand in model's operand array.
 };
 
 [Stable]
@@ -610,8 +594,7 @@ union OperationInfo {
   Gather gather;
   Reduce reduce;
   Resample2d resample2d;
-  ArgMax arg_max;
-  ArgMin arg_min;
+  ArgMinMax arg_min_max;
   Cast cast;
   InstanceNormalization instance_normalization;
   FillSequence fill_sequence;

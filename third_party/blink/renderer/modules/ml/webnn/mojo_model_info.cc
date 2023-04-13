@@ -17,6 +17,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_slice_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_resample_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_instance_normalization_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_fill_sequence_options.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/mojo_graph.h"
@@ -134,125 +135,68 @@ OperatorType BlinkOperatorKindToMojoType(
   static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 56);
   static_assert(int32_t(OperatorType::kMaxValue) + 1 == 56);
 
-  switch (type) {
-    case MLOperator::OperatorKind::kClamp:
-      return OperatorType::kClamp;
-    case MLOperator::OperatorKind::kConv2d:
-      return OperatorType::kConv2d;
-    case MLOperator::OperatorKind::kAdd:
-      return OperatorType::kAdd;
-    case MLOperator::OperatorKind::kSub:
-      return OperatorType::kSub;
-    case MLOperator::OperatorKind::kMul:
-      return OperatorType::kMul;
-    case MLOperator::OperatorKind::kDiv:
-      return OperatorType::kDiv;
-    case MLOperator::OperatorKind::kMax:
-      return OperatorType::kMax;
-    case MLOperator::OperatorKind::kMin:
-      return OperatorType::kMin;
-    case MLOperator::OperatorKind::kGemm:
-      return OperatorType::kGemm;
-    case MLOperator::OperatorKind::kHardSwish:
-      return OperatorType::kHardSwish;
-    case MLOperator::OperatorKind::kAveragePool2d:
-      return OperatorType::kAveragePool2d;
-    case MLOperator::OperatorKind::kMaxPool2d:
-      return OperatorType::kMaxPool2d;
-    case MLOperator::OperatorKind::kRelu:
-      return OperatorType::kRelu;
-    case MLOperator::OperatorKind::kReshape:
-      return OperatorType::kReshape;
-    case MLOperator::OperatorKind::kResample2d:
-      return OperatorType::kResample2d;
-    case MLOperator::OperatorKind::kSoftmax:
-      return OperatorType::kSoftmax;
-    case MLOperator::OperatorKind::kSigmoid:
-      return OperatorType::kSigmoid;
+  // Keep these two enumerations in sync.
+  // Favor readability over convention here.
+  // clang-format off
+  static_assert(uint32_t(MLOperator::OperatorKind::kClamp) == uint32_t(OperatorType::kClamp));
+  static_assert(uint32_t(MLOperator::OperatorKind::kConv2d) == uint32_t(OperatorType::kConv2d));
+  static_assert(uint32_t(MLOperator::OperatorKind::kMatmul) == uint32_t(OperatorType::kMatmul));
+  static_assert(uint32_t(MLOperator::OperatorKind::kGemm) == uint32_t(OperatorType::kGemm));
+  static_assert(uint32_t(MLOperator::OperatorKind::kAdd) == uint32_t(OperatorType::kAdd));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSub) == uint32_t(OperatorType::kSub));
+  static_assert(uint32_t(MLOperator::OperatorKind::kMul) == uint32_t(OperatorType::kMul));
+  static_assert(uint32_t(MLOperator::OperatorKind::kDiv) == uint32_t(OperatorType::kDiv));
+  static_assert(uint32_t(MLOperator::OperatorKind::kMax) == uint32_t(OperatorType::kMax));
+  static_assert(uint32_t(MLOperator::OperatorKind::kMin) == uint32_t(OperatorType::kMin));
+  static_assert(uint32_t(MLOperator::OperatorKind::kPow) == uint32_t(OperatorType::kPow));
+  static_assert(uint32_t(MLOperator::OperatorKind::kEqual) == uint32_t(OperatorType::kEqual));
+  static_assert(uint32_t(MLOperator::OperatorKind::kGreater) == uint32_t(OperatorType::kGreater));
+  static_assert(uint32_t(MLOperator::OperatorKind::kLesser) == uint32_t(OperatorType::kLesser));
+  static_assert(uint32_t(MLOperator::OperatorKind::kRelu) == uint32_t(OperatorType::kRelu));
+  static_assert(uint32_t(MLOperator::OperatorKind::kClamp) == uint32_t(OperatorType::kClamp));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSigmoid) == uint32_t(OperatorType::kSigmoid));
+  static_assert(uint32_t(MLOperator::OperatorKind::kHardSwish) == uint32_t(OperatorType::kHardSwish));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSoftmax) == uint32_t(OperatorType::kSoftmax));
+  static_assert(uint32_t(MLOperator::OperatorKind::kAveragePool2d) == uint32_t(OperatorType::kAveragePool2d));
+  static_assert(uint32_t(MLOperator::OperatorKind::kMaxPool2d) == uint32_t(OperatorType::kMaxPool2d));
+  static_assert(uint32_t(MLOperator::OperatorKind::kResample2d) == uint32_t(OperatorType::kResample2d));
+  static_assert(uint32_t(MLOperator::OperatorKind::kIdentity) == uint32_t(OperatorType::kIdentity));
+  static_assert(uint32_t(MLOperator::OperatorKind::kExp) == uint32_t(OperatorType::kExp));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSqrt) == uint32_t(OperatorType::kSqrt));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSin) == uint32_t(OperatorType::kSin));
+  static_assert(uint32_t(MLOperator::OperatorKind::kCos) == uint32_t(OperatorType::kCos));
+  static_assert(uint32_t(MLOperator::OperatorKind::kTan) == uint32_t(OperatorType::kTan));
+  static_assert(uint32_t(MLOperator::OperatorKind::kErf) == uint32_t(OperatorType::kErf));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReshape) == uint32_t(OperatorType::kReshape));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSqueeze) == uint32_t(OperatorType::kSqueeze));
+  static_assert(uint32_t(MLOperator::OperatorKind::kUnsqueeze) == uint32_t(OperatorType::kUnsqueeze));
+  static_assert(uint32_t(MLOperator::OperatorKind::kFlattenTo2d) == uint32_t(OperatorType::kFlattenTo2d));
+  static_assert(uint32_t(MLOperator::OperatorKind::kConcat) == uint32_t(OperatorType::kConcat));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSlice) == uint32_t(OperatorType::kSlice));
+  static_assert(uint32_t(MLOperator::OperatorKind::kTranspose) == uint32_t(OperatorType::kTranspose));
+  static_assert(uint32_t(MLOperator::OperatorKind::kPad) == uint32_t(OperatorType::kPad));
+  static_assert(uint32_t(MLOperator::OperatorKind::kExpand) == uint32_t(OperatorType::kExpand));
+  static_assert(uint32_t(MLOperator::OperatorKind::kGather) == uint32_t(OperatorType::kGather));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceL1) == uint32_t(OperatorType::kReduceL1));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceL2) == uint32_t(OperatorType::kReduceL2));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceLogSum) == uint32_t(OperatorType::kReduceLogSum));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceLogSumExp) == uint32_t(OperatorType::kReduceLogSumExp));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceMax) == uint32_t(OperatorType::kReduceMax));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceMean) == uint32_t(OperatorType::kReduceMean));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceMin) == uint32_t(OperatorType::kReduceMin));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceProduct) == uint32_t(OperatorType::kReduceProduct));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceSum) == uint32_t(OperatorType::kReduceSum));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReduceSumSquare) == uint32_t(OperatorType::kReduceSumSquare));
+  static_assert(uint32_t(MLOperator::OperatorKind::kArgMax) == uint32_t(OperatorType::kArgMax));
+  static_assert(uint32_t(MLOperator::OperatorKind::kArgMin) == uint32_t(OperatorType::kArgMin));
+  static_assert(uint32_t(MLOperator::OperatorKind::kCast) == uint32_t(OperatorType::kCast));
+  static_assert(uint32_t(MLOperator::OperatorKind::kInstanceNormalization) == uint32_t(OperatorType::kInstanceNormalization));
+  static_assert(uint32_t(MLOperator::OperatorKind::kElementWiseIf) == uint32_t(OperatorType::kElementWiseIf));
+  static_assert(uint32_t(MLOperator::OperatorKind::kFillSequence) == uint32_t(OperatorType::kFillSequence));
+  static_assert(uint32_t(MLOperator::OperatorKind::kTriangularMatrix) == uint32_t(OperatorType::kTriangularMatrix));
+  // clang-format on
 
-    ////////////////////////////////////////////////////////////////////////////////
-    // NEWOPS:::
-    case MLOperator::OperatorKind::kArgMax:
-      return OperatorType::kArgMax;
-    case MLOperator::OperatorKind::kArgMin:
-      return OperatorType::kArgMin;
-    case MLOperator::OperatorKind::kCast:
-      return OperatorType::kCast;
-    case MLOperator::OperatorKind::kConcat:
-      return OperatorType::kConcat;
-    case MLOperator::OperatorKind::kExpand:
-      return OperatorType::kExpand;
-    case MLOperator::OperatorKind::kCos:
-      return OperatorType::kCos;
-    case MLOperator::OperatorKind::kEqual:
-      return OperatorType::kEqual;
-    case MLOperator::OperatorKind::kErf:
-      return OperatorType::kErf;
-    case MLOperator::OperatorKind::kExp:
-      return OperatorType::kExp;
-    case MLOperator::OperatorKind::kFlattenTo2d:
-      return OperatorType::kFlattenTo2d;
-    case MLOperator::OperatorKind::kGather:
-      return OperatorType::kGather;
-    case MLOperator::OperatorKind::kGreater:
-      return OperatorType::kGreater;
-    case MLOperator::OperatorKind::kLesser:
-      return OperatorType::kLesser;
-    case MLOperator::OperatorKind::kIdentity:
-      return OperatorType::kIdentity;
-    case MLOperator::OperatorKind::kInstanceNormalization:
-      return OperatorType::kInstanceNormalization;
-    case MLOperator::OperatorKind::kMatmul:
-      return OperatorType::kMatmul;
-    case MLOperator::OperatorKind::kPad:
-      return OperatorType::kPad;
-    case MLOperator::OperatorKind::kPow:
-      return OperatorType::kPow;
-    case MLOperator::OperatorKind::kFillSequence:
-      return OperatorType::kFillSequence;
-    case MLOperator::OperatorKind::kReduceL1:
-      return OperatorType::kReduceL1;
-    case MLOperator::OperatorKind::kReduceL2:
-      return OperatorType::kReduceL2;
-    case MLOperator::OperatorKind::kReduceLogSum:
-      return OperatorType::kReduceLogSum;
-    case MLOperator::OperatorKind::kReduceLogSumExp:
-      return OperatorType::kReduceLogSumExp;
-    case MLOperator::OperatorKind::kReduceMax:
-      return OperatorType::kReduceMax;
-    case MLOperator::OperatorKind::kReduceMean:
-      return OperatorType::kReduceMean;
-    case MLOperator::OperatorKind::kReduceMin:
-      return OperatorType::kReduceMin;
-    case MLOperator::OperatorKind::kReduceProduct:
-      return OperatorType::kReduceProduct;
-    case MLOperator::OperatorKind::kReduceSum:
-      return OperatorType::kReduceSum;
-    case MLOperator::OperatorKind::kReduceSumSquare:
-      return OperatorType::kReduceSumSquare;
-    case MLOperator::OperatorKind::kSin:
-      return OperatorType::kSin;
-    case MLOperator::OperatorKind::kSlice:
-      return OperatorType::kSlice;
-    case MLOperator::OperatorKind::kSqrt:
-      return OperatorType::kSqrt;
-    case MLOperator::OperatorKind::kTranspose:
-      return OperatorType::kTranspose;
-    case MLOperator::OperatorKind::kTriangularMatrix:
-      return OperatorType::kTriangularMatrix;
-    case MLOperator::OperatorKind::kTan:
-      return OperatorType::kTan;
-    case MLOperator::OperatorKind::kSqueeze:
-      return OperatorType::kSqueeze;
-    case MLOperator::OperatorKind::kUnsqueeze:
-      return OperatorType::kUnsqueeze;
-    case MLOperator::OperatorKind::kElementWiseIf:
-      return OperatorType::kElementWiseIf;
-
-    default:
-      NOTREACHED();
-      return OperatorType::kUnknown;
-  }
+  return static_cast<OperatorType>(type);
 }
 
 ml::webnn::mojom::blink::ClampOptionsPtr BlinkClampOptionsToMojo(
@@ -360,14 +304,6 @@ ml::webnn::mojom::blink::GemmOptionsPtr BlinkGemmOptionsToMojo(
       ml_options->hasATranspose() ? ml_options->aTranspose() : false;
   options->b_transpose =
       ml_options->hasBTranspose() ? ml_options->bTranspose() : false;
-  return options;
-}
-
-ml::webnn::mojom::blink::ArgMinMaxOptionsPtr BlinkArgMinMaxOptionsToMojo(
-    const MLArgMinMaxOptions* ml_options) {
-  auto options = ml::webnn::mojom::blink::ArgMinMaxOptions::New();
-  options->axis = ml_options->axis();
-  options->keep_dimensions = ml_options->keepDimensions();
   return options;
 }
 
@@ -633,7 +569,7 @@ void MojoModelInfo::AddSoftmax(const MLOperator* ml_softmax) {
 ////////////////////////////////////////////////////////////////////////////////
 // NEWOPS:::
 
-void MojoModelInfo::AddArgMax(const MLOperator* ml_operator) {
+void MojoModelInfo::AddArgMinMax(const MLOperator* ml_operator) {
   DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(ml_operator, 1u, 1u);
 
   const MLOperand* input = ml_operator->Inputs().front().Get();
@@ -648,36 +584,15 @@ void MojoModelInfo::AddArgMax(const MLOperator* ml_operator) {
   const MLArgMinMaxOptions* ml_options =
       static_cast<const MLArgMinMaxOptions*>(ml_operator->Options());
 
-  auto mojom_operator = ml::webnn::mojom::blink::ArgMax::New();
+  auto mojom_operator = ml::webnn::mojom::blink::ArgMinMax::New();
+  mojom_operator->operator_type = BlinkOperatorKindToMojoType(ml_operator->Kind());
   mojom_operator->input_index = GetOperandIndex(input);
+  mojom_operator->axis = ml_options->axis();
+  mojom_operator->keep_dimensions = ml_options->keepDimensions();
+  mojom_operator->select_last_index = ml_options->selectLastIndex();
   mojom_operator->output_index = output_index;
-  mojom_operator->options = BlinkArgMinMaxOptionsToMojo(ml_options);
 
-  auto operation_info = OperationInfo::NewArgMax(std::move(mojom_operator));
-  model_info_->operations.push_back(std::move(operation_info));
-}
-
-void MojoModelInfo::AddArgMin(const MLOperator* ml_operator) {
-  DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(ml_operator, 1u, 1u);
-
-  // Verify inputs exist and output does not yet exist.
-  const MLOperand* input = ml_operator->Inputs().front().Get();
-  const MLOperand* output = ml_operator->Outputs().front().Get();
-  if (!operand_index_map_.Contains(input)) {
-    return;
-  }
-  DCHECK(!operand_index_map_.Contains(output));
-  size_t output_index = AddOperandToModel(output);
-
-  const MLArgMinMaxOptions* ml_options =
-      static_cast<const MLArgMinMaxOptions*>(ml_operator->Options());
-
-  // Create mojom operator from JS blink type.
-  auto mojom_operator = ml::webnn::mojom::blink::ArgMin::New();
-  mojom_operator->input_index = GetOperandIndex(input);
-  mojom_operator->output_index = output_index;
-  mojom_operator->options = BlinkArgMinMaxOptionsToMojo(ml_options);
-  auto operation_info = OperationInfo::NewArgMin(std::move(mojom_operator));
+  auto operation_info = OperationInfo::NewArgMinMax(std::move(mojom_operator));
   model_info_->operations.push_back(std::move(operation_info));
 }
 
@@ -783,10 +698,12 @@ void MojoModelInfo::AddInstanceNormalization(const MLOperator* ml_operator) {
   DCHECK_EQ(ml_operator->Outputs().size(), 1u);
 
   // Verify inputs exist and output does not yet exist.
+  auto& inputs = ml_operator->Inputs();
   const MLOperand* input = ml_operator->Inputs().front().Get();
   const MLOperand* output = ml_operator->Outputs().front().Get();
-  if (!operand_index_map_.Contains(input)) {
-    return;
+  if (!AreOperandsInIndexMap(inputs.data(), inputs.size()))
+  {
+      return;
   }
   DCHECK(!operand_index_map_.Contains(output));
   size_t output_index = AddOperandToModel(output);
@@ -795,6 +712,7 @@ void MojoModelInfo::AddInstanceNormalization(const MLOperator* ml_operator) {
       static_cast<const MLInstanceNormalizationOptions*>(
           ml_operator->Options());
 
+  // Add another enum if extending this to ensure the two enums are castable.
   static_assert(InputOperandLayout::kMaxValue == InputOperandLayout::kNhwc);
   static_assert(uint32_t(InputOperandLayout::kNchw) ==
                 uint32_t(V8MLInputOperandLayout::Enum::kNchw));
@@ -818,7 +736,23 @@ void MojoModelInfo::AddPad(const MLOperator* ml_operator) {
 }
 
 void MojoModelInfo::AddFillSequence(const MLOperator* ml_operator) {
-    // TODO:
+  DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(ml_operator, 0u, 1u);
+
+  // Verify inputs exist and output does not yet exist.
+  const MLOperand* output = ml_operator->Outputs().front().Get();
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLFillSequenceOptions* ml_options =
+      static_cast<const MLFillSequenceOptions*>(ml_operator->Options());
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::FillSequence::New();
+  mojom_operator->start = ml_options->start();
+  mojom_operator->delta = ml_options->delta();
+  mojom_operator->output_index = output_index;
+  auto operation = OperationInfo::NewFillSequence(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation));
 }
 
 void MojoModelInfo::AddReduce(const MLOperator* ml_operator) {
@@ -864,6 +798,7 @@ void MojoModelInfo::AddResample2d(const MLOperator* ml_operator) {
       static_cast<const MLResample2dOptions*>(ml_operator->Options());
 
   DCHECK(ml_options->hasScales());
+  DCHECK(ml_options->hasAxes());
 
   // Create mojom operator from JS blink type.
   
