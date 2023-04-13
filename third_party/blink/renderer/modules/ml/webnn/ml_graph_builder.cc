@@ -334,18 +334,17 @@ MLOperand* BuildElementwiseBinary(MLGraphBuilder* builder,
 
 MLOperand* BuildArgMinMax(MLGraphBuilder* graph_builder,
                           MLOperator::OperatorKind operator_kind,
+                          const char* operator_name,
                           const MLOperand* input,
                           const MLArgMinMaxOptions* options,
                           ExceptionState& exception_state) {
   // Validate axis.
   uint32_t axis = options->axis();
   auto& input_dimensions = input->Dimensions();
-  if (axis >= input_dimensions.size()) {
-    exception_state.ThrowDOMException(
-        DOMExceptionCode::kDataError,
-        String::Format(
-            "The axis (%u) must be within the dimension count (%u).",
-            axis, input_dimensions.size()));
+  if (!ValidateAxis(axis,
+                    input_dimensions.size(),
+                    operator_name,
+                    exception_state)) {
     return nullptr;
   }
 
@@ -1617,14 +1616,14 @@ MLOperand* MLGraphBuilder::elementwiseIf(const MLOperand* condition,
 MLOperand* MLGraphBuilder::argMax(const MLOperand* input,
                                   const MLArgMinMaxOptions* options,
                                   ExceptionState& exception_state) {
-  return BuildArgMinMax(this, MLOperator::OperatorKind::kArgMax, input, options,
+  return BuildArgMinMax(this, MLOperator::OperatorKind::kArgMax, "argMax", input, options,
                         exception_state);
 }
 
 MLOperand* MLGraphBuilder::argMin(const MLOperand* input,
                                   const MLArgMinMaxOptions* options,
                                   ExceptionState& exception_state) {
-  return BuildArgMinMax(this, MLOperator::OperatorKind::kArgMax, input, options,
+  return BuildArgMinMax(this, MLOperator::OperatorKind::kArgMin, "argMin", input, options,
                         exception_state);
 }
 
