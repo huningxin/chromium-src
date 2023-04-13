@@ -19,7 +19,19 @@ HRESULT AdapterDML::Initialize() {
     return hr;
   }
 
-  hr = DMLCreateDevice(d3d12_device_.Get(), DML_CREATE_DEVICE_FLAG_NONE,
+  // If the D3D debug layer is enabled (e.g. via dxcpl.exe), then also enable
+  // the DirectML debug layer accordingly.
+  DML_CREATE_DEVICE_FLAGS dml_create_device_flags = DML_CREATE_DEVICE_FLAG_NONE;
+
+  ComPtr<ID3D12DebugDevice> debug_device;
+  d3d12_device_->QueryInterface(IID_PPV_ARGS(&debug_device)); // Ignore failure
+  bool is_d3d12_debug_layer_enabled = (debug_device != nullptr);
+
+  if (is_d3d12_debug_layer_enabled) {
+    dml_create_device_flags |= DML_CREATE_DEVICE_FLAG_DEBUG;
+  }
+
+  hr = DMLCreateDevice(d3d12_device_.Get(), dml_create_device_flags,
                        IID_PPV_ARGS(&dml_device_));
   if (FAILED(hr)) {
     return hr;
