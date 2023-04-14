@@ -205,22 +205,35 @@ std::vector<UINT> TensorDesc::GetStridesOrDefaultStrides() const {
   return strides_ ? *strides_ : ComputeDecreasingStrides(dimensions_);
 }
 
-void TensorDesc::EnsureMinimumRank(size_t minimum_rank, Alignment alignment)
-{
-  // Note this does not change the TotalTensorSizeInBytes, since leading 1's
-  // make no difference, nor any other field.
-  InsertPaddingOnes(/*inout*/ dimensions_, minimum_rank, alignment);
-  buffer_desc_.DimensionCount = dimensions_.size();
-  buffer_desc_.Sizes = dimensions_.data();
-
-  if (strides_)
+void TensorDesc::EnsureStridesExist() {
+  if (!strides_)
   {
-    InsertPaddingOnes(/*inout*/ *strides_, minimum_rank, alignment);
+    std::vector<uint32_t> new_strides = ComputeDecreasingStrides(dimensions_);
+    strides_ = std::move(new_strides);
     buffer_desc_.Strides = strides_.value().data();
   }
 }
 
-// Returns the default decreasing order packed strides for the given 
+UINT64 TensorDesc::GetTotalTensorSizeInBytes() {
+  return buffer_desc_.TotalTensorSizeInBytes;
+}
+
+void TensorDesc::EnsureMinimumRank(size_t minimum_rank, Alignment alignment)
+{
+  if (dimensions_.size() < minimum_rank) {
+    // Note this does not change the TotalTensorSizeInBytes, since leading 1's
+    // make no difference, nor any other field.
+    InsertPaddingOnes(/*inout*/ dimensions_, minimum_rank, alignment);
+    buffer_desc_.DimensionCount = dimensions_.size();
+    buffer_desc_.Sizes = dimensions_.data();
+
+    if (strides_) {
+      InsertPaddingOnes(/*inout*/ *strides_, minimum_rank, alignment);
+      buffer_desc_.Strides = strides_.value().data();
+    }
+  }
+}
+
 std::vector<uint32_t> TensorDesc::ComputeDecreasingStrides(base::span<const uint32_t> dimensions)
 {
   auto dimension_count = dimensions.size();
@@ -238,9 +251,11 @@ std::vector<uint32_t> TensorDesc::ComputeDecreasingStrides(base::span<const uint
 
 void TensorDesc::PermuteDimensions(base::span<const uint32_t> permutation, Alignment alignment)
 {
+  size_t permutation_rank = permutation.size();
+
   // Ensure there are enough elements to apply the permutation by adding
   // leading 1's if necessary.
-  EnsureMinimumRank(permutation.size(), alignment);
+  EnsureMinimumRank(permutation_rank, alignment);
 
   // Compute strides *before* the reordering, since callers use this function
   // to rearrange the dimensions (depending on the affinity of the backend
@@ -255,13 +270,13 @@ void TensorDesc::PermuteDimensions(base::span<const uint32_t> permutation, Align
   // depending on alignment. Any additional leading/traling batch dimensions
   // are ignorable.
 
-  // clang-format off
-  size_t permutation_size = permutation.size();
-  size_t preserved_size = dimensions_.size() - permutation_size;
-  size_t subset_offset = (alignment == Alignment::kLeading) ? 0 : preserved_size;
-  auto dimensions_span = base::span<uint32_t>(dimensions_).subspan(subset_offset, permutation_size);
-  auto strides_span = base::span<uint32_t>(*strides_).subspan(subset_offset, permutation_size);
-  // clang-format on
+  size_t subset_offset = (alignment == Alignment::kLeading)
+                             ? 0
+                             : dimensions_.size() - permutation_rank;
+  auto dimensions_span = base::span<uint32_t>(dimensions_);
+  auto strides_span = base::span<uint32_t>(*strides_);
+  dimensions_span = dimensions_span.subspan(subset_offset, permutation_rank);
+  strides_span = strides_span.subspan(subset_offset, permutation_rank);
 
   auto permute = [](/*inout*/ base::span<uint32_t> values,
                     base::span<const uint32_t> permutation) {
@@ -278,17 +293,58 @@ void TensorDesc::PermuteDimensions(base::span<const uint32_t> permutation, Align
   permute(/*inout*/ strides_span, permutation);
 }
 
-void TensorDesc::EnsureStridesExist() {
-  if (!strides_)
-  {
-    std::vector<uint32_t> new_strides = ComputeDecreasingStrides(dimensions_);
-    strides_ = std::move(new_strides);
-    buffer_desc_.Strides = strides_.value().data();
+void TensorDesc::BroadcastTo(base::span<const uint32_t> broadcast_dimensions,
+                             Alignment alignment,
+                             size_t ignorable_tail_count) {
+  size_t broadcast_rank = broadcast_dimensions.size();
+  EnsureMinimumRank(broadcast_rank, alignment);
+  EnsureStridesExist();
+
+  // Determine the window of dimensions and strides that are to be modified.
+  // e.g.
+  //    Alignment            = trailing/right
+  //    Ignorable tail count = 0
+  //    Original dimensions  =   [2,1,4]
+  //    Original strides     =   [4,4,1]
+  //    Broadcast dimensions = [5,2,3,4]
+  //    New dimensions       = [5,2,3,4]
+  //    New strides          = [0,4,0,1]
+  // e.g.
+  //    Alignment            = trailing/right
+  //    Ignorable tail count = 2
+  //    Original dimensions  =   [2,1,4]
+  //    Original strides     =   [4,4,1]
+  //    Broadcast dimensions = [5,2,3,4]
+  //    New dimensions       = [5,2,1,4]
+  //    New strides          = [0,4,4,1]
+  // e.g.
+  //    Alignment            = leading/left
+  //    Ignorable tail count = 0
+  //    Original dimensions  = [3,1,4]
+  //    Original strides     = [4,4,1]
+  //    Broadcast dimensions = [3,2]
+  //    New dimensions       = [3,2,4]
+  //    New strides          = [4,0,1]
+
+  size_t subset_offset = (alignment == Alignment::kLeading)
+                             ? 0
+                             : dimensions_.size() - broadcast_rank;
+  auto dimensions_span = base::span<uint32_t>(dimensions_);
+  auto strides_span = base::span<uint32_t>(*strides_);
+  dimensions_span = dimensions_span.subspan(subset_offset, broadcast_rank);
+  strides_span = strides_span.subspan(subset_offset, broadcast_rank);
+  size_t clamped_rank =
+      broadcast_rank - std::min(broadcast_rank, ignorable_tail_count);
+
+  for (size_t i = 0; i < clamped_rank; ++i) {
+    // Any 1-size dimensions get promoted to the target broadcast dimension
+    // and have their stride set to 0 for projection.
+    if (dimensions_span[i] == 1u) {
+      dimensions_span[i] = broadcast_dimensions[i];
+      strides_span[i] = 0;
+    }
   }
 }
 
-UINT64 TensorDesc::GetTotalTensorSizeInBytes() {
-  return buffer_desc_.TotalTensorSizeInBytes;
-}
 
 }  // namespace content::webnn

@@ -106,8 +106,6 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
   void AddSoftmax(UINT64 input_index,
                   OperandDescriptorPtr desc,
                   UINT64 output_index);
-
-  // TODO:::NEWOPS
   void AddArgMinMax(OperatorType operator_type,
                     UINT64 input_index,
                     uint32_t axis,

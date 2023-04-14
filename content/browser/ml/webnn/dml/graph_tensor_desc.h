@@ -54,16 +54,29 @@ class TensorDesc final {
   // Ensures strides are not empty, computing them from dimensions if needed.
   void EnsureStridesExist();
 
-  // Ensures the rank is at least the minimum rank, filling the leading left side
-  // with 1's if needed. e.g. [4,5] with minimum rank of 4 yields [1,1,4,5].
+  // Ensures the rank is at least the minimum rank, filling the opposite side
+  // (depending on alignment) with 1's when needed.
+  // e.g. [5,6] with minimum rank of 4 yields [1,1,5,6].
   void EnsureMinimumRank(size_t minimum_rank, Alignment alignment);
 
-  void PermuteDimensions(base::span<const uint32_t> permutation, Alignment alignment);
+  // Permute the original dimensions/strides to the given remapping.
+  // e.g. dimensions [5,6,7,8] with permutation [3,2,0,1] yields dimensions
+  // of [8,7,5,6]. All indices must be within [0, permutation.size() - 1].
+  // A permutation larger than the current rank will increase the rank first.
+  void PermuteDimensions(base::span<const uint32_t> permutation,
+                         Alignment alignment);
+
+  void BroadcastTo(base::span<const uint32_t> dimensions,
+                   Alignment alignment,
+                   size_t ignorable_tail_count = 0);
 
   UINT64 GetTotalTensorSizeInBytes();
 
-  // Static helper functions.
-  static std::vector<uint32_t> ComputeDecreasingStrides(base::span<const uint32_t> dimensions);
+// Returns the default decreasing order packed strides for the given dimensions.
+// e.g. dimensions [1,2,3,4] yields strides [24,12,4,1].
+// See https://docs.microsoft.com/en-us/windows/win32/direct3d12/dml-helper-functions#calculatestrides.
+  static std::vector<uint32_t> ComputeDecreasingStrides(
+      base::span<const uint32_t> dimensions);
 
  private:
   void Initialize(DML_TENSOR_DATA_TYPE data_type,

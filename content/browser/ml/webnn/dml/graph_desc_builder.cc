@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "base/logging.h"
 #include "content/browser/ml/webnn/dml/graph_desc_builder.h"
 
 // HACK:::
@@ -155,7 +156,8 @@ ComPtr<IDMLCompiledOperator> GraphDescBuilder::Compile(
   ComPtr<IDMLCompiledOperator> compiled_graph;
   hr = device1->CompileGraph(&graph_desc, flags, IID_PPV_ARGS(&compiled_graph));
   if (FAILED(hr)) {
-    // TODO::: Log this failure reason.
+    LOG(ERROR) << "CompileGraph failed: "
+               << logging::SystemErrorCodeToString(hr);
     return nullptr;
   }
   return compiled_graph;

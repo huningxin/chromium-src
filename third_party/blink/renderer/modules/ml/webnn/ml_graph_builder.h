@@ -150,9 +150,6 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperand* sigmoid(const MLOperand* input, ExceptionState& exception_state);
   MLOperator* sigmoid(ExceptionState& exception_state);
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // NEWOPS:::
-
   MLOperand* argMax(const MLOperand* input,
                     const MLArgMinMaxOptions* options,
                     ExceptionState& exception_state);

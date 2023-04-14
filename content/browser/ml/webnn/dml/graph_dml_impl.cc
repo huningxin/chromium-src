@@ -128,24 +128,6 @@ DML_OPERATOR_DESC* CreateFusedOperator(
   return &dmlFusedOperatorDesc;
 }
 
-// TODO:::DELETE
-/*
-// Increases the rank to a minimum count by padding with leading ones.
-std::vector<uint32_t> ExpandDimensions(
-    const base::span<const uint32_t> original_dimensions,
-    size_t minimum_rank) {
-
-  size_t old_rank = original_dimensions.size();
-  size_t new_rank = std::max(minimum_rank, old_rank);
-  size_t leading_filler_count = new_rank - old_rank;
-
-  std::vector<uint32_t> expanded_dimensions(new_rank, 1u);
-  std::copy(original_dimensions.begin(), original_dimensions.end(),
-            expanded_dimensions.begin() + leading_filler_count);
-  return expanded_dimensions;
-}
-*/
-
 std::vector<UINT> transposeDimensions(TransposeType transposeType,
                                       const std::vector<UINT>& input_dims) {
   DCHECK(input_dims.size() == 4);
@@ -330,6 +312,7 @@ DML_REDUCE_FUNCTION MapOperatorTypeToReductionFuntion(OperatorType operator_type
   // clang-format on
 }
 
+#if 0 // TODO:::
 // Strides are used to express broadcasting (by specifying a stride of 0) as
 // well as padding. If Strides is not specified, each dimension in the tensor is
 // considered to be contiguously packed, with no additional padding. The
@@ -337,54 +320,53 @@ DML_REDUCE_FUNCTION MapOperatorTypeToReductionFuntion(OperatorType operator_type
 // https://docs.microsoft.com/en-us/windows/win32/direct3d12/dml-helper-functions#calculatestrides
 std::vector<UINT> CalculateStridesForBroadcast(
     NodeOutput* node_output,
-    std::vector<UINT> broadcasted_dims) {
+    base::span<const UINT> broadcasted_dims,
+    size_t ignorable_tail_count = 0) {
   auto& tensor_desc = node_output->GetTensorDesc();
   auto original_dims = tensor_desc.GetDimensions();
+  auto original_strides = tensor_desc.GetStridesOrDefaultStrides();
   auto original_rank = original_dims.size();
   auto broadcasted_rank = broadcasted_dims.size();
-  std::vector<bool> broadcast_flags(broadcasted_rank, false);
-
   auto rank_gap = broadcasted_rank - original_rank;
-  for (size_t i = 0; i < rank_gap; ++i) {
-    broadcast_flags[i] = true;
-  }
+  auto broadcastable_leading_count = broadcasted_rank - ignorable_tail_count;
 
-  for (size_t i = 0; i < original_rank; ++i) {
-    if (original_dims[i] == 1 && broadcasted_dims[rank_gap + i] != 1) {
-      broadcast_flags[rank_gap + i] = true;
-    }
-  }
-
-  for (size_t i = 0; i < broadcasted_rank; ++i) {
-    if (broadcast_flags[i]) {
-      broadcasted_dims[i] = 1;
-    }
-  }
-
-  std::vector<UINT> strides(broadcasted_rank);
-  auto existing_strides = tensor_desc.GetStridesOrDefaultStrides();
-  auto indexBegin = broadcasted_rank - original_rank;
+  std::vector<UINT> broadcasted_strides(broadcasted_rank);
 
   for (size_t i = 0, j = 0; i < broadcasted_rank; ++i) {
-    if (i < indexBegin) {
-      strides[i] = 0;
+    if (i < rank_gap) {
+      // Any leading extended portion is always broadcasted.
+      broadcasted_strides[i] = 0;
     } else {
-      strides[i] = broadcast_flags[i] ? 0 : existing_strides[j];
+      // The remaining section is broadcasted if the original
+      // dimension's size is 1 and within the non-ignorable part.
+      // Note the broadcasted dimensions do not matter, only whether
+      // or not the original dimensions were 1.
+      bool use_zero_stride = (i < broadcastable_leading_count) &&
+        (original_dims[j] == 1);
+      broadcasted_strides[i] = use_zero_stride ? 0 : original_strides[j];
       ++j;
     }
   }
-  return strides;
+  return broadcasted_strides;
 }
+#endif
 
 TensorDesc GetBroadcastedTensorDesc(NodeOutput* input_node,
-                                    std::vector<UINT> broadcasted_dims) {
+                                    base::span<const UINT> broadcasted_dims,
+                                    uint32_t ignorable_tail_count = 0) {
+  TensorDesc broadcasted_tensor(input_node->GetTensorDesc());
+  broadcasted_tensor.BroadcastTo(broadcasted_dims, TensorDesc::Alignment::kTrailing, ignorable_tail_count);
+#if 0
+  broadcasted_tensor
+
   auto broadcasted_strides =
       CalculateStridesForBroadcast(input_node, broadcasted_dims);
 
   auto& tensor_desc = input_node->GetTensorDesc();
-  TensorDesc broadcasted_tensor(tensor_desc.GetDataType(),
-                                tensor_desc.GetFlags(), broadcasted_dims,
-                                broadcasted_strides);
+  TensorDesc broadcasted_tensor(
+      tensor_desc.GetDataType(), tensor_desc.GetFlags(),
+      std::move(broadcasted_dims), std::move(broadcasted_strides));
+#endif
   return broadcasted_tensor;
 }
 
@@ -587,8 +569,7 @@ void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
       node = graph_desc_builder_->CreateOperatorNode(
           DML_OPERATOR_ELEMENT_WISE_POW, &operator_desc);
     } break;
-    ////////////////////////////////////////////////////////////////////////////////
-    // NEWOPS::: Add new case statements here
+
     default:
       DAWN_INTERNAL_ERROR(" Binary elementwise op is not implemented.");
   }
@@ -816,20 +797,16 @@ void GraphDMLImpl::AddGemm(UINT64 a_index,
 
   auto* a_node_output = node_output_map_[a_index].get();
   auto* b_node_output = node_output_map_[b_index].get();
-  auto& a_tensor_desc = a_node_output->GetTensorDesc();
-  auto& b_tensor_desc = b_node_output->GetTensorDesc();
   auto& output_dims = output_desc->dimensions;
 
-#if 0 // TODO:::DELETE
-  TensorDesc a_broadcasted_tensor =
-      GetBroadcastedTensorDesc(a_node_output, output_dims);
-  TensorDesc b_broadcasted_tensor =
-      GetBroadcastedTensorDesc(b_node_output, output_dims);
-#endif
+  TensorDesc a_tensor_desc =
+      GetBroadcastedTensorDesc(a_node_output, output_dims, 2);
+  TensorDesc b_tensor_desc =
+      GetBroadcastedTensorDesc(b_node_output, output_dims, 2);
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dims);
 
   DCHECK(a_tensor_desc.GetDimensions().size() == b_tensor_desc.GetDimensions().size());
-  DCHECK(a_tensor_desc.GetDimensions().size() == output_tensor_desc.GetDimensions().size());
+  DCHECK(b_tensor_desc.GetDimensions().size() == output_tensor_desc.GetDimensions().size());
 
   // The operand c is optional.
   TensorDesc c_tensor_desc;
@@ -838,9 +815,9 @@ void GraphDMLImpl::AddGemm(UINT64 a_index,
     DCHECK(node_output_map_.find(options->c_index) != node_output_map_.end());
     auto* c_node_output = node_output_map_[options->c_index].get();
 
-    // Broadcast C's shape up to 4D for DML. It enters as either a scalar
-    // or as a shape that is unidirectionally broadcastable to the shape
-    // [M, N] as defined in WebNN Spec.
+    // Broadcast C's shape up to the output rank for DML. It enters as either
+    // a scalar or as a shape that is unidirectionally broadcastable to the
+    // shape [M, N] as defined in WebNN Spec.
     c_tensor_desc = GetBroadcastedTensorDesc(c_node_output, output_dims);
     input_nodes.push_back(c_node_output);
   }
@@ -1017,9 +994,6 @@ void GraphDMLImpl::AddSoftmax(UINT64 input_index,
   node_output_map_[output_index] = std::move(node_output);
   return;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// NEWOPS:::
 
 void GraphDMLImpl::AddElementWiseIf(UINT64 condition_index,
                                     UINT64 true_value_index,
@@ -1650,9 +1624,6 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                    softmax->output_index);
         break;
       }
-
-      ////////////////////////////////////////////////////////////////////////////////
-      // NEWOPS:::
       case OperationInfo::Tag::kArgMinMax: {
         auto& mojom_operator = operation->get_arg_min_max();
         auto& output_operand =

@@ -49,8 +49,6 @@ enum OperatorType {
 
   kResample2d,
 
-  // NEWOPS::: New prototype operators added for Stable diffusion 1.5.
-
   // Shape dimension reinterpreting operations.
   kReshape,
   kSqueeze,
@@ -158,9 +156,6 @@ enum Conv2dFilterOperandLayout { [Default] kOihw, kHwio, kOhwi, kIhwo };
 [Stable, Extensible]
 enum AutoPad { [Default] kExplicit, kSameUpper, kSameLower };
 
-////////////////////////////////////////////////////////////////////////////////
-// NEWOPS::: New enums go here.
-
 [Stable, Extensible]
 enum TriangularPart { [Default] kUpper, kLower };
 
@@ -169,8 +164,6 @@ enum PaddingMode { [Default] kConstant, kEdge, kReflection, kSymmetric };
 
 [Stable, Extensible]
 enum InterpolationMode { [Default] kNearestNeighbor, kLinear };
-// END NEWOPS:::
-////////////////////////////////////////////////////////////////////////////////
 
 // Represents the `MLConv2dOptions`.
 [Stable]
@@ -397,32 +390,9 @@ struct Softmax {
   uint64 output_index@1;
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// NEWOPS::: New operators go here
-
 // Elementwise binary logical comparison operations
 
 // Shape modification operations.
-
-// TODO:::DELETE
-//[Stable]
-//struct SqueezeOptions {
-//  array<uint32> axes@0;
-//};
-//
-//[Stable]
-//struct Squeeze {
-//  uint64 input_index@0;     // Index of input operand in model's operand array.
-//  SqueezeOptions squeeze_options@1;
-//  uint64 output_index@2;    // Index of output operand in model's operand array.
-//};
-//
-//[Stable]
-//struct Unsqueeze {
-//  uint64 input_index@0;     // Index of input operand in model's operand array.
-//  SqueezeOptions squeeze_options@1;
-//  uint64 output_index@2;    // Index of output operand in model's operand array.
-//};
 
 [Stable]
 struct Concat {
@@ -583,9 +553,6 @@ union OperationInfo {
   Relu relu;
   Reshape reshape;
   Softmax softmax;
-
-  //////////////////////////////////////////////////////////////////////
-  // NEWOPS::: New operators go here.
   Concat concat;
   Slice slice;
   Transpose transpose;

@@ -215,7 +215,7 @@ Vector<uint32_t> ExpandDimensions(
 // Otherwise, it unidirectionally broadcasts the lhs to the rhs.
 // The ignorable tail count is useful for cases like MatMul, where you want
 // to ignore the trailing tail of dimensions and only broadcast the leading
-// ones.
+// ones, because the trailing part (returned as 0's) will be filled in later.
 absl::optional<Vector<uint32_t>> BroadcastShapes(
     base::span<const uint32_t> dims_lhs,
     base::span<const uint32_t> dims_rhs,
@@ -228,14 +228,16 @@ absl::optional<Vector<uint32_t>> BroadcastShapes(
   auto rank_rhs = static_cast<wtf_size_t>(dims_rhs.size());
   auto rank_output = bidirectional ? std::max(rank_lhs, rank_rhs) : rank_rhs;
   Vector<uint32_t> dims_output(rank_output);
-  auto loop_count = rank_output - std::min(ignorable_tail_count, rank_output);
 
-  for (wtf_size_t i = 0; i < loop_count; ++i) {
+  // Note the loop effectively works backwards from the end of the dimensions
+  // array (the counter is forward, but accesses are relative the end).
+  for (wtf_size_t i = ignorable_tail_count; i < rank_output; ++i) {
 
     auto dim_lhs = i < rank_lhs ? dims_lhs[rank_lhs - i - 1] : 1;
     DCHECK_GT(dim_lhs, uint32_t(0));
     auto dim_rhs = i < rank_rhs ? dims_rhs[rank_rhs - i - 1] : 1;
     DCHECK_GT(dim_rhs, uint32_t(0));
+
     // If bidirectional is true, two dimensions are compatible when they are
     // equal, or one of them is 1. Otherwise, two dimensions are compatible
     // when they are equal, or the lhs dimension is 1.
@@ -246,6 +248,7 @@ absl::optional<Vector<uint32_t>> BroadcastShapes(
     } else if (dim_lhs != dim_rhs && dim_lhs != 1) {
       return absl::nullopt;
     }
+
     // If bidirectional is true, for each dimension of the output tensor, its
     // size is the maximum size along that dimension of the input shapes.
     // Otherwise, its size is the same as the rhs.
@@ -1287,8 +1290,8 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
     // component of new shape can be the special value of -1.
     for (wtf_size_t i = 0; i < new_shape.size(); ++i) {
       auto d = new_shape[i];
-      // TODO::: Delete this special behavior, which has changed in the spec to
-      // passing null instead of -1.
+      // TODO: Delete this special behavior, which has changed in the WebNN spec
+      // to passing null instead of -1.
 #if 0
       if (d < -1 || d == 0) {
         exception_state.ThrowDOMException(
@@ -1561,9 +1564,6 @@ MLOperator* MLGraphBuilder::sigmoid(ExceptionState& exception_state) {
   return MakeGarbageCollected<MLOperator>(this,
                                           MLOperator::OperatorKind::kSigmoid);
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// NEWOPS:::
 
 MLOperand* MLGraphBuilder::elementwiseIf(const MLOperand* condition,
                                          const MLOperand* true_value,
@@ -2077,34 +2077,14 @@ MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
   output_dimensions[output_rank - 2] = a_rows;
   output_dimensions[output_rank - 1] = b_cols;
 
-  // Because the input operands may have been adjusted for broadcasting,
-  // normalize them rather than use the originals. This simplifies
-  // later shared back-end code.
-
   String error_message;
-
-  auto* a_adjusted = MLOperand::ValidateAndCreateInput(
-      this, a->Type(), std::move(a_dimensions), a->Name(), error_message);
-  if (!a_adjusted) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      error_message);
-    return nullptr;
-  }
-
-  auto* b_adjusted = MLOperand::ValidateAndCreateInput(
-      this, b->Type(), std::move(b_dimensions), b->Name(), error_message);
-  if (!b_adjusted) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                      error_message);
-    return nullptr;
-  }
 
   // Create empty options for gemm, since MatMul uses the defaults.
   auto* options = MLGemmOptions::Create();
 
   auto* ml_operator = MakeGarbageCollected<MLOperator>(
       this, MLOperator::OperatorKind::kGemm, options);
-  HeapVector<Member<const MLOperand>> inputs = {a_adjusted, b_adjusted};
+  HeapVector<Member<const MLOperand>> inputs = {a, b};
   auto* output = MLOperand::ValidateAndCreateOutput(
       this, a->Type(), std::move(output_dimensions), ml_operator, error_message);
   if (!output) {
@@ -2122,7 +2102,7 @@ MLOperand* MLGraphBuilder::pad(
     const Vector<uint32_t>& endingPadding,
     const MLPadOptions* options,
     ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  return nullptr;
 }
 
 MLOperand* MLGraphBuilder::pow(const MLOperand* a,
@@ -2393,7 +2373,7 @@ MLOperand* MLGraphBuilder::triangularMatrix(
     const MLOperand* input,
     const MLTriangularMatrixOptions* options,
     ExceptionState& exception_state) {
-  return nullptr;  // TODO:::
+  return nullptr;
 }
 
 MLOperand* MLGraphBuilder::unsqueeze(

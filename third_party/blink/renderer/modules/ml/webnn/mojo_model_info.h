@@ -57,8 +57,9 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   // - Pow
   void AddElementWiseBinary(const MLOperator* binary);
 
-  // Gemm
-  // MatMul
+  // Dot product operators:
+  // - Gemm
+  // - MatMul
   void AddGemm(const MLOperator* gemm);
 
   // Pooling operations
@@ -76,10 +77,6 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
 
   void AddSoftmax(const MLOperator* softmax);
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // NEWOPS:::
-
-  // TODO::: Combine ArgMin and ArgMax?
   void AddArgMinMax(const MLOperator* ml_operator);
   void AddCast(const MLOperator* ml_operator);
   void AddConcat(const MLOperator* ml_operator);

@@ -77,9 +77,6 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kFlattenTo2d:
       model_info->AddReshape(op);
       break;
-
-    ////////////////////////////////////////////////////////////////////////////////
-    // NEWOPS::: Add new operators here.
     case MLOperator::OperatorKind::kArgMax:
     case MLOperator::OperatorKind::kArgMin:
       model_info->AddArgMinMax(op);

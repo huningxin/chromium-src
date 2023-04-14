@@ -124,10 +124,7 @@ dictionary MLTriangularMatrixOptions {
 };
 
 dictionary MLReduceOptions {
-  sequence<unsigned long> axes; // = null;
-  // TODO:::, saying " = null" above causes a build failure and binding assert? AssertionError from Python build scripts.
-  // File "d:\ChromiumDml\src\third_party\blink\renderer\bindings\scripts\bind_gen\blink_v8_bridge.py", line 551, in make_default_value_expr
-  //   assert default_value.is_type_compatible_with(idl_type)
+  sequence<unsigned long> axes;
   boolean keepDimensions = false;
 };
 
@@ -166,7 +163,7 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand lesser(MLOperand a, MLOperand b);
 
   // Elementwise unary activation operations.
-  // TODO::: Rename MLOperator to MLActivation per spec update.
+  // TODO: Rename MLOperator -> MLActivation per spec update.
   [RaisesException] MLOperand relu(MLOperand input);
   [RaisesException] MLOperator relu();
 
@@ -187,9 +184,6 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand maxPool2d(MLOperand input, optional MLPool2dOptions options = {});
 
   [RaisesException] MLOperand resample2d(MLOperand input, optional MLResample2dOptions options = {});
-
-  ////////////////////////////////////////////////////////////////////////////////
-  // NEWOPS::: New operators go here.
 
   // Elementwise unary operations
   [RaisesException] MLOperand identity(MLOperand input);

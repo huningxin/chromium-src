@@ -48,9 +48,6 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "softmax";
     case MLOperator::OperatorKind::kSigmoid:
       return "sigmoid";
-
-    ////////////////////////////////////////////////////////////////////////////////
-    // NEWOPS:::
     case MLOperator::OperatorKind::kArgMax:
       return "argMax";
     case MLOperator::OperatorKind::kArgMin:

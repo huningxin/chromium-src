@@ -21,7 +21,8 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-   // TODO::: Delete this one, in favor of the mojo generated one - one fewer enum to keep in sync.
+   // TODO: Delete this enum and with the ml::webnn::mojom::blink::OperatorType
+   // generated one - one less enum to keep in sync.
   enum class OperatorKind {
     // Keep the order as the same as build methods of MLGraphBuilder.
     kUnknown,
@@ -56,11 +57,6 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kMaxPool2d,
 
     kResample2d,
-
-    //////////////////////////////////////////////////////////////////////
-    // NEWOPS:::
-    // New prototype operators added for Stable diffusion 1.5.
-    // Rename OperatorKind to OperatorType, to be consistent with mojom types.
 
     // Shape reinterpretation operations.
     kReshape,

@@ -566,9 +566,6 @@ void MojoModelInfo::AddSoftmax(const MLOperator* ml_softmax) {
   model_info_->operations.push_back(std::move(operation));
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// NEWOPS:::
-
 void MojoModelInfo::AddArgMinMax(const MLOperator* ml_operator) {
   DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(ml_operator, 1u, 1u);
 
