@@ -1815,7 +1815,7 @@ MLOperand* MLGraphBuilder::flattenTo2d(const MLOperand* input,
   output_dimensions[0] = ComputeElementCount(leading_dimensions);
   output_dimensions[1] = ComputeElementCount(trailing_dimensions);
 
-  // Resolve unsqueeze into a reshape operator.
+  // Resolve flattenTo2d into a reshape operator.
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kReshape, input,
                             output_dimensions, input->Type(), /*options*/nullptr,
                             exception_state);
@@ -2255,7 +2255,6 @@ MLOperand* MLGraphBuilder::slice(const MLOperand* input,
   options->setStarts(starts);
   options->setSizes(sizes);
 
-  // Resolve unsqueeze into a reshape operator.
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kSlice, input,
                             sizes, input->Type(), /*options*/ options,
                             exception_state);
@@ -2302,7 +2301,7 @@ MLOperand* MLGraphBuilder::squeeze(
     }
   }
 
-  // Resolve unsqueeze into a reshape operator.
+  // Resolve squeeze into a reshape operator.
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kReshape, input,
                             output_dimensions, input->Type(), /*options*/nullptr,
                             exception_state);
