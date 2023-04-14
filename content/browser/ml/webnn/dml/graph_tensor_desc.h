@@ -72,9 +72,9 @@ class TensorDesc final {
 
   UINT64 GetTotalTensorSizeInBytes();
 
-// Returns the default decreasing order packed strides for the given dimensions.
-// e.g. dimensions [1,2,3,4] yields strides [24,12,4,1].
-// See https://docs.microsoft.com/en-us/windows/win32/direct3d12/dml-helper-functions#calculatestrides.
+  // Returns the default decreasing order packed strides for the given dimensions.
+  // e.g. dimensions [1,2,3,4] yields strides [24,12,4,1].
+  // See https://docs.microsoft.com/en-us/windows/win32/direct3d12/dml-helper-functions#calculatestrides.
   static std::vector<uint32_t> ComputeDecreasingStrides(
       base::span<const uint32_t> dimensions);
 

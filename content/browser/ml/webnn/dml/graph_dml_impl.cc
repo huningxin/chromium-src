@@ -283,8 +283,8 @@ DML_SCALAR_UNION GetScalarUnion(DML_TENSOR_DATA_TYPE tensorDataType, float value
   case DML_TENSOR_DATA_TYPE_FLOAT64: valueUnion.Float64 = static_cast<float>(value); break;
   case DML_TENSOR_DATA_TYPE_UINT64:  valueUnion.UInt64  = static_cast<float>(value); break;
   case DML_TENSOR_DATA_TYPE_INT64:   valueUnion.Int64   = static_cast<float>(value); break;
-  case DML_TENSOR_DATA_TYPE_UNKNOWN: /* do nothing */ break;
-  default:                           /* do nothing */ break;
+  case DML_TENSOR_DATA_TYPE_UNKNOWN: /* keep zeroed */ break;
+  default:                           /* keep zeroed */ break;
   }
   // clang-format on
 
@@ -312,61 +312,11 @@ DML_REDUCE_FUNCTION MapOperatorTypeToReductionFuntion(OperatorType operator_type
   // clang-format on
 }
 
-#if 0 // TODO:::
-// Strides are used to express broadcasting (by specifying a stride of 0) as
-// well as padding. If Strides is not specified, each dimension in the tensor is
-// considered to be contiguously packed, with no additional padding. The
-// calculated strides refer to
-// https://docs.microsoft.com/en-us/windows/win32/direct3d12/dml-helper-functions#calculatestrides
-std::vector<UINT> CalculateStridesForBroadcast(
-    NodeOutput* node_output,
-    base::span<const UINT> broadcasted_dims,
-    size_t ignorable_tail_count = 0) {
-  auto& tensor_desc = node_output->GetTensorDesc();
-  auto original_dims = tensor_desc.GetDimensions();
-  auto original_strides = tensor_desc.GetStridesOrDefaultStrides();
-  auto original_rank = original_dims.size();
-  auto broadcasted_rank = broadcasted_dims.size();
-  auto rank_gap = broadcasted_rank - original_rank;
-  auto broadcastable_leading_count = broadcasted_rank - ignorable_tail_count;
-
-  std::vector<UINT> broadcasted_strides(broadcasted_rank);
-
-  for (size_t i = 0, j = 0; i < broadcasted_rank; ++i) {
-    if (i < rank_gap) {
-      // Any leading extended portion is always broadcasted.
-      broadcasted_strides[i] = 0;
-    } else {
-      // The remaining section is broadcasted if the original
-      // dimension's size is 1 and within the non-ignorable part.
-      // Note the broadcasted dimensions do not matter, only whether
-      // or not the original dimensions were 1.
-      bool use_zero_stride = (i < broadcastable_leading_count) &&
-        (original_dims[j] == 1);
-      broadcasted_strides[i] = use_zero_stride ? 0 : original_strides[j];
-      ++j;
-    }
-  }
-  return broadcasted_strides;
-}
-#endif
-
 TensorDesc GetBroadcastedTensorDesc(NodeOutput* input_node,
                                     base::span<const UINT> broadcasted_dims,
                                     uint32_t ignorable_tail_count = 0) {
   TensorDesc broadcasted_tensor(input_node->GetTensorDesc());
   broadcasted_tensor.BroadcastTo(broadcasted_dims, TensorDesc::Alignment::kTrailing, ignorable_tail_count);
-#if 0
-  broadcasted_tensor
-
-  auto broadcasted_strides =
-      CalculateStridesForBroadcast(input_node, broadcasted_dims);
-
-  auto& tensor_desc = input_node->GetTensorDesc();
-  TensorDesc broadcasted_tensor(
-      tensor_desc.GetDataType(), tensor_desc.GetFlags(),
-      std::move(broadcasted_dims), std::move(broadcasted_strides));
-#endif
   return broadcasted_tensor;
 }
 
