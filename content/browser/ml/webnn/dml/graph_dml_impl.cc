@@ -980,8 +980,6 @@ void GraphDMLImpl::AddElementWiseIf(UINT64 condition_index,
   graph_desc_builder_->Connect(
       {condition_node, true_value_node, false_value_node}, {node});
 
-  // TODO: CreateNodeOutput is being passed a hardcoded 0 instead of
-  // output_index?? Elsewhere too.
   auto node_output = graph_desc_builder_->CreateNodeOutput(
       node, 0, std::move(output_tensor_desc));
   node_output_map_[output_index] = std::move(node_output);
@@ -1231,27 +1229,7 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
 void GraphDMLImpl::AddPad(UINT64 input_index,
                           OperandDescriptorPtr output_desc,
                           UINT64 output_index) {
-  // TODO::---------------------------------------------
-#if 0
-  DCHECK(node_output_map_.contains(input_index));
-
-  auto* input_node = node_output_map_[input_index].get();
-  auto& input_tensor_desc = input_node->GetTensorDesc();
-  auto& output_dimensions = output_desc->dimensions;
-  TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
-
-  DML_XXXX_OPERATOR_DESC operator_desc = {};
-  operator_desc.InputTensor = input_tensor_desc.Get();
-  operator_desc.OutputTensor = output_tensor_desc.Get();
-  Node node = graph_desc_builder_->CreateOperatorNode(
-      DML_OPERATOR_XXXX, &operator_desc);
-
-  graph_desc_builder_->Connect({input_node}, {node});
-
-  auto node_output = graph_desc_builder_->CreateNodeOutput(
-      node, 0, std::move(output_tensor_desc));
-  node_output_map_[output_index] = std::move(node_output);
-#endif
+  // TODO:
 }
 
 void GraphDMLImpl::AddFillSequence(float start,
