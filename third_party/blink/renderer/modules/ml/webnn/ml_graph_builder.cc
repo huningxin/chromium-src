@@ -40,9 +40,6 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 #endif
 
-// HACK:::
-#pragma optimize("", off)
-
 namespace blink {
 
 namespace {

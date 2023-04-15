@@ -7,9 +7,6 @@
 #include "content/browser/ml/webnn/dml/adapter_dml.h"
 #include "content/browser/ml/webnn/dml/execution_resources.h"
 
-// HACK:::
-#pragma optimize("", off)
-
 namespace content::webnn {
 
 CommandRecorder::~CommandRecorder() = default;

@@ -8,9 +8,6 @@
 #include "base/numerics/checked_math.h"
 #include "base/containers/span.h"
 
-// HACK:::
-#pragma optimize("", off)
-
 namespace content::webnn {
 
 namespace {

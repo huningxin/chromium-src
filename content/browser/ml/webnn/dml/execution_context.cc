@@ -7,9 +7,6 @@
 #include "content/browser/ml/webnn/dml/adapter_dml.h"
 #include "content/browser/ml/webnn/dml/upload_resource.h"
 
-// HACK:::
-#pragma optimize("", off)
-
 namespace content::webnn {
 
 ExecutionContext::ExecutionContext(scoped_refptr<AdapterDML> adapter)

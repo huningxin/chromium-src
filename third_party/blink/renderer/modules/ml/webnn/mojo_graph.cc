@@ -21,9 +21,6 @@
 
 #include <memory>
 
-// HACK:::
-#pragma optimize("", off)
-
 namespace blink {
 
 namespace {
