@@ -24,6 +24,7 @@ class ExceptionState;
 class MLContext;
 class MLClampOptions;
 class MLConv2dOptions;
+class MLConvTranspose2dOptions;
 class MLGemmOptions;
 class MLGraph;
 class MLPool2dOptions;
@@ -32,9 +33,11 @@ class MLResample2dOptions;
 class MLArgMinMaxOptions;
 class MLSqueezeOptions;
 class MLSliceOptions;
+class MLSplitOptions;
 class MLTransposeOptions;
 class MLPadOptions;
 class MLInstanceNormalizationOptions;
+class MLMeanVarianceNormalizationOptions;
 class MLFillSequenceOptions;
 class MLTriangularMatrixOptions;
 class MLReduceOptions;
@@ -42,6 +45,7 @@ class MLOperand;
 class MLOperandDescriptor;
 class ScriptPromiseResolver;
 class ScriptPromise;
+class V8UnionUnsignedLongOrUnsignedLongSequence;
 
 typedef HeapVector<std::pair<String, Member<MLOperand>>> MLNamedOperands;
 
@@ -97,6 +101,10 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
                     const MLOperand* filter,
                     const MLConv2dOptions* options,
                     ExceptionState& exception_state);
+  MLOperand* convTranspose2d(const MLOperand* input,
+                             const MLOperand* filter,
+                             const MLConvTranspose2dOptions* options,
+                             ExceptionState& exception_state);
 
   // Element-wise binary operations
   MLOperand* add(const MLOperand* a,
@@ -171,6 +179,8 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
                    ExceptionState& exception_state);
   MLOperand* erf(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* exp(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* reciprocal(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* logicalNot(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* flattenTo2d(const MLOperand* input,
                          uint32_t axis,
                          ExceptionState& exception_state);
@@ -185,6 +195,10 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperand* instanceNormalization(
       const MLOperand* input,
       const MLInstanceNormalizationOptions* options,
+      ExceptionState& exception_state);
+  MLOperand* meanVarianceNormalization(
+      const MLOperand* input,
+      const MLMeanVarianceNormalizationOptions* options,
       ExceptionState& exception_state);
   MLOperand* lesser(const MLOperand* a,
                     const MLOperand* b,
@@ -241,6 +255,10 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
                    const Vector<uint32_t>& starts,
                    const Vector<uint32_t>& sizes,
                    ExceptionState& exception_state);
+  HeapVector<Member<MLOperand>> split(const MLOperand* input,
+                               blink::V8UnionUnsignedLongOrUnsignedLongSequence* splits,
+                               const MLSplitOptions* options,
+                               ExceptionState& exception_state);
   MLOperand* sqrt(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* tan(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* transpose(const MLOperand* input,

@@ -11,13 +11,15 @@ namespace blink {
 
 // static
 String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
-  static_assert(MLOperator::OperatorKind::kTotal == MLOperator::OperatorKind(56));
+  static_assert(MLOperator::OperatorKind::kTotal == MLOperator::OperatorKind(61));
 
   switch (kind) {
     case MLOperator::OperatorKind::kClamp:
       return "clamp";
     case MLOperator::OperatorKind::kConv2d:
       return "conv2d";
+    case MLOperator::OperatorKind::kConvTranspose2d:
+      return "convTranspose2d";
     case MLOperator::OperatorKind::kAdd:
       return "add";
     case MLOperator::OperatorKind::kSub:
@@ -30,6 +32,10 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "max";
     case MLOperator::OperatorKind::kMin:
       return "min";
+    case MLOperator::OperatorKind::kReciprocal:
+      return "reciprocal";
+    case MLOperator::OperatorKind::kLogicalNot:
+      return "logicalNot";
     case MLOperator::OperatorKind::kGemm:
       return "gemm";
     case MLOperator::OperatorKind::kHardSwish:
@@ -78,6 +84,8 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "identity";
     case MLOperator::OperatorKind::kInstanceNormalization:
       return "instanceNormalization";
+    case MLOperator::OperatorKind::kMeanVarianceNormalization:
+      return "meanVarianceNormalization";
     case MLOperator::OperatorKind::kMatmul:
       return "matmul";
     case MLOperator::OperatorKind::kPad:
@@ -110,6 +118,8 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "sin";
     case MLOperator::OperatorKind::kSlice:
       return "slice";
+    case MLOperator::OperatorKind::kSplit:
+      return "split";
     case MLOperator::OperatorKind::kSqrt:
       return "sqrt";
     case MLOperator::OperatorKind::kTranspose:

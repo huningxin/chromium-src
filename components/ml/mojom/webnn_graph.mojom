@@ -19,6 +19,7 @@ enum OperatorType {
 
   // Dot product operations.
   kConv2d,
+  kConvTranspose2d,
   kGemm,
   kMatmul, // Handled by GEMM.
 
@@ -58,6 +59,7 @@ enum OperatorType {
   // Shape modification operations.
   kConcat,
   kSlice,
+  kSplit,
   kTranspose,
   kPad,
   kExpand,
@@ -71,6 +73,8 @@ enum OperatorType {
   kCos,
   kTan,
   kErf,
+  kReciprocal,
+  kLogicalNot,
 
   // Reduction operations
   kReduceL1,
@@ -89,6 +93,7 @@ enum OperatorType {
   kArgMin,
   kCast,
   kInstanceNormalization,
+  kMeanVarianceNormalization,
   kFillSequence,
   kTriangularMatrix,
   kElementWiseIf,
@@ -485,6 +490,16 @@ struct InstanceNormalization {
 };
 
 [Stable]
+struct MeanVarianceNormalization {
+  uint64 input_index@0;
+  uint64 scale_index@1;
+  uint64 bias_index@2;
+  float epsilon@3;
+  array<uint32> axes@4;
+  uint64 output_index@5;    // Index of output operand in model's operand array.
+};
+
+[Stable]
 struct FillSequence {
   uint64 input_index@0;
   float start@1;
@@ -564,6 +579,7 @@ union OperationInfo {
   ArgMinMax arg_min_max;
   Cast cast;
   InstanceNormalization instance_normalization;
+  MeanVarianceNormalization mean_variance_normalization;
   FillSequence fill_sequence;
   TriangularMatrix triangular_matrix;
   ElementWiseIf element_wise_if;

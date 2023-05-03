@@ -133,6 +133,13 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                                 InputOperandLayout operand_layout,
                                 OperandDescriptorPtr output_desc,
                                 UINT64 output_index);
+  void AddMeanVarianceNormalization(uint64_t input_index,
+                                    uint64_t scale_index,
+                                    uint64_t bias_index,
+                                    float epsilon,
+                                    base::span<const uint32_t> axes,
+                                    OperandDescriptorPtr output_desc,
+                                    UINT64 output_index);
   void AddPad(UINT64 input_index, OperandDescriptorPtr output_desc, UINT64 output_index);
   void AddFillSequence(float start,
                        float step,

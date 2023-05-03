@@ -30,7 +30,7 @@ using ml::webnn::mojom::blink::ComputeResult;
 using ml::webnn::mojom::blink::MemoryInfoPtr;
 
 void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
-  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 56);
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 61);
 
   switch (op->Kind()) {
     case MLOperator::OperatorKind::kClamp:
@@ -38,6 +38,9 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
       break;
     case MLOperator::OperatorKind::kConv2d:
       model_info->AddConv2d(op);
+      break;
+    case MLOperator::OperatorKind::kConvTranspose2d:
+      model_info->AddConvTranspose2d(op);
       break;
     case MLOperator::OperatorKind::kAdd:
     case MLOperator::OperatorKind::kSub:
@@ -96,6 +99,8 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kSqrt:
     case MLOperator::OperatorKind::kSigmoid:
     case MLOperator::OperatorKind::kHardSwish:
+    case MLOperator::OperatorKind::kReciprocal:
+    case MLOperator::OperatorKind::kLogicalNot:
       model_info->AddElementWiseUnary(op);
       break;
     case MLOperator::OperatorKind::kElementWiseIf:
@@ -106,6 +111,9 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
       break;
     case MLOperator::OperatorKind::kInstanceNormalization:
       model_info->AddInstanceNormalization(op);
+      break;
+    case MLOperator::OperatorKind::kMeanVarianceNormalization:
+      model_info->AddMeanVarianceNormalization(op);
       break;
     case MLOperator::OperatorKind::kPad:
       model_info->AddPad(op);

@@ -12,6 +12,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_transpose_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
@@ -22,7 +23,9 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_squeeze_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_slice_options_internal.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_instance_normalization_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_mean_variance_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_reduce_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_fill_sequence_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
@@ -1089,6 +1092,172 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
   return output;
 }
 
+MLOperand* MLGraphBuilder::convTranspose2d(const MLOperand* input,
+                                  const MLOperand* filter,
+                                  const MLConvTranspose2dOptions* options,
+                                  ExceptionState& exception_state) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "Not implemented.");
+
+    return nullptr;
+
+#if 0 // TODO:
+  // Validate input operand and set its sizes.
+  const auto input_shape = input->Dimensions();
+  if (input_shape.size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The input should be a 4-D tensor.");
+    return nullptr;
+  }
+  // The input layout option specifies the layout format of the input tensor.
+  uint32_t input_batches, input_channels, input_height, input_width;
+  switch (options->inputLayout().AsEnum()) {
+    case V8MLInputOperandLayout::Enum::kNchw:
+      // "nchw": [batches, input_channels, height, width]
+      input_batches = input_shape[0];
+      input_channels = input_shape[1];
+      input_height = input_shape[2];
+      input_width = input_shape[3];
+      break;
+    case V8MLInputOperandLayout::Enum::kNhwc:
+      // "nhwc": [batches, height, width, input_channels]
+      input_batches = input_shape[0];
+      input_height = input_shape[1];
+      input_width = input_shape[2];
+      input_channels = input_shape[3];
+      break;
+  }
+
+  // Validate filter operand and set its sizes.
+  if (filter->Type() != input->Type()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The filter type doesn't match the input type.");
+    return nullptr;
+  }
+  const auto filter_shape = filter->Dimensions();
+  if (filter_shape.size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The filter should be a 4-D tensor.");
+    return nullptr;
+  }
+  // The filter layout specifies the filter layout format.
+  uint32_t filter_height, filter_width, output_channels, filter_input_channels;
+  switch (options->filterLayout().AsEnum()) {
+    case V8MLConv2dFilterOperandLayout::Enum::kHwio:
+      // "hwio": [height, width, input_channels/groups, output_channels]
+      filter_height = filter_shape[0];
+      filter_width = filter_shape[1];
+      filter_input_channels = filter_shape[2];
+      output_channels = filter_shape[3];
+      break;
+    case V8MLConv2dFilterOperandLayout::Enum::kOhwi:
+      // "ohwi": [output_channels, height, width, input_channels/groups]
+      output_channels = filter_shape[0];
+      filter_height = filter_shape[1];
+      filter_width = filter_shape[2];
+      filter_input_channels = filter_shape[3];
+      break;
+    case V8MLConv2dFilterOperandLayout::Enum::kIhwo:
+      // "ihwo": [input_channels/groups, height, width, output_channels]
+      filter_input_channels = filter_shape[0];
+      filter_height = filter_shape[1];
+      filter_width = filter_shape[2];
+      output_channels = filter_shape[3];
+      break;
+    case V8MLConv2dFilterOperandLayout::Enum::kOihw:
+      // "oihw": [output_channels, input_channels/groups, height, width]
+      output_channels = filter_shape[0];
+      filter_input_channels = filter_shape[1];
+      filter_height = filter_shape[2];
+      filter_width = filter_shape[3];
+      break;
+  }
+  // Validate bias operand if it is present.
+  if (options->hasBias()) {
+    const auto bias_shape = options->bias()->Dimensions();
+    if (bias_shape.size() != 1) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The bias should be a 1-D tensor.");
+      return nullptr;
+    }
+    if (bias_shape[0] != output_channels) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          String::Format("The bias shape should be [%u].", output_channels));
+      return nullptr;
+    }
+    if (options->bias()->Type() != input->Type()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "The bias type doesn't match input type.");
+      return nullptr;
+    }
+  }
+  // Validate groups.
+  if (options->groups() == 0) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The groups should be greater than 0.");
+    return nullptr;
+  }
+  if (input_channels % options->groups() != 0 ||
+      filter_input_channels != input_channels / options->groups()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The groups must evenly divide the input "
+                                      "channels to filter input channels.");
+    return nullptr;
+  }
+
+  const auto output_sizes = ValidateAndCalculateConv2dOutputSizes(
+      input_height, input_width, filter_height, filter_width,
+      // If padding is not present, the values are assumed to be [0,0,0,0].
+      options->getPaddingOr({0, 0, 0, 0}),
+      // If strides is not present, the values are assumed to be [1,1].
+      options->getStridesOr({1, 1}),
+      // If dilations is not present, the values are assumed to be [1, 1].
+      options->getDilationsOr({1, 1}), options->autoPad(), exception_state);
+  if (!output_sizes) {
+    return nullptr;
+  }
+  const uint32_t output_height =
+      base::ClampFloor<uint32_t>(output_sizes.value().height);
+  const uint32_t output_width =
+      base::ClampFloor<uint32_t>(output_sizes.value().width);
+  // The input layout option specifies the layout format of the output tensor.
+  Vector<uint32_t> output_shape;
+  switch (options->inputLayout().AsEnum()) {
+    case V8MLInputOperandLayout::Enum::kNchw:
+      // "nchw": [batches, output_channels, height, width]
+      output_shape = {input_batches, output_channels, output_height,
+                      output_width};
+      break;
+    case V8MLInputOperandLayout::Enum::kNhwc:
+      // "nhwc": [batches, height, width, output_channels]
+      output_shape = {input_batches, output_height, output_width,
+                      output_channels};
+      break;
+  }
+  // Create conv2d operator and its output operand. Connect the conv2d
+  // operator to its input and output operands.
+  auto* conv2d = MakeGarbageCollected<MLOperator>(
+      this, MLOperator::OperatorKind::kConv2d, options);
+  HeapVector<Member<const MLOperand>> inputs = {input, filter};
+  if (options->hasBias()) {
+    inputs.push_back(options->bias());
+  }
+  String error_message;
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      this, input->Type(), std::move(output_shape), conv2d, error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+  conv2d->Connect(std::move(inputs), {output});
+  return output;
+#endif
+}
+
 #define BUILD_ELEMENTWISE_BINARY_OP(op, op_kind)                              \
   MLOperand* MLGraphBuilder::op(const MLOperand* a, const MLOperand* b,       \
                                 ExceptionState& exception_state) {            \
@@ -1770,14 +1939,6 @@ MLOperand* MLGraphBuilder::cos(const MLOperand* input,
                             exception_state);
 }
 
-MLOperand* MLGraphBuilder::equal(const MLOperand* a,
-                                 const MLOperand* b,
-                                 ExceptionState& exception_state) {
-  return BuildElementwiseBinary(this, MLOperator::OperatorKind::kEqual, a, b,
-                                V8MLOperandType::Enum::kUint8,
-                                exception_state);
-}
-
 MLOperand* MLGraphBuilder::erf(const MLOperand* input,
                                ExceptionState& exception_state) {
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kErf, input,
@@ -1787,6 +1948,18 @@ MLOperand* MLGraphBuilder::erf(const MLOperand* input,
 MLOperand* MLGraphBuilder::exp(const MLOperand* input,
                                ExceptionState& exception_state) {
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kExp, input,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::reciprocal(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kReciprocal, input,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::logicalNot(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kLogicalNot, input,
                             exception_state);
 }
 
@@ -1905,6 +2078,14 @@ MLOperand* MLGraphBuilder::gather(const MLOperand* input,
   return output;
 }
 
+MLOperand* MLGraphBuilder::equal(const MLOperand* a,
+                                 const MLOperand* b,
+                                 ExceptionState& exception_state) {
+  return BuildElementwiseBinary(this, MLOperator::OperatorKind::kEqual, a, b,
+                                V8MLOperandType::Enum::kUint8,
+                                exception_state);
+}
+
 MLOperand* MLGraphBuilder::greater(const MLOperand* a,
                                    const MLOperand* b,
                                    ExceptionState& exception_state) {
@@ -2007,6 +2188,94 @@ MLOperand* MLGraphBuilder::instanceNormalization(
   return output;
 }
 
+#pragma optimize("", off) // TODO:::DELETE
+
+MLOperand* MLGraphBuilder::meanVarianceNormalization(
+    const MLOperand* input,
+    const MLMeanVarianceNormalizationOptions* options,
+    ExceptionState& exception_state) {
+  auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+
+  // Verify the axes are within the input rank and not duplicated.
+  Vector<uint32_t> axes;
+  if (options->hasAxes())
+  {
+    axes = options->axes();
+    if (!ValidateAxes(axes, input_rank, "meanVarianceNormalization", exception_state)) {
+      return nullptr;
+    }
+  }
+  else // Reduce all dimensions if permutations are missing, consistent with reduction operators.
+  {
+    axes.resize(input_rank);
+    std::iota(axes.begin(), axes.end(), 0u);
+  }
+
+  // Expect a 1D array for scale and bias, equal to the feature axis.
+  auto verify_scale_or_bias = [&](MLOperand& ml_operand,
+                                  const char* tensor_name) {
+    auto& dimensions = ml_operand.Dimensions();
+    if (dimensions.size() != input_dimensions.size()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          String::Format("meanVarianceNormalization's %s tensor must "
+                         "match the input tensor rank (%u), not (%u).",
+                         tensor_name, input_dimensions.size(),
+                         dimensions.size()));
+      return false;
+    }
+
+    for (wtf_size_t i = 0, rank = input_dimensions.size(); i < rank; ++i) {
+      if (dimensions[i] != input_dimensions[i] && dimensions[i] != 1) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            String::Format("meanVarianceNormalization's %s tensor dimension (%u) "
+                           "must be either 1 or match the corresponding input "
+                           "dimension (%u).",
+                           tensor_name, dimensions[i], input_dimensions[i]));
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Collect the inputs, with optional scale and bias.
+  HeapVector<Member<const MLOperand>> inputs = {input};
+
+  if (options->hasScale()) {
+    if (!verify_scale_or_bias(*options->scale(), "scale")) {
+      return nullptr;
+    }
+    inputs.push_back(options->scale());
+  }
+  if (options->hasBias()) {
+    if (!verify_scale_or_bias(*options->bias(), "bias"))
+    {
+        return nullptr;
+    }
+    inputs.push_back(options->bias());
+  }
+
+  // Pass the normalized options onward, simplifying the lower level's job.
+  MLMeanVarianceNormalizationOptions* normalized_options = MLMeanVarianceNormalizationOptions::Create();
+  normalized_options->setScale(options->scale());
+  normalized_options->setBias(options->bias());
+  normalized_options->setEpsilon(options->epsilon());
+  normalized_options->setAxes(axes);
+
+  // Create the mean variance normalization operator, and connect IO.
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(this, MLOperator::OperatorKind::kMeanVarianceNormalization, normalized_options);
+  String error_message;
+  auto* output = MLOperand::ValidateAndCreateOutput(this, input->Type(), input_dimensions, ml_operator, error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, error_message);
+    return nullptr;
+  }
+  ml_operator->Connect(std::move(inputs), {output});
+  return output;
+}
+
 MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
                                   const MLOperand* b,
                                   ExceptionState& exception_state) {
@@ -2066,7 +2335,7 @@ MLOperand* MLGraphBuilder::matmul(const MLOperand* a,
   // The output is 2-D tensor of shape [M, N].
   absl::optional<Vector<uint32_t>> optional_output_dimensions = BroadcastShapes(a_dimensions, b_dimensions, true, 2);
   if (!optional_output_dimensions) {
-    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, "The input shapes are not broadcastable.");
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError, "The matmul input shapes are not broadcastable.");
     return nullptr;
   }
   auto& output_dimensions = *optional_output_dimensions;
@@ -2255,6 +2524,15 @@ MLOperand* MLGraphBuilder::slice(const MLOperand* input,
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kSlice, input,
                             sizes, input->Type(), /*options*/ options,
                             exception_state);
+}
+
+HeapVector<Member<MLOperand>> MLGraphBuilder::split(const MLOperand* input,
+                                 //const Vector<uint32_t>& splits,
+                                 blink::V8UnionUnsignedLongOrUnsignedLongSequence* splits,
+                                 const MLSplitOptions* options,
+                                 ExceptionState& exception_state) {
+    // TODO:::
+    return {};
 }
 
 MLOperand* MLGraphBuilder::sqrt(const MLOperand* input,

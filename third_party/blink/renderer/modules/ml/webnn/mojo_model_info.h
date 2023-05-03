@@ -39,27 +39,33 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   void AddClamp(const MLOperator* clamp);
 
   void AddConv2d(const MLOperator* conv2d);
+  void AddConvTranspose2d(const MLOperator* conv2d);
 
-  // Element-wise operations:
-  // - Sin
-  // - Cos
-  // - Tan
-  // - Erf
-  // - Exp
-  // - Sqrt
+  // Element-wise unary operations:
+  // - sin
+  // - cos
+  // - tan
+  // - erf
+  // - exp
+  // - sqrt
+  // - reciprocal
+  // - logicalNot
   void AddElementWiseUnary(const MLOperator* ml_operator);
 
   // Elementwise binary operations:
-  // - Add
-  // - Sub
-  // - Mul
-  // - Div
-  // - Pow
+  // - add
+  // - sub
+  // - mul
+  // - div
+  // - pow
+  // - equal
+  // - greater
+  // - lesser
   void AddElementWiseBinary(const MLOperator* binary);
 
   // Dot product operators:
-  // - Gemm
-  // - MatMul
+  // - gemm
+  // - matMul
   void AddGemm(const MLOperator* gemm);
 
   // Pooling operations
@@ -68,11 +74,11 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   void AddRelu(const MLOperator* relu);
 
   // Reshaping operators (do not change the data, just interpretation):
-  // - Reshape
-  // - Squeeze
-  // - Unsqueeze
-  // - FlattenTo2d
-  // - Identity (included here because it's a no-op)
+  // - reshape
+  // - squeeze
+  // - unsqueeze
+  // - flattenTo2d
+  // - identity (included here because it's a no-op)
   void AddReshape(const MLOperator* reshape);
 
   void AddSoftmax(const MLOperator* softmax);
@@ -83,20 +89,21 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   void AddExpand(const MLOperator* ml_operator);
   void AddGather(const MLOperator* ml_operator);
   void AddInstanceNormalization(const MLOperator* ml_operator);
+  void AddMeanVarianceNormalization(const MLOperator* ml_operator);
   void AddPad(const MLOperator* ml_operator);
   void AddFillSequence(const MLOperator* ml_operator);
 
   // Reduction operators:
-  // - ReduceL1
-  // - ReduceL2
-  // - ReduceLogSum
-  // - ReduceLogSumExp
-  // - ReduceMax
-  // - ReduceMean
-  // - ReduceMin
-  // - ReduceProduct
-  // - ReduceSum
-  // - ReduceSumSquare
+  // - reduceL1
+  // - reduceL2
+  // - reduceLogSum
+  // - reduceLogSumExp
+  // - reduceMax
+  // - reduceMean
+  // - reduceMin
+  // - reduceProduct
+  // - reduceSum
+  // - reduceSumSquare
   void AddReduce(const MLOperator* ml_operator);
 
   void AddResample2d(const MLOperator* ml_operator);

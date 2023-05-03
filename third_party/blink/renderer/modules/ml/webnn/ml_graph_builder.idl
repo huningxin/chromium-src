@@ -26,6 +26,23 @@ dictionary MLConv2dOptions {
   MLOperator activation;
 };
 
+enum MLConvTranspose2dFilterOperandLayout { "iohw", "hwoi", "ohwi" };
+
+dictionary MLConvTranspose2dOptions {
+  sequence<[EnforceRange] unsigned long> padding;
+  sequence<[EnforceRange] unsigned long> strides;
+  sequence<[EnforceRange] unsigned long> dilations;
+  sequence<[EnforceRange] unsigned long> outputPadding;
+  sequence<[EnforceRange] unsigned long> outputSizes;
+  MLAutoPad autoPad = "explicit";
+  unsigned long groups = 1;
+  MLInputOperandLayout inputLayout = "nchw";
+  MLConvTranspose2dFilterOperandLayout filterLayout = "iohw";
+  MLOperand bias;
+  MLOperator activation;
+  // TODO: MLActivation activation;
+};
+
 dictionary MLGemmOptions {
   MLOperand c;
   float alpha = 1.0;
@@ -76,6 +93,13 @@ dictionary MLInstanceNormalizationOptions {
   MLOperand bias;
   float epsilon = 1e-5;
   MLInputOperandLayout layout = "nchw";
+};
+
+dictionary MLMeanVarianceNormalizationOptions {
+  MLOperand scale;
+  MLOperand bias;
+  float epsilon = 1e-5;
+  sequence<[EnforceRange] unsigned long> axes;
 };
 
 dictionary MLTransposeOptions {
@@ -133,6 +157,10 @@ dictionary MLFillSequenceOptions {
   float delta = 1;
 };
 
+dictionary MLSplitOptions {
+  unsigned long axis = 0;
+};
+
 [
   RuntimeEnabled=MachineLearningNeuralNetwork,
   Exposed=(Window, DedicatedWorker)
@@ -145,6 +173,7 @@ dictionary MLFillSequenceOptions {
 
   // Dot product operations.
   [RaisesException] MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
+  [RaisesException] MLOperand convTranspose2d(MLOperand input, MLOperand filter, optional MLConvTranspose2dOptions options = {});
   [RaisesException] MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
   [RaisesException] MLOperand matmul(MLOperand a, MLOperand b);
 
@@ -193,6 +222,8 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand cos(MLOperand input);
   [RaisesException] MLOperand tan(MLOperand input);
   [RaisesException] MLOperand erf(MLOperand input);
+  [RaisesException] MLOperand reciprocal(MLOperand input);
+  [RaisesException] MLOperand logicalNot(MLOperand input);
 
   // This trinary elementwise operator corresponds to the ONNX where operator.
   // "elementwise" is one word, not 2. https://en.wiktionary.org/wiki/elementwise
@@ -207,6 +238,8 @@ dictionary MLFillSequenceOptions {
   // Shape modification operations.
   [RaisesException] MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
   [RaisesException] MLOperand slice(MLOperand input, sequence<unsigned long> starts, sequence<unsigned long> sizes);
+  [RaisesException] sequence<MLOperand> split(MLOperand input, (unsigned long or sequence<unsigned long>) splits, optional MLSplitOptions options = {});
+
   [RaisesException] MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
   ////[RaisesException] MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
   [RaisesException] MLOperand expand(MLOperand input, sequence<unsigned long> newShape);
@@ -230,6 +263,7 @@ dictionary MLFillSequenceOptions {
   [RaisesException] MLOperand cast(MLOperand input, MLOperandType operandType);
 
   [RaisesException] MLOperand instanceNormalization(MLOperand input, optional MLInstanceNormalizationOptions options = {});
+  [RaisesException] MLOperand meanVarianceNormalization(MLOperand input, optional MLMeanVarianceNormalizationOptions options = {});
   [RaisesException] MLOperand fillSequence(MLOperandType operandType, sequence<unsigned long> outputShape, optional MLFillSequenceOptions options = {});
 
   ////[RaisesException] MLOperand triangularMatrix(MLOperand input, optional MLTriangularMatrixOptions options = {});

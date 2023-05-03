@@ -28,6 +28,7 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kUnknown,
 
     kConv2d,
+    kConvTranspose2d,
     kGemm,
     kMatmul,
 
@@ -67,6 +68,7 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     // Shape modification operations.
     kConcat,
     kSlice,
+    kSplit,
     kTranspose,
     kPad,
     kExpand,
@@ -80,6 +82,8 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kCos,
     kTan,
     kErf,
+    kReciprocal,
+    kLogicalNot,
 
     // Reduction operations
     kReduceL1,
@@ -98,6 +102,7 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kArgMin,
     kCast,
     kInstanceNormalization,
+    kMeanVarianceNormalization,
     kFillSequence,
     kTriangularMatrix,
     kElementWiseIf,

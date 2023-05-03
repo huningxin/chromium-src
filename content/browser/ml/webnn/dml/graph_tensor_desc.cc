@@ -161,10 +161,22 @@ TensorDesc::TensorDesc(TensorDesc const& other)
   buffer_desc_.Strides = strides_ ? strides_.value().data() : nullptr;
 }
 
-
 TensorDesc::TensorDesc(TensorDesc&& other) = default;
+
 TensorDesc& TensorDesc::operator=(TensorDesc&& other) = default;
-TensorDesc& TensorDesc::operator=(const TensorDesc& other) = default;
+
+TensorDesc& TensorDesc::operator=(const TensorDesc& other) {
+  dimensions_ = other.dimensions_;
+  strides_ = other.strides_;
+  buffer_desc_ = other.buffer_desc_;
+  tensor_desc_ = other.tensor_desc_;
+
+  // Update the internal self-referential pointers.
+  buffer_desc_.Sizes = dimensions_.data();
+  buffer_desc_.Strides = strides_ ? strides_.value().data() : nullptr;
+
+  return *this;
+}
 
 TensorDesc::~TensorDesc() = default;
 

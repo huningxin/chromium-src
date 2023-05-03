@@ -6,6 +6,7 @@
 
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_transpose_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
@@ -15,8 +16,10 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_reduce_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_arg_min_max_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_slice_options_internal.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_resample_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_instance_normalization_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_mean_variance_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_fill_sequence_options.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
@@ -129,14 +132,15 @@ Pool2dType BlinkPool2dTypeToMojo(MLOperator::OperatorKind type) {
 
 OperatorType BlinkOperatorKindToMojoType(
     MLOperator::OperatorKind type) {
-  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 56);
-  static_assert(int32_t(OperatorType::kMaxValue) + 1 == 56);
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 61);
+  static_assert(int32_t(OperatorType::kMaxValue) + 1 == 61);
 
   // Keep these two enumerations in sync.
   // Favor readability over convention here.
   // clang-format off
   static_assert(uint32_t(MLOperator::OperatorKind::kClamp) == uint32_t(OperatorType::kClamp));
   static_assert(uint32_t(MLOperator::OperatorKind::kConv2d) == uint32_t(OperatorType::kConv2d));
+  static_assert(uint32_t(MLOperator::OperatorKind::kConvTranspose2d) == uint32_t(OperatorType::kConvTranspose2d));
   static_assert(uint32_t(MLOperator::OperatorKind::kMatmul) == uint32_t(OperatorType::kMatmul));
   static_assert(uint32_t(MLOperator::OperatorKind::kGemm) == uint32_t(OperatorType::kGemm));
   static_assert(uint32_t(MLOperator::OperatorKind::kAdd) == uint32_t(OperatorType::kAdd));
@@ -164,12 +168,15 @@ OperatorType BlinkOperatorKindToMojoType(
   static_assert(uint32_t(MLOperator::OperatorKind::kCos) == uint32_t(OperatorType::kCos));
   static_assert(uint32_t(MLOperator::OperatorKind::kTan) == uint32_t(OperatorType::kTan));
   static_assert(uint32_t(MLOperator::OperatorKind::kErf) == uint32_t(OperatorType::kErf));
+  static_assert(uint32_t(MLOperator::OperatorKind::kReciprocal) == uint32_t(OperatorType::kReciprocal));
+  static_assert(uint32_t(MLOperator::OperatorKind::kLogicalNot) == uint32_t(OperatorType::kLogicalNot));
   static_assert(uint32_t(MLOperator::OperatorKind::kReshape) == uint32_t(OperatorType::kReshape));
   static_assert(uint32_t(MLOperator::OperatorKind::kSqueeze) == uint32_t(OperatorType::kSqueeze));
   static_assert(uint32_t(MLOperator::OperatorKind::kUnsqueeze) == uint32_t(OperatorType::kUnsqueeze));
   static_assert(uint32_t(MLOperator::OperatorKind::kFlattenTo2d) == uint32_t(OperatorType::kFlattenTo2d));
   static_assert(uint32_t(MLOperator::OperatorKind::kConcat) == uint32_t(OperatorType::kConcat));
   static_assert(uint32_t(MLOperator::OperatorKind::kSlice) == uint32_t(OperatorType::kSlice));
+  static_assert(uint32_t(MLOperator::OperatorKind::kSplit) == uint32_t(OperatorType::kSplit));
   static_assert(uint32_t(MLOperator::OperatorKind::kTranspose) == uint32_t(OperatorType::kTranspose));
   static_assert(uint32_t(MLOperator::OperatorKind::kPad) == uint32_t(OperatorType::kPad));
   static_assert(uint32_t(MLOperator::OperatorKind::kExpand) == uint32_t(OperatorType::kExpand));
@@ -188,6 +195,7 @@ OperatorType BlinkOperatorKindToMojoType(
   static_assert(uint32_t(MLOperator::OperatorKind::kArgMin) == uint32_t(OperatorType::kArgMin));
   static_assert(uint32_t(MLOperator::OperatorKind::kCast) == uint32_t(OperatorType::kCast));
   static_assert(uint32_t(MLOperator::OperatorKind::kInstanceNormalization) == uint32_t(OperatorType::kInstanceNormalization));
+  static_assert(uint32_t(MLOperator::OperatorKind::kMeanVarianceNormalization) == uint32_t(OperatorType::kMeanVarianceNormalization));
   static_assert(uint32_t(MLOperator::OperatorKind::kElementWiseIf) == uint32_t(OperatorType::kElementWiseIf));
   static_assert(uint32_t(MLOperator::OperatorKind::kFillSequence) == uint32_t(OperatorType::kFillSequence));
   static_assert(uint32_t(MLOperator::OperatorKind::kTriangularMatrix) == uint32_t(OperatorType::kTriangularMatrix));
@@ -409,6 +417,33 @@ void MojoModelInfo::AddConv2d(const MLOperator* ml_conv2d) {
   conv2d->output_index = output_index;
   auto operation = OperationInfo::NewConv2d(std::move(conv2d));
   model_info_->operations.push_back(std::move(operation));
+}
+
+void MojoModelInfo::AddConvTranspose2d(const MLOperator* ml_conv2d) {
+#if 0 // TODO:::
+  DCHECK_GE(ml_conv2d->Inputs().size(), static_cast<uint32_t>(2));
+  auto* input = ml_conv2d->Inputs()[0].Get();
+  auto* filter = ml_conv2d->Inputs()[1].Get();
+  if (operand_index_map_.find(input) == operand_index_map_.end() ||
+      operand_index_map_.find(filter) == operand_index_map_.end()) {
+    return;
+  }
+  // Add operand descriptor to the model.
+  DCHECK_EQ(ml_conv2d->Outputs().size(), static_cast<uint32_t>(1));
+  auto* output = ml_conv2d->Outputs()[0].Get();
+  DCHECK(operand_index_map_.find(output) == operand_index_map_.end());
+  size_t output_index = AddOperandToModel(output);
+  // Add clamp operation to the model.
+  auto conv2d = ml::webnn::mojom::blink::Conv2d::New();
+  conv2d->input_index = operand_index_map_.at(input);
+  conv2d->filter_index = operand_index_map_.at(filter);
+  const MLConv2dOptions* ml_options =
+      static_cast<const MLConv2dOptions*>(ml_conv2d->Options());
+  conv2d->options = BlinkConv2dOptionsToMojo(ml_options, operand_index_map_);
+  conv2d->output_index = output_index;
+  auto operation = OperationInfo::NewConv2d(std::move(conv2d));
+  model_info_->operations.push_back(std::move(operation));
+#endif
 }
 
 void MojoModelInfo::AddElementWiseUnary(const MLOperator* ml_operator) {
@@ -706,7 +741,7 @@ void MojoModelInfo::AddInstanceNormalization(const MLOperator* ml_operator) {
       static_cast<const MLInstanceNormalizationOptions*>(
           ml_operator->Options());
 
-  // Add another enum if extending this to ensure the two enums are castable.
+  // Add another enum if extending this to ensure the two enums are castable below.
   static_assert(InputOperandLayout::kMaxValue == InputOperandLayout::kNhwc);
   static_assert(uint32_t(InputOperandLayout::kNchw) ==
                 uint32_t(V8MLInputOperandLayout::Enum::kNchw));
@@ -722,6 +757,38 @@ void MojoModelInfo::AddInstanceNormalization(const MLOperator* ml_operator) {
   mojom_operator->layout = static_cast<InputOperandLayout>(ml_options->layout().AsEnum());
   mojom_operator->output_index = output_index;
   auto operation_info = OperationInfo::NewInstanceNormalization(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddMeanVarianceNormalization(const MLOperator* ml_operator) {
+  DCHECK_GE(ml_operator->Inputs().size(), 1u);
+  DCHECK_LE(ml_operator->Inputs().size(), 3u);
+  DCHECK_EQ(ml_operator->Outputs().size(), 1u);
+
+  // Verify inputs exist and output does not yet exist.
+  auto& inputs = ml_operator->Inputs();
+  const MLOperand* input = ml_operator->Inputs().front().Get();
+  const MLOperand* output = ml_operator->Outputs().front().Get();
+  if (!AreOperandsInIndexMap(inputs.data(), inputs.size()))
+  {
+      return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLMeanVarianceNormalizationOptions* ml_options =
+      static_cast<const MLMeanVarianceNormalizationOptions*>(
+          ml_operator->Options());
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::MeanVarianceNormalization::New();
+  mojom_operator->input_index = GetOperandIndex(input);
+  mojom_operator->scale_index = GetOperandIndex(ml_options->getScaleOr(nullptr));
+  mojom_operator->bias_index = GetOperandIndex(ml_options->getBiasOr(nullptr));
+  mojom_operator->epsilon = ml_options->epsilon();
+  mojom_operator->axes = ml_options->axes();
+  mojom_operator->output_index = output_index;
+  auto operation_info = OperationInfo::NewMeanVarianceNormalization(std::move(mojom_operator));
   model_info_->operations.push_back(std::move(operation_info));
 }
 

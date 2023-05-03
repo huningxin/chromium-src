@@ -431,6 +431,12 @@ void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
     case OperatorType::kRelu: {
       CREATE_UNARY_OPERATOR(ACTIVATION_RELU, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
     } break;
+    case OperatorType::kReciprocal: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_RECIP, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kLogicalNot: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_LOGICAL_NOT, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
+    } break;
     default:
       DAWN_INTERNAL_ERROR(" Unary elementwise op is not implemented.");
   }
@@ -1223,6 +1229,56 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
   node_output_map_[output_index] = std::move(node_output);
 }
 
+#pragma optimize("", off) // TODO:::DELETE
+
+void GraphDMLImpl::AddMeanVarianceNormalization(uint64_t input_index,
+                                                uint64_t scale_index,
+                                                uint64_t bias_index,
+                                                float epsilon,
+                                                base::span<const uint32_t> axes,
+                                                OperandDescriptorPtr output_desc,
+                                                UINT64 output_index) {
+  auto* input_node = node_output_map_[input_index].get();
+  TensorDesc input_tensor_desc = input_node->GetTensorDesc();
+  TensorDesc scale_tensor_desc;
+  TensorDesc bias_tensor_desc;
+  auto& output_dimensions = output_desc->dimensions;
+  TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
+
+  std::vector<NodeOutput*> input_nodes;
+  input_nodes.reserve(3);
+  input_nodes.push_back(input_node);
+
+  if (scale_index != std::numeric_limits<uint64_t>::max()) {
+    auto* scale_node = node_output_map_[scale_index].get();
+    scale_tensor_desc = scale_node->GetTensorDesc();
+    input_nodes.push_back(scale_node);
+  }
+  if (bias_index != std::numeric_limits<uint64_t>::max()) {
+    auto* bias_node = node_output_map_[bias_index].get();
+    bias_tensor_desc = bias_node->GetTensorDesc();
+    input_nodes.push_back(bias_node);
+  }
+
+  DML_MEAN_VARIANCE_NORMALIZATION1_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.ScaleTensor = scale_tensor_desc.Get();
+  operator_desc.BiasTensor = bias_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  operator_desc.AxisCount = static_cast<uint32_t>(axes.size());
+  operator_desc.Axes = axes.data();
+  operator_desc.NormalizeVariance = true;
+  operator_desc.Epsilon = epsilon;
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_MEAN_VARIANCE_NORMALIZATION1, &operator_desc);
+
+  graph_desc_builder_->Connect(input_nodes, {node});
+
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
 void GraphDMLImpl::AddPad(UINT64 input_index,
                           OperandDescriptorPtr output_desc,
                           UINT64 output_index) {
@@ -1600,6 +1656,17 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
             mojom_operator->input_index, mojom_operator->scale_index,
             mojom_operator->bias_index, mojom_operator->epsilon,
             mojom_operator->layout, std::move(output_operand),
+            mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kMeanVarianceNormalization: {
+        auto& mojom_operator = operation->get_mean_variance_normalization();
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddMeanVarianceNormalization(
+            mojom_operator->input_index, mojom_operator->scale_index,
+            mojom_operator->bias_index, mojom_operator->epsilon,
+            mojom_operator->axes, std::move(output_operand),
             mojom_operator->output_index);
         break;
       }
