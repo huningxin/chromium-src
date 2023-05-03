@@ -173,6 +173,7 @@ dictionary MLSplitOptions {
 
   // Dot product operations.
   [RaisesException] MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
+  // TODO: Add
   [RaisesException] MLOperand convTranspose2d(MLOperand input, MLOperand filter, optional MLConvTranspose2dOptions options = {});
   [RaisesException] MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
   [RaisesException] MLOperand matmul(MLOperand a, MLOperand b);
@@ -226,7 +227,6 @@ dictionary MLSplitOptions {
   [RaisesException] MLOperand logicalNot(MLOperand input);
 
   // This trinary elementwise operator corresponds to the ONNX where operator.
-  // "elementwise" is one word, not 2. https://en.wiktionary.org/wiki/elementwise
   [RaisesException] MLOperand elementwiseIf(MLOperand condition, MLOperand trueValue, MLOperand falseValue);
 
   // Shape dimension reinterpreting operations.
@@ -238,9 +238,11 @@ dictionary MLSplitOptions {
   // Shape modification operations.
   [RaisesException] MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
   [RaisesException] MLOperand slice(MLOperand input, sequence<unsigned long> starts, sequence<unsigned long> sizes);
+  // TODO: Add
   [RaisesException] sequence<MLOperand> split(MLOperand input, (unsigned long or sequence<unsigned long>) splits, optional MLSplitOptions options = {});
 
   [RaisesException] MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
+  // TODO: Add
   ////[RaisesException] MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
   [RaisesException] MLOperand expand(MLOperand input, sequence<unsigned long> newShape);
   [RaisesException] MLOperand gather(MLOperand input, MLOperand indices, optional MLGatherOptions options = {});
@@ -266,6 +268,7 @@ dictionary MLSplitOptions {
   [RaisesException] MLOperand meanVarianceNormalization(MLOperand input, optional MLMeanVarianceNormalizationOptions options = {});
   [RaisesException] MLOperand fillSequence(MLOperandType operandType, sequence<unsigned long> outputShape, optional MLFillSequenceOptions options = {});
 
+  // TODO: Add
   ////[RaisesException] MLOperand triangularMatrix(MLOperand input, optional MLTriangularMatrixOptions options = {});
 
   // Shape retrieval.
