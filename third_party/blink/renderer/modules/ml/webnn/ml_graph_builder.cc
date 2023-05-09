@@ -24,6 +24,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_squeeze_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_slice_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_instance_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_mean_variance_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_reduce_options.h"
@@ -38,10 +39,14 @@
 #include "third_party/blink/renderer/modules/ml/webnn/mojo_graph.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_union_unsignedlong_unsignedlongsequence.h"
+
 
 #if BUILDFLAG(BUILD_WEBNN_WITH_XNNPACK)
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 #endif
+
+#pragma optimize("", off) // TODO:::DELETE
 
 namespace blink {
 
@@ -234,9 +239,15 @@ absl::optional<Vector<uint32_t>> BroadcastShapes(
   for (wtf_size_t i = ignorable_tail_count; i < rank_output; ++i) {
 
     auto dim_lhs = i < rank_lhs ? dims_lhs[rank_lhs - i - 1] : 1;
+#if 0 // TODO:::DELETE - Broadcasting needs to work correctly with zero dimensions.
+      // Ultimately this should handle empty tensors in the lower layer via nop.
+      // A DCHECK is not appropriate here.
     DCHECK_GT(dim_lhs, uint32_t(0));
+#endif
     auto dim_rhs = i < rank_rhs ? dims_rhs[rank_rhs - i - 1] : 1;
+#if 0 // TODO:::DELETE - Broadcasting needs to work correctly with zero dimensions. 
     DCHECK_GT(dim_rhs, uint32_t(0));
+#endif
 
     // If bidirectional is true, two dimensions are compatible when they are
     // equal, or one of them is 1. Otherwise, two dimensions are compatible
@@ -1440,7 +1451,7 @@ MLOperator* MLGraphBuilder::relu(ExceptionState& exception_state) {
 }
 
 MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
-                                   const Vector<uint32_t>& new_shape,
+                                   const Vector<int32_t>& new_shape,
                                    ExceptionState& exception_state) {
   bool has_minus1 = false;
   wtf_size_t minus1_dim_index = 0;
@@ -1456,9 +1467,9 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
     // component of new shape can be the special value of -1.
     for (wtf_size_t i = 0; i < new_shape.size(); ++i) {
       auto d = new_shape[i];
-      // TODO: Delete this special behavior, which has changed in the WebNN spec
+      // TODO:::DELETE this special -1 behavior, which has changed in the WebNN spec
       // to passing null instead of -1.
-#if 0
+#if 1 // But keep it for now because Wanming may need it for the WebNN EP.
       if (d < -1 || d == 0) {
         exception_state.ThrowDOMException(
             DOMExceptionCode::kDataError,
@@ -1816,13 +1827,12 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
   // concatenating each successive one in the loop below.
   auto& first_input = inputs.front();
   Vector<uint32_t> output_dimensions = first_input->Dimensions();
-  if (axis >= output_dimensions.size()) {
-      exception_state.ThrowDOMException(
-          DOMExceptionCode::kDataError,
-          String::Format(
-              "The axis (%u) must be within the dimension count (%u).",
-              axis, output_dimensions.size()));
-      return nullptr;
+
+  if (!ValidateAxis(axis,
+                    output_dimensions.size(),
+                    "concat",
+                    exception_state)) {
+    return nullptr;
   }
 
   base::CheckedNumeric<size_t> checked_output_axis_length = 0;
@@ -1831,18 +1841,18 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
   // total length of the active axis dimension.
   for (wtf_size_t i = 0; i < input_count; ++i) {
     auto& input = inputs[i];
-      auto& input_dimensions = input->Dimensions();
+    auto& input_dimensions = input->Dimensions();
 
-      if (input_dimensions.size() != output_dimensions.size()) {
+    if (input_dimensions.size() != output_dimensions.size()) {
       exception_state.ThrowDOMException(
           DOMExceptionCode::kDataError,
           String::Format("All input tensors must have the same size. Input %u "
                          "has a size of %u but input 0 has a size of %u.",
                          i, input_dimensions.size(), output_dimensions.size()));
       return nullptr;
-      }
+    }
 
-      checked_output_axis_length += input_dimensions[axis];
+    checked_output_axis_length += input_dimensions[axis];
   }
 
   // Set the length of the active axis.
@@ -1871,8 +1881,8 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
       return nullptr;
   }
 
-  HeapVector<Member<const MLOperand>> copiedInputs(inputs);
-  ml_operator->Connect(std::move(copiedInputs), {output});
+  HeapVector<Member<const MLOperand>> copied_inputs(inputs);
+  ml_operator->Connect(std::move(copied_inputs), {output});
   return output;
 }
 
@@ -2187,8 +2197,6 @@ MLOperand* MLGraphBuilder::instanceNormalization(
   ml_operator->Connect(std::move(inputs), {output});
   return output;
 }
-
-#pragma optimize("", off) // TODO:::DELETE
 
 MLOperand* MLGraphBuilder::meanVarianceNormalization(
     const MLOperand* input,
@@ -2526,13 +2534,120 @@ MLOperand* MLGraphBuilder::slice(const MLOperand* input,
                             exception_state);
 }
 
-HeapVector<Member<MLOperand>> MLGraphBuilder::split(const MLOperand* input,
-                                 //const Vector<uint32_t>& splits,
-                                 blink::V8UnionUnsignedLongOrUnsignedLongSequence* splits,
-                                 const MLSplitOptions* options,
-                                 ExceptionState& exception_state) {
-    // TODO:::
-    return {};
+HeapVector<Member<MLOperand>> MLGraphBuilder::split(
+    const MLOperand* input,
+    blink::V8UnionUnsignedLongOrUnsignedLongSequence* splits,
+    const MLSplitOptions* options,
+    ExceptionState& exception_state) {
+  const auto& input_dimensions = input->Dimensions();
+  const wtf_size_t input_rank = input_dimensions.size();
+  const uint32_t axis = options->hasAxis() ? options->axis() : 0;
+
+  if (!ValidateAxis(axis, input_rank, "split", exception_state)) {
+      return {};
+  }
+
+  const auto is_split_single_scalar = splits->IsUnsignedLong();
+  const auto input_axis_length = input_dimensions[axis];
+  Vector<uint32_t> resolved_splits;
+
+  if (is_split_single_scalar) {
+      // Convert from a single split count to a splits array.
+      const wtf_size_t split_count = splits->GetAsUnsignedLong();
+      if (split_count <= 0 || split_count > input_axis_length) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            String::Format("The split count (%u) must be greater than 0 and no "
+                           "greater than the axis length (%u).",
+                           split_count, input_axis_length));
+        return {};
+      }
+
+      uint32_t axis_length_per_output = input_axis_length / split_count;
+      if (input_axis_length % split_count != 0) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            String::Format("The split count (%u) must divide evenly into the "
+                           "axis length (%u).",
+                           split_count, input_axis_length));
+        return {};
+      }
+      resolved_splits.resize(split_count);
+      resolved_splits.Fill(axis_length_per_output);
+  } else {
+      base::CheckedNumeric<size_t> checked_output_axis_length = 0;
+
+      resolved_splits = splits->GetAsUnsignedLongSequence();
+      if (resolved_splits.empty()) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            "The split count must be greater than 0.");
+        return {};
+      }
+
+      for (wtf_size_t i = 0, split_count = resolved_splits.size();
+           i < split_count; ++i) {
+        const auto split_size = resolved_splits[i];
+        if (split_size <= 0) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            String::Format(
+                "All split sizes must be >= 0 but index %u is zero.", i));
+        return {};
+        }
+
+        checked_output_axis_length += split_size;
+      }
+
+      // Set the length of the active axis.
+      uint32_t output_axis_length;
+      if (!checked_output_axis_length.AssignIfValid(&output_axis_length)) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            "The number of split values is too large.");
+        return {};
+      }
+
+      if (output_axis_length != input_axis_length) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kDataError,
+            String::Format("The sum total of split sizes (%u) must equal the "
+                           "input axis length (%u).", output_axis_length,
+                           input_axis_length));
+        return {};
+      }
+  }
+
+  // Normalize the options so backends have a simpler time.
+  MLSplitOptionsInternal* normalized_options = MLSplitOptionsInternal::Create();
+  normalized_options->setAxis(axis);
+  normalized_options->setSplits(resolved_splits);
+
+  auto* ml_operator = MakeGarbageCollected<MLOperator>(
+      this, MLOperator::OperatorKind::kSplit, normalized_options);
+
+  // Create multiple output tensors.
+  String error_message;
+  HeapVector<Member<MLOperand>> outputs;
+
+  for (wtf_size_t i = 0, split_count = resolved_splits.size(); i < split_count; ++i) {
+      Vector<uint32_t> output_dimensions = input_dimensions;
+      output_dimensions[axis] = resolved_splits[i];
+
+      MLOperand* output = MLOperand::ValidateAndCreateOutput(
+          this, input->Type(), std::move(output_dimensions), ml_operator,
+          /*out*/ error_message);
+      if (!output) {
+        exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                          error_message);
+        return {};
+      }
+      outputs.push_back(output);
+  }
+
+  HeapVector<Member<const MLOperand>> copied_outputs(outputs);
+  ml_operator->Connect({input}, std::move(copied_outputs));
+  return outputs;
 }
 
 MLOperand* MLGraphBuilder::sqrt(const MLOperand* input,

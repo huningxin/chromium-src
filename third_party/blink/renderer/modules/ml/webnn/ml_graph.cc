@@ -14,6 +14,8 @@
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_deque.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_hash_set.h"
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace blink {
 
 namespace {
@@ -222,6 +224,13 @@ bool MLGraph::ValidateAndInitializeResourcesInfo(
         case MLOperand::OperandKind::kInput:
           // If the operand is an input operand, validate whether its name is
           // unique.
+#if 0     // TODO:::RESTORE? Confer with Mingming Xu the appropriate action.
+          // Evidently even with this change, graph building fails later
+          // with a simple case like:
+          //
+          //  const A = graphBuilder.input('A', inputTensorDesc);
+          //  const B = graphBuilder.add(A, A);
+          //
           if (input_resources_info_.Contains(operand->Name())) {
             error_message =
                 String::Format("The input name \"%s\" is duplicated.",
@@ -233,6 +242,15 @@ bool MLGraph::ValidateAndInitializeResourcesInfo(
               operand->Name(),
               ResourceInfo({.type = operand->Type(),
                             .byte_length = operand->ByteLength()}));
+#else
+          if (!input_resources_info_.Contains(operand->Name())) {
+            // Setup resource info for this input operand.
+            input_resources_info_.insert(
+                operand->Name(),
+                ResourceInfo({.type = operand->Type(),
+                              .byte_length = operand->ByteLength()}));
+          }
+#endif
           break;
         case MLOperand::OperandKind::kConstant:
           // If the operand is a constant operand, there is no check needed.

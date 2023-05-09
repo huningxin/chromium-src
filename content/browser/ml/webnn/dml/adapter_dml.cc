@@ -79,7 +79,7 @@ HRESULT AdapterDML::Initialize() {
 }
 
 AdapterType AdapterDML::GetAdapterType() {
-  DCHECK(adapter_type_ != AdapterType::kUnknow);
+  DCHECK(adapter_type_ != AdapterType::kUnknown);
   return adapter_type_;
 }
 

@@ -8,6 +8,8 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_builder.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace blink {
 
 namespace {
@@ -34,12 +36,11 @@ size_t GetBytesPerElement(V8MLOperandType::Enum operand_type) {
 absl::optional<size_t> ValidateAndCalculateElementsNumber(
     const Vector<uint32_t>& dimensions,
     String& error_message) {
-  if (dimensions.empty()) {
-    error_message = "The dimensions is empty.";
-    return absl::nullopt;
-  }
+  // Note that empty dimensions are completely legal and indicate a scalar
+  // value of 1 element.
   base::CheckedNumeric<size_t> checked_number_of_elements = 1;
   for (auto& d : dimensions) {
+    // Note that zero-sized dimensions are legal and should be treated as nops.
     if (d == 0) {
       error_message = "All dimensions should be positive.";
       return absl::nullopt;

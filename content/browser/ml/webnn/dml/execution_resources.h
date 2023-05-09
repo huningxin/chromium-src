@@ -24,7 +24,7 @@ enum class ResourceType {
   kOutput = 1,
   kTemporary = 2,
   kPersistent = 3,
-  kUnknow = 4,
+  kUnknown = 4,
 };
 
 // A unordered resources represent input, output, temporary and persistent

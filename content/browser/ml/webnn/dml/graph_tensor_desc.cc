@@ -8,6 +8,8 @@
 #include "base/numerics/checked_math.h"
 #include "base/containers/span.h"
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace content::webnn {
 
 namespace {
@@ -129,11 +131,15 @@ void TensorDesc::Initialize(DML_TENSOR_DATA_TYPE data_type,
                             DML_TENSOR_FLAGS flags,
                             std::vector<UINT> dimensions,
                             absl::optional<std::vector<UINT>> strides) {
-  DCHECK(!dimensions.empty() &&
-         dimensions.size() < DML_TENSOR_DIMENSION_COUNT_MAX);
+  DCHECK(dimensions.size() <= DML_TENSOR_DIMENSION_COUNT_MAX);
   DCHECK(!strides || dimensions.size() == strides->size());
   dimensions_ = std::move(dimensions);
   strides_ = std::move(strides);
+
+  // DML (as of at least 1.11) requires dimension count to be at least 1
+  // because otherwise validation during operator creation will complain with
+  // E_INVALIDARG. So scalars must be conveyed with dimensions = [1].
+  EnsureMinimumRank(1u, Alignment::kTrailing);
 
   // Round up to the nearest 4 bytes.
   // The buffer allocation already aligned chunks up to

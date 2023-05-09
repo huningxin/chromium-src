@@ -12,6 +12,8 @@
 #include "third_party/blink/renderer/modules/ml/webnn/mojo_client.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace blink {
 
 namespace {

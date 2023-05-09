@@ -5,6 +5,8 @@
 #include "base/logging.h"
 #include "content/browser/ml/webnn/dml/graph_desc_builder.h"
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace content::webnn {
 
 GraphDescBuilder::GraphDescBuilder(ComPtr<IDMLDevice> device)
@@ -42,7 +44,7 @@ Node GraphDescBuilder::CreateOperatorNode(DML_OPERATOR_TYPE type,
   Microsoft::WRL::ComPtr<IDMLOperator> op;
   HRESULT hr = device_->CreateOperator(&op_desc, IID_PPV_ARGS(&op));
   if (FAILED(hr)) {
-    return {NodeType::kUnknow, 0};
+    return {NodeType::kUnknown, 0};
   }
 
   OperatorNode op_node = {};
@@ -151,6 +153,12 @@ ComPtr<IDMLCompiledOperator> GraphDescBuilder::Compile(
 
   ComPtr<IDMLCompiledOperator> compiled_graph;
   hr = device1->CompileGraph(&graph_desc, flags, IID_PPV_ARGS(&compiled_graph));
+
+  // TODO:::DELETE This is just for easy verification that the DML backend was selected.
+  // Pass: chrome.exe --enable-logging --log-level=0
+  LOG(INFO) << "DML CompileGraph finished";
+  // TODO:::END
+
   if (FAILED(hr)) {
     LOG(ERROR) << "CompileGraph failed: "
                << logging::SystemErrorCodeToString(hr);

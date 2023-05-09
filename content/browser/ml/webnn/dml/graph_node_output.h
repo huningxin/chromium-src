@@ -20,7 +20,7 @@ enum class NodeType {
   // Constant operand is also input for DirectML Graph builder.
   kConstant = 1,
   kOperator = 2,
-  kUnknow = 3,
+  kUnknown = 3,
 };
 
 struct Node {

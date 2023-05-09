@@ -14,6 +14,9 @@
 #include "mojo/public/c/system/types.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 
+// TODO:::DELETE
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace content::webnn {
 
 namespace {
@@ -394,7 +397,7 @@ void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
                                         OperatorType operator_type,
                                         OperandDescriptorPtr output_desc,
                                         UINT64 output_index) {
-  DCHECK(node_output_map_.find(input_index) != node_output_map_.end());
+  DCHECK(node_output_map_.contains(input_index));
 
   auto* input_node_output = node_output_map_[input_index].get();
   auto output_dims = output_desc->dimensions;
@@ -438,7 +441,7 @@ void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
       CREATE_UNARY_OPERATOR(ELEMENT_WISE_LOGICAL_NOT, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
     } break;
     default:
-      DAWN_INTERNAL_ERROR(" Unary elementwise op is not implemented.");
+      DAWN_INTERNAL_ERROR("Unary elementwise op is not implemented.");
   }
 
   graph_desc_builder_->Connect({input_node_output}, {node});
@@ -454,8 +457,8 @@ void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
                                         OperandDescriptorPtr output_desc,
                                         UINT64 output_index) {
   // TODO: return directly if BuildResult has error message.
-  DCHECK(node_output_map_.find(a_index) != node_output_map_.end());
-  DCHECK(node_output_map_.find(b_index) != node_output_map_.end());
+  DCHECK(node_output_map_.contains(a_index));
+  DCHECK(node_output_map_.contains(b_index));
 
   auto* a_node_output = node_output_map_[a_index].get();
   auto* b_node_output = node_output_map_[b_index].get();
@@ -524,7 +527,7 @@ void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
     } break;
 
     default:
-      DAWN_INTERNAL_ERROR(" Binary elementwise op is not implemented.");
+      DAWN_INTERNAL_ERROR("Binary elementwise op is not implemented.");
   }
   graph_desc_builder_->Connect({a_node_output, b_node_output}, {node});
   auto node_output =
@@ -957,9 +960,9 @@ void GraphDMLImpl::AddElementWiseIf(UINT64 condition_index,
   DCHECK(node_output_map_.contains(true_value_index));
   DCHECK(node_output_map_.contains(false_value_index));
 
-  auto* condition_node = node_output_map_[condition_index].get();
-  auto* true_value_node = node_output_map_[true_value_index].get();
-  auto* false_value_node = node_output_map_[false_value_index].get();
+  NodeOutput* condition_node = node_output_map_[condition_index].get();
+  NodeOutput* true_value_node = node_output_map_[true_value_index].get();
+  NodeOutput* false_value_node = node_output_map_[false_value_index].get();
 
   // Broadcast each of the inputs to the output.
   auto output_dimensions = output_desc->dimensions;
@@ -994,7 +997,7 @@ void GraphDMLImpl::AddArgMinMax(OperatorType operator_type,
                                 bool select_last_index,
                                 OperandDescriptorPtr output_desc,
                                 UINT64 output_index) {
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   auto& input_dimensions = input_tensor_desc.GetDimensions();
   DCHECK(node_output_map_.contains(input_index));
@@ -1049,7 +1052,7 @@ void GraphDMLImpl::AddCast(UINT64 input_index,
                            UINT64 output_index) {
   DCHECK(node_output_map_.contains(input_index));
 
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   auto& output_dimensions = output_desc->dimensions;
   auto output_data_type = GetTensorDataType(data_type);
@@ -1106,12 +1109,92 @@ void GraphDMLImpl::AddConcat(base::span<const uint64_t> input_indices,
   node_output_map_[output_index] = std::move(node_output);
 }
 
+void GraphDMLImpl::AddSlice(UINT64 input_index,
+                            base::span<const uint32_t> starts,
+                            base::span<const uint32_t> sizes,
+                            OperandDescriptorPtr output_desc,
+                            UINT64 output_index) {
+  DCHECK(node_output_map_.contains(input_index));
+
+  NodeOutput* input_node = node_output_map_[input_index].get();
+  auto& input_tensor_desc = input_node->GetTensorDesc();
+  auto& output_dimensions = output_desc->dimensions;
+  size_t output_rank = output_dimensions.size();
+  TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
+
+  // WebNN v1 only supports steps of 1.
+  std::vector<uint32_t> strides(output_rank, 1u);
+  CHECK(starts.size() == output_rank);
+  CHECK(sizes.size() == output_rank);
+
+  DML_SLICE_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputTensor = output_tensor_desc.Get();
+  operator_desc.DimensionCount = output_rank;
+  operator_desc.Offsets = starts.data();
+  operator_desc.Sizes = sizes.data();
+  operator_desc.Strides = strides.data();
+
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_SLICE, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, {node});
+  auto node_output = graph_desc_builder_->CreateNodeOutput(
+      node, 0, std::move(output_tensor_desc));
+  node_output_map_[output_index] = std::move(node_output);
+}
+
+void GraphDMLImpl::AddSplit(UINT64 input_index,
+                            uint32_t axis,
+                            base::span<const OperandDescriptorPtr> operands,
+                            base::span<const uint64_t> output_indices
+                            ) {
+  std::vector<NodeOutput*> output_nodes;
+  std::vector<TensorDesc> output_tensor_descs;
+  std::vector<DML_TENSOR_DESC> output_tensor_dml_descs;
+  output_nodes.reserve(output_indices.size());
+  output_tensor_descs.reserve(output_indices.size());
+  output_tensor_dml_descs.reserve(output_indices.size());
+
+  DCHECK(node_output_map_.contains(input_index));
+  NodeOutput* input_node = node_output_map_[input_index].get();
+  TensorDesc& input_tensor_desc = input_node->GetTensorDesc();
+
+  for (uint64_t output_index : output_indices)
+  {
+    OperandDescriptorPtr const& output_desc = operands[output_index];
+    auto& output_dimensions = output_desc->dimensions;
+    TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
+    output_tensor_descs.push_back(std::move(output_tensor_desc));
+    output_tensor_dml_descs.push_back(*output_tensor_descs.back().Get());
+  }
+
+  DML_SPLIT_OPERATOR_DESC operator_desc = {};
+  operator_desc.InputTensor = input_tensor_desc.Get();
+  operator_desc.OutputCount = static_cast<uint32_t>(output_tensor_dml_descs.size());
+  operator_desc.OutputTensors = output_tensor_dml_descs.data();
+  operator_desc.Axis = axis;
+
+  Node node = graph_desc_builder_->CreateOperatorNode(
+      DML_OPERATOR_SPLIT, &operator_desc);
+
+  graph_desc_builder_->Connect({input_node}, node);
+
+  for (uint64_t i = 0, output_count = output_indices.size(); i < output_count; ++i)
+  {
+    std::unique_ptr<NodeOutput> node_output = graph_desc_builder_->CreateNodeOutput(
+      node, i, std::move(output_tensor_descs[i]));
+    uint64_t output_index = output_indices[i];
+    node_output_map_[output_index] = std::move(node_output);
+  }
+}
+
 void GraphDMLImpl::AddExpand(UINT64 input_index,
                              OperandDescriptorPtr output_desc,
                              UINT64 output_index) {
   DCHECK(node_output_map_.contains(input_index));
 
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   auto& output_dimensions = output_desc->dimensions;
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
   TensorDesc input_tensor_desc =
@@ -1134,9 +1217,9 @@ void GraphDMLImpl::AddGather(UINT64 input_index,
                              UINT64 output_index) {
   DCHECK(node_output_map_.contains(input_index));
 
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
-  auto* indices_node = node_output_map_[indices_index].get();
+  NodeOutput* indices_node = node_output_map_[indices_index].get();
   auto& indices_tensor_desc = indices_node->GetTensorDesc();
   auto& output_dimensions = output_desc->dimensions;
 
@@ -1175,7 +1258,7 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
                                             InputOperandLayout operand_layout,
                                             OperandDescriptorPtr output_desc,
                                             UINT64 output_index) {
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   TensorDesc input_tensor_desc = input_node->GetTensorDesc();
   TensorDesc scale_tensor_desc;
   TensorDesc bias_tensor_desc;
@@ -1197,13 +1280,13 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
   input_nodes.push_back(input_node);
 
   if (scale_index != std::numeric_limits<uint64_t>::max()) {
-    auto* scale_node = node_output_map_[scale_index].get();
+    NodeOutput* scale_node = node_output_map_[scale_index].get();
     scale_tensor_desc = scale_node->GetTensorDesc();
     scale_tensor_desc.PermuteDimensions(scale_bias_dimensions_permutation, TensorDesc::Alignment::kTrailing);
     input_nodes.push_back(scale_node);
   }
   if (bias_index != std::numeric_limits<uint64_t>::max()) {
-    auto* bias_node = node_output_map_[bias_index].get();
+    NodeOutput* bias_node = node_output_map_[bias_index].get();
     bias_tensor_desc = bias_node->GetTensorDesc();
     bias_tensor_desc.PermuteDimensions(scale_bias_dimensions_permutation, TensorDesc::Alignment::kTrailing);
     input_nodes.push_back(bias_node);
@@ -1238,7 +1321,7 @@ void GraphDMLImpl::AddMeanVarianceNormalization(uint64_t input_index,
                                                 base::span<const uint32_t> axes,
                                                 OperandDescriptorPtr output_desc,
                                                 UINT64 output_index) {
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   TensorDesc input_tensor_desc = input_node->GetTensorDesc();
   TensorDesc scale_tensor_desc;
   TensorDesc bias_tensor_desc;
@@ -1250,12 +1333,12 @@ void GraphDMLImpl::AddMeanVarianceNormalization(uint64_t input_index,
   input_nodes.push_back(input_node);
 
   if (scale_index != std::numeric_limits<uint64_t>::max()) {
-    auto* scale_node = node_output_map_[scale_index].get();
+    NodeOutput* scale_node = node_output_map_[scale_index].get();
     scale_tensor_desc = scale_node->GetTensorDesc();
     input_nodes.push_back(scale_node);
   }
   if (bias_index != std::numeric_limits<uint64_t>::max()) {
-    auto* bias_node = node_output_map_[bias_index].get();
+    NodeOutput* bias_node = node_output_map_[bias_index].get();
     bias_tensor_desc = bias_node->GetTensorDesc();
     input_nodes.push_back(bias_node);
   }
@@ -1316,7 +1399,7 @@ void GraphDMLImpl::AddReduce(UINT64 input_index,
                              UINT64 output_index) {
   DCHECK(node_output_map_.contains(input_index));
 
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   auto& input_dimensions = input_tensor_desc.GetDimensions();
 
@@ -1358,7 +1441,7 @@ void GraphDMLImpl::AddResample2d(UINT64 input_index,
   DCHECK(node_output_map_.contains(input_index));
   DCHECK(scales.size() == axes.size());
 
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   auto& output_dimensions = output_desc->dimensions;
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
@@ -1395,48 +1478,13 @@ void GraphDMLImpl::AddResample2d(UINT64 input_index,
   node_output_map_[output_index] = std::move(node_output);
 }
 
-void GraphDMLImpl::AddSlice(UINT64 input_index,
-                            base::span<const uint32_t> starts,
-                            base::span<const uint32_t> sizes,
-                            OperandDescriptorPtr output_desc,
-                            UINT64 output_index) {
-  DCHECK(node_output_map_.contains(input_index));
-
-  auto* input_node = node_output_map_[input_index].get();
-  auto& input_tensor_desc = input_node->GetTensorDesc();
-  auto& output_dimensions = output_desc->dimensions;
-  size_t output_rank = output_dimensions.size();
-  TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
-
-  // WebNN v1 only supports steps of 1.
-  std::vector<uint32_t> strides(output_rank, 1u);
-  CHECK(starts.size() == output_rank);
-  CHECK(sizes.size() == output_rank);
-
-  DML_SLICE_OPERATOR_DESC operator_desc = {};
-  operator_desc.InputTensor = input_tensor_desc.Get();
-  operator_desc.OutputTensor = output_tensor_desc.Get();
-  operator_desc.DimensionCount = output_rank;
-  operator_desc.Offsets = starts.data();
-  operator_desc.Sizes = sizes.data();
-  operator_desc.Strides = strides.data();
-
-  Node node = graph_desc_builder_->CreateOperatorNode(
-      DML_OPERATOR_SLICE, &operator_desc);
-
-  graph_desc_builder_->Connect({input_node}, {node});
-  auto node_output = graph_desc_builder_->CreateNodeOutput(
-      node, 0, std::move(output_tensor_desc));
-  node_output_map_[output_index] = std::move(node_output);
-}
-
 void GraphDMLImpl::AddTranspose(UINT64 input_index,
                                 base::span<const uint32_t> permutation,
                                 OperandDescriptorPtr output_desc,
                                 UINT64 output_index) {
   DCHECK(node_output_map_.contains(input_index));
 
-  auto* input_node = node_output_map_[input_index].get();
+  NodeOutput* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   auto& input_dimensions = input_tensor_desc.GetDimensions();
   auto& output_dimensions = output_desc->dimensions;
@@ -1631,6 +1679,21 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                   std::move(output_operand), mojom_operator->output_index);
         break;
       }
+      case OperationInfo::Tag::kSlice: {
+        auto& mojom_operator = operation->get_slice();
+        auto& output_operand =
+            model_info->operands[mojom_operator->output_index];
+        AddSlice(mojom_operator->input_index, mojom_operator->starts,
+                 mojom_operator->sizes, std::move(output_operand),
+                 mojom_operator->output_index);
+        break;
+      }
+      case OperationInfo::Tag::kSplit: {
+        auto& mojom_operator = operation->get_split();
+        AddSplit(mojom_operator->input_index, mojom_operator->axis,
+                  model_info->operands, mojom_operator->output_indices);
+        break;
+      }
       case OperationInfo::Tag::kExpand: {
         auto& mojom_operator = operation->get_expand();
         auto& output_operand =
@@ -1699,15 +1762,6 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
                       mojom_operator->interpolation_mode,
                       mojom_operator->scales, mojom_operator->axes,
                       std::move(output_operand), mojom_operator->output_index);
-        break;
-      }
-      case OperationInfo::Tag::kSlice: {
-        auto& mojom_operator = operation->get_slice();
-        auto& output_operand =
-            model_info->operands[mojom_operator->output_index];
-        AddSlice(mojom_operator->input_index, mojom_operator->starts,
-                 mojom_operator->sizes, std::move(output_operand),
-                 mojom_operator->output_index);
         break;
       }
       case OperationInfo::Tag::kTranspose: {

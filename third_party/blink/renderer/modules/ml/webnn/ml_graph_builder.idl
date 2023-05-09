@@ -72,13 +72,6 @@ dictionary MLClampOptions {
   float maxValue;
 };
 
-// Complete representation for ferrying from IDL to Mojo.
-// The parameters have been folded into the options.
-dictionary MLSliceOptionsInternal {
-  sequence<[EnforceRange] unsigned long> starts;
-  sequence<[EnforceRange] unsigned long> sizes;
-};
-
 enum MLInterpolationMode {"nearest-neighbor", "linear" };
 
 dictionary MLResample2dOptions {
@@ -230,7 +223,7 @@ dictionary MLSplitOptions {
   [RaisesException] MLOperand elementwiseIf(MLOperand condition, MLOperand trueValue, MLOperand falseValue);
 
   // Shape dimension reinterpreting operations.
-  [RaisesException] MLOperand reshape(MLOperand input, sequence<unsigned long> newShape);
+  [RaisesException] MLOperand reshape(MLOperand input, sequence<long> newShape);
   [RaisesException] MLOperand squeeze(MLOperand input, optional MLSqueezeOptions options = {});
   [RaisesException] MLOperand unsqueeze(MLOperand input, MLSqueezeOptions options);
   [RaisesException] MLOperand flattenTo2d(MLOperand input, unsigned long axis);
@@ -278,4 +271,18 @@ dictionary MLSplitOptions {
   
   [RuntimeEnabled=MachineLearningNeuralNetwork, CallWith=ScriptState, Exposed=DedicatedWorker, RaisesException]
   MLGraph buildSync(MLNamedOperands outputs);
+};
+
+// Complete representation for ferrying from IDL to Mojo.
+// The parameters have been folded into the options.
+dictionary MLSliceOptionsInternal {
+  sequence<[EnforceRange] unsigned long> starts;
+  sequence<[EnforceRange] unsigned long> sizes;
+};
+
+// Complete representation for ferrying from IDL to Mojo.
+// The parameters have been folded into the options.
+dictionary MLSplitOptionsInternal {
+  sequence<[EnforceRange] unsigned long> splits;
+  unsigned long axis = 0;
 };

@@ -86,6 +86,8 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   void AddArgMinMax(const MLOperator* ml_operator);
   void AddCast(const MLOperator* ml_operator);
   void AddConcat(const MLOperator* ml_operator);
+  void AddSlice(const MLOperator* ml_operator);
+  void AddSplit(const MLOperator* ml_operator);
   void AddExpand(const MLOperator* ml_operator);
   void AddGather(const MLOperator* ml_operator);
   void AddInstanceNormalization(const MLOperator* ml_operator);
@@ -107,7 +109,6 @@ class MojoModelInfo final : public GarbageCollected<MojoModelInfo> {
   void AddReduce(const MLOperator* ml_operator);
 
   void AddResample2d(const MLOperator* ml_operator);
-  void AddSlice(const MLOperator* ml_operator);
   void AddTranspose(const MLOperator* ml_operator);
   void AddTriangularMatrix(const MLOperator* ml_operator);
   void AddElementWiseIf(const MLOperator* ml_operator);

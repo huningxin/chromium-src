@@ -217,19 +217,33 @@ struct Conv2d {
   uint64 output_index@3;
 };
 
+[Stable]
+struct ConvTranspose2d {
+  // The index of input operand in the model's operand array.
+  uint64 input_index@0;
+  // The index of filter operand in the model's operand array.
+  uint64 filter_index@1;
+  // MLConv2dOptions is mapping to Conv2dOptions.
+  Conv2dOptions options@2;
+  // The index of output operand in the model's operand array.
+  uint64 output_index@3;
+};
+
 // Element-wise unary operators:
 // - identity: return same output as input.
-// - abs: Compute the absolute value of the input tensor, element-wise.
-// - ceil: Compute the ceiling of the input tensor, element-wise.
-// - cos: Compute the cosine of the input tensor, element-wise.
-// - exp: Compute the exponential of the input tensor, element-wise.
-// - erf: Compute the exponential of the input tensor, element-wise.
-// - floor: Compute the floor of the input tensor, element-wise.
-// - log: Compute the natural logarithm of the input tensor, element-wise.
-// - neg: Compute the numerical negative value of the input tensor, element-wise.
-// - sin: Compute the sine of the input tensor, element-wise.
-// - sqrt: Compute the square root of the input tensor, element-wise.
-// - tan: Compute the tangent of the input tensor, element-wise.
+// - abs
+// - ceil
+// - cos
+// - exp
+// - erf
+// - floor
+// - log
+// - neg
+// - sin
+// - sqrt
+// - tan
+// - reciprocal
+// - logicalNot
 //
 [Stable]
 struct ElementWiseUnary  {
@@ -415,6 +429,13 @@ struct Slice {
 };
 
 [Stable]
+struct Split {
+  uint64 input_index@0;
+  uint32 axis@1;
+  array<uint64> output_indices@2;
+};
+
+[Stable]
 struct Transpose {
   uint64 input_index@0;
   array<uint32> permutation@1;
@@ -570,6 +591,7 @@ union OperationInfo {
   Softmax softmax;
   Concat concat;
   Slice slice;
+  Split split;
   Transpose transpose;
   Pad pad;
   Expand expand;

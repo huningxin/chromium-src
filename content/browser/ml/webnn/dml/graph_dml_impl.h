@@ -120,6 +120,15 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                  uint32_t axis,
                  OperandDescriptorPtr output_desc,
                  UINT64 output_index);
+  void AddSlice(UINT64 input_index,
+                base::span<const uint32_t> starts,
+                base::span<const uint32_t> sizes,
+                OperandDescriptorPtr desc,
+                UINT64 output_index);
+  void AddSplit(UINT64 output_index,
+                uint32_t axis,
+                base::span<const OperandDescriptorPtr> operands,
+                base::span<const uint64_t> output_indices);
   void AddExpand(UINT64 input_index, OperandDescriptorPtr output_desc, UINT64 output_index);
   void AddGather(UINT64 input_index,
                  UINT64 indices_index,
@@ -156,11 +165,6 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
                      base::span<const uint32_t> axes,
                      OperandDescriptorPtr output_desc,
                      UINT64 output_index);
-  void AddSlice(UINT64 input_index,
-                base::span<const uint32_t> starts,
-                base::span<const uint32_t> sizes,
-                OperandDescriptorPtr desc,
-                UINT64 output_index);
   void AddTranspose(UINT64 input_index,
                     base::span<const uint32_t> permutation,
                     OperandDescriptorPtr output_desc,

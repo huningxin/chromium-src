@@ -11,6 +11,8 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace blink {
 
 MLContext::MLContext(const V8MLDevicePreference device_preference,
@@ -23,7 +25,11 @@ MLContext::MLContext(const V8MLDevicePreference device_preference,
       model_format_(model_format),
       num_threads_(num_threads),
       ml_(ml),
-      webnn_context_(ml->GetExecutionContext()) {}
+      webnn_context_(ml->GetExecutionContext()) {
+  // TODO:::DELETE temporary hack, once the power preference parameters are figured out from the WebNN EP.
+  // device_preference_ = V8MLDevicePreference(V8MLDevicePreference::Enum::kGpu);
+  // power_preference_ = V8MLPowerPreference(V8MLPowerPreference::Enum::kHighPerformance);
+}
 
 MLContext::~MLContext() = default;
 

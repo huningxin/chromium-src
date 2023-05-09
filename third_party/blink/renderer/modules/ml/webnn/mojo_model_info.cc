@@ -17,6 +17,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_arg_min_max_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_slice_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_resample_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_instance_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_mean_variance_normalization_options.h"
@@ -26,6 +27,8 @@
 #include "third_party/blink/renderer/modules/ml/webnn/mojo_graph.h"
 #include "third_party/blink/renderer/platform/bindings/exception_code.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+
+#pragma optimize("", off) // TODO:::DELETE
 
 namespace blink {
 
@@ -675,6 +678,59 @@ void MojoModelInfo::AddConcat(const MLOperator* ml_operator) {
   model_info_->operations.push_back(std::move(operation_info));
 }
 
+void MojoModelInfo::AddSlice(const MLOperator* ml_operator) {
+  DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(ml_operator, 1u, 1u);
+
+  // Verify inputs exist and output does not yet exist.
+  const MLOperand* input = ml_operator->Inputs().front().Get();
+  const MLOperand* output = ml_operator->Outputs().front().Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
+  DCHECK(!operand_index_map_.Contains(output));
+  size_t output_index = AddOperandToModel(output);
+
+  const MLSliceOptionsInternal* ml_options =
+      static_cast<const MLSliceOptionsInternal*>(ml_operator->Options());
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::Slice::New();
+  mojom_operator->input_index = GetOperandIndex(input);
+  mojom_operator->starts = ml_options->starts();
+  mojom_operator->sizes = ml_options->sizes();
+  mojom_operator->output_index = output_index;
+  auto operation_info = OperationInfo::NewSlice(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
+void MojoModelInfo::AddSplit(const MLOperator* ml_operator) {
+  DCHECK_EQ(ml_operator->Inputs().size(), 1u);
+  DCHECK_GE(ml_operator->Outputs().size(), 0u);
+
+  // Verify inputs exist and output does not yet exist.
+  auto& outputs = ml_operator->Outputs();
+  const MLOperand* input = ml_operator->Inputs().front().Get();
+  if (!operand_index_map_.Contains(input)) {
+    return;
+  }
+  DCHECK(!AreOperandsInIndexMap(outputs.data(), outputs.size()));
+
+  const MLSplitOptionsInternal* ml_options =
+      static_cast<const MLSplitOptionsInternal*>(ml_operator->Options());
+
+  // Create mojom operator from JS blink type.
+  auto mojom_operator = ml::webnn::mojom::blink::Split::New();
+  for (const Member<const MLOperand>& output : outputs)
+  {
+    size_t output_index = AddOperandToModel(output);
+    mojom_operator->output_indices.push_back(output_index);
+  }
+  mojom_operator->input_index = GetOperandIndex(input);
+  mojom_operator->axis = ml_options->axis();
+  auto operation_info = OperationInfo::NewSplit(std::move(mojom_operator));
+  model_info_->operations.push_back(std::move(operation_info));
+}
+
 void MojoModelInfo::AddExpand(const MLOperator* ml_operator) {
   DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(ml_operator, 1u, 1u);
 
@@ -873,7 +929,7 @@ void MojoModelInfo::AddResample2d(const MLOperator* ml_operator) {
                 uint32_t(ml::webnn::mojom::InterpolationMode::kLinear));
 
   auto mojom_operator = ml::webnn::mojom::blink::Resample2d::New();
-  mojom_operator->input_index = mojom_operator->input_index;
+  mojom_operator->input_index = GetOperandIndex(input);
   mojom_operator->scales = ml_options->scales();
   mojom_operator->axes = ml_options->axes();
   mojom_operator->interpolation_mode =
@@ -882,31 +938,6 @@ void MojoModelInfo::AddResample2d(const MLOperator* ml_operator) {
   mojom_operator->output_index = output_index;
 
   auto operation_info = OperationInfo::NewResample2d(std::move(mojom_operator));
-  model_info_->operations.push_back(std::move(operation_info));
-}
-
-void MojoModelInfo::AddSlice(const MLOperator* ml_operator) {
-  DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(ml_operator, 1u, 1u);
-
-  // Verify inputs exist and output does not yet exist.
-  const MLOperand* input = ml_operator->Inputs().front().Get();
-  const MLOperand* output = ml_operator->Outputs().front().Get();
-  if (!operand_index_map_.Contains(input)) {
-    return;
-  }
-  DCHECK(!operand_index_map_.Contains(output));
-  size_t output_index = AddOperandToModel(output);
-
-  const MLSliceOptionsInternal* ml_options =
-      static_cast<const MLSliceOptionsInternal*>(ml_operator->Options());
-
-  // Create mojom operator from JS blink type.
-  auto mojom_operator = ml::webnn::mojom::blink::Slice::New();
-  mojom_operator->input_index = mojom_operator->input_index;
-  mojom_operator->starts = ml_options->starts();
-  mojom_operator->sizes = ml_options->sizes();
-  mojom_operator->output_index = output_index;
-  auto operation_info = OperationInfo::NewSlice(std::move(mojom_operator));
   model_info_->operations.push_back(std::move(operation_info));
 }
 

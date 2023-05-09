@@ -146,7 +146,7 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
   MLOperator* relu(ExceptionState& exception_state);
 
   MLOperand* reshape(const MLOperand* input,
-                     const Vector<uint32_t>& new_shape,
+                     const Vector<int32_t>& new_shape,
                      ExceptionState& exception_state);
 
   MLOperand* resample2d(const MLOperand* input,

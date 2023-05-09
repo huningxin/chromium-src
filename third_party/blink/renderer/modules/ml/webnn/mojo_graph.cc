@@ -21,6 +21,8 @@
 
 #include <memory>
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace blink {
 
 namespace {
@@ -87,6 +89,12 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kConcat:
       model_info->AddConcat(op);
       break;
+    case MLOperator::OperatorKind::kSlice:
+      model_info->AddSlice(op);
+      break;
+    case MLOperator::OperatorKind::kSplit:
+      model_info->AddSplit(op);
+      break;
     case MLOperator::OperatorKind::kExpand:
       model_info->AddExpand(op);
       break;
@@ -132,9 +140,6 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kReduceSum:
     case MLOperator::OperatorKind::kReduceSumSquare:
       model_info->AddReduce(op);
-      break;
-    case MLOperator::OperatorKind::kSlice:
-      model_info->AddSlice(op);
       break;
     case MLOperator::OperatorKind::kTranspose:
       model_info->AddTranspose(op);

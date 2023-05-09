@@ -23,7 +23,7 @@ enum class AdapterType {
   kDiscreteGPU = 0,
   kIntegratedGPU = 1,
   kCPU = 2,
-  kUnknow = 3,
+  kUnknown = 3,
 };
 
 class AdapterDML final : public base::RefCounted<AdapterDML> {
@@ -45,7 +45,7 @@ class AdapterDML final : public base::RefCounted<AdapterDML> {
   ~AdapterDML();
 
   ComPtr<IDXGIAdapter3> hardware_adapter_;
-  AdapterType adapter_type_ = AdapterType::kUnknow;
+  AdapterType adapter_type_ = AdapterType::kUnknown;
   ComPtr<ID3D12Device> d3d12_device_;
   scoped_refptr<CommandQueue> command_queue_;
   // Represents a DirectML device, which is used to create operators, binding
