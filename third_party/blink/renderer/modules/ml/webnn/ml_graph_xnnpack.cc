@@ -207,6 +207,8 @@ xnn_datatype GetXnnDataType(V8MLOperandType::Enum operand_type) {
     case V8MLOperandType::Enum::kUint32:
     case V8MLOperandType::Enum::kInt8:
     case V8MLOperandType::Enum::kUint8:
+    case V8MLOperandType::Enum::kInt64:
+    case V8MLOperandType::Enum::kUint64:
       // TODO(crbug.com/1273291): Support the quantized integer types that is a
       // WebNN v2 feature tracked by:
       // https://github.com/webmachinelearning/webnn/issues/128.

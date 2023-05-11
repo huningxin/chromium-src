@@ -64,6 +64,8 @@ bool IsFloatingPointType(V8MLOperandType::Enum operand_type) {
     case V8MLOperandType::Enum::kUint32:
     case V8MLOperandType::Enum::kInt8:
     case V8MLOperandType::Enum::kUint8:
+    case V8MLOperandType::Enum::kInt64:
+    case V8MLOperandType::Enum::kUint64:
       return false;
   }
 }
@@ -76,6 +78,8 @@ bool IsBooleanType(V8MLOperandType::Enum operand_type) {
     case V8MLOperandType::Enum::kInt32:
     case V8MLOperandType::Enum::kUint32:
     case V8MLOperandType::Enum::kInt8:
+    case V8MLOperandType::Enum::kInt64:
+    case V8MLOperandType::Enum::kUint64:
       return false;
     case V8MLOperandType::Enum::kUint8:
       return true;
@@ -92,6 +96,8 @@ bool IsIndexType(V8MLOperandType::Enum operand_type) {
       return false;
     case V8MLOperandType::Enum::kInt32:
     case V8MLOperandType::Enum::kUint32:
+    case V8MLOperandType::Enum::kInt64:
+    case V8MLOperandType::Enum::kUint64:
       return true;
   }
 }
@@ -375,7 +381,7 @@ MLOperand* BuildArgMinMax(MLGraphBuilder* graph_builder,
   }
 
   return BuildUnaryOperator(graph_builder, operator_kind, input,
-                            output_dimensions, V8MLOperandType::Enum::kUint32, options,
+                            output_dimensions, V8MLOperandType::Enum::kInt64, options,
                             exception_state);
 }
 

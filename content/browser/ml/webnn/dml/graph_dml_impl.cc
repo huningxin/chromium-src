@@ -254,10 +254,12 @@ DML_TENSOR_DATA_TYPE GetTensorDataType(OperandType type) {
   {
   case OperandType::kFloat32: return DML_TENSOR_DATA_TYPE_FLOAT32;
   case OperandType::kFloat16: return DML_TENSOR_DATA_TYPE_FLOAT16;
-  case OperandType::kInt32:   return DML_TENSOR_DATA_TYPE_INT32;
-  case OperandType::kUint32:  return DML_TENSOR_DATA_TYPE_UINT32;
   case OperandType::kInt8:    return DML_TENSOR_DATA_TYPE_INT8;
   case OperandType::kUint8:   return DML_TENSOR_DATA_TYPE_UINT8;
+  case OperandType::kInt32:   return DML_TENSOR_DATA_TYPE_INT32;
+  case OperandType::kUint32:  return DML_TENSOR_DATA_TYPE_UINT32;
+  case OperandType::kInt64:   return DML_TENSOR_DATA_TYPE_INT64;
+  case OperandType::kUint64:  return DML_TENSOR_DATA_TYPE_UINT64;
   default:
     LOG(ERROR) << "This data type is not supported";
     return DML_TENSOR_DATA_TYPE_UNKNOWN;

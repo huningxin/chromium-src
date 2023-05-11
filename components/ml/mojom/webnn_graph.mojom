@@ -110,6 +110,8 @@ enum OperandType {
   kUint32,
   kInt8,
   kUint8,
+  kInt64,
+  kUint64,
 };
 
 // Represents the `MLOperandDescriptor` which describes not only input and

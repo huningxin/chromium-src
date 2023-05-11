@@ -30,6 +30,10 @@ size_t GetBytesPerElement(V8MLOperandType::Enum operand_type) {
       return sizeof(int8_t);
     case V8MLOperandType::Enum::kUint8:
       return sizeof(uint8_t);
+    case V8MLOperandType::Enum::kInt64:
+      return sizeof(int64_t);
+    case V8MLOperandType::Enum::kUint64:
+      return sizeof(uint64_t);
   }
 }
 
@@ -88,6 +92,10 @@ DOMArrayBufferView::ViewType GetArrayBufferViewType(
       return DOMArrayBufferView::ViewType::kTypeInt32;
     case V8MLOperandType::Enum::kUint32:
       return DOMArrayBufferView::ViewType::kTypeUint32;
+    case V8MLOperandType::Enum::kInt64:
+      return DOMArrayBufferView::ViewType::kTypeBigInt64;
+    case V8MLOperandType::Enum::kUint64:
+      return DOMArrayBufferView::ViewType::kTypeBigUint64;
     case V8MLOperandType::Enum::kInt8:
       return DOMArrayBufferView::ViewType::kTypeInt8;
     case V8MLOperandType::Enum::kUint8:
