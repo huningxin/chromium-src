@@ -11,7 +11,7 @@ namespace blink {
 
 // static
 String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
-  static_assert(MLOperator::OperatorKind::kTotal == MLOperator::OperatorKind(61));
+  static_assert(MLOperator::OperatorKind::kTotal == MLOperator::OperatorKind(63));
 
   switch (kind) {
     case MLOperator::OperatorKind::kClamp:
@@ -32,6 +32,10 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "max";
     case MLOperator::OperatorKind::kMin:
       return "min";
+    case MLOperator::OperatorKind::kFloor:
+      return "floor";
+    case MLOperator::OperatorKind::kCeil:
+      return "ceil";
     case MLOperator::OperatorKind::kReciprocal:
       return "reciprocal";
     case MLOperator::OperatorKind::kLogicalNot:

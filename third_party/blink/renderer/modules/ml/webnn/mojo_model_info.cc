@@ -135,8 +135,8 @@ Pool2dType BlinkPool2dTypeToMojo(MLOperator::OperatorKind type) {
 
 OperatorType BlinkOperatorKindToMojoType(
     MLOperator::OperatorKind type) {
-  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 61);
-  static_assert(int32_t(OperatorType::kMaxValue) + 1 == 61);
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 63);
+  static_assert(int32_t(OperatorType::kMaxValue) + 1 == 63);
 
   // Keep these two enumerations in sync.
   // Favor readability over convention here.
@@ -173,6 +173,8 @@ OperatorType BlinkOperatorKindToMojoType(
   static_assert(uint32_t(MLOperator::OperatorKind::kErf) == uint32_t(OperatorType::kErf));
   static_assert(uint32_t(MLOperator::OperatorKind::kReciprocal) == uint32_t(OperatorType::kReciprocal));
   static_assert(uint32_t(MLOperator::OperatorKind::kLogicalNot) == uint32_t(OperatorType::kLogicalNot));
+  static_assert(uint32_t(MLOperator::OperatorKind::kFloor) == uint32_t(OperatorType::kFloor));
+  static_assert(uint32_t(MLOperator::OperatorKind::kCeil) == uint32_t(OperatorType::kCeil));
   static_assert(uint32_t(MLOperator::OperatorKind::kReshape) == uint32_t(OperatorType::kReshape));
   static_assert(uint32_t(MLOperator::OperatorKind::kSqueeze) == uint32_t(OperatorType::kSqueeze));
   static_assert(uint32_t(MLOperator::OperatorKind::kUnsqueeze) == uint32_t(OperatorType::kUnsqueeze));
@@ -401,8 +403,8 @@ void MojoModelInfo::AddConv2d(const MLOperator* ml_conv2d) {
   DCHECK_GE(ml_conv2d->Inputs().size(), static_cast<uint32_t>(2));
   auto* input = ml_conv2d->Inputs()[0].Get();
   auto* filter = ml_conv2d->Inputs()[1].Get();
-  if (operand_index_map_.find(input) == operand_index_map_.end() ||
-      operand_index_map_.find(filter) == operand_index_map_.end()) {
+  if (!operand_index_map_.Contains(input) ||
+      !operand_index_map_.Contains(filter)) {
     return;
   }
   // Add operand descriptor to the model.
@@ -410,8 +412,9 @@ void MojoModelInfo::AddConv2d(const MLOperator* ml_conv2d) {
   auto* output = ml_conv2d->Outputs()[0].Get();
   DCHECK(operand_index_map_.find(output) == operand_index_map_.end());
   size_t output_index = AddOperandToModel(output);
-  // Add clamp operation to the model.
+  // Add conv2d operation to the model.
   auto conv2d = ml::webnn::mojom::blink::Conv2d::New();
+  conv2d->operator_type = BlinkOperatorKindToMojoType(ml_conv2d->Kind());
   conv2d->input_index = operand_index_map_.at(input);
   conv2d->filter_index = operand_index_map_.at(filter);
   const MLConv2dOptions* ml_options =
@@ -436,7 +439,7 @@ void MojoModelInfo::AddConvTranspose2d(const MLOperator* ml_conv2d) {
   auto* output = ml_conv2d->Outputs()[0].Get();
   DCHECK(operand_index_map_.find(output) == operand_index_map_.end());
   size_t output_index = AddOperandToModel(output);
-  // Add clamp operation to the model.
+  // Add conv2dtranspose operation to the model.
   auto conv2d = ml::webnn::mojom::blink::Conv2d::New();
   conv2d->input_index = operand_index_map_.at(input);
   conv2d->filter_index = operand_index_map_.at(filter);

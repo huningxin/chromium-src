@@ -40,7 +40,6 @@ dictionary MLConvTranspose2dOptions {
   MLConvTranspose2dFilterOperandLayout filterLayout = "iohw";
   MLOperand bias;
   MLOperator activation;
-  // TODO: MLActivation activation;
 };
 
 dictionary MLGemmOptions {
@@ -166,7 +165,6 @@ dictionary MLSplitOptions {
 
   // Dot product operations.
   [RaisesException] MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
-  // TODO: Add
   [RaisesException] MLOperand convTranspose2d(MLOperand input, MLOperand filter, optional MLConvTranspose2dOptions options = {});
   [RaisesException] MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
   [RaisesException] MLOperand matmul(MLOperand a, MLOperand b);
@@ -216,6 +214,8 @@ dictionary MLSplitOptions {
   [RaisesException] MLOperand cos(MLOperand input);
   [RaisesException] MLOperand tan(MLOperand input);
   [RaisesException] MLOperand erf(MLOperand input);
+  [RaisesException] MLOperand floor(MLOperand input);
+  [RaisesException] MLOperand ceil(MLOperand input);
   [RaisesException] MLOperand reciprocal(MLOperand input);
   [RaisesException] MLOperand logicalNot(MLOperand input);
 
@@ -231,12 +231,10 @@ dictionary MLSplitOptions {
   // Shape modification operations.
   [RaisesException] MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
   [RaisesException] MLOperand slice(MLOperand input, sequence<unsigned long> starts, sequence<unsigned long> sizes);
-  // TODO: Add
   [RaisesException] sequence<MLOperand> split(MLOperand input, (unsigned long or sequence<unsigned long>) splits, optional MLSplitOptions options = {});
 
   [RaisesException] MLOperand transpose(MLOperand input, optional MLTransposeOptions options = {});
-  // TODO: Add
-  ////[RaisesException] MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
+  [RaisesException] MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
   [RaisesException] MLOperand expand(MLOperand input, sequence<unsigned long> newShape);
   [RaisesException] MLOperand gather(MLOperand input, MLOperand indices, optional MLGatherOptions options = {});
 
@@ -261,8 +259,7 @@ dictionary MLSplitOptions {
   [RaisesException] MLOperand meanVarianceNormalization(MLOperand input, optional MLMeanVarianceNormalizationOptions options = {});
   [RaisesException] MLOperand fillSequence(MLOperandType operandType, sequence<unsigned long> outputShape, optional MLFillSequenceOptions options = {});
 
-  // TODO: Add
-  ////[RaisesException] MLOperand triangularMatrix(MLOperand input, optional MLTriangularMatrixOptions options = {});
+  [RaisesException] MLOperand triangularMatrix(MLOperand input, optional MLTriangularMatrixOptions options = {});
 
   // Shape retrieval.
   [RaisesException] sequence<unsigned long> shape(MLOperand input);
@@ -285,4 +282,26 @@ dictionary MLSliceOptionsInternal {
 dictionary MLSplitOptionsInternal {
   sequence<[EnforceRange] unsigned long> splits;
   unsigned long axis = 0;
+};
+
+enum MLConvFilterOperandLayoutInternal { "oihw", "iohw", "hwoi", "hwio", "ohwi", "ihwo" };
+
+// Complete representation for ferrying from IDL to Mojo.
+// The differences between MLConvTranspose2dOptions and
+// MLConvTranspose2dOptions and the WebNN API level complicate
+// internal processing, along with MLConv2dFilterOperandLayout
+// vs MLConvTranspose2dFilterOperandLayout which are nearly
+// identical. So unify them.
+dictionary MLConvOptionsInternal {
+  sequence<[EnforceRange] unsigned long> padding;
+  sequence<[EnforceRange] unsigned long> strides;
+  sequence<[EnforceRange] unsigned long> dilations;
+  sequence<[EnforceRange] unsigned long> outputPadding;
+  sequence<[EnforceRange] unsigned long> outputSizes;
+  MLAutoPad autoPad = "explicit";
+  unsigned long groups = 1;
+  MLInputOperandLayout inputLayout = "nchw";
+  MLConvFilterOperandLayoutInternal filterLayout = "oihw";
+  MLOperand bias;
+  MLOperator activation;
 };

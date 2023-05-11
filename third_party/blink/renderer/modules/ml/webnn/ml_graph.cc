@@ -205,6 +205,9 @@ bool MLGraph::ValidateAndInitializeResourcesInfo(
     operators_queue.push_back(operand->Operator());
   }
 
+  // An input MLOperand may be used by more than one MLOperators. This set
+  // ensures an input MLOperand won't be validated multiple times.
+  HeapHashSet<Member<const MLOperand>> visited_input_operands;
   while (operators_queue.size() > 0) {
     // If the queue is not empty, dequeue an operator from the queue.
     const auto current_operator = operators_queue.TakeFirst();
@@ -222,15 +225,14 @@ bool MLGraph::ValidateAndInitializeResourcesInfo(
           }
           break;
         case MLOperand::OperandKind::kInput:
+          // If the operand has been validated, it doesn't need to be verified
+          // multiple times.
+          if (visited_input_operands.Contains(operand)) {
+            continue;
+          }
+          visited_input_operands.insert(operand);
           // If the operand is an input operand, validate whether its name is
           // unique.
-#if 0     // TODO:::RESTORE? Confer with Mingming Xu the appropriate action.
-          // Evidently even with this change, graph building fails later
-          // with a simple case like:
-          //
-          //  const A = graphBuilder.input('A', inputTensorDesc);
-          //  const B = graphBuilder.add(A, A);
-          //
           if (input_resources_info_.Contains(operand->Name())) {
             error_message =
                 String::Format("The input name \"%s\" is duplicated.",
@@ -242,15 +244,6 @@ bool MLGraph::ValidateAndInitializeResourcesInfo(
               operand->Name(),
               ResourceInfo({.type = operand->Type(),
                             .byte_length = operand->ByteLength()}));
-#else
-          if (!input_resources_info_.Contains(operand->Name())) {
-            // Setup resource info for this input operand.
-            input_resources_info_.insert(
-                operand->Name(),
-                ResourceInfo({.type = operand->Type(),
-                              .byte_length = operand->ByteLength()}));
-          }
-#endif
           break;
         case MLOperand::OperandKind::kConstant:
           // If the operand is a constant operand, there is no check needed.

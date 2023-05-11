@@ -179,6 +179,8 @@ class MODULES_EXPORT MLGraphBuilder : public ScriptWrappable {
                    ExceptionState& exception_state);
   MLOperand* erf(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* exp(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* floor(const MLOperand* input, ExceptionState& exception_state);
+  MLOperand* ceil(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* reciprocal(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* logicalNot(const MLOperand* input, ExceptionState& exception_state);
   MLOperand* flattenTo2d(const MLOperand* input,

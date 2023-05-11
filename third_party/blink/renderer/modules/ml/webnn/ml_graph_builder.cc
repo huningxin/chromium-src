@@ -13,6 +13,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_transpose_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
@@ -499,6 +500,7 @@ absl::optional<double> CalculateConv2dOutputSize(
     const uint32_t ending_padding,
     const uint32_t stride,
     const uint32_t dilation,
+    const bool backward_direction,
     String& error_message) {
   // Calculate the dilated filter sizes.
   auto checked_effective_filter_size =
@@ -507,6 +509,12 @@ absl::optional<double> CalculateConv2dOutputSize(
     error_message = "The effective filter size is too large.";
     return absl::nullopt;
   }
+
+  // TODO:::
+  //if (backward_direction)
+  //{
+  //
+  //}
 
   // Calculate the output size in double precision floating point number that
   // ensures all dimension values of type uint32_t can be exactly represented.
@@ -551,6 +559,7 @@ absl::optional<FloatSize2D> ValidateAndCalculateConv2dOutputSizes(
     const Vector<uint32_t>& strides,
     const Vector<uint32_t>& dilations,
     const V8MLAutoPad auto_pad,
+    const bool backward_direction,
     ExceptionState& exception_state) {
   // Validate padding and get its values.
   if (padding.size() != 4) {
@@ -627,7 +636,8 @@ absl::optional<FloatSize2D> ValidateAndCalculateConv2dOutputSizes(
   String error_message;
   auto float_output_height = CalculateConv2dOutputSize(
       input_height, filter_height, padding_beginning_height,
-      padding_ending_height, stride_height, dilation_height, error_message);
+      padding_ending_height, stride_height, dilation_height, backward_direction,
+      error_message);
   if (!float_output_height) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
@@ -637,7 +647,7 @@ absl::optional<FloatSize2D> ValidateAndCalculateConv2dOutputSizes(
 
   auto float_output_width = CalculateConv2dOutputSize(
       input_width, filter_width, padding_beginning_width, padding_ending_width,
-      stride_width, dilation_width, error_message);
+      stride_width, dilation_width, backward_direction, error_message);
   if (!float_output_width) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kDataError,
@@ -719,7 +729,9 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
       // If strides is not present, the values are assumed to be [1,1].
       options->getStridesOr({1, 1}),
       // If dilations is not present, the values are assumed to be [1, 1].
-      options->getDilationsOr({1, 1}), options->autoPad(), exception_state);
+      options->getDilationsOr({1, 1}), options->autoPad(), false,
+      exception_state);
+
   if (!output_sizes) {
     return nullptr;
   }
@@ -813,6 +825,231 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
     return nullptr;
   }
   pool2d->Connect({input}, {output});
+  return output;
+}
+
+bool CheckValueExpectedVsActual(uint32_t expected_value,
+                                uint32_t actual_value,
+                                const char* value_name,
+                                ExceptionState& exception_state) {
+  if (actual_value != expected_value) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        String::Format("The actual value (%u) for %s does not match the "
+                       "expected value (%u)",
+                       actual_value, value_name, expected_value));
+    return false;
+  }
+  return true;
+}
+
+// !!!!
+MLOperand* BuildConv2d(MLGraphBuilder* builder,
+                       MLOperator::OperatorKind operator_kind,
+                       const MLOperand* input,
+                       const MLOperand* filter,
+                       const MLConvOptionsInternal* options,
+                       ExceptionState& exception_state) {
+  // Validate input operand and set its sizes.
+  const auto input_shape = input->Dimensions();
+  if (input_shape.size() != 4) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The input should be a 4-D tensor.");
+    return nullptr;
+  }
+  // The input layout option specifies the layout format of the input tensor.
+  uint32_t input_batches, input_channels, input_height, input_width;
+  switch (options->inputLayout().AsEnum()) {
+    case V8MLInputOperandLayout::Enum::kNchw:
+      // "nchw": [batches, input_channels, height, width]
+      input_batches = input_shape[0];
+      input_channels = input_shape[1];
+      input_height = input_shape[2];
+      input_width = input_shape[3];
+      break;
+    case V8MLInputOperandLayout::Enum::kNhwc:
+      // "nhwc": [batches, height, width, input_channels]
+      input_batches = input_shape[0];
+      input_height = input_shape[1];
+      input_width = input_shape[2];
+      input_channels = input_shape[3];
+      break;
+  }
+
+  // Validate filter operand and set its sizes.
+  if (filter->Type() != input->Type()) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "The filter type doesn't match the input type.");
+    return nullptr;
+  }
+
+  const auto filter_shape = filter->Dimensions();
+  if (!CheckValueExpectedVsActual(filter_shape.size(), 4, "filter tensor rank",
+                                  exception_state)) {
+    return nullptr;
+  }
+
+  // The filter layout specifies the filter layout format.
+  uint32_t filter_height, filter_width, output_channels, filter_input_channels;
+  switch (options->filterLayout().AsEnum()) {
+    case V8MLConvFilterOperandLayoutInternal::Enum::kHwio:
+      // "hwio": [height, width, input_channels/groups, output_channels]
+      filter_height = filter_shape[0];
+      filter_width = filter_shape[1];
+      filter_input_channels = filter_shape[2];
+      output_channels = filter_shape[3];
+      break;
+    case V8MLConvFilterOperandLayoutInternal::Enum::kOhwi:
+      // "ohwi": [output_channels, height, width, input_channels/groups]
+      output_channels = filter_shape[0];
+      filter_height = filter_shape[1];
+      filter_width = filter_shape[2];
+      filter_input_channels = filter_shape[3];
+      break;
+    case V8MLConvFilterOperandLayoutInternal::Enum::kIhwo:
+      // "ihwo": [input_channels/groups, height, width, output_channels]
+      filter_input_channels = filter_shape[0];
+      filter_height = filter_shape[1];
+      filter_width = filter_shape[2];
+      output_channels = filter_shape[3];
+      break;
+    case V8MLConvFilterOperandLayoutInternal::Enum::kOihw:
+      // "oihw": [output_channels, input_channels/groups, height, width]
+      output_channels = filter_shape[0];
+      filter_input_channels = filter_shape[1];
+      filter_height = filter_shape[2];
+      filter_width = filter_shape[3];
+      break;
+      // TODO: Fill in other enums.
+    case V8MLConvFilterOperandLayoutInternal::Enum::kHwoi:
+      //--// "ihwo": [input_channels/groups, height, width, output_channels]
+      //--filter_input_channels = filter_shape[0];
+      //--filter_height = filter_shape[1];
+      //--filter_width = filter_shape[2];
+      //--output_channels = filter_shape[3];
+      break;
+    case V8MLConvFilterOperandLayoutInternal::Enum::kIohw:
+      //--// "oihw": [output_channels, input_channels/groups, height, width]
+      //--output_channels = filter_shape[0];
+      //--filter_input_channels = filter_shape[1];
+      //--filter_height = filter_shape[2];
+      //--filter_width = filter_shape[3];
+      break;
+  }
+
+  // Validate bias operand if it is present.
+  if (options->hasBias()) {
+    const auto bias_shape = options->bias()->Dimensions();
+    if (bias_shape.size() != 1) {
+      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                        "The bias should be a 1-D tensor.");
+      return nullptr;
+    }
+    if (bias_shape[0] != output_channels) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          String::Format("The bias shape should be [%u].", output_channels));
+      return nullptr;
+    }
+    if (options->bias()->Type() != input->Type()) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          "The bias type doesn't match input type.");
+      return nullptr;
+    }
+  }
+  // Validate groups.
+  if (options->groups() == 0) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The groups should be greater than 0.");
+    return nullptr;
+  }
+  if (input_channels % options->groups() != 0 ||
+      filter_input_channels != input_channels / options->groups()) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      "The groups must evenly divide the input "
+                                      "channels to filter input channels.");
+    return nullptr;
+  }
+
+  absl::optional<FloatSize2D> output_sizes;
+  if (options->hasOutputSizes()) {
+
+    if (!CheckValueExpectedVsActual(options->outputSizes().size(), 2,
+                                    "outputSizes size", exception_state)) {
+      return nullptr;
+    }
+
+    const auto& explicit_output_sizes = options->outputSizes();
+    output_sizes = FloatSize2D{double(explicit_output_sizes[0]), double(explicit_output_sizes[1])};
+  } else {
+    if (options->hasPadding() &&
+        !CheckValueExpectedVsActual(options->padding().size(), 4,
+                                    "padding size", exception_state)) {
+      return nullptr;
+    }
+    if (options->hasStrides() &&
+        !CheckValueExpectedVsActual(options->strides().size(), 2,
+                                    "strides size", exception_state)) {
+      return nullptr;
+    }
+    if (options->hasDilations() &&
+        !CheckValueExpectedVsActual(options->dilations().size(), 2,
+                                    "dilations size", exception_state)) {
+      return nullptr;
+    }
+
+    output_sizes = ValidateAndCalculateConv2dOutputSizes(
+        input_height, input_width, filter_height, filter_width,
+        // If padding is not present, the values are assumed to be [0,0,0,0].
+        options->getPaddingOr({0, 0, 0, 0}),
+        // If strides is not present, the values are assumed to be [1,1].
+        options->getStridesOr({1, 1}),
+        // If dilations is not present, the values are assumed to be [1, 1].
+        options->getDilationsOr({1, 1}), options->autoPad(),
+        operator_kind == MLOperator::OperatorKind::kConvTranspose2d,
+        exception_state);
+  }
+  if (!output_sizes) {
+    return nullptr;
+  }
+
+  const uint32_t output_height =
+      base::ClampFloor<uint32_t>(output_sizes.value().height);
+  const uint32_t output_width =
+      base::ClampFloor<uint32_t>(output_sizes.value().width);
+  // The input layout option specifies the layout format of the output tensor.
+  Vector<uint32_t> output_shape;
+  switch (options->inputLayout().AsEnum()) {
+    case V8MLInputOperandLayout::Enum::kNchw:
+      // "nchw": [batches, output_channels, height, width]
+      output_shape = {input_batches, output_channels, output_height,
+                      output_width};
+      break;
+    case V8MLInputOperandLayout::Enum::kNhwc:
+      // "nhwc": [batches, height, width, output_channels]
+      output_shape = {input_batches, output_height, output_width,
+                      output_channels};
+      break;
+  }
+  // Create conv2d operator and its output operand. Connect the conv2d
+  // operator to its input and output operands.
+  auto* conv2d = MakeGarbageCollected<MLOperator>(
+      builder, MLOperator::OperatorKind::kConv2d, options);
+  HeapVector<Member<const MLOperand>> inputs = {input, filter};
+  if (options->hasBias()) {
+    inputs.push_back(options->bias());
+  }
+  String error_message;
+  auto* output = MLOperand::ValidateAndCreateOutput(
+      builder, input->Type(), std::move(output_shape), conv2d, error_message);
+  if (!output) {
+    exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                      error_message);
+    return nullptr;
+  }
+  conv2d->Connect(std::move(inputs), {output});
   return output;
 }
 
@@ -948,6 +1185,7 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
                                   const MLOperand* filter,
                                   const MLConv2dOptions* options,
                                   ExceptionState& exception_state) {
+    //!!!
   // Validate input operand and set its sizes.
   const auto input_shape = input->Dimensions();
   if (input_shape.size() != 4) {
@@ -1061,7 +1299,7 @@ MLOperand* MLGraphBuilder::conv2d(const MLOperand* input,
       // If strides is not present, the values are assumed to be [1,1].
       options->getStridesOr({1, 1}),
       // If dilations is not present, the values are assumed to be [1, 1].
-      options->getDilationsOr({1, 1}), options->autoPad(), exception_state);
+      options->getDilationsOr({1, 1}), options->autoPad(), false, exception_state);
   if (!output_sizes) {
     return nullptr;
   }
@@ -1110,6 +1348,7 @@ MLOperand* MLGraphBuilder::convTranspose2d(const MLOperand* input,
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "Not implemented.");
 
+    // TODO:::COMPLETE stub
     return nullptr;
 
 #if 0 // TODO:
@@ -1961,6 +2200,18 @@ MLOperand* MLGraphBuilder::exp(const MLOperand* input,
                             exception_state);
 }
 
+MLOperand* MLGraphBuilder::floor(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kFloor, input,
+                            exception_state);
+}
+
+MLOperand* MLGraphBuilder::ceil(const MLOperand* input,
+                               ExceptionState& exception_state) {
+  return BuildUnaryOperator(this, MLOperator::OperatorKind::kCeil, input,
+                            exception_state);
+}
+
 MLOperand* MLGraphBuilder::reciprocal(const MLOperand* input,
                                ExceptionState& exception_state) {
   return BuildUnaryOperator(this, MLOperator::OperatorKind::kReciprocal, input,
@@ -2376,6 +2627,7 @@ MLOperand* MLGraphBuilder::pad(
     const Vector<uint32_t>& endingPadding,
     const MLPadOptions* options,
     ExceptionState& exception_state) {
+  // TODO:::COMPLETE
   return nullptr;
 }
 
@@ -2762,6 +3014,7 @@ MLOperand* MLGraphBuilder::triangularMatrix(
     const MLOperand* input,
     const MLTriangularMatrixOptions* options,
     ExceptionState& exception_state) {
+  // TODO:::COMPLETE
   return nullptr;
 }
 

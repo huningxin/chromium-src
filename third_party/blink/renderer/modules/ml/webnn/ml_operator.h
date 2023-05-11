@@ -82,6 +82,8 @@ class MODULES_EXPORT MLOperator final : public ScriptWrappable {
     kCos,
     kTan,
     kErf,
+    kFloor,
+    kCeil,
     kReciprocal,
     kLogicalNot,
 

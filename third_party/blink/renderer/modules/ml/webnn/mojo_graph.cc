@@ -32,7 +32,7 @@ using ml::webnn::mojom::blink::ComputeResult;
 using ml::webnn::mojom::blink::MemoryInfoPtr;
 
 void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
-  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 61);
+  static_assert(int32_t(MLOperator::OperatorKind::kTotal) == 63);
 
   switch (op->Kind()) {
     case MLOperator::OperatorKind::kClamp:
@@ -98,17 +98,19 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
     case MLOperator::OperatorKind::kExpand:
       model_info->AddExpand(op);
       break;
-    case MLOperator::OperatorKind::kCos:
-    case MLOperator::OperatorKind::kErf:
-    case MLOperator::OperatorKind::kExp:
     case MLOperator::OperatorKind::kIdentity:
+    case MLOperator::OperatorKind::kCos:
+    case MLOperator::OperatorKind::kExp:
+    case MLOperator::OperatorKind::kSqrt:
     case MLOperator::OperatorKind::kSin:
     case MLOperator::OperatorKind::kTan:
-    case MLOperator::OperatorKind::kSqrt:
-    case MLOperator::OperatorKind::kSigmoid:
-    case MLOperator::OperatorKind::kHardSwish:
+    case MLOperator::OperatorKind::kErf:
+    case MLOperator::OperatorKind::kFloor:
+    case MLOperator::OperatorKind::kCeil:
     case MLOperator::OperatorKind::kReciprocal:
     case MLOperator::OperatorKind::kLogicalNot:
+    case MLOperator::OperatorKind::kSigmoid:
+    case MLOperator::OperatorKind::kHardSwish:
       model_info->AddElementWiseUnary(op);
       break;
     case MLOperator::OperatorKind::kElementWiseIf:

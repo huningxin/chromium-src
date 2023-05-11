@@ -73,18 +73,19 @@ class GraphDMLImpl : public ml::webnn::mojom::Graph {
   void AddClamp(UINT64 input_index,
                 ClampOptionsPtr options,
                 UINT64 output_index);
-  void AddConv2d(UINT64 input_index,
+  void AddConv2d(OperatorType operator_type,
+                 UINT64 input_index,
                  UINT64 filter_index,
                  Conv2dOptionsPtr options,
                  OperandDescriptorPtr desc,
                  UINT64 output_index);
-  void AddElementWiseUnary(UINT64 input_index,
-                           OperatorType operator_type,
+  void AddElementWiseUnary(OperatorType operator_type,
+                           UINT64 input_index,
                            OperandDescriptorPtr output_desc,
                            UINT64 output_index);
-  void AddElementWiseBinary(UINT64 a_index,
+  void AddElementWiseBinary(OperatorType operator_type,
+                            UINT64 a_index,
                             UINT64 b_index,
-                            OperatorType operator_type,
                             OperandDescriptorPtr output_desc,
                             UINT64 output_index);
   void AddGemm(UINT64 a_index,

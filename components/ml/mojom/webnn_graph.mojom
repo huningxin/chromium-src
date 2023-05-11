@@ -73,6 +73,8 @@ enum OperatorType {
   kCos,
   kTan,
   kErf,
+  kFloor,
+  kCeil,
   kReciprocal,
   kLogicalNot,
 
@@ -207,14 +209,15 @@ struct Conv2dOptions {
 // the struct's output index.
 [Stable]
 struct Conv2d {
+  OperatorType operator_type@0; // The type of operation, conv2d or conv2dTranspose.
   // The index of input operand in the model's operand array.
-  uint64 input_index@0;
+  uint64 input_index@1;
   // The index of filter operand in the model's operand array.
-  uint64 filter_index@1;
+  uint64 filter_index@2;
   // MLConv2dOptions is mapping to Conv2dOptions.
-  Conv2dOptions options@2;
+  Conv2dOptions options@3;
   // The index of output operand in the model's operand array.
-  uint64 output_index@3;
+  uint64 output_index@4;
 };
 
 [Stable]

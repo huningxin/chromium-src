@@ -393,10 +393,10 @@ void GraphDMLImpl::AddConstant(OperandDescriptorPtr desc, UINT64 index) {
   return;
 }
 
-void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
-                                        OperatorType operator_type,
-                                        OperandDescriptorPtr output_desc,
-                                        UINT64 output_index) {
+void GraphDMLImpl::AddElementWiseUnary(OperatorType operator_type,
+                                       UINT64 input_index,
+                                       OperandDescriptorPtr output_desc,
+                                       UINT64 output_index) {
   DCHECK(node_output_map_.contains(input_index));
 
   auto* input_node_output = node_output_map_[input_index].get();
@@ -434,6 +434,12 @@ void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
     case OperatorType::kRelu: {
       CREATE_UNARY_OPERATOR(ACTIVATION_RELU, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
     } break;
+    case OperatorType::kFloor: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_FLOOR, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
+    } break;
+    case OperatorType::kCeil: {
+      CREATE_UNARY_OPERATOR(ELEMENT_WISE_CEIL, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
+    } break;
     case OperatorType::kReciprocal: {
       CREATE_UNARY_OPERATOR(ELEMENT_WISE_RECIP, input_tensor_desc.Get(), output_tensor_desc.Get(), node);
     } break;
@@ -451,9 +457,9 @@ void GraphDMLImpl::AddElementWiseUnary(UINT64 input_index,
   return;
 }
 
-void GraphDMLImpl::AddElementWiseBinary(UINT64 a_index,
+void GraphDMLImpl::AddElementWiseBinary(OperatorType operator_type,
+                                        UINT64 a_index,
                                         UINT64 b_index,
-                                        OperatorType operator_type,
                                         OperandDescriptorPtr output_desc,
                                         UINT64 output_index) {
   // TODO: return directly if BuildResult has error message.
@@ -596,14 +602,15 @@ void GraphDMLImpl::TransposeOutputToNhwc(
   return;
 }
 
-void GraphDMLImpl::AddConv2d(UINT64 input_index,
+void GraphDMLImpl::AddConv2d(OperatorType operator_type,
+                             UINT64 input_index,
                              UINT64 filter_index,
                              Conv2dOptionsPtr options,
                              OperandDescriptorPtr output_desc,
                              UINT64 output_index) {
   // TODO: return directly if BuildResult has error message.
-  DCHECK(node_output_map_.find(input_index) != node_output_map_.end());
-  DCHECK(node_output_map_.find(filter_index) != node_output_map_.end());
+  DCHECK(node_output_map_.contains(input_index));
+  DCHECK(node_output_map_.contains(filter_index));
 
   auto* input_node = node_output_map_[input_index].get();
   auto* filter_node = node_output_map_[filter_index].get();
@@ -697,7 +704,9 @@ void GraphDMLImpl::AddConv2d(UINT64 input_index,
   operator_desc.OutputTensor = output_tensor.Get();
 
   operator_desc.Mode = DML_CONVOLUTION_MODE_CROSS_CORRELATION;
-  operator_desc.Direction = DML_CONVOLUTION_DIRECTION_FORWARD;
+  operator_desc.Direction = (operator_type == OperatorType::kConvTranspose2d)
+                                ? DML_CONVOLUTION_DIRECTION_BACKWARD
+                                : DML_CONVOLUTION_DIRECTION_FORWARD;
   operator_desc.DimensionCount = input_dims.size() - 2;
   operator_desc.Strides = strides.data();
   operator_desc.Dilations = dilations.data();
@@ -928,7 +937,7 @@ void GraphDMLImpl::AddPool2d(UINT64 input_index,
 void GraphDMLImpl::AddRelu(UINT64 input_index,
                            OperandDescriptorPtr output_desc,
                            UINT64 output_index) {
-  return AddElementWiseUnary(input_index, OperatorType::kRelu,
+  return AddElementWiseUnary(OperatorType::kRelu, input_index,
                              std::move(output_desc), output_index);
 }
 
@@ -1597,15 +1606,15 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
       case OperationInfo::Tag::kConv2d: {
         auto& conv2d = operation->get_conv2d();
         auto& output_operand = model_info->operands[conv2d->output_index];
-        AddConv2d(conv2d->input_index, conv2d->filter_index,
-                  std::move(conv2d->options), std::move(output_operand),
-                  conv2d->output_index);
+        AddConv2d(conv2d->operator_type, conv2d->input_index,
+                  conv2d->filter_index, std::move(conv2d->options),
+                  std::move(output_operand), conv2d->output_index);
         break;
       }
       case OperationInfo::Tag::kElementWiseUnary: {
         auto& mojom_operator = operation->get_element_wise_unary();
         auto& output_operand = model_info->operands[mojom_operator->output_index];
-        AddElementWiseUnary(mojom_operator->input_index, mojom_operator->operator_type,
+        AddElementWiseUnary(mojom_operator->operator_type, mojom_operator->input_index,
                             std::move(output_operand),
                             mojom_operator->output_index);
         break;
@@ -1613,7 +1622,7 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
       case OperationInfo::Tag::kElementWiseBinary: {
         auto& binary = operation->get_element_wise_binary();
         auto& output_operand = model_info->operands[binary->output_index];
-        AddElementWiseBinary(binary->a_index, binary->b_index, binary->operator_type,
+        AddElementWiseBinary(binary->operator_type, binary->a_index, binary->b_index,
                              std::move(output_operand), binary->output_index);
         break;
       }
