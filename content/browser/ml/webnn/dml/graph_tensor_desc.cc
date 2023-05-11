@@ -15,23 +15,32 @@ namespace content::webnn {
 namespace {
 
 size_t GetBytesOfDataType(DML_TENSOR_DATA_TYPE data_type) {
+  static_assert(sizeof(float) == 4, "DirectML expects to run on machines with 4-byte floats.");
+  static_assert(sizeof(double) == 8, "DirectML expects to run on machines with 8-byte doubles.");
+
   switch (data_type) {
-    case DML_TENSOR_DATA_TYPE_FLOAT32:
-      return sizeof(float);
     case DML_TENSOR_DATA_TYPE_FLOAT16:
       return sizeof(uint16_t);
-    case DML_TENSOR_DATA_TYPE_INT8:
-      return sizeof(int8_t);
+    case DML_TENSOR_DATA_TYPE_FLOAT32:
+      return sizeof(float);
+    case DML_TENSOR_DATA_TYPE_FLOAT64:
+      return sizeof(double);
     case DML_TENSOR_DATA_TYPE_UINT8:
       return sizeof(uint8_t);
-    case DML_TENSOR_DATA_TYPE_INT32:
-      return sizeof(int32_t);
+    case DML_TENSOR_DATA_TYPE_INT8:
+      return sizeof(int8_t);
+    case DML_TENSOR_DATA_TYPE_UINT16:
+      return sizeof(uint16_t);
+    case DML_TENSOR_DATA_TYPE_INT16:
+      return sizeof(int16_t);
     case DML_TENSOR_DATA_TYPE_UINT32:
       return sizeof(uint32_t);
-    case DML_TENSOR_DATA_TYPE_INT64:
-      return sizeof(int64_t);
+    case DML_TENSOR_DATA_TYPE_INT32:
+      return sizeof(int32_t);
     case DML_TENSOR_DATA_TYPE_UINT64:
       return sizeof(uint64_t);
+    case DML_TENSOR_DATA_TYPE_INT64:
+      return sizeof(int64_t);
     default:
       return 0;
   }
