@@ -223,6 +223,8 @@ dictionary MLSplitOptions {
   [RaisesException] MLOperand elementwiseIf(MLOperand condition, MLOperand trueValue, MLOperand falseValue);
 
   // Shape dimension reinterpreting operations.
+  // TODO:::UPDATE reshape to unsigned long, and remove any null/-1 behavior after
+  // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-reshape.
   [RaisesException] MLOperand reshape(MLOperand input, sequence<long> newShape);
   [RaisesException] MLOperand squeeze(MLOperand input, optional MLSqueezeOptions options = {});
   [RaisesException] MLOperand unsqueeze(MLOperand input, MLSqueezeOptions options);

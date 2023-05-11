@@ -1712,8 +1712,9 @@ MLOperand* MLGraphBuilder::reshape(const MLOperand* input,
     // component of new shape can be the special value of -1.
     for (wtf_size_t i = 0; i < new_shape.size(); ++i) {
       auto d = new_shape[i];
-      // TODO:::DELETE this special -1 behavior, which has changed in the WebNN spec
-      // to passing null instead of -1.
+      // TODO:::DELETE this special -1 behavior per the pending issue
+      // https://github.com/webmachinelearning/webnn/issues/388
+      // to remove magic values like null or -1.
 #if 1 // But keep it for now because Wanming may need it for the WebNN EP.
       if (d < -1 || d == 0) {
         exception_state.ThrowDOMException(
