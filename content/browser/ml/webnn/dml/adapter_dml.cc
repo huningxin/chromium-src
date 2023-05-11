@@ -4,6 +4,8 @@
 
 #include "content/browser/ml/webnn/dml/adapter_dml.h"
 
+#pragma optimize("", off) // TODO:::DELETE
+
 namespace content::webnn {
 
 AdapterDML::AdapterDML(ComPtr<IDXGIAdapter3> hardware_adapter)
@@ -33,6 +35,14 @@ HRESULT AdapterDML::Initialize() {
 
   hr = DMLCreateDevice(d3d12_device_.Get(), dml_create_device_flags,
                        IID_PPV_ARGS(&dml_device_));
+
+  // If the DirectML debug layer couldn't be loaded, create the device again
+  // without it. The debug layer is not essential.
+  if (hr == DXGI_ERROR_SDK_COMPONENT_MISSING) {
+    dml_create_device_flags &= ~DML_CREATE_DEVICE_FLAG_DEBUG;
+    hr = DMLCreateDevice(d3d12_device_.Get(), dml_create_device_flags,
+                         IID_PPV_ARGS(&dml_device_));
+  }
   if (FAILED(hr)) {
     return hr;
   }
