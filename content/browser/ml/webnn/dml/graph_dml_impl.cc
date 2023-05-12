@@ -34,43 +34,91 @@ using ml::webnn::mojom::OperationInfo;
 
 enum TransposeType { NhwcToNchw, NchwToNhwc };
 
-std::vector<UINT> transposeStrides(TransposeType transposeType,
-                                   const std::vector<UINT>& input_dims) {
-  UINT nStride = 0, cStride = 0, hStride = 0, wStride = 0;
-  switch (transposeType) {
-    case NhwcToNchw:
-      nStride = input_dims[1] * input_dims[2] * input_dims[3];
-      hStride = input_dims[2] * input_dims[3];
-      wStride = input_dims[3];
-      cStride = 1;
-      return {nStride, cStride, hStride, wStride};
-    case NchwToNhwc:
-      nStride = input_dims[1] * input_dims[2] * input_dims[3];
-      cStride = input_dims[2] * input_dims[3];
-      hStride = input_dims[3];
-      wStride = 1;
-      return {nStride, hStride, wStride, cStride};
+std::array<uint32_t, 4> getLayoutPermutationToNchw(InputOperandLayout original_layout)
+{
+  // Return indices to gather from the source layout to the target (NCHW).
+  static_assert(uint32_t(InputOperandLayout::kMaxValue) == 1);
+  // clang-format off
+  switch (original_layout) {
+    case InputOperandLayout::kNchw: return {0, 1, 2, 3};
+    case InputOperandLayout::kNhwc: return {0, 3, 1, 2};
     default:
       DCHECK(0);
       break;
   }
+  // clang-format on
 }
 
-std::array<uint32_t, 4> getLayoutToLayoutPermutation(InputOperandLayout original_layout, InputOperandLayout new_layout)
-{
-  static_assert(uint32_t(InputOperandLayout::kMaxValue) == 1, "Update getLayoutToLayoutPermutation for the new layout.");
-  switch (original_layout) {
-    case InputOperandLayout::kNchw:
-      switch (new_layout) {
-        case InputOperandLayout::kNchw: return {0,1,2,3};
-        case InputOperandLayout::kNhwc: return {0,2,3,1};
-      }
+std::array<uint32_t, 4> getLayoutPermutationToOihw(
+    Conv2dFilterOperandLayout filter_layout) {
+
+  static_assert(int32_t(Conv2dFilterOperandLayout::kMaxValue) == 5);
+  // clang-format off
+  switch (filter_layout) {
+    case Conv2dFilterOperandLayout::kOihw: return {0,1,2,3};
+    case Conv2dFilterOperandLayout::kIohw: return {1,0,2,3};
+    case Conv2dFilterOperandLayout::kHwoi: return {2,3,0,1};
+    case Conv2dFilterOperandLayout::kHwio: return {3,2,0,1};
+    case Conv2dFilterOperandLayout::kOhwi: return {0,3,1,2};
+    case Conv2dFilterOperandLayout::kIhwo: return {3,0,1,2};
+    default:
+      DCHECK(0);
       break;
-    case InputOperandLayout::kNhwc:
-      switch (new_layout) {
-        case InputOperandLayout::kNchw: return {0,3,1,2};
-        case InputOperandLayout::kNhwc: return {0,1,2,3};
-      }
+  }
+  // clang-format on
+}
+
+std::array<uint32_t, 4> getLayoutPermutationToIohw(
+    Conv2dFilterOperandLayout filter_layout) {
+
+  static_assert(int32_t(Conv2dFilterOperandLayout::kMaxValue) == 5);
+  // clang-format off
+  switch (filter_layout) {
+    case Conv2dFilterOperandLayout::kOihw: return {1,0,2,3};
+    case Conv2dFilterOperandLayout::kIohw: return {0,1,2,3};
+    case Conv2dFilterOperandLayout::kHwoi: return {3,2,0,1};
+    case Conv2dFilterOperandLayout::kHwio: return {2,3,0,1};
+    case Conv2dFilterOperandLayout::kOhwi: return {3,0,1,2};
+    case Conv2dFilterOperandLayout::kIhwo: return {0,3,1,2};
+    default:
+      DCHECK(0);
+      break;
+  }
+  // clang-format on
+}
+
+std::vector<UINT> transposeStrides(TransposeType transposeType,
+                                   const std::vector<UINT>& input_dims) {
+  /* not needed       - filterDims[0]; */
+  uint32_t dimension1 = input_dims[1];
+  uint32_t dimension2 = input_dims[2];
+  uint32_t dimension3 = input_dims[3];
+
+  uint32_t stride3 = 1;
+  uint32_t stride2 = dimension3;
+  uint32_t stride1 = dimension3 * dimension2;
+  uint32_t stride0 = dimension3 * dimension2 * dimension1;
+
+  uint32_t nStride = 0;
+  uint32_t cStride = 0;
+  uint32_t hStride = 0;
+  uint32_t wStride = 0;
+
+  switch (transposeType) {
+    case NhwcToNchw:
+      nStride = stride0;
+      hStride = stride1;
+      wStride = stride2;
+      cStride = stride3;
+      return {nStride, cStride, hStride, wStride};
+    case NchwToNhwc:
+      nStride = stride0;
+      cStride = stride1;
+      hStride = stride2;
+      wStride = stride3;
+      return {nStride, hStride, wStride, cStride};
+    default:
+      DCHECK(0);
       break;
   }
 }
@@ -102,32 +150,6 @@ std::vector<UINT> transposeStridesToNchw(
   }
 }
 
-DML_OPERATOR_DESC* CreateFusedOperator(
-    const OperationInfo* activation,
-    DML_ACTIVATION_LINEAR_OPERATOR_DESC& dmlActicationOperatorDesc,
-    DML_OPERATOR_DESC& dmlFusedOperatorDesc) {
-  if (activation == nullptr) {
-    return nullptr;
-  }
-
-  dmlActicationOperatorDesc.InputTensor = nullptr;
-  dmlActicationOperatorDesc.OutputTensor = nullptr;
-  dmlActicationOperatorDesc.Alpha = 0.0;
-  dmlActicationOperatorDesc.Beta = 0.0;
-  switch (activation->which()) {
-    case OperationInfo::Tag::kRelu:
-      dmlFusedOperatorDesc.Type = DML_OPERATOR_ACTIVATION_RELU;
-      break;
-    case OperationInfo::Tag::kClamp:
-      return nullptr;
-    default:
-      LOG(ERROR) << "This fusion type is not supported.";
-      DCHECK(0);
-  }
-  dmlFusedOperatorDesc.Desc = &dmlActicationOperatorDesc;
-  return &dmlFusedOperatorDesc;
-}
-
 std::vector<UINT> transposeDimensions(TransposeType transposeType,
                                       const std::vector<UINT>& input_dims) {
   DCHECK(input_dims.size() == 4);
@@ -152,65 +174,30 @@ std::vector<UINT> transposeDimensions(TransposeType transposeType,
   return newInputDims;
 }
 
-std::vector<UINT> transposeFilterDimensionsAsOihw(
-    Conv2dFilterOperandLayout filterLayout,
-    const std::vector<UINT>& filterDims) {
-  std::vector<UINT> newFilterDims(4);
-  switch (filterLayout) {
-    case Conv2dFilterOperandLayout::kOhwi:
-      newFilterDims.resize(4);
-      newFilterDims[0] = filterDims[0];
-      newFilterDims[1] = filterDims[3];
-      newFilterDims[2] = filterDims[1];
-      newFilterDims[3] = filterDims[2];
-      break;
-    case Conv2dFilterOperandLayout::kHwio:
-      newFilterDims[0] = filterDims[3];
-      newFilterDims[1] = filterDims[2];
-      newFilterDims[2] = filterDims[0];
-      newFilterDims[3] = filterDims[1];
-      break;
-    case Conv2dFilterOperandLayout::kIhwo:
-      newFilterDims[0] = filterDims[3];
-      newFilterDims[1] = filterDims[0];
-      newFilterDims[2] = filterDims[1];
-      newFilterDims[3] = filterDims[2];
-      break;
-    default:
-      DCHECK(0);
-      break;
+DML_OPERATOR_DESC* CreateFusedOperator(
+    const OperationInfo* activation,
+    DML_ACTIVATION_LINEAR_OPERATOR_DESC& dmlActicationOperatorDesc,
+    DML_OPERATOR_DESC& dmlFusedOperatorDesc) {
+  if (activation == nullptr) {
+    return nullptr;
   }
-  return newFilterDims;
-}
 
-std::vector<UINT> transposeFilterStridesAsOihw(
-    Conv2dFilterOperandLayout filterLayout,
-    const std::vector<UINT>& filterDims) {
-  UINT hStride = 0, wStride = 0, iStride = 0, oStride = 0;
-  switch (filterLayout) {
-    case Conv2dFilterOperandLayout::kHwio:
-      hStride = filterDims[1] * filterDims[2] * filterDims[3];
-      wStride = filterDims[2] * filterDims[3];
-      iStride = filterDims[3];
-      oStride = 1;
+  dmlActicationOperatorDesc.InputTensor = nullptr;
+  dmlActicationOperatorDesc.OutputTensor = nullptr;
+  dmlActicationOperatorDesc.Alpha = 0.0;
+  dmlActicationOperatorDesc.Beta = 0.0;
+  switch (activation->which()) {
+    case OperationInfo::Tag::kRelu:
+      dmlFusedOperatorDesc.Type = DML_OPERATOR_ACTIVATION_RELU;
       break;
-    case Conv2dFilterOperandLayout::kOhwi:
-      oStride = filterDims[1] * filterDims[2] * filterDims[3];
-      hStride = filterDims[2] * filterDims[3];
-      wStride = filterDims[3];
-      iStride = 1;
-      break;
-    case Conv2dFilterOperandLayout::kIhwo:
-      iStride = filterDims[1] * filterDims[2] * filterDims[3];
-      hStride = filterDims[2] * filterDims[3];
-      wStride = filterDims[3];
-      oStride = 1;
-      break;
+    case OperationInfo::Tag::kClamp:
+      return nullptr;
     default:
+      LOG(ERROR) << "This fusion type is not supported.";
       DCHECK(0);
-      break;
   }
-  return {oStride, iStride, hStride, wStride};
+  dmlFusedOperatorDesc.Desc = &dmlActicationOperatorDesc;
+  return &dmlFusedOperatorDesc;
 }
 
 uint16_t CastFloat32ToFloat16(float float32_value) noexcept {
@@ -614,6 +601,9 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
   DCHECK(node_output_map_.contains(input_index));
   DCHECK(node_output_map_.contains(filter_index));
 
+  bool is_backward_direction =
+      (operator_type == OperatorType::kConvTranspose2d);
+
   auto* input_node = node_output_map_[input_index].get();
   auto* filter_node = node_output_map_[filter_index].get();
 
@@ -621,8 +611,9 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
   auto input_dims = input_node_desc.GetDimensions();
   auto filterDims = filter_node->GetTensorDesc().GetDimensions();
   auto output_dims = output_desc->dimensions;
-  std::vector<UINT> input_nchw_dims = input_dims, filter_nchw_dims = filterDims,
-                    output_nchw_dims = output_dims;
+  std::vector<uint32_t> input_nchw_dims = input_dims;
+  std::vector<uint32_t> filter_nchw_dims = filterDims;
+  std::vector<uint32_t> output_nchw_dims = output_dims;
 
   DML_TENSOR_DESC* input_tensor_desc = input_node_desc.Get();
   TensorDesc nhwc_tensor_desc;
@@ -638,43 +629,49 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
     input_tensor_desc = nhwc_tensor_desc.Get();
   }
 
+  Conv2dFilterOperandLayout desired_filter_layout = is_backward_direction
+      ? Conv2dFilterOperandLayout::kIohw
+      : Conv2dFilterOperandLayout::kOihw;
+
   DML_TENSOR_DESC* filter_tensor_desc = filter_node->GetTensorDesc().Get();
   TensorDesc new_filter_tensor_desc;
-  if (options->filterLayout != Conv2dFilterOperandLayout::kOihw) {
-    filter_nchw_dims =
-        transposeFilterDimensionsAsOihw(options->filterLayout, filterDims);
-    auto filter_oihw_strides =
-        transposeFilterStridesAsOihw(options->filterLayout, filterDims);
-
-    auto& fileter_desc = filter_node->GetTensorDesc();
-    new_filter_tensor_desc =
-        TensorDesc(fileter_desc.GetDataType(), fileter_desc.GetFlags(),
-                   filter_nchw_dims, filter_oihw_strides);
-    filter_tensor_desc = new_filter_tensor_desc.Get();
+  if (options->filterLayout != desired_filter_layout) {
+    new_filter_tensor_desc = filter_node->GetTensorDesc();
+    std::array<uint32_t, 4> permutation =
+        is_backward_direction
+            ? getLayoutPermutationToIohw(options->filterLayout)
+            : getLayoutPermutationToOihw(options->filterLayout);
+    new_filter_tensor_desc.PermuteDimensions(permutation,
+                                             TensorDesc::Alignment::kTrailing);
+    filter_nchw_dims = new_filter_tensor_desc.GetDimensions();
   }
 
   std::vector<NodeOutput*> input_nodes = {input_node, filter_node};
   TensorDesc bias_tensor_desc;
   if (options->bias_index != std::numeric_limits<uint64_t>::max()) {
-    DCHECK(node_output_map_.find(options->bias_index) !=
-           node_output_map_.end());
+    // Read the bias tensor desc.
+    DCHECK(node_output_map_.contains(options->bias_index));
     auto* bias_node = node_output_map_[options->bias_index].get();
-    auto& bias_desc = bias_node->GetTensorDesc();
-    auto bias_dims = bias_desc.GetDimensions();
-    if (bias_dims[0] != filter_nchw_dims[0] || bias_dims.size() != 1) {
+    auto& original_bias_desc = bias_node->GetTensorDesc();
+    auto& original_bias_dims = original_bias_desc.GetDimensions();
+    bias_tensor_desc = original_bias_desc;
+
+    // Sanity check the bias shape against the output shape.
+    uint32_t output_channel_count =
+        is_backward_direction ? filter_nchw_dims[1] : filter_nchw_dims[0];
+    if (original_bias_dims.size() != 1 ||
+        original_bias_dims[0] != output_channel_count) {
       DAWN_INTERNAL_ERROR(
           "The bias should be 1-D tensor with the shape of [output_channels].");
     }
 
     // Reshape bias from 1-D to 4-D for NCHW layout.
-    std::vector<UINT> bias_expand_dims = {1, bias_dims[0], 1, 1};
-    bias_tensor_desc = TensorDesc(bias_desc.GetDataType(), bias_desc.GetFlags(),
-                                  bias_expand_dims);
+    constexpr std::array<uint32_t, 4> aligned_channel_permutation = {0,3,0,0};
+    bias_tensor_desc.PermuteDimensions(aligned_channel_permutation,
+                                       TensorDesc::Alignment::kTrailing);
     input_nodes.push_back(bias_node);
   }
 
-  // FIXME(nhu): strides, dilations, padding should be uint32_t
-  // need to fix the spec.
   std::vector<UINT> strides = options->strides;
   std::vector<UINT> dilations = options->dilations;
 
@@ -706,7 +703,7 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
   operator_desc.OutputTensor = output_tensor.Get();
 
   operator_desc.Mode = DML_CONVOLUTION_MODE_CROSS_CORRELATION;
-  operator_desc.Direction = (operator_type == OperatorType::kConvTranspose2d)
+  operator_desc.Direction = is_backward_direction
                                 ? DML_CONVOLUTION_DIRECTION_BACKWARD
                                 : DML_CONVOLUTION_DIRECTION_FORWARD;
   operator_desc.DimensionCount = input_dims.size() - 2;
@@ -1276,15 +1273,15 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
   auto& output_dimensions = output_desc->dimensions;
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
 
-  // DirectML expects NCHW. So permute the dimensions and strides accordingly
+  // DirectML expects NCHW. So permute the dimension's sizes and strides accordingly
   // if the input is anything else (e.g. NHWC).
-  std::array<uint32_t, 4> tensor_dimensions_permutation = getLayoutToLayoutPermutation(operand_layout, InputOperandLayout::kNchw);
+  std::array<uint32_t, 4> tensor_dimensions_permutation = getLayoutPermutationToNchw(operand_layout);
   input_tensor_desc.PermuteDimensions(tensor_dimensions_permutation, TensorDesc::Alignment::kTrailing);
   output_tensor_desc.PermuteDimensions(tensor_dimensions_permutation, TensorDesc::Alignment::kTrailing);
 
   // DirectML expects the channel dimension to be at NCHW.
   // So move the C dimension in 1D from XXXC to XCXX.
-  const std::array<uint32_t, 4> scale_bias_dimensions_permutation = {0,3,1,2};
+  constexpr std::array<uint32_t, 4> scale_bias_dimensions_permutation = {0,3,0,0};
 
   std::vector<NodeOutput*> input_nodes;
   input_nodes.reserve(3);

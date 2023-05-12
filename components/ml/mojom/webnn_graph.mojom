@@ -153,11 +153,22 @@ struct Clamp {
 [Stable, Extensible]
 enum InputOperandLayout { [Default] kNchw, kNhwc };
 
-// Represents the `MLConv2dFilterOperandLayout` that specifies the layout format
-// of filter tensor. O is the output channel count, i is input count / groups, H
-// is height and W is the width of the tensor.
+// Represents the values from `MLConv2dFilterOperandLayout` or
+// `MLConvTranspose2dFilterOperandLayout` that specifies the filter tensor's
+// layout format.
+// - O == filter output channel count
+// - I == filter input channel count
+// - H == height
+// - W == width
+//
+// For forward convolution:
+// - filter input channel count  == input tensor channel count / groups
+// - filter output channel count == output tensor channel count
+// For backward convolution:
+// - filter input channel count  == input tensor channel count
+// - filter output channel count == output tensor channel count / groups
 [Stable, Extensible]
-enum Conv2dFilterOperandLayout { [Default] kOihw, kHwio, kOhwi, kIhwo };
+enum Conv2dFilterOperandLayout { [Default] kOihw, kIohw, kHwoi, kHwio, kOhwi, kIhwo };
 
 // Represents the `MLAutoPad`. `Explicit` means that the values in the
 // options.padding array should be used for input padding, with `SameUpper`

@@ -7,6 +7,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_transpose_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
@@ -85,6 +86,7 @@ OperandType BlinkOperandTypeToMojo(V8MLOperandType::Enum type) {
 
 InputOperandLayout BlinkInputOperandLayoutToMojo(
     V8MLInputOperandLayout::Enum type) {
+  static_assert(V8MLInputOperandLayout::kEnumSize == 2);
   switch (type) {
     case V8MLInputOperandLayout::Enum::kNchw:
       return InputOperandLayout::kNchw;
@@ -94,20 +96,26 @@ InputOperandLayout BlinkInputOperandLayoutToMojo(
 }
 
 Conv2dFilterOperandLayout BlinkConv2dFilterOperandLayoutToMojo(
-    V8MLConv2dFilterOperandLayout::Enum type) {
+    V8MLConvFilterOperandLayoutInternal::Enum type) {
+  static_assert(V8MLConv2dFilterOperandLayout::kEnumSize == 4);
   switch (type) {
-    case V8MLConv2dFilterOperandLayout::Enum::kOihw:
+    case V8MLConvFilterOperandLayoutInternal::Enum::kOihw:
       return Conv2dFilterOperandLayout::kOihw;
-    case V8MLConv2dFilterOperandLayout::Enum::kHwio:
+    case V8MLConvFilterOperandLayoutInternal::Enum::kIohw:
+      return Conv2dFilterOperandLayout::kIohw;
+    case V8MLConvFilterOperandLayoutInternal::Enum::kHwoi:
+      return Conv2dFilterOperandLayout::kHwoi;
+    case V8MLConvFilterOperandLayoutInternal::Enum::kHwio:
       return Conv2dFilterOperandLayout::kHwio;
-    case V8MLConv2dFilterOperandLayout::Enum::kOhwi:
+    case V8MLConvFilterOperandLayoutInternal::Enum::kOhwi:
       return Conv2dFilterOperandLayout::kOhwi;
-    case V8MLConv2dFilterOperandLayout::Enum::kIhwo:
+    case V8MLConvFilterOperandLayoutInternal::Enum::kIhwo:
       return Conv2dFilterOperandLayout::kIhwo;
   }
 }
 
 AutoPad BlinkAutoPadToMojo(V8MLAutoPad::Enum type) {
+  static_assert(V8MLAutoPad::kEnumSize == 3);
   switch (type) {
     case V8MLAutoPad::Enum::kExplicit:
       return AutoPad::kExplicit;
@@ -119,6 +127,7 @@ AutoPad BlinkAutoPadToMojo(V8MLAutoPad::Enum type) {
 }
 
 RoundingType BlinkRoundingTypeToMojo(V8MLRoundingType::Enum type) {
+  static_assert(V8MLRoundingType::kEnumSize == 2);
   switch (type) {
     case V8MLRoundingType::Enum::kFloor:
       return RoundingType::kFloor;
@@ -254,7 +263,7 @@ OperationInfoPtr FusionOperation(const MLOperator* activation) {
 }
 
 ml::webnn::mojom::blink::Conv2dOptionsPtr BlinkConv2dOptionsToMojo(
-    const MLConv2dOptions* ml_options,
+    const MLConvOptionsInternal* ml_options,
     const HeapHashMap<Member<const MLOperand>, size_t>& operand_index_map) {
   auto options = ml::webnn::mojom::blink::Conv2dOptions::New();
   options->padding =
@@ -411,49 +420,24 @@ void MojoModelInfo::AddConv2d(const MLOperator* ml_conv2d) {
       !operand_index_map_.Contains(filter)) {
     return;
   }
+
   // Add operand descriptor to the model.
   DCHECK_EQ(ml_conv2d->Outputs().size(), static_cast<uint32_t>(1));
   auto* output = ml_conv2d->Outputs()[0].Get();
   DCHECK(operand_index_map_.find(output) == operand_index_map_.end());
   size_t output_index = AddOperandToModel(output);
-  // Add conv2d operation to the model.
+
+  // Add conv2d or convTranspose2d operation to the model.
   auto conv2d = ml::webnn::mojom::blink::Conv2d::New();
   conv2d->operator_type = BlinkOperatorKindToMojoType(ml_conv2d->Kind());
   conv2d->input_index = operand_index_map_.at(input);
   conv2d->filter_index = operand_index_map_.at(filter);
-  const MLConv2dOptions* ml_options =
-      static_cast<const MLConv2dOptions*>(ml_conv2d->Options());
+  const MLConvOptionsInternal* ml_options =
+      static_cast<const MLConvOptionsInternal*>(ml_conv2d->Options());
   conv2d->options = BlinkConv2dOptionsToMojo(ml_options, operand_index_map_);
   conv2d->output_index = output_index;
   auto operation = OperationInfo::NewConv2d(std::move(conv2d));
   model_info_->operations.push_back(std::move(operation));
-}
-
-void MojoModelInfo::AddConvTranspose2d(const MLOperator* ml_conv2d) {
-#if 0 // TODO:::
-  DCHECK_GE(ml_conv2d->Inputs().size(), static_cast<uint32_t>(2));
-  auto* input = ml_conv2d->Inputs()[0].Get();
-  auto* filter = ml_conv2d->Inputs()[1].Get();
-  if (operand_index_map_.find(input) == operand_index_map_.end() ||
-      operand_index_map_.find(filter) == operand_index_map_.end()) {
-    return;
-  }
-  // Add operand descriptor to the model.
-  DCHECK_EQ(ml_conv2d->Outputs().size(), static_cast<uint32_t>(1));
-  auto* output = ml_conv2d->Outputs()[0].Get();
-  DCHECK(operand_index_map_.find(output) == operand_index_map_.end());
-  size_t output_index = AddOperandToModel(output);
-  // Add conv2dtranspose operation to the model.
-  auto conv2d = ml::webnn::mojom::blink::Conv2d::New();
-  conv2d->input_index = operand_index_map_.at(input);
-  conv2d->filter_index = operand_index_map_.at(filter);
-  const MLConv2dOptions* ml_options =
-      static_cast<const MLConv2dOptions*>(ml_conv2d->Options());
-  conv2d->options = BlinkConv2dOptionsToMojo(ml_options, operand_index_map_);
-  conv2d->output_index = output_index;
-  auto operation = OperationInfo::NewConv2d(std::move(conv2d));
-  model_info_->operations.push_back(std::move(operation));
-#endif
 }
 
 void MojoModelInfo::AddElementWiseUnary(const MLOperator* ml_operator) {

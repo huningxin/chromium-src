@@ -39,10 +39,8 @@ void AddOperation(MojoModelInfo* model_info, const MLOperator* op) {
       model_info->AddClamp(op);
       break;
     case MLOperator::OperatorKind::kConv2d:
-      model_info->AddConv2d(op);
-      break;
     case MLOperator::OperatorKind::kConvTranspose2d:
-      model_info->AddConvTranspose2d(op);
+      model_info->AddConv2d(op);
       break;
     case MLOperator::OperatorKind::kAdd:
     case MLOperator::OperatorKind::kSub:
