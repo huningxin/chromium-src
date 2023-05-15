@@ -169,10 +169,34 @@ HRESULT CommandRecorder::ExecuteGraph(
   // Reset the binding table to bind for the operator we want to execute (it
   // was previously used to bind for the initializer).
   mBindingTableDesc.Dispatchable = compiled_operator;
-  mBindingTable->Reset(&mBindingTableDesc);
 
   DML_BINDING_PROPERTIES binding_properties =
       compiled_operator->GetBindingProperties();
+  UINT descriptorCount = binding_properties.RequiredDescriptorCount;
+  if (descriptorCount > mBindingTableDesc.SizeInDescriptors) {
+    // Need to reallocate the descriptors heap.
+    mDescriptorHeap.Reset();
+    D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc{};
+    descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    descriptorHeapDesc.NumDescriptors = descriptorCount;
+    descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    HRESULT hr = d3d12_device_->CreateDescriptorHeap(
+        &descriptorHeapDesc, IID_PPV_ARGS(&mDescriptorHeap));
+    if (FAILED(hr)) {
+      return hr;
+    }
+    mBindingTableDesc.CPUDescriptorHandle =
+        mDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    mBindingTableDesc.GPUDescriptorHandle =
+        mDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    // The size of the binding table, in descriptors. This is the maximum number
+    // of descriptors that DirectML is permitted to write, from the start of
+    // both the supplied CPU and GPU descriptor handles.
+    mBindingTableDesc.SizeInDescriptors = descriptorCount;
+  }
+
+  mBindingTable->Reset(&mBindingTableDesc);
+
   UINT64 temporary_resource_size = binding_properties.TemporaryResourceSize;
   if (temporary_resource_size != 0) {
     ID3D12Resource* temporary_resource =
