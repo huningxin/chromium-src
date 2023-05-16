@@ -3140,6 +3140,7 @@ void MLGraphBuilder::SortOperators(
     HeapVector<Member<const MLOperator>>& sorted_operators) {
   HeapDeque<Member<const MLOperator>> operators_to_do;
   HeapHashSet<Member<const MLOperator>> operators_done;
+  HeapHashSet<Member<const MLOperand>> visited_inputs;
   for (const auto& output : named_outputs) {
     operators_to_do.push_back(output.second->Operator());
   }
@@ -3161,7 +3162,11 @@ void MLGraphBuilder::SortOperators(
         // done set.
         for (const auto& input : op->Inputs()) {
           if (input->Kind() == MLOperand::kInput) {
-            inputs.push_back(input.Get());
+            // Add the input if it is not visited.
+            if (!visited_inputs.Contains(input.Get())) {
+              inputs.push_back(input.Get());
+              visited_inputs.insert(input.Get());
+            }
           } else if (input->Kind() == MLOperand::kConstant) {
             constants.push_back(input.Get());
           }
