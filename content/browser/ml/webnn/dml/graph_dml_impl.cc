@@ -1891,6 +1891,8 @@ void GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
   // outputs from Graph Build, so the offset need to be found the correct output
   // with name to read back from GPU buffer.
   base::flat_map<std::string, DML_BUFFER_BINDING> output_buffer_binding;
+  // Reseve the map capacity to avoid reallocation.
+  output_buffer_binding.reserve(output_length_map.size());
   uint64_t aligned_offset = 0;
   size_t i = 0;
   for (auto& [name, byte_length] : output_length_map) {
@@ -1965,6 +1967,8 @@ bool GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
   // outputs from Graph Build, so the offset need to be found the correct output
   // with name to read back from GPU buffer.
   base::flat_map<std::string, DML_BUFFER_BINDING> output_buffer_binding;
+  // Reseve the map capacity to avoid reallocation.
+  output_buffer_binding.reserve(output_length_map.size());
   uint64_t aligned_offset = 0;
   size_t i = 0;
   for (auto& [name, byte_length] : output_length_map) {
