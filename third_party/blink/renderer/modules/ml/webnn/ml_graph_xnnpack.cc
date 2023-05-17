@@ -17,6 +17,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_clamp_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_options_internal.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pool_2d_options.h"
 #include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/modules/ml/ml.h"
@@ -469,8 +470,8 @@ xnn_status DefineXnnNodeForConv2d(xnn_subgraph_t subgraph,
   const uint32_t output_id =
       GetOperatorOutputValueId(conv2d, operand_value_id_map);
 
-  const MLConv2dOptions* options =
-      static_cast<const MLConv2dOptions*>(conv2d->Options());
+  const MLConvOptionsInternal* options =
+      static_cast<const MLConvOptionsInternal*>(conv2d->Options());
 
   // Set strides of XNNPACK conv2d, default to 1.
   const Vector<uint32_t> default_strides({1, 1});
@@ -513,7 +514,7 @@ xnn_status DefineXnnNodeForConv2d(xnn_subgraph_t subgraph,
       // TODO(crbug.com/1273291): support other layouts by transposing the
       // filter operand.
       if (options->filterLayout().AsEnum() !=
-          V8MLConv2dFilterOperandLayout::Enum::kOhwi) {
+          V8MLConvFilterOperandLayoutInternal::Enum::kOhwi) {
         error_message = String::Format("The filter layout %s is not supported.",
                                        options->filterLayout().AsCStr());
         return xnn_status_unsupported_parameter;
@@ -525,7 +526,7 @@ xnn_status DefineXnnNodeForConv2d(xnn_subgraph_t subgraph,
       // TODO(crbug.com/1273291): support other layouts by transposing the
       // filter operand.
       if (options->filterLayout().AsEnum() !=
-          V8MLConv2dFilterOperandLayout::Enum::kIhwo) {
+          V8MLConvFilterOperandLayoutInternal::Enum::kIhwo) {
         error_message = String::Format("The filter layout %s is not supported.",
                                        options->filterLayout().AsCStr());
         return xnn_status_unsupported_parameter;
