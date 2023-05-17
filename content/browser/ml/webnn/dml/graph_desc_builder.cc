@@ -155,7 +155,7 @@ ComPtr<IDMLCompiledOperator> GraphDescBuilder::Compile(
   hr = device1->CompileGraph(&graph_desc, flags, IID_PPV_ARGS(&compiled_graph));
 
   // TODO:::DELETE This is just for easy verification that the DML backend was selected.
-  // Pass: chrome.exe --enable-logging --log-level=0
+  // Pass: chrome.exe --enable-logging=stderr --log-level=0
   LOG(INFO) << "DML CompileGraph finished";
   // TODO:::END
 
