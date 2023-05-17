@@ -644,6 +644,7 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
     new_filter_tensor_desc.PermuteDimensions(permutation,
                                              TensorDesc::Alignment::kTrailing);
     filter_nchw_dims = new_filter_tensor_desc.GetDimensions();
+    filter_tensor_desc = new_filter_tensor_desc.Get();
   }
 
   std::vector<NodeOutput*> input_nodes = {input_node, filter_node};
