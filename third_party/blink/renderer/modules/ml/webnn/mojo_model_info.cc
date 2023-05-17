@@ -61,8 +61,8 @@ using ml::webnn::mojom::blink::Pool2dType;
 using ml::webnn::mojom::blink::RoundingType;
 
 OperandType BlinkOperandTypeToMojo(V8MLOperandType::Enum type) {
+  static_assert(V8MLOperandType::kEnumSize == 8);
   static_assert(int32_t(ml::webnn::mojom::blink::OperandType::kMaxValue) + 1 == 8);
-  static_assert(int32_t(V8MLOperandType::kEnumSize) == 8);
 
   switch (type) {
     case V8MLOperandType::Enum::kFloat32:
@@ -97,7 +97,9 @@ InputOperandLayout BlinkInputOperandLayoutToMojo(
 
 Conv2dFilterOperandLayout BlinkConv2dFilterOperandLayoutToMojo(
     V8MLConvFilterOperandLayoutInternal::Enum type) {
-  static_assert(V8MLConv2dFilterOperandLayout::kEnumSize == 4);
+    static_assert(V8MLConvFilterOperandLayoutInternal::kEnumSize == 6);
+    static_assert(int32_t(Conv2dFilterOperandLayout::kMaxValue) + 1 == 6);
+
   switch (type) {
     case V8MLConvFilterOperandLayoutInternal::Enum::kOihw:
       return Conv2dFilterOperandLayout::kOihw;
