@@ -18,16 +18,17 @@ ReadbackResource::ReadbackResource(ExecutionContext* execution_context)
 ReadbackResource::~ReadbackResource() = default;
 
 HRESULT ReadbackResource::InitializeResource(
-    std::map<std::string, size_t>& named_outputs) {
+    std::map<std::string, OutputInfo>& named_outputs) {
   uint64_t aligned_offset = 0;
-  for (auto& [name, byte_length] : named_outputs) {
+  for (auto& [name, output_info] : named_outputs) {
     MemoryInfo memory_info = {};
     memory_info.byte_offset = aligned_offset;
-    memory_info.byte_length = byte_length;
+    memory_info.byte_length = output_info.byte_length;
     outputs_info_map_[name] = memory_info;
 
     // Only offset need to be algnement, the byte length keep original value.
-    aligned_offset += Align(byte_length, DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT);
+    aligned_offset +=
+        Align(output_info.byte_length, DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT);
   }
   outputs_resource_size_ = aligned_offset;
   outputs_shm_region_ =

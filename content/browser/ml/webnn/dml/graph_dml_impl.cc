@@ -1887,26 +1887,25 @@ void GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
     outputs_resource = execution_resources->Allocate(
         ResourceType::kOutput, outputs_resource_size, this);
   }
-  auto& output_length_map = graph_desc_builder_->GetNamedOutputs();
-  std::vector<DML_BINDING_DESC> output_binding_desc(output_length_map.size());
+  auto& output_info_map = graph_desc_builder_->GetNamedOutputs();
+  std::vector<DML_BINDING_DESC> output_binding_desc(output_info_map.size());
   // The sort of the outputs from Graph Compute is different from the
   // outputs from Graph Build, so the offset need to be found the correct output
   // with name to read back from GPU buffer.
   base::flat_map<std::string, DML_BUFFER_BINDING> output_buffer_binding;
   // Reseve the map capacity to avoid reallocation.
-  output_buffer_binding.reserve(output_length_map.size());
+  output_buffer_binding.reserve(output_info_map.size());
   uint64_t aligned_offset = 0;
-  size_t i = 0;
-  for (auto& [name, byte_length] : output_length_map) {
+  for (auto& [name, output_info] : output_info_map) {
     DML_BUFFER_BINDING buffer_binding;
     buffer_binding.Buffer = outputs_resource;
     buffer_binding.Offset = aligned_offset;
-    buffer_binding.SizeInBytes = byte_length;
+    buffer_binding.SizeInBytes = output_info.byte_length;
     output_buffer_binding[name] = buffer_binding;
-    output_binding_desc[i] = {DML_BINDING_TYPE_BUFFER,
-                              &output_buffer_binding[name]};
-    aligned_offset += Align(byte_length, DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT);
-    ++i;
+    output_binding_desc[output_info.index] = {DML_BINDING_TYPE_BUFFER,
+                                              &output_buffer_binding[name]};
+    aligned_offset +=
+        Align(output_info.byte_length, DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT);
   }
 
   execution_context_->ExecuteGraph(this, mCompiledOperator.Get(),
@@ -1963,26 +1962,25 @@ bool GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
     outputs_resource = execution_resources->Allocate(
         ResourceType::kOutput, outputs_resource_size, this);
   }
-  auto& output_length_map = graph_desc_builder_->GetNamedOutputs();
-  std::vector<DML_BINDING_DESC> output_binding_desc(output_length_map.size());
+  auto& output_info_map = graph_desc_builder_->GetNamedOutputs();
+  std::vector<DML_BINDING_DESC> output_binding_desc(output_info_map.size());
   // The sort of the outputs from Graph Compute is different from the
   // outputs from Graph Build, so the offset need to be found the correct output
   // with name to read back from GPU buffer.
   base::flat_map<std::string, DML_BUFFER_BINDING> output_buffer_binding;
   // Reseve the map capacity to avoid reallocation.
-  output_buffer_binding.reserve(output_length_map.size());
+  output_buffer_binding.reserve(output_info_map.size());
   uint64_t aligned_offset = 0;
-  size_t i = 0;
-  for (auto& [name, byte_length] : output_length_map) {
+  for (auto& [name, output_info] : output_info_map) {
     DML_BUFFER_BINDING buffer_binding;
     buffer_binding.Buffer = outputs_resource;
     buffer_binding.Offset = aligned_offset;
-    buffer_binding.SizeInBytes = byte_length;
+    buffer_binding.SizeInBytes = output_info.byte_length;
     output_buffer_binding[name] = buffer_binding;
-    output_binding_desc[i] = {DML_BINDING_TYPE_BUFFER,
-                              &output_buffer_binding[name]};
-    aligned_offset += Align(byte_length, DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT);
-    ++i;
+    output_binding_desc[output_info.index] = {DML_BINDING_TYPE_BUFFER,
+                                              &output_buffer_binding[name]};
+    aligned_offset +=
+        Align(output_info.byte_length, DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT);
   }
 
   execution_context_->ExecuteGraph(this, mCompiledOperator.Get(),
