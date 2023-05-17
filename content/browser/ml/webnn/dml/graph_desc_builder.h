@@ -15,6 +15,11 @@
 
 namespace content::webnn {
 
+struct OutputInfo {
+  size_t index;
+  size_t byte_length;
+};
+
 class GraphDescBuilder final {
  public:
   explicit GraphDescBuilder(ComPtr<IDMLDevice> device);
@@ -31,7 +36,7 @@ class GraphDescBuilder final {
   ComPtr<IDMLCompiledOperator> Compile(DML_EXECUTION_FLAGS flags);
 
   std::vector<InputNode>& GetInputNodes();
-  std::map<std::string, size_t>& GetNamedOutputs();
+  std::map<std::string, OutputInfo>& GetNamedOutputs();
 
  private:
   struct GraphDesc {
@@ -46,12 +51,13 @@ class GraphDescBuilder final {
 
   // The inputs node include inputs for execution and constant for
   // initialization because Both of them are inputs for DirectML Graph.
+  // The input node index is same as the offset in this vector.
   std::vector<InputNode> input_nodes_;
   // The operator nodes hold a reference of IDMLOperator to be used for
   // GraphDesc.nodes
   std::vector<OperatorNode> operator_nodes_;
-  // The output name and byte length mapping.
-  std::map<std::string, size_t> named_outputs_;
+  // The output name to output index and byte length mapping.
+  std::map<std::string, OutputInfo> named_outputs_;
   GraphDesc graph_desc_;
   ComPtr<IDMLDevice> device_;
 };

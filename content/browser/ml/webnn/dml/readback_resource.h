@@ -11,6 +11,7 @@
 #include "DirectML.h"
 #include "components/ml/mojom/webnn_graph.mojom.h"
 #include "content/browser/ml/webnn/dml/gpgmm_d3d12.h"
+#include "content/browser/ml/webnn/dml/graph_desc_builder.h"
 #include "content/browser/ml/webnn/dml/utils_dml.h"
 
 namespace content::webnn {
@@ -25,7 +26,7 @@ class ReadbackResource final {
   explicit ReadbackResource(ExecutionContext* execution_context);
   ~ReadbackResource();
 
-  HRESULT InitializeResource(std::map<std::string, size_t>& named_outputs);
+  HRESULT InitializeResource(std::map<std::string, OutputInfo>& named_outputs);
   HRESULT ReadResourceFromGpu(NamedResourcesPtr& named_outputs,
                               ID3D12Resource* src_resource);
   size_t GetOutputsResourceSize() const;
