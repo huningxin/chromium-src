@@ -1255,8 +1255,9 @@ void GraphDMLImpl::AddGather(UINT64 input_index,
 
   graph_desc_builder_->Connect({input_node, indices_node}, {node});
 
-  auto node_output = graph_desc_builder_->CreateNodeOutput(
-      node, 0, std::move(output_expanded_desc));
+  TensorDesc output_origin_desc(input_tensor_desc.GetDataType(), output_dimensions);
+  auto node_output =
+      graph_desc_builder_->CreateNodeOutput(node, 0, std::move(output_origin_desc));
   node_output_map_[output_index] = std::move(node_output);
 }
 
