@@ -102,8 +102,9 @@ void GraphDescBuilder::AddOutputEdge(NodeOutput* node_output,
   output_edge.GraphOutputIndex = output_index;
   graph_desc_.output_edges.push_back(output_edge);
 
-  named_outputs_[name] =
-      node_output->GetTensorDesc().GetTotalTensorSizeInBytes();
+  named_outputs_[name] = {
+      .index = output_index,
+      .byte_length = node_output->GetTensorDesc().GetTotalTensorSizeInBytes()};
 }
 
 ComPtr<IDMLCompiledOperator> GraphDescBuilder::Compile(
@@ -171,7 +172,7 @@ std::vector<InputNode>& GraphDescBuilder::GetInputNodes() {
   return input_nodes_;
 }
 
-std::map<std::string, size_t>& GraphDescBuilder::GetNamedOutputs() {
+std::map<std::string, OutputInfo>& GraphDescBuilder::GetNamedOutputs() {
   return named_outputs_;
 }
 
