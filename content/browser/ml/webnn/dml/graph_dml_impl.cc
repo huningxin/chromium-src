@@ -1020,6 +1020,8 @@ void GraphDMLImpl::AddArgMinMax(OperatorType operator_type,
   output_dimensions[axis] = 1u;
   auto output_data_type = GetTensorDataType(output_desc->data_type);
   TensorDesc output_tensor_desc(output_data_type, output_dimensions);
+  TensorDesc original_output_tensor_desc(output_data_type,
+                                         output_desc->dimensions);
 
   // DML accepts multiple axes. So pass the single index along.
   std::array<uint32_t, 1> axes = {axis};
@@ -1051,7 +1053,7 @@ void GraphDMLImpl::AddArgMinMax(OperatorType operator_type,
   graph_desc_builder_->Connect({input_node}, {node});
 
   auto node_output = graph_desc_builder_->CreateNodeOutput(
-      node, 0, std::move(output_tensor_desc));
+      node, 0, std::move(original_output_tensor_desc));
   node_output_map_[output_index] = std::move(node_output);
 }
 
