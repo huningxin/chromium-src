@@ -606,29 +606,38 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
 
   auto* input_node = node_output_map_[input_index].get();
   auto* filter_node = node_output_map_[filter_index].get();
+  TensorDesc& input_node_tensor_desc = input_node->GetTensorDesc();
+  TensorDesc& filter_node_tensor_desc = filter_node->GetTensorDesc();
+  TensorDesc output_node_tensor_desc(
+      GetTensorDataType(output_desc->data_type), output_desc->dimensions);
 
-  auto& input_node_desc = input_node->GetTensorDesc();
-  auto input_dims = input_node_desc.GetDimensions();
-  auto filterDims = filter_node->GetTensorDesc().GetDimensions();
-  auto output_dims = output_desc->dimensions;
+  std::vector<uint32_t>& input_dims = input_node_tensor_desc.GetDimensions();
+  std::vector<uint32_t>& filterDims = filter_node_tensor_desc.GetDimensions();
+  std::vector<uint32_t>& output_dims = output_node_tensor_desc.GetDimensions();
   std::vector<uint32_t> input_nchw_dims = input_dims;
   std::vector<uint32_t> filter_nchw_dims = filterDims;
-  std::vector<uint32_t> output_nchw_dims = output_dims;
 
-  DML_TENSOR_DESC* input_tensor_desc = input_node_desc.Get();
-  TensorDesc nhwc_tensor_desc;
-  if (options->inputLayout == InputOperandLayout::kNhwc) {
-    input_nchw_dims = transposeDimensions(NhwcToNchw, input_dims);
-    output_nchw_dims = transposeDimensions(NhwcToNchw, output_dims);
-    auto input_nchw_Strides =
-        transposeStridesToNchw(input_dims, input_tensor_desc);
+  DML_TENSOR_DESC* input_tensor_desc = input_node_tensor_desc.Get();
+  DML_TENSOR_DESC* output_tensor_desc = output_node_tensor_desc.Get();
 
-    nhwc_tensor_desc =
-        TensorDesc(input_node_desc.GetDataType(), input_node_desc.GetFlags(),
-                   input_nchw_dims, input_nchw_Strides);
-    input_tensor_desc = nhwc_tensor_desc.Get();
+  TensorDesc nhwc_input_tensor_desc;
+  TensorDesc nhwc_output_tensor_desc;
+  if (options->inputLayout != InputOperandLayout::kNchw) {
+    nhwc_input_tensor_desc = input_node_tensor_desc;
+    nhwc_output_tensor_desc = output_node_tensor_desc;
+
+    std::array<uint32_t, 4> permutation =
+        getLayoutPermutationToNchw(options->inputLayout);
+    nhwc_input_tensor_desc.PermuteDimensions(permutation,
+                                             TensorDesc::Alignment::kTrailing);
+    nhwc_output_tensor_desc.PermuteDimensions(permutation,
+                                              TensorDesc::Alignment::kTrailing);
+    input_nchw_dims = nhwc_input_tensor_desc.GetDimensions();
+    input_tensor_desc = nhwc_input_tensor_desc.Get();
+    output_tensor_desc = nhwc_output_tensor_desc.Get();
   }
 
+  // convTranspose uses IOHW filter layout, where conv uses OIHW.
   Conv2dFilterOperandLayout desired_filter_layout = is_backward_direction
       ? Conv2dFilterOperandLayout::kIohw
       : Conv2dFilterOperandLayout::kOihw;
@@ -666,7 +675,7 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
           "The bias should be 1-D tensor with the shape of [output_channels].");
     }
 
-    // Reshape bias from 1-D to 4-D for NCHW layout.
+    // Reshape bias from 1-D to 4-D for NCHW layout, moving channel to axis 1.
     constexpr std::array<uint32_t, 4> aligned_channel_permutation = {0,3,0,0};
     bias_tensor_desc.PermuteDimensions(aligned_channel_permutation,
                                        TensorDesc::Alignment::kTrailing);
@@ -696,12 +705,11 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
       CreateFusedOperator(options->activation.get(), dmlActicationOperatorDesc,
                           dmlFusedOperatorDesc);
 
-  TensorDesc output_tensor(input_node_desc.GetDataType(), output_nchw_dims);
   DML_CONVOLUTION_OPERATOR_DESC operator_desc{};
   operator_desc.InputTensor = input_tensor_desc;
   operator_desc.FilterTensor = filter_tensor_desc;
   operator_desc.BiasTensor = bias_tensor_desc.Get();
-  operator_desc.OutputTensor = output_tensor.Get();
+  operator_desc.OutputTensor = output_tensor_desc;
 
   operator_desc.Mode = DML_CONVOLUTION_MODE_CROSS_CORRELATION;
   operator_desc.Direction = is_backward_direction
@@ -720,12 +728,7 @@ void GraphDMLImpl::AddConv2d(OperatorType operator_type,
       DML_OPERATOR_CONVOLUTION, &operator_desc);
   graph_desc_builder_->Connect(std::move(input_nodes), operator_node);
   auto output_node = graph_desc_builder_->CreateNodeOutput(
-      operator_node, 0, std::move(output_tensor));
-
-  // Transpose output from nchw->nhwc.
-  if (options->inputLayout == InputOperandLayout::kNhwc) {
-    TransposeOutputToNhwc(output_node, output_nchw_dims);
-  }
+      operator_node, 0, std::move(output_node_tensor_desc));
 
   EmulateFusedOperator(options->activation.get(), output_node, output_dims);
   node_output_map_[output_index] = std::move(output_node);
@@ -953,7 +956,7 @@ void GraphDMLImpl::AddSoftmax(UINT64 input_index,
   CREATE_UNARY_OPERATOR(ACTIVATION_SOFTMAX, input_tensor_desc.Get(), input_tensor_desc.Get(), node);
   graph_desc_builder_->Connect({input_node}, {node});
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type),
-                                input_tensor_desc.GetDimensions());
+                                output_desc->dimensions);
   auto node_output = graph_desc_builder_->CreateNodeOutput(
       node, 0, std::move(output_tensor_desc));
   node_output_map_[output_index] = std::move(node_output);
@@ -1241,7 +1244,8 @@ void GraphDMLImpl::AddGather(UINT64 input_index,
   // Expand all tensor ranks to match ranks (which DML validation requires).
   TensorDesc input_expanded_desc(input_tensor_desc);
   TensorDesc indices_expanded_desc(indices_tensor_desc);
-  TensorDesc output_expanded_desc(input_tensor_desc.GetDataType(), output_dimensions);
+  TensorDesc output_expanded_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
+  TensorDesc original_output_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
   input_expanded_desc.EnsureMinimumRank(maximum_rank, TensorDesc::Alignment::kTrailing);
   indices_expanded_desc.EnsureMinimumRank(maximum_rank, TensorDesc::Alignment::kTrailing);
   output_expanded_desc.EnsureMinimumRank(maximum_rank, TensorDesc::Alignment::kTrailing);
@@ -1257,9 +1261,8 @@ void GraphDMLImpl::AddGather(UINT64 input_index,
 
   graph_desc_builder_->Connect({input_node, indices_node}, {node});
 
-  TensorDesc output_origin_desc(input_tensor_desc.GetDataType(), output_dimensions);
   auto node_output =
-      graph_desc_builder_->CreateNodeOutput(node, 0, std::move(output_origin_desc));
+      graph_desc_builder_->CreateNodeOutput(node, 0, std::move(original_output_desc));
   node_output_map_[output_index] = std::move(node_output);
 }
 
@@ -1276,6 +1279,7 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
   TensorDesc bias_tensor_desc;
   auto& output_dimensions = output_desc->dimensions;
   TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
+  TensorDesc original_output_desc(input_tensor_desc.GetDataType(), output_dimensions);
 
   // DirectML expects NCHW. So permute the dimension's sizes and strides accordingly
   // if the input is anything else (e.g. NHWC).
@@ -1320,11 +1324,9 @@ void GraphDMLImpl::AddInstanceNormalization(uint64_t input_index,
   graph_desc_builder_->Connect(input_nodes, {node});
 
   auto node_output = graph_desc_builder_->CreateNodeOutput(
-      node, 0, std::move(output_tensor_desc));
+      node, 0, std::move(original_output_desc));
   node_output_map_[output_index] = std::move(node_output);
 }
-
-#pragma optimize("", off) // TODO:::DELETE
 
 void GraphDMLImpl::AddMeanVarianceNormalization(uint64_t input_index,
                                                 uint64_t scale_index,
@@ -1414,6 +1416,7 @@ void GraphDMLImpl::AddReduce(UINT64 input_index,
   NodeOutput* input_node = node_output_map_[input_index].get();
   auto& input_tensor_desc = input_node->GetTensorDesc();
   auto& input_dimensions = input_tensor_desc.GetDimensions();
+  auto& original_output_dimensions = output_desc->dimensions;
 
   // Determine output sizes. Ignore output_desc->dimensions for the dimensions,
   // since DirectML expects the output dimensions to have the same rank as the
@@ -1426,7 +1429,10 @@ void GraphDMLImpl::AddReduce(UINT64 input_index,
       output_dimensions[axis] = 1u;
   }
 
-  TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type), output_dimensions);
+  TensorDesc output_tensor_desc(GetTensorDataType(output_desc->data_type),
+                                output_dimensions);
+  TensorDesc original_output_tensor_desc(
+      GetTensorDataType(output_desc->data_type), original_output_dimensions);
 
   DML_REDUCE_OPERATOR_DESC operator_desc = {};
   operator_desc.Function = MapOperatorTypeToReductionFuntion(operator_type);
@@ -1440,7 +1446,7 @@ void GraphDMLImpl::AddReduce(UINT64 input_index,
 
   graph_desc_builder_->Connect({input_node}, {node});
   auto node_output = graph_desc_builder_->CreateNodeOutput(
-      node, 0, std::move(output_tensor_desc));
+      node, 0, std::move(original_output_tensor_desc));
   node_output_map_[output_index] = std::move(node_output);
 }
 
