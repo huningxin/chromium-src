@@ -187,7 +187,10 @@ bool ValidateAxesMask(base::span<const uint32_t> axes,
   uint32_t current_mask = 0x00000000;
   axes_mask = current_mask;
 
-  const uint32_t maximum_rank = 32; // Only have 32 bits available.
+  // Use up to 32 bits. Although the WebNN spec does not give a limit,
+  // leaving it up to the implementations, 32 is a good practical limit,
+  // and other libraries often support less.
+  const uint32_t maximum_rank = 32;
 
   for (auto axis : axes)
   {
@@ -201,7 +204,15 @@ bool ValidateAxesMask(base::span<const uint32_t> axes,
                 axis, maximum_rank));
       return false;
     }
-    current_mask |= 1 << axis;
+    uint32_t single_axis_mask = 1 << axis;
+    if (single_axis_mask & current_mask) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kDataError,
+          String::Format("%s axis (%u) appears more than once.", operator_name,
+                         axis));
+      return false;
+    }
+    current_mask |= single_axis_mask;
   }
   axes_mask = current_mask;
   return true;
@@ -2867,13 +2878,22 @@ MLOperand* MLGraphBuilder::unsqueeze(
   const wtf_size_t input_rank = input_dimensions.size();
 
   // Verify all axes are within bounds and not duplicated.
+  // Axes are allowed in any order, but insertion wants them in ascending
+  // order. So rearrange them.
   Vector<uint32_t> ordered_axes = options->getAxesOr({});
-  if (!ValidateAxes(ordered_axes, input_rank + ordered_axes.size(), "unsqueeze", exception_state)) {
-      return nullptr;
-  }
-
-  // Axes are allowed in any order, but insertion wants them in ascending order.
   std::sort(ordered_axes.begin(), ordered_axes.end());
+
+  uint32_t axes_mask = 0x00000000; // Insert no axes by default, if none passed.
+  if (!ValidateAxes(ordered_axes, input_rank + ordered_axes.size(), "unsqueeze",
+                    exception_state)) {
+    return nullptr;
+  }
+  if (!ValidateAxesMask(options->axes(),
+                        "unsqueeze",
+                        exception_state,
+                        /*out*/ axes_mask)) {
+    return nullptr;
+  }
 
   // Insert dimensions of size 1 into the output.
   Vector<uint32_t> output_dimensions = input_dimensions;
