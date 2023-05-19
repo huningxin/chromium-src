@@ -1712,8 +1712,10 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
     output_shape[axes[1]] = options->sizes()[1];
 
     // Compute the scales from the new shape.
-    scales[0] = output_shape[axes[0]] / input_shape[axes[0]];
-    scales[1] = output_shape[axes[1]] / input_shape[axes[1]];
+    scales[0] =
+        static_cast<float>(output_shape[axes[0]]) / input_shape[axes[0]];
+    scales[1] =
+        static_cast<float>(output_shape[axes[1]]) / input_shape[axes[1]];
   } else {
     scales = options->getScalesOr({1.0f, 1.0f});
     if (scales.size() != 2) {
@@ -1745,6 +1747,7 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
   // Pass the normalized options onward, simplifying the lower level's job.
   // Then the axes parameter and scales consistently exist.
   MLResample2dOptions* normalized_options = MLResample2dOptions::Create();
+  normalized_options->setMode(options->mode());
   normalized_options->setAxes(axes);
   normalized_options->setScales(scales);
   // Do not set sizes, since the output shape is already set,
