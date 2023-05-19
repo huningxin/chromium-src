@@ -2082,10 +2082,14 @@ MLOperand* MLGraphBuilder::flattenTo2d(const MLOperand* input,
   const auto& input_dimensions = input->Dimensions();
   const wtf_size_t input_rank = input_dimensions.size();
 
-  if (!ValidateAxis(axis,
-                    input_rank,
-                    "flattenTo2d",
-                    exception_state)) {
+  if (axis > input_rank)
+  {
+    // Cannot call ValidateAxis() here because 'axis' ranges [0, input rank].
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        String::Format(
+            "The flattenTo2d axis (%u) must range from 0 up to the dimension count (%u).",
+            axis, input_rank));
     return nullptr;
   }
 
