@@ -1712,10 +1712,8 @@ MLOperand* MLGraphBuilder::resample2d(const MLOperand* input,
     output_shape[axes[1]] = options->sizes()[1];
 
     // Compute the scales from the new shape.
-    for (wtf_size_t i = 0; i < input_rank; ++i)
-    {
-      scales[i] = static_cast<float>(output_shape[i]) / input_shape[i];
-    }
+    scales[0] = output_shape[axes[0]] / input_shape[axes[0]];
+    scales[1] = output_shape[axes[1]] / input_shape[axes[1]];
   } else {
     scales = options->getScalesOr({1.0f, 1.0f});
     if (scales.size() != 2) {
