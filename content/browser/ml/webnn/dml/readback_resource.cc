@@ -54,30 +54,25 @@ HRESULT ReadbackResource::ReadResourceFromGpu(NamedResourcesPtr& named_outputs,
   execution_context_->WaitForSignal();
   execution_context_->ReleaseCompletedResources();
 
-  D3D12_RANGE tensorBufferRange{0, outputs_resource_size_};
-  int8_t* readBackBuffer;
+  D3D12_RANGE read_range{0, outputs_resource_size_};
+  int8_t* readback_buffer;
   HRESULT hr = readback_resource_->Map(
-      0, &tensorBufferRange, reinterpret_cast<void**>(&readBackBuffer));
+      0, &read_range, reinterpret_cast<void**>(&readback_buffer));
   if (FAILED(hr)) {
     return hr;
   }
+  uint8_t* address = outputs_shm_region_.mapping.GetMemoryAs<uint8_t>();
+  memcpy(address, readback_buffer, outputs_resource_size_);
+  readback_resource_->Unmap(0, nullptr);
 
   for (auto& [name, memory_info] : outputs_info_map_) {
     auto mojo_memory_info = ml::webnn::mojom::MemoryInfo::New();
-    size_t byte_offset = memory_info.byte_offset;
-    size_t byte_length = memory_info.byte_length;
-    mojo_memory_info->byte_offset = byte_offset;
-    mojo_memory_info->byte_length = byte_length;
+    mojo_memory_info->byte_offset = memory_info.byte_offset;
+    mojo_memory_info->byte_length = memory_info.byte_length;
     named_outputs->resources[name] = std::move(mojo_memory_info);
-
-    std::vector<uint8_t> output_buffer(byte_length);
-    uint8_t* address =
-        outputs_shm_region_.mapping.GetMemoryAs<uint8_t>() + byte_offset;
-    memcpy(address, readBackBuffer + byte_offset, byte_length);
   }
   named_outputs->shared_memory = outputs_shm_region_.region.Duplicate();
 
-  readback_resource_->Unmap(0, nullptr);
   return S_OK;
 }
 

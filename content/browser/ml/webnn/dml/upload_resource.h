@@ -35,6 +35,7 @@ class UploadResource final {
 
   ExecutionContext* execution_context_;
   ComPtr<gpgmm::d3d12::ResourceAllocation> upload_resource_;
+  base::ReadOnlySharedMemoryMapping shm_mapping_;
 };
 
 }  // namespace content::webnn

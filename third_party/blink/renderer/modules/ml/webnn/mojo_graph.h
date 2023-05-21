@@ -66,6 +66,7 @@ class MojoGraph : public MLGraph {
   // The map of input name and input data offset.
   HashMap<String, size_t> inputs_byte_offset_;
   base::MappedReadOnlyRegion inputs_shm_region_;
+  base::ReadOnlySharedMemoryMapping outputs_shm_mapping_;
 
   HeapMojoRemote<ml::webnn::mojom::blink::Graph> remote_graph_;
 };

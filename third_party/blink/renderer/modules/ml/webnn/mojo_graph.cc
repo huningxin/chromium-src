@@ -318,6 +318,9 @@ void MojoGraph::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
   };
   {
     TRACE_EVENT0("blink", "MojoGraph::ComputeSyncImpl::CopyOutputs");
+    if (!outputs_shm_mapping_.IsValid()) {
+      outputs_shm_mapping_ = named_outputs->shared_memory.Map();
+    }
     for (const auto& output : outputs) {
       String error_message;
       void* output_buffer_address = output.second->BaseAddressMaybeShared();
@@ -334,14 +337,11 @@ void MojoGraph::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
         return;
       }
       MemoryInfoPtr memory_info = std::move(iter->value);
-      base::ReadOnlySharedMemoryRegion& shared_memory_region =
-          named_outputs->shared_memory;
-      DCHECK(shared_memory_region.IsValid());
+      size_t byte_offset = base::checked_cast<size_t>(memory_info->byte_offset);
       size_t byte_length = base::checked_cast<size_t>(memory_info->byte_length);
-      base::ReadOnlySharedMemoryMapping shared_memory_mapping =
-          shared_memory_region.MapAt(memory_info->byte_offset, byte_length);
       memcpy(output_buffer_address,
-             shared_memory_mapping.GetMemoryAs<uint8_t>(), byte_length);
+             outputs_shm_mapping_.GetMemoryAs<uint8_t>() + byte_offset,
+             byte_length);
     }
   }
 }

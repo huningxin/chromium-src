@@ -16,13 +16,12 @@ namespace {
 
 using ml::webnn::mojom::MemoryInfoPtr;
 
-template <typename T>
 HRESULT UploadResourceToGpu(
     ExecutionContext* execution_context,
     ID3D12Resource* dst_resource,
     ID3D12Resource* src_resource,
-    base::ReadOnlySharedMemoryRegion& shared_memory_region,
-    T& named_inputs) {
+    base::ReadOnlySharedMemoryMapping& shared_memory_mapping,
+    size_t byte_length) {
   // Map the upload heap and copy the source data into it. A null pointer
   // indicates the entire subresource might be read by the CPU.
   void* upload_data = nullptr;
@@ -30,22 +29,12 @@ HRESULT UploadResourceToGpu(
   if (FAILED(hr)) {
     return hr;
   }
-
-  for (auto& [_, memory_info] : named_inputs) {
-    uint64_t byte_length = memory_info->byte_length;
-    uint64_t byte_offset = memory_info->byte_offset;
-    DCHECK(byte_offset % DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT == 0);
-    DCHECK(shared_memory_region.IsValid());
-    base::ReadOnlySharedMemoryMapping shared_memory_mapping =
-        shared_memory_region.MapAt(memory_info->byte_offset, byte_length);
-    memcpy(static_cast<byte*>(upload_data) + memory_info->byte_offset,
-           shared_memory_mapping.GetMemoryAs<uint8_t>(), byte_length);
-  }
+  memcpy(static_cast<byte*>(upload_data),
+         shared_memory_mapping.GetMemoryAs<uint8_t>(), byte_length);
   src_resource->Unmap(0, nullptr);
 
   // Copy from the upload heap into the destination resource
-  execution_context->CopyBufferRegion(dst_resource, src_resource,
-                                      shared_memory_region.GetSize(),
+  execution_context->CopyBufferRegion(dst_resource, src_resource, byte_length,
                                       D3D12_RESOURCE_STATE_COPY_DEST);
 
   return S_OK;
@@ -66,6 +55,10 @@ HRESULT UploadResource::UploadConstants(ID3D12Resource* dst_resource,
   base::ReadOnlySharedMemoryRegion& shared_memory_region =
       constants_info->shared_memory;
   size_t constants_byte_length = shared_memory_region.GetSize();
+  if (!shm_mapping_.IsValid()) {
+    shm_mapping_ = shared_memory_region.Map();
+    DCHECK(shm_mapping_.IsValid());
+  }
 
   HRESULT hr = S_OK;
   if (upload_resource_ == nullptr) {
@@ -76,9 +69,9 @@ HRESULT UploadResource::UploadConstants(ID3D12Resource* dst_resource,
   }
   DCHECK(upload_resource_ != nullptr);
 
-  return UploadResourceToGpu<base::flat_map<UINT64, MemoryInfoPtr>>(
-      execution_context_, dst_resource, upload_resource_->GetResource(),
-      shared_memory_region, constants_info->memory_info);
+  return UploadResourceToGpu(execution_context_, dst_resource,
+                             upload_resource_->GetResource(), shm_mapping_,
+                             constants_byte_length);
 }
 
 HRESULT UploadResource::UploadInputs(ID3D12Resource* dst_resource,
@@ -87,6 +80,10 @@ HRESULT UploadResource::UploadInputs(ID3D12Resource* dst_resource,
   base::ReadOnlySharedMemoryRegion& shared_memory_region =
       named_inputs->shared_memory;
   size_t inputs_byte_length = shared_memory_region.GetSize();
+  if (!shm_mapping_.IsValid()) {
+    shm_mapping_ = shared_memory_region.Map();
+    DCHECK(shm_mapping_.IsValid());
+  }
 
   HRESULT hr = S_OK;
   if (upload_resource_ == nullptr) {
@@ -97,9 +94,9 @@ HRESULT UploadResource::UploadInputs(ID3D12Resource* dst_resource,
   }
   DCHECK(upload_resource_ != nullptr);
 
-  return UploadResourceToGpu<base::flat_map<std::string, MemoryInfoPtr>>(
-      execution_context_, dst_resource, upload_resource_->GetResource(),
-      shared_memory_region, named_inputs->resources);
+  return UploadResourceToGpu(execution_context_, dst_resource,
+                             upload_resource_->GetResource(), shm_mapping_,
+                             inputs_byte_length);
 }
 
 // Create entire memory for uploading resource that will be uploaded piece by
