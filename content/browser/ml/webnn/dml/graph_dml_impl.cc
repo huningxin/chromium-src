@@ -14,9 +14,6 @@
 #include "mojo/public/c/system/types.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 
-// TODO:::DELETE
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace content::webnn {
 
 namespace {

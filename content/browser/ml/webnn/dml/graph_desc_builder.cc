@@ -5,8 +5,6 @@
 #include "base/logging.h"
 #include "content/browser/ml/webnn/dml/graph_desc_builder.h"
 
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace content::webnn {
 
 GraphDescBuilder::GraphDescBuilder(ComPtr<IDMLDevice> device)

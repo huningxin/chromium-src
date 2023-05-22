@@ -8,8 +8,6 @@
 #include "base/numerics/checked_math.h"
 #include "base/containers/span.h"
 
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace content::webnn {
 
 namespace {

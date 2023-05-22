@@ -29,8 +29,6 @@
 #include "third_party/blink/renderer/platform/bindings/exception_code.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
 
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace blink {
 
 #define DCHECK_OPERATOR_INPUT_OUTPUT_COUNT(/*MLOperator* */ ml_operator,       \

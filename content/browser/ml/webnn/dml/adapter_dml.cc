@@ -4,8 +4,6 @@
 
 #include "content/browser/ml/webnn/dml/adapter_dml.h"
 
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace content::webnn {
 
 AdapterDML::AdapterDML(ComPtr<IDXGIAdapter3> hardware_adapter)

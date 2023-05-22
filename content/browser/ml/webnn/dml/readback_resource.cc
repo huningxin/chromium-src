@@ -8,8 +8,6 @@
 
 #include "content/browser/ml/webnn/dml/execution_context.h"
 
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace content::webnn {
 
 ReadbackResource::ReadbackResource(ExecutionContext* execution_context)

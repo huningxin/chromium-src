@@ -21,8 +21,6 @@
 
 #include <memory>
 
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace blink {
 
 namespace {

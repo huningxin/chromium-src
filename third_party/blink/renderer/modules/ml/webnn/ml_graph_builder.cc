@@ -47,8 +47,6 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_xnnpack.h"
 #endif
 
-#pragma optimize("", off) // TODO:::DELETE
-
 namespace blink {
 
 namespace {
