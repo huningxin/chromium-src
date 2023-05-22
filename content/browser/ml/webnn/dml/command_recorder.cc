@@ -4,6 +4,8 @@
 
 #include "content/browser/ml/webnn/dml/command_recorder.h"
 
+#include "base/trace_event/trace_event.h"
+#include "base/trace_event/typed_macros.h"
 #include "content/browser/ml/webnn/dml/adapter_dml.h"
 #include "content/browser/ml/webnn/dml/execution_resources.h"
 
@@ -65,6 +67,7 @@ HRESULT CommandRecorder::InitializeGraph(
     GraphDMLImpl* graph,
     IDMLCompiledOperator* compiled_operator,
     const DML_BINDING_DESC& input_array_binding) {
+  TRACE_EVENT0("gpu", "CommandRecorder::InitializeGraph");
   // Reset the initializer to reference the compiled operator.
   IDMLCompiledOperator* ops[] = {compiled_operator};
   HRESULT hr = operator_initializer_->Reset(ARRAYSIZE(ops), ops);
@@ -164,6 +167,7 @@ HRESULT CommandRecorder::ExecuteGraph(
     IDMLCompiledOperator* compiled_operator,
     const std::vector<DML_BINDING_DESC>& input_bindings,
     const std::vector<DML_BINDING_DESC>& output_bindings) {
+  TRACE_EVENT0("gpu", "CommandRecorder::ExecuteGraph");
   DCHECK(mBindingTable != nullptr);
   // Bind and execute the operator on the GPU.
   // Reset the binding table to bind for the operator we want to execute (it

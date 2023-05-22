@@ -6,6 +6,8 @@
 
 #include <memory>
 
+#include "base/trace_event/trace_event.h"
+#include "base/trace_event/typed_macros.h"
 #include "content/browser/ml/webnn/dml/execution_context.h"
 
 namespace content::webnn {
@@ -60,6 +62,7 @@ UploadResource::~UploadResource() = default;
 // need to transition.
 HRESULT UploadResource::UploadConstants(ID3D12Resource* dst_resource,
                                         ConstantsInfoPtr& constants_info) {
+  TRACE_EVENT0("gpu", "UploadResource::UploadConstants");
   base::ReadOnlySharedMemoryRegion& shared_memory_region =
       constants_info->shared_memory;
   size_t constants_byte_length = shared_memory_region.GetSize();
@@ -80,6 +83,7 @@ HRESULT UploadResource::UploadConstants(ID3D12Resource* dst_resource,
 
 HRESULT UploadResource::UploadInputs(ID3D12Resource* dst_resource,
                                      NamedResourcesPtr& named_inputs) {
+  TRACE_EVENT0("gpu", "UploadResource::UploadInputs");
   base::ReadOnlySharedMemoryRegion& shared_memory_region =
       named_inputs->shared_memory;
   size_t inputs_byte_length = shared_memory_region.GetSize();

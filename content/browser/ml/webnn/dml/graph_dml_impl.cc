@@ -4,9 +4,11 @@
 
 #include "content/browser/ml/webnn/dml/graph_dml_impl.h"
 
+#include "base/containers/span.h"
 #include "base/logging.h"
 #include "base/memory/ptr_util.h"
-#include "base/containers/span.h"
+#include "base/trace_event/trace_event.h"
+#include "base/trace_event/typed_macros.h"
 #include "content/browser/ml/webnn/dml/execution_context.h"
 #include "content/browser/ml/webnn/dml/execution_resources.h"
 #include "content/browser/ml/webnn/dml/graph_dml_impl.h"
@@ -1855,6 +1857,7 @@ bool GraphDMLImpl::Build(ModelInfoPtr model_info, BuildResult* out_result) {
 
 void GraphDMLImpl::Compute(NamedResourcesPtr named_inputs,
                            ComputeCallback callback) {
+  TRACE_EVENT0("gpu", "GraphDMLImpl::Compute");
   ExecutionResources* execution_resources =
       execution_context_->GetExecutionResources();
   ID3D12Resource* inputs_resource =

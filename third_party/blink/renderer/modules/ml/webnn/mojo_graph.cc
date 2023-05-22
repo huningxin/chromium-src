@@ -4,6 +4,8 @@
 
 #include "third_party/blink/renderer/modules/ml/webnn/mojo_graph.h"
 
+#include "base/trace_event/trace_event.h"
+#include "base/trace_event/typed_macros.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_tensor.h"
@@ -277,6 +279,7 @@ void MojoGraph::ComputeAsyncImpl(const MLNamedArrayBufferViews& inputs,
 void MojoGraph::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
                                 const MLNamedArrayBufferViews& outputs,
                                 ExceptionState& exception_state) {
+  TRACE_EVENT0("blink", "MojoGraph::ComputeSyncImpl");
   if (inputs.size() != input_resources_info_.size()) {
     exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
                                       "The number of inputs is invalid.");
@@ -284,24 +287,28 @@ void MojoGraph::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
   }
   auto named_inputs = ml::webnn::mojom::blink::NamedResources::New(),
        named_outputs = ml::webnn::mojom::blink::NamedResources::New();
-  for (const auto& input : inputs) {
-    String error_message;
-    auto* input_array_buffer_view = input.second.Get();
-    if (input_array_buffer_view == nullptr) {
-      exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
-                                        error_message);
+  {
+    TRACE_EVENT0("blink", "MojoGraph::ComputeSyncImpl::CopyInputs");
+    for (const auto& input : inputs) {
+      String error_message;
+      auto* input_array_buffer_view = input.second.Get();
+      if (input_array_buffer_view == nullptr) {
+        exception_state.ThrowDOMException(DOMExceptionCode::kDataError,
+                                          error_message);
+      }
+      const String& input_name = input.first;
+      auto memory_info = ml::webnn::mojom::blink::MemoryInfo::New();
+      memory_info->byte_offset = inputs_byte_offset_.at(input_name);
+      memory_info->byte_length =
+          input_resources_info_.at(input_name).byte_length;
+      uint8_t* address = inputs_shm_region_.mapping.GetMemoryAs<uint8_t>() +
+                         memory_info->byte_offset;
+      memcpy(address, input_array_buffer_view->BaseAddressMaybeShared(),
+             input_array_buffer_view->byteLength());
+      named_inputs->resources.insert(input_name, std::move(memory_info));
     }
-    const String& input_name = input.first;
-    auto memory_info = ml::webnn::mojom::blink::MemoryInfo::New();
-    memory_info->byte_offset = inputs_byte_offset_.at(input_name);
-    memory_info->byte_length = input_resources_info_.at(input_name).byte_length;
-    uint8_t* address = inputs_shm_region_.mapping.GetMemoryAs<uint8_t>() +
-                       memory_info->byte_offset;
-    memcpy(address, input_array_buffer_view->BaseAddressMaybeShared(),
-           input_array_buffer_view->byteLength());
-    named_inputs->resources.insert(input_name, std::move(memory_info));
+    named_inputs->shared_memory = inputs_shm_region_.region.Duplicate();
   }
-  named_inputs->shared_memory = inputs_shm_region_.region.Duplicate();
   ComputeResult result;
   if (!remote_graph_->Compute(std::move(named_inputs), &result,
                               &named_outputs)) {
@@ -309,29 +316,33 @@ void MojoGraph::ComputeSyncImpl(const MLNamedArrayBufferViews& inputs,
                                       "Failed to compute the graph.");
     return;
   };
-  for (const auto& output : outputs) {
-    String error_message;
-    void* output_buffer_address = output.second->BaseAddressMaybeShared();
-    if (output_buffer_address == nullptr) {
-      exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                        error_message);
-      return;
+  {
+    TRACE_EVENT0("blink", "MojoGraph::ComputeSyncImpl::CopyOutputs");
+    for (const auto& output : outputs) {
+      String error_message;
+      void* output_buffer_address = output.second->BaseAddressMaybeShared();
+      if (output_buffer_address == nullptr) {
+        exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
+                                          error_message);
+        return;
+      }
+      auto iter = named_outputs->resources.find(output.first);
+      if (iter == named_outputs->resources.end()) {
+        exception_state.ThrowDOMException(
+            DOMExceptionCode::kOperationError,
+            "Failed to get result for the output.");
+        return;
+      }
+      MemoryInfoPtr memory_info = std::move(iter->value);
+      base::ReadOnlySharedMemoryRegion& shared_memory_region =
+          named_outputs->shared_memory;
+      DCHECK(shared_memory_region.IsValid());
+      size_t byte_length = base::checked_cast<size_t>(memory_info->byte_length);
+      base::ReadOnlySharedMemoryMapping shared_memory_mapping =
+          shared_memory_region.MapAt(memory_info->byte_offset, byte_length);
+      memcpy(output_buffer_address,
+             shared_memory_mapping.GetMemoryAs<uint8_t>(), byte_length);
     }
-    auto iter = named_outputs->resources.find(output.first);
-    if (iter == named_outputs->resources.end()) {
-      exception_state.ThrowDOMException(DOMExceptionCode::kOperationError,
-                                        "Failed to get result for the output.");
-      return;
-    }
-    MemoryInfoPtr memory_info = std::move(iter->value);
-    base::ReadOnlySharedMemoryRegion& shared_memory_region =
-        named_outputs->shared_memory;
-    DCHECK(shared_memory_region.IsValid());
-    size_t byte_length = base::checked_cast<size_t>(memory_info->byte_length);
-    base::ReadOnlySharedMemoryMapping shared_memory_mapping =
-        shared_memory_region.MapAt(memory_info->byte_offset, byte_length);
-    memcpy(output_buffer_address, shared_memory_mapping.GetMemoryAs<uint8_t>(),
-           byte_length);
   }
 }
 

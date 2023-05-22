@@ -6,6 +6,8 @@
 
 #include <memory>
 
+#include "base/trace_event/trace_event.h"
+#include "base/trace_event/typed_macros.h"
 #include "content/browser/ml/webnn/dml/execution_context.h"
 
 namespace content::webnn {
@@ -42,6 +44,7 @@ HRESULT ReadbackResource::InitializeResource(
 // Readback inference result from GPU that is stored in named_outputs.
 HRESULT ReadbackResource::ReadResourceFromGpu(NamedResourcesPtr& named_outputs,
                                               ID3D12Resource* src_resource) {
+  TRACE_EVENT0("gpu", "ReadbackResource::ReadResourceFromGpu");
   // Copy buffer from GPU resource to CPU data.
   execution_context_->CopyBufferRegion(readback_resource_->GetResource(),
                                        src_resource, outputs_resource_size_,
