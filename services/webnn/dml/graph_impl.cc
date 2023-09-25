@@ -13,6 +13,8 @@
 #include "base/numerics/safe_conversions.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/task/thread_pool.h"
+#include "base/trace_event/trace_event.h"
+#include "base/trace_event/typed_macros.h"
 #include "base/types/expected.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "services/webnn/dml/command_queue.h"
@@ -137,7 +139,9 @@ CalculateAlignedByteLength(const Map& buffer_to_byte_length_map) {
 template <typename Key>
 absl::optional<std::map<Key, DML_BUFFER_BINDING>> UploadAndCreateBufferBinding(
     CommandRecorder* command_recorder,
-    const base::flat_map<Key, mojo_base::BigBuffer>& key_to_buffer_map) {
+    const base::flat_map<Key, mojo_base::BigBuffer>& key_to_buffer_map,
+    ComPtr<ID3D12Resource>& upload_buffer,
+    ComPtr<ID3D12Resource>& default_buffer) {
   // Copy all array buffers of constants/inputs to an upload heap and create a
   // committed resource which is mapped to the heap.
   //
@@ -158,23 +162,26 @@ absl::optional<std::map<Key, DML_BUFFER_BINDING>> UploadAndCreateBufferBinding(
   // Create the upload heap that can be written by CPU and read from GPU,
   // and create a resource to map the heap.
   size_t total_byte_length = aligned_byte_length.value().total_byte_length;
-  ComPtr<ID3D12Resource> upload_buffer;
-  HRESULT hr = command_recorder->CreateUploadBuffer(
-      total_byte_length, L"WebNN_Upload_Buffer", upload_buffer);
-  if (FAILED(hr)) {
-    DLOG(ERROR) << "Failed to create upload buffer for inputs: "
-                << logging::SystemErrorCodeToString(hr);
-    return absl::nullopt;
+  HRESULT hr;
+  if (!upload_buffer) {
+    hr = command_recorder->CreateUploadBuffer(
+        total_byte_length, L"WebNN_Upload_Buffer", upload_buffer);
+    if (FAILED(hr)) {
+      DLOG(ERROR) << "Failed to create upload buffer for inputs: "
+                  << logging::SystemErrorCodeToString(hr);
+      return absl::nullopt;
+    }
   }
   // Create the default heap that only can be accessed by GPU not provide CPU
   // access, and create a resource to map the heap.
-  ComPtr<ID3D12Resource> default_buffer;
-  hr = command_recorder->CreateDefaultBuffer(
-      total_byte_length, L"WebNN_Default_Input_Buffer", default_buffer);
-  if (FAILED(hr)) {
-    DLOG(ERROR) << "Failed to create default buffer for inputs: "
-                << logging::SystemErrorCodeToString(hr);
-    return absl::nullopt;
+  if (!default_buffer) {
+    hr = command_recorder->CreateDefaultBuffer(
+        total_byte_length, L"WebNN_Default_Input_Buffer", default_buffer);
+    if (FAILED(hr)) {
+      DLOG(ERROR) << "Failed to create default buffer for inputs: "
+                  << logging::SystemErrorCodeToString(hr);
+      return absl::nullopt;
+    }
   }
 
   // Map entire resource to copy the array buffer of constant/input one by one
@@ -203,8 +210,8 @@ absl::optional<std::map<Key, DML_BUFFER_BINDING>> UploadAndCreateBufferBinding(
   }
   upload_buffer->Unmap(0, nullptr);
 
-  UploadBufferWithBarrier(command_recorder, std::move(default_buffer),
-                          std::move(upload_buffer), total_byte_length);
+  UploadBufferWithBarrier(command_recorder, default_buffer, upload_buffer,
+                          total_byte_length);
 
   return key_to_buffer_binding_map;
 }
@@ -909,6 +916,7 @@ GraphImpl::~GraphImpl() = default;
 
 ComPtr<IDMLCompiledOperator> GraphImpl::CompileOnBackgroundThread(
     GraphBuilder graph_builder) {
+  TRACE_EVENT0("gpu", "GraphImpl::CompileOnBackgroundThread");
   return graph_builder.Compile(DML_EXECUTION_FLAG_NONE);
 }
 
@@ -921,6 +929,7 @@ void GraphImpl::OnCompilationComplete(
     GraphBufferBindingInfo graph_buffer_binding_info,
     ComputeResourceInfo compute_resource_info,
     ComPtr<IDMLCompiledOperator> compiled_operator) {
+  TRACE_EVENT0("gpu", "GraphImpl::OnCompilationComplete");
   if (!compiled_operator) {
     DLOG(ERROR) << "Failed to compile the graph.";
     std::move(callback).Run(ToError<mojom::CreateGraphResult>(
@@ -954,8 +963,11 @@ void GraphImpl::OnCompilationComplete(
       graph_buffer_binding_info.input_buffer_binding_count,
       DML_BUFFER_BINDING{.Buffer = nullptr, .Offset = 0, .SizeInBytes = 0});
   if (!constant_id_to_buffer_map.empty()) {
+    ComPtr<ID3D12Resource> upload_buffer;
+    ComPtr<ID3D12Resource> default_input_buffer;
     auto constant_buffer_binding = UploadAndCreateBufferBinding<uint64_t>(
-        command_recorder.get(), constant_id_to_buffer_map);
+        command_recorder.get(), constant_id_to_buffer_map, upload_buffer,
+        default_input_buffer);
     if (!constant_buffer_binding) {
       DLOG(ERROR) << "Failed to upload constant weight data.";
       std::move(callback).Run(ToError<mojom::CreateGraphResult>(
@@ -1054,6 +1066,7 @@ void GraphImpl::OnInitializationComplete(
     GraphBufferBindingInfo graph_buffer_binding_info,
     mojom::WebNNContext::CreateGraphCallback callback,
     HRESULT hr) {
+  TRACE_EVENT0("gpu", "GraphImpl::OnInitializationComplete");
   if (FAILED(hr)) {
     DLOG(ERROR) << "Failed to wait for the initialization to complete: "
                 << logging::SystemErrorCodeToString(hr);
@@ -1085,6 +1098,7 @@ void GraphImpl::CreateAndBuild(
     ComPtr<IDMLDevice> dml_device,
     const mojom::GraphInfoPtr& graph_info,
     mojom::WebNNContext::CreateGraphCallback callback) {
+  TRACE_EVENT0("gpu", "GraphImpl::CreateAndBuild");
   // `CommandRecorder` would keep reference of command queue and DML device.
   std::unique_ptr<CommandRecorder> command_recorder =
       CommandRecorder::Create(command_queue, dml_device);
@@ -1269,6 +1283,7 @@ void GraphImpl::HandleComputationFailure(
 void GraphImpl::ComputeImpl(
     base::flat_map<std::string, mojo_base::BigBuffer> named_inputs,
     mojom::WebNNGraph::ComputeCallback callback) {
+  TRACE_EVENT0("gpu", "GraphImpl::ComputeImpl");
   // Recreate the command recorder if it has been released by last failed
   // computation.
   if (!command_recorder_) {
@@ -1289,7 +1304,8 @@ void GraphImpl::ComputeImpl(
 
   // Create the input resource binding for graph execution.
   auto input_buffer_binding = UploadAndCreateBufferBinding<std::string>(
-      command_recorder_.get(), named_inputs);
+      command_recorder_.get(), named_inputs, upload_buffer_,
+      default_input_buffer_);
   if (!input_buffer_binding) {
     HandleComputationFailure(
         "Failed to upload and create the input buffer binding.",
@@ -1332,25 +1348,27 @@ void GraphImpl::ComputeImpl(
   // Create the output buffer which will be bound for the graph execution.
   size_t total_byte_length_of_outputs =
       aligned_byte_length_of_outputs.value().total_byte_length;
-  ComPtr<ID3D12Resource> default_output_buffer;
-  hr = command_recorder_->CreateDefaultBuffer(total_byte_length_of_outputs,
-                                              L"WebNN_Default_Output_Buffer",
-                                              default_output_buffer);
-  if (FAILED(hr)) {
-    HandleComputationFailure("Failed to create the default output buffer.", hr,
-                             std::move(callback));
-    return;
+  if (!default_output_buffer_) {
+    hr = command_recorder_->CreateDefaultBuffer(total_byte_length_of_outputs,
+                                                L"WebNN_Default_Output_Buffer",
+                                                default_output_buffer_);
+    if (FAILED(hr)) {
+      HandleComputationFailure("Failed to create the default output buffer.",
+                               hr, std::move(callback));
+      return;
+    }
   }
 
   // Create the readback buffer which will be read by CPU.
-  ComPtr<ID3D12Resource> readback_output_buffer;
-  hr = command_recorder_->CreateReadbackBuffer(total_byte_length_of_outputs,
-                                               L"WebNN_Readback_Output_Buffer",
-                                               readback_output_buffer);
-  if (FAILED(hr)) {
-    HandleComputationFailure("Failed to create the readback output buffer.", hr,
-                             std::move(callback));
-    return;
+  if (!readback_output_buffer_) {
+    hr = command_recorder_->CreateReadbackBuffer(
+        total_byte_length_of_outputs, L"WebNN_Readback_Output_Buffer",
+        readback_output_buffer_);
+    if (FAILED(hr)) {
+      HandleComputationFailure("Failed to create the readback output buffer.",
+                               hr, std::move(callback));
+      return;
+    }
   }
 
   // Create the output buffer bindings for the graph execution.
@@ -1368,7 +1386,7 @@ void GraphImpl::ComputeImpl(
        graph_buffer_binding_info_.graph_output_name_to_index_map) {
     auto& d3d12_range = graph_output_name_to_d3d12_range_map[name];
     output_buffer_binding.push_back(
-        DML_BUFFER_BINDING{.Buffer = default_output_buffer.Get(),
+        DML_BUFFER_BINDING{.Buffer = default_output_buffer_.Get(),
                            .Offset = d3d12_range.Begin,
                            .SizeInBytes = d3d12_range.End - d3d12_range.Begin});
     output_buffer_binding_desc[graph_output_index] = {
@@ -1387,14 +1405,14 @@ void GraphImpl::ComputeImpl(
 
   // Copy the output data from output buffer to readback buffer.
   D3D12_RESOURCE_BARRIER barriers[1];
-  barriers[0] = CreateTransitionBarrier(default_output_buffer.Get(),
+  barriers[0] = CreateTransitionBarrier(default_output_buffer_.Get(),
                                         D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
                                         D3D12_RESOURCE_STATE_COPY_SOURCE);
   command_recorder_->ResourceBarrier(barriers);
-  command_recorder_->CopyBufferRegion(readback_output_buffer.Get(), 0,
-                                      default_output_buffer.Get(), 0,
+  command_recorder_->CopyBufferRegion(readback_output_buffer_.Get(), 0,
+                                      default_output_buffer_.Get(), 0,
                                       total_byte_length_of_outputs);
-  barriers[0] = CreateTransitionBarrier(default_output_buffer.Get(),
+  barriers[0] = CreateTransitionBarrier(default_output_buffer_.Get(),
                                         D3D12_RESOURCE_STATE_COPY_SOURCE,
                                         D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
   command_recorder_->ResourceBarrier(barriers);
@@ -1408,7 +1426,7 @@ void GraphImpl::ComputeImpl(
 
   command_queue_->WaitAsync(base::BindOnce(
       &GraphImpl::OnComputationComplete, weak_factory_.GetWeakPtr(),
-      std::move(callback), std::move(readback_output_buffer),
+      std::move(callback), readback_output_buffer_,
       std::move(graph_output_name_to_d3d12_range_map)));
 }
 
@@ -1417,6 +1435,7 @@ void GraphImpl::OnComputationComplete(
     ComPtr<ID3D12Resource> readback_output_buffer,
     std::map<std::string, D3D12_RANGE> graph_output_name_to_d3d12_range_map,
     HRESULT hr) {
+  TRACE_EVENT0("gpu", "GraphImpl::OnComputationComplete");
   if (FAILED(hr)) {
     HandleComputationFailure("Failed to wait for the computation to complete.",
                              hr, std::move(callback));

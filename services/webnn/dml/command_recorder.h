@@ -160,6 +160,9 @@ class CommandRecorder final {
   // these resources would be kept alive until the command queue has completed
   // the execution of these commands on GPU.
   std::vector<ComPtr<IUnknown>> command_resources_;
+
+  ComPtr<ID3D12DescriptorHeap> descriptor_heap_;
+  ComPtr<ID3D12Resource> temp_resource_;
 };
 
 }  // namespace webnn::dml

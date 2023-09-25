@@ -175,6 +175,14 @@ class GraphImpl final : public WebNNGraphImpl {
   // executed on GPU.
   Microsoft::WRL::ComPtr<IDMLCompiledOperator> compiled_operator_;
   GraphBufferBindingInfo graph_buffer_binding_info_;
+
+  Microsoft::WRL::ComPtr<ID3D12Resource> upload_buffer_;
+  Microsoft::WRL::ComPtr<ID3D12Resource> default_input_buffer_;
+  absl::optional<std::map<std::string, DML_BUFFER_BINDING>>
+      input_buffer_binding_;
+  Microsoft::WRL::ComPtr<ID3D12Resource> default_output_buffer_;
+  Microsoft::WRL::ComPtr<ID3D12Resource> readback_output_buffer_;
+
   base::WeakPtrFactory<GraphImpl> weak_factory_{this};
 };
 
