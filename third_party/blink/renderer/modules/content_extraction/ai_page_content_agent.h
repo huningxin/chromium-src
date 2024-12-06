@@ -18,6 +18,7 @@ namespace blink {
 class Document;
 class LayoutObject;
 class LocalFrame;
+class LayoutIFrame;
 
 // AIPageContent is responsible for handling requests for inner-text. It calls
 // to InnerTextBuilder to handle building of the text.
@@ -50,12 +51,15 @@ class MODULES_EXPORT AIPageContentAgent final
   void Bind(mojo::PendingReceiver<mojom::blink::AIPageContentAgent> receiver);
 
   void ProcessNode(const LayoutObject& object,
-                   mojom::blink::AIPageContentNode& content_node) const;
+                   mojom::blink::AIPageContentNode& content_node,
+                   const ComputedStyle& document_style) const;
+  void ProcessIframe(const LayoutIFrame& object,
+                     mojom::blink::AIPageContentNode& content_node) const;
   mojom::blink::AIPageContentNodePtr MaybeGenerateContentNode(
       const LayoutObject& object) const;
-  void MaybeAddNodeContent(
-      const LayoutObject& object,
-      mojom::blink::AIPageContentAttributes& attributes) const;
+  void MaybeAddNodeContent(const LayoutObject& object,
+                           mojom::blink::AIPageContentAttributes& attributes,
+                           const ComputedStyle& document_style) const;
   void AddNodeId(const LayoutObject& object,
                  mojom::blink::AIPageContentAttributes& attributes) const;
   void AddNodeGeometry(const LayoutObject& object,

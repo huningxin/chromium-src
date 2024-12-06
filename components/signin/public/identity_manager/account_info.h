@@ -12,14 +12,12 @@
 #include "components/signin/public/identity_manager/account_capabilities.h"
 #include "components/signin/public/identity_manager/tribool.h"
 #include "google_apis/gaia/core_account_id.h"
+#include "google_apis/gaia/gaia_id.h"
 #include "ui/gfx/image/image.h"
 
 #if BUILDFLAG(IS_ANDROID)
 #include "base/android/scoped_java_ref.h"
 #endif
-
-// Value representing no hosted domain associated with an account.
-extern const char kNoHostedDomainFound[];
 
 // Value representing no picture URL associated with an account.
 extern const char kNoPictureURLFound[];
@@ -38,7 +36,7 @@ struct CoreAccountInfo {
   CoreAccountInfo& operator=(CoreAccountInfo&& other) noexcept;
 
   CoreAccountId account_id;
-  std::string gaia;
+  GaiaId gaia;
 
   // Displaying the `email` in display fields (e.g. Android View) can be
   // restricted. Please verify displayability using

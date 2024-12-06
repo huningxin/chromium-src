@@ -457,7 +457,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Media.Android.MediaPlayerSuccess" enum="MediaPlayerExitStatus"
-    expires_after="2025-03-30">
+    expires_after="2025-06-01">
   <owner>tguilbert@chromium.org</owner>
   <owner>media-dev-uma@chromium.org</owner>
   <summary>Android: Whether MediaPlayer exited without errors.</summary>
@@ -1343,7 +1343,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Media.Audio.{Type}.Glitches2" units="glitches"
-    expires_after="2025-03-23">
+    expires_after="2025-06-01">
   <owner>olka@chromium.org</owner>
   <owner>saza@chromium.org</owner>
   <owner>webrtc-audio-uma@google.com</owner>
@@ -3858,6 +3858,15 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Media.HLS.InitializationError" enum="HlsDemuxerStatus"
+    expires_after="2025-03-23">
+  <owner>tmathmeyer@chromium.org</owner>
+  <owner>media-dev-uma@chromium.org</owner>
+  <summary>
+    Logs any error which occurs during initialization of the hls demuxer.
+  </summary>
+</histogram>
+
 <histogram name="Media.HLS.InvalidRenditions" units="count"
     expires_after="2024-12-31">
   <owner>tmathmeyer@chromium.org</owner>
@@ -3887,6 +3896,26 @@ chromium-metrics-reviews@google.com.
   <summary>
     Logs whether HLS playback uses a multivariant (as opposed to plain media)
     playlist. Recorded once per player.
+  </summary>
+</histogram>
+
+<histogram name="Media.HLS.ParserError" units="sparse"
+    expires_after="2025-03-23">
+  <owner>tmathmeyer@chromium.org</owner>
+  <owner>media-dev-uma@chromium.org</owner>
+  <summary>
+    Logs any error which is caused by manifest parsing during either demuxer
+    initialization or mid-playback.
+  </summary>
+</histogram>
+
+<histogram name="Media.HLS.PlaybackError" enum="HlsDemuxerStatus"
+    expires_after="2025-03-23">
+  <owner>tmathmeyer@chromium.org</owner>
+  <owner>media-dev-uma@chromium.org</owner>
+  <summary>
+    Logs any error which occurs during playback but NOT during initialization of
+    the hls demuxer.
   </summary>
 </histogram>
 
@@ -4015,7 +4044,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Media.MediaDevices.EnumerateDevices.Latency" units="ms"
-    expires_after="2025-03-30">
+    expires_after="2025-06-01">
   <owner>toprice@chromium.org</owner>
   <owner>agpalak@chromium.org</owner>
   <summary>
@@ -4027,7 +4056,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Media.MediaDevices.EnumerateDevices.Result"
-    enum="EnumerateDevicesResult" expires_after="2025-03-30">
+    enum="EnumerateDevicesResult" expires_after="2025-06-01">
   <owner>toprice@chromium.org</owner>
   <owner>agpalak@chromium.org</owner>
   <summary>
@@ -4097,7 +4126,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Media.MediaDevices.GetUserMedia.Latency" units="ms"
-    expires_after="2025-03-30">
+    expires_after="2025-06-01">
   <owner>toprice@chromium.org</owner>
   <owner>agpalak@chromium.org</owner>
   <owner>video-cmi-apis@google.com</owner>
@@ -4493,6 +4522,21 @@ chromium-metrics-reviews@google.com.
   <summary>
     Heuristically detects if the user has muted the microphone or not. Measured
     approximately four times per minute while an audio input stream is active.
+  </summary>
+</histogram>
+
+<histogram name="Media.Midi.BackendType" enum="MidiBackendType"
+    expires_after="2025-06-01">
+  <owner>toyoshim@chromium.org</owner>
+  <owner>mjwilson@chromium.org</owner>
+  <owner>src/third_party/blink/renderer/modules/webaudio/OWNERS</owner>
+  <summary>
+    Reports the MidiManager backend type. This metric is recorded only on
+    Android to understand how many users still depend on the USB MIDI backend
+    that was originally used on pre-M Android devices, but potentially has been
+    used on M+ devices as the Android MIDI API support is optional, and vendors
+    can decide not to support the API. Emitted everytime a manager is created to
+    know the actual usages rather than supporting device ratio.
   </summary>
 </histogram>
 
@@ -5887,7 +5931,7 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="Media.Video.Roughness" units="ms" expires_after="2025-03-30">
+<histogram name="Media.Video.Roughness" units="ms" expires_after="2025-06-01">
   <owner>eugene@chromium.org</owner>
   <owner>media-dev-uma@chromium.org</owner>
   <summary>
@@ -6877,7 +6921,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Media.{VaapiClientName}.VAAPIError" enum="VaapiFunctions"
-    expires_after="2025-03-30">
+    expires_after="2025-06-01">
   <owner>mcasas@chromium.org</owner>
   <owner>chromeos-gfx-video@chromium.org</owner>
   <summary>
@@ -7158,7 +7202,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="MediaRouter.Cast.Channel.ConnectResult" enum="BooleanSuccess"
-    expires_after="2025-03-30">
+    expires_after="2025-06-01">
   <owner>mfoltz@chromium.org</owner>
   <owner>openscreen-eng@google.com</owner>
   <summary>

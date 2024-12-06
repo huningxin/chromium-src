@@ -179,8 +179,7 @@ void DragGroupItemToPoint(OverviewItemBase* item,
 
   gfx::Point location =
       gfx::ToRoundedPoint(item->target_bounds().CenterPoint());
-  // TODO(michelefan): Use the center point of the `overview_item` after
-  // implementing or defining the event handling for the middle seam area.
+
   location.Offset(/*delta_x=*/5, /*delta_y=*/5);
   event_generator->set_current_screen_location(location);
   if (by_touch_gestures) {
@@ -1850,7 +1849,7 @@ TEST_F(FasterSplitScreenTest,
 
 // Integration test of the `SplitViewOverviewSession` exit point with drag to
 // snap action source. Verify that the end-to-end metric is recorded correctly.
-TEST_F(FasterSplitScreenTest, KeyMetricsIntegrationTestDragToSnap) {
+TEST_F(FasterSplitScreenTest, KeyMetricsIntegrationTest_DragToSnap) {
   UpdateDisplay("800x600");
 
   std::unique_ptr<aura::Window> w1(CreateAppWindow());
@@ -1912,7 +1911,7 @@ TEST_F(FasterSplitScreenTest, KeyMetricsIntegrationTestDragToSnap) {
 // Integration test of the `SplitViewOverviewSession` exit point with window
 // size button as the snap action source. Verify that the end-to-end metric is
 // recorded correctly.
-TEST_F(FasterSplitScreenTest, KeyMetricsIntegrationTestWindowSizeButton) {
+TEST_F(FasterSplitScreenTest, KeyMetricsIntegrationTest_WindowSizeButton) {
   UpdateDisplay("800x600");
 
   std::unique_ptr<aura::Window> w1(CreateAppWindow());
@@ -2126,7 +2125,6 @@ class SnapGroupTest : public SnapGroupTestBase {
     }
   }
 
-  // TODO(michelefan): Consider put this test util in a base class or test file.
   std::unique_ptr<aura::Window> CreateTestWindowWithAppID(
       std::string app_id_key) {
     std::unique_ptr<aura::Window> window = CreateAppWindow();

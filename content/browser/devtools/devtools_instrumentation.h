@@ -253,12 +253,13 @@ void DidUpdatePrefetchStatus(
     FrameTreeNode* ftn,
     const base::UnguessableToken& initiator_devtools_navigation_token,
     const GURL& prefetch_url,
+    const base::UnguessableToken& preload_pipeline_id,
     PreloadingTriggeringOutcome status,
     PrefetchStatus prefetch_status,
     const std::string& request_id);
 // CDP events Network.* for prefetch
 void OnPrefetchRequestWillBeSent(
-    FrameTreeNode* frame_tree_node,
+    FrameTreeNode& ftn,
     const std::string& request_id,
     const GURL& initiator,
     const network::ResourceRequest& request,
@@ -289,6 +290,7 @@ void DidUpdatePrerenderStatus(
     const base::UnguessableToken& initiator_devtools_navigation_token,
     const GURL& prerender_url,
     std::optional<blink::mojom::SpeculationTargetHint> target_hint,
+    const base::UnguessableToken& preload_pipeline_id,
     PreloadingTriggeringOutcome status,
     std::optional<PrerenderFinalStatus> prerender_status,
     std::optional<std::string> disallowed_mojo_interface,
@@ -422,7 +424,7 @@ void OnServiceWorkerMainScriptRequestWillBeSent(
 // Fires `Network.onRequestWillBeSent` event for a dedicated worker and shared
 // worker main script. Used for PlzDedicatedWorker/PlzSharedWorker.
 void OnWorkerMainScriptRequestWillBeSent(
-    FrameTreeNode* ftn,
+    RenderFrameHostImpl& ancestor_frame_host,
     const base::UnguessableToken& worker_token,
     network::ResourceRequest& request);
 
@@ -433,13 +435,6 @@ void OnWorkerMainScriptLoadingFailed(
     const base::UnguessableToken& worker_token,
     FrameTreeNode* ftn,
     RenderFrameHostImpl* ancestor_rfh,
-    const network::URLLoaderCompletionStatus& status);
-
-// Fires `Network.onLoadingFinished` event for a dedicated worker main script.
-// Used for PlzDedicatedWorker.
-void OnWorkerMainScriptLoadingFinished(
-    FrameTreeNode* ftn,
-    const base::UnguessableToken& worker_token,
     const network::URLLoaderCompletionStatus& status);
 
 // Adds a message from a worklet to the devtools console. This is specific to

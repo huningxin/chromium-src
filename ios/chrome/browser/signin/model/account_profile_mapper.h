@@ -29,6 +29,9 @@ class AccountProfileMapper {
     // Called when the list of identities in a profile has changed.
     virtual void OnIdentityListChanged() {}
 
+    // Called when the list of identities on device has changed.
+    virtual void OnIdentitiesOnDeviceChanged() {}
+
     // Called when information about `identity` (such as the name or the image)
     // have been updated.
     virtual void OnIdentityUpdated(id<SystemIdentity> identity) {}
@@ -89,8 +92,8 @@ class AccountProfileMapper {
 
   // Marks the personal profile as managed, attaches the given `gaia_id`, and
   // moves all personal accounts to a new empty personal profile. Deletes the
-  // managed profile to which `gaia_id` was attached. That profile must not be
-  // loaded.
+  // managed profile to which `gaia_id` was attached. That profile must still be
+  // "new" (per ProfileAttributesIOS::IsNewProfile()).
   // This is meant for two situations:
   // 1. Signing in with a managed account during the FRE. In this case, there
   //    can't be any pre-existing local data, so no need to move to a new empty
@@ -114,6 +117,9 @@ class AccountProfileMapper {
       IdentityIteratorCallback callback,
       id<SystemIdentity> identity);
 
+  // Called by the Assigner whenever the list of identities on the device
+  // changes.
+  void IdentitiesOnDeviceChanged();
   // Called by the Assigner when any profile<->account mappings have been
   // updated.
   void MappingUpdated(const ProfileNameToGaiaIds& old_mapping,

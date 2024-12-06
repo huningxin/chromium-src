@@ -25,6 +25,7 @@
 #include "components/sync/service/sync_feature_status_for_migrations_recorder.h"
 #include "components/sync/service/sync_prefs.h"
 #include "components/sync/test/test_sync_service.h"
+#include "google_apis/gaia/gaia_id.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -113,9 +114,9 @@ class SyncToSigninMigrationTestBase {
     sync_prefs_->SetSelectedTypesForSyncingUser(
         settings->IsSyncEverythingEnabled(),
         settings->GetRegisteredSelectableTypes(), settings->GetSelectedTypes());
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
     sync_prefs_->SetInitialSyncFeatureSetupComplete();
-#endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // !BUILDFLAG(IS_CHROMEOS)
 
     if (include_status_recorder) {
       // Populate migration-specific Sync status prefs.
@@ -167,7 +168,7 @@ TEST_P(SyncToSigninMigrationTest, SyncActive) {
             syncer::SyncService::TransportState::ACTIVE);
   ASSERT_TRUE(sync_service_.HasSyncConsent());
 
-  const std::string gaia_id = sync_service_.GetAccountInfo().gaia;
+  const GaiaId gaia_id = sync_service_.GetAccountInfo().gaia;
   const std::string email = sync_service_.GetAccountInfo().email;
 
   // Save the above state to prefs.
@@ -189,7 +190,7 @@ TEST_P(SyncToSigninMigrationTest, SyncActive) {
   EXPECT_EQ(pref_service_.GetString(prefs::kGoogleServicesAccountId), gaia_id);
   // But not syncing anymore.
   EXPECT_FALSE(pref_service_.GetBoolean(prefs::kGoogleServicesConsentedToSync));
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
   EXPECT_FALSE(sync_prefs_->IsInitialSyncFeatureSetupComplete());
 #endif
   // The fact that the user was migrated should be recorded in prefs.
@@ -275,7 +276,7 @@ TEST_P(SyncToSigninMigrationTest, SyncDisabledByPolicy) {
             syncer::SyncService::TransportState::DISABLED);
   ASSERT_TRUE(sync_service_.HasSyncConsent());
 
-  const std::string gaia_id = sync_service_.GetAccountInfo().gaia;
+  const GaiaId gaia_id = sync_service_.GetAccountInfo().gaia;
   const std::string email = sync_service_.GetAccountInfo().email;
 
   // Save the above state to prefs.
@@ -324,7 +325,7 @@ TEST_P(SyncToSigninMigrationTest, SyncPaused_MinDelayNotPassed) {
   ASSERT_TRUE(
       pref_service_.GetDict(syncer::prefs::internal::kSelectedTypesPerAccount)
           .empty());
-  const std::string gaia_id = sync_service_.GetAccountInfo().gaia;
+  const GaiaId gaia_id = sync_service_.GetAccountInfo().gaia;
   const std::string email = sync_service_.GetAccountInfo().email;
 
   // Attempt to migrate.
@@ -387,7 +388,7 @@ TEST_P(SyncToSigninMigrationTest, SyncPaused_MinDelayPassed) {
   ASSERT_TRUE(
       pref_service_.GetDict(syncer::prefs::internal::kSelectedTypesPerAccount)
           .empty());
-  const std::string gaia_id = sync_service_.GetAccountInfo().gaia;
+  const GaiaId gaia_id = sync_service_.GetAccountInfo().gaia;
   const std::string email = sync_service_.GetAccountInfo().email;
   RecordStateToPrefs();
   MaybeMigrateSyncingUserToSignedInWrapper(
@@ -438,7 +439,7 @@ TEST_P(SyncToSigninMigrationTest, SyncPaused_AuthErrorResolved) {
   ASSERT_TRUE(
       pref_service_.GetDict(syncer::prefs::internal::kSelectedTypesPerAccount)
           .empty());
-  const std::string gaia_id = sync_service_.GetAccountInfo().gaia;
+  const GaiaId gaia_id = sync_service_.GetAccountInfo().gaia;
   const std::string email = sync_service_.GetAccountInfo().email;
   RecordStateToPrefs();
   MaybeMigrateSyncingUserToSignedInWrapper(
@@ -1519,7 +1520,7 @@ TEST_P(SyncToSigninMigrationUndoTest, UndoesMigration) {
       pref_service_.GetString(prefs::kGoogleServicesLastSyncingGaiaId).empty());
   ASSERT_TRUE(pref_service_.GetString(prefs::kGoogleServicesLastSyncingUsername)
                   .empty());
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
   ASSERT_FALSE(sync_prefs_->IsInitialSyncFeatureSetupComplete());
 #endif
   // Marked as "migrated":

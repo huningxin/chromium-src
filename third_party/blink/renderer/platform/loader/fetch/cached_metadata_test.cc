@@ -23,13 +23,10 @@ Vector<uint8_t> CreateTestSerializedDataWithMarker(uint32_t marker) {
   Vector<uint8_t> serialized_data;
   serialized_data.ReserveInitialCapacity(sizeof(CachedMetadataHeader) +
                                          sizeof(kTestData));
-  serialized_data.Append(reinterpret_cast<const uint8_t*>(&marker),
-                         sizeof(uint32_t));
-  serialized_data.Append(reinterpret_cast<const uint8_t*>(&kTestDataTypeId),
-                         sizeof(uint32_t));
-  serialized_data.Append(reinterpret_cast<const uint8_t*>(&kTestTag),
-                         sizeof(uint64_t));
-  serialized_data.Append(kTestData, sizeof(kTestData));
+  serialized_data.AppendSpan(base::byte_span_from_ref(marker));
+  serialized_data.AppendSpan(base::byte_span_from_ref(kTestDataTypeId));
+  serialized_data.AppendSpan(base::byte_span_from_ref(kTestTag));
+  serialized_data.AppendSpan(base::span(kTestData));
   return serialized_data;
 }
 
@@ -73,8 +70,8 @@ TEST(CachedMetadataTest, GetSerializedDataHeader) {
 }
 
 TEST(CachedMetadataTest, CreateFromBufferWithDataTypeIdAndTag) {
-  CheckTestCachedMetadata(CachedMetadata::Create(kTestDataTypeId, kTestData,
-                                                 sizeof(kTestData), kTestTag));
+  CheckTestCachedMetadata(
+      CachedMetadata::Create(kTestDataTypeId, base::span(kTestData), kTestTag));
 }
 
 TEST(CachedMetadataTest, CreateFromSerializedDataVector) {

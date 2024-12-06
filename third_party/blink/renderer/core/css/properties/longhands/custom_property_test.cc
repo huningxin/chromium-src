@@ -153,7 +153,7 @@ TEST_F(CustomPropertyTest, ComputedCSSValueNumberCalc) {
   const CSSValue* value = GetComputedValue(property);
   ASSERT_TRUE(value->IsNumericLiteralValue());
   const auto* numeric_literal = To<CSSNumericLiteralValue>(value);
-  EXPECT_DOUBLE_EQ(2.4, numeric_literal->GetDoubleValue());
+  EXPECT_DOUBLE_EQ(2.4, numeric_literal->DoubleValue());
 }
 
 TEST_F(CustomPropertyTest, ComputedCSSValueIntegerCalc) {
@@ -163,7 +163,7 @@ TEST_F(CustomPropertyTest, ComputedCSSValueIntegerCalc) {
   const CSSValue* value = GetComputedValue(property);
   ASSERT_TRUE(value->IsNumericLiteralValue());
   const auto* numeric_literal = To<CSSNumericLiteralValue>(value);
-  EXPECT_DOUBLE_EQ(2.0, numeric_literal->GetDoubleValue());
+  EXPECT_DOUBLE_EQ(2.0, numeric_literal->DoubleValue());
 }
 
 TEST_F(CustomPropertyTest, ParseSingleValueUnregistered) {
@@ -318,6 +318,16 @@ TEST_F(CustomPropertyTest, ValueMode) {
     EXPECT_TRUE(
         style->GetVariableData(AtomicString("--x"))->IsAnimationTainted());
   }
+}
+
+TEST_F(CustomPropertyTest, SelectionPropertyUseCounted) {
+  EXPECT_FALSE(
+      GetDocument().IsUseCounted(WebFeature::kSelectionCustomProperty));
+  GetDocument().body()->setInnerHTML(
+      "<style>div::selection { --x: black; background-color: var(--x); "
+      "}</style> <div id='target'></div>");
+  UpdateAllLifecyclePhasesForTest();
+  EXPECT_TRUE(GetDocument().IsUseCounted(WebFeature::kSelectionCustomProperty));
 }
 
 }  // namespace blink

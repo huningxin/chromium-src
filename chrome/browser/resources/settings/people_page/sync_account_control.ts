@@ -243,6 +243,13 @@ export class SettingsSyncAccountControlElement extends
         email;
   }
 
+  private getTurnOnSyncLabel_(peopleSignIn: string, turnOnSync: string):
+      string {
+    return loadTimeData.getBoolean('isImprovedSettingsUIOnDesktopEnabled') ?
+        turnOnSync :
+        peopleSignIn;
+  }
+
   private getAccountImageSrc_(image: string|null): string {
     // image can be undefined if the account has not set an avatar photo.
     return image || 'chrome://theme/IDR_PROFILE_AVATAR_PLACEHOLDER_LARGE';
@@ -326,6 +333,13 @@ export class SettingsSyncAccountControlElement extends
     }
     return !!this.syncStatus.firstSetupInProgress ||
         !this.getPref('signin.allowed_on_next_startup').value;
+  }
+
+  private getSignInLabel_(
+      peopleSignIn: string, peopleSignInNoAccountAwareness: string): string {
+    return loadTimeData.getBoolean('isImprovedSettingsUIOnDesktopEnabled') ?
+        peopleSignInNoAccountAwareness :
+        peopleSignIn;
   }
 
   /**

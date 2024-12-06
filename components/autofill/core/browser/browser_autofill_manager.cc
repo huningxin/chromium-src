@@ -57,7 +57,6 @@
 #include "base/time/time.h"
 #include "base/uuid.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/autofill/core/browser/address_data_manager.h"
 #include "components/autofill/core/browser/autocomplete_history_manager.h"
 #include "components/autofill/core/browser/autofill_browser_util.h"
@@ -225,6 +224,7 @@ FillDataType GetEventTypeFromSingleFieldSuggestionType(SuggestionType type) {
       return FillDataType::kSingleFieldFillerIban;
     case SuggestionType::kAccountStoragePasswordEntry:
     case SuggestionType::kAddressEntry:
+    case SuggestionType::kAddressEntryOnTyping:
     case SuggestionType::kAllSavedPasswordsEntry:
     case SuggestionType::kManageAddress:
     case SuggestionType::kManageCreditCard:
@@ -268,12 +268,12 @@ FillDataType GetEventTypeFromSingleFieldSuggestionType(SuggestionType type) {
     case SuggestionType::kDevtoolsTestAddresses:
     case SuggestionType::kDevtoolsTestAddressByCountry:
     case SuggestionType::kDevtoolsTestAddressEntry:
-    case SuggestionType::kRetrievePredictionImprovements:
-    case SuggestionType::kPredictionImprovementsLoadingState:
-    case SuggestionType::kFillPredictionImprovements:
-    case SuggestionType::kPredictionImprovementsFeedback:
-    case SuggestionType::kPredictionImprovementsError:
-    case SuggestionType::kEditPredictionImprovementsInformation:
+    case SuggestionType::kRetrieveAutofillAi:
+    case SuggestionType::kAutofillAiLoadingState:
+    case SuggestionType::kFillAutofillAi:
+    case SuggestionType::kAutofillAiFeedback:
+    case SuggestionType::kAutofillAiError:
+    case SuggestionType::kEditAutofillAiData:
       NOTREACHED();
   }
   NOTREACHED();
@@ -551,7 +551,13 @@ bool WasEmailOverrideAppliedOnSuggestions(
 void MaybeImportFromSubmittedForm(AutofillClient& client,
                                   ukm::SourceId ukm_source_id,
                                   const FormStructure& form_structure,
+                                  const FormData& form_data,
                                   bool autofill_ai_shows_bubble) {
+  // This intentionally happens prior to `ImportAndProcessFormData()`. See
+  // crbug.com/381205586.
+  ProfileTokenQuality::SaveObservationsForFilledFormForAllSubmittedProfiles(
+      form_structure, form_data, client.GetPersonalDataManager());
+
   if (!autofill_ai_shows_bubble && form_structure.IsAutofillable()) {
     // Update Personal Data with the form's submitted data.
     client.GetFormDataImporter()->ImportAndProcessFormData(
@@ -616,7 +622,7 @@ BrowserAutofillManager::~BrowserAutofillManager() {
   for (const auto& [form_id, form_structure] : form_structures()) {
     ProcessFieldLogEventsInForm(*form_structure);
   }
-  votes_uploader_->FlushPendingLogQualityAndVotesUploadCallbacks();
+  votes_uploader_->FlushPendingVotes();
 
   client().GetSingleFieldFillRouter().CancelPendingQueries();
 }
@@ -853,15 +859,15 @@ void BrowserAutofillManager::OnFormSubmittedImpl(const FormData& form,
                bool autofill_ai_shows_bubble) {
               if (client) {
                 MaybeImportFromSubmittedForm(*client, ukm_source_id,
-                                             *submitted_form,
+                                             *submitted_form, form,
                                              autofill_ai_shows_bubble);
               }
               // The manager may have been destroyed already.
               // See crbug.com/373831707#comment5.
               if (manager) {
-                manager->OnFormSubmittedAfterImport(
-                    form, std::move(submitted_form), source,
-                    form_submitted_timestamp);
+                manager->OnFormSubmittedAfterImport(std::move(submitted_form),
+                                                    source,
+                                                    form_submitted_timestamp);
               }
             },
             client().GetWeakPtr(), driver().GetPageUkmSourceId(),
@@ -876,15 +882,14 @@ void BrowserAutofillManager::OnFormSubmittedImpl(const FormData& form,
     //   hard to see that all codepaths in
     //   AutofillAiDelegate::MaybeImportForm() calls it.
     MaybeImportFromSubmittedForm(client(), driver().GetPageUkmSourceId(),
-                                 *submitted_form,
+                                 *submitted_form, form,
                                  /*autofill_ai_shows_bubble=*/false);
-    OnFormSubmittedAfterImport(form, std::move(submitted_form), source,
+    OnFormSubmittedAfterImport(std::move(submitted_form), source,
                                form_submitted_timestamp);
   }
 }
 
 void BrowserAutofillManager::OnFormSubmittedAfterImport(
-    const FormData& form,
     std::unique_ptr<FormStructure> submitted_form,
     SubmissionSource source,
     base::TimeTicks form_submitted_timestamp) {
@@ -902,9 +907,6 @@ void BrowserAutofillManager::OnFormSubmittedAfterImport(
 
   LogSubmissionMetrics(submitted_form.get(), form_submitted_timestamp);
 
-  ProfileTokenQuality::SaveObservationsForFilledFormForAllSubmittedProfiles(
-      *submitted_form, form, client().GetPersonalDataManager());
-
   MaybeAddAddressSuggestionStrikes(client(), *submitted_form);
   votes_uploader_->MaybeStartVoteUploadProcess(
       std::move(submitted_form),
@@ -917,7 +919,8 @@ void BrowserAutofillManager::UpdatePendingForm(const FormData& form) {
   if (pending_form_data_ &&
       (base::FeatureList::IsEnabled(
            features::kAutofillUseFewerFormAndFieldComparison)
-           ? pending_form_data_->global_id() != form.global_id()
+           ? CalculateFormSignature(*pending_form_data_) !=
+                 CalculateFormSignature(form)
            : !pending_form_data_->SameFormAs(form))) {
     ProcessPendingFormForUpload();
   }
@@ -1464,7 +1467,8 @@ void BrowserAutofillManager::GenerateSuggestionsAndMaybeShowUIPhase2(
               OnGeneratedPlusAddressAndSingleFieldFillSuggestions,
           weak_ptr_factory_.GetWeakPtr(),
           AutofillPlusAddressDelegate::SuggestionContext::kAutocomplete,
-          password_form_classification.type, form, field, std::move(callback)));
+          password_form_classification.type, form, field,
+          should_offer_single_field_form_fill, std::move(callback)));
 
   if (should_offer_plus_addresses) {
     std::vector<Suggestion> plus_address_suggestions =
@@ -1501,10 +1505,28 @@ void BrowserAutofillManager::
         PasswordFormClassification::Type password_form_type,
         const FormData& form,
         const FormFieldData& field,
+        bool should_offer_single_field_form_fill,
         OnGenerateSuggestionsCallback callback,
         std::vector<std::vector<Suggestion>> suggestion_lists) {
-  if (suggestion_lists.empty()) {
-    std::move(callback).Run(/*show_suggestions=*/true, {}, std::nullopt);
+  if (std::ranges::all_of(suggestion_lists, &std::vector<Suggestion>::empty)) {
+    // Note the check below is the same done for regular autocomplete
+    // suggestions.
+    // TODO(crbug.com/381994105): Consider adding
+    // `should_offer_autofill_on_typing()` to `FormFieldData`.
+    if (should_offer_single_field_form_fill && field.should_autocomplete() &&
+        base::FeatureList::IsEnabled(
+            features::kAutofillAddressSuggestionsOnTyping)) {
+      // Try to build `Suggestion::kAddressEntryOnTyping` suggestions.
+      // Note that these suggestions are always displayed on their own.
+      std::move(callback).Run(
+          /*show_suggestions=*/true,
+          GetSuggestionsOnTypingForProfile(
+              client().GetPersonalDataManager().address_data_manager(),
+              field.value()),
+          std::nullopt);
+    } else {
+      std::move(callback).Run(/*show_suggestions=*/true, {}, std::nullopt);
+    }
     return;
   }
 
@@ -1808,7 +1830,7 @@ void BrowserAutofillManager::OnFocusOnNonFormFieldImpl() {
 
   ProcessPendingFormForUpload();
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   // There is no way of determining whether ChromeVox is in use, so assume it's
   // being used.
   external_delegate_->OnAutofillAvailabilityEvent(
@@ -1845,7 +1867,7 @@ void BrowserAutofillManager::OnFocusOnFormFieldImpl(
   // are suggestions to present. Ignore if a screen reader is not present. If
   // the platform is ChromeOS, then assume ChromeVox is in use as there is no
   // way of determining whether it's being used from this point in the code.
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
   if (!external_delegate_->HasActiveScreenReader()) {
     return;
   }
@@ -2154,7 +2176,7 @@ void BrowserAutofillManager::Reset() {
     ProcessFieldLogEventsInForm(*form_structure);
   }
   ProcessPendingFormForUpload();
-  votes_uploader_->FlushPendingLogQualityAndVotesUploadCallbacks();
+  votes_uploader_->FlushPendingVotes();
   DCHECK(!pending_form_data_);
 
   four_digit_combinations_in_dom_.clear();
@@ -2196,21 +2218,18 @@ void BrowserAutofillManager::OnDidFillOrPreviewForm(
         profile_or_credit_card,
     AutofillTriggerSource trigger_source,
     bool is_refill) {
-  AppendFillLogEvents(action_persistence, form, form_structure,
-                      trigger_autofill_field, safe_field_ids, skip_reasons,
-                      profile_or_credit_card, is_refill);
-
-  client().DidFillOrPreviewForm(action_persistence, trigger_source, is_refill);
   NotifyObservers(&Observer::OnFillOrPreviewDataModelForm,
                   form_structure.global_id(), action_persistence,
                   safe_filled_fields, profile_or_credit_card);
-
   if (action_persistence == mojom::ActionPersistence::kPreview) {
     return;
   }
-
   CHECK_EQ(action_persistence, mojom::ActionPersistence::kFill);
 
+  AppendFillLogEvents(form, form_structure, trigger_autofill_field,
+                      safe_field_ids, skip_reasons, profile_or_credit_card,
+                      is_refill);
+  client().DidFillForm(trigger_source, is_refill);
   if (absl::holds_alternative<const CreditCard*>(profile_or_credit_card)) {
     LogAndRecordCreditCardFill(
         form_structure, trigger_autofill_field, safe_filled_fields,
@@ -2219,21 +2238,17 @@ void BrowserAutofillManager::OnDidFillOrPreviewForm(
         trigger_source, is_refill);
     return;
   }
-
-  const AutofillProfile* filled_profile = CHECK_DEREF(
-      absl::get_if<const AutofillProfile*>(&profile_or_credit_card));
-
+  const AutofillProfile& filled_profile = CHECK_DEREF(CHECK_DEREF(
+      absl::get_if<const AutofillProfile*>(&profile_or_credit_card)));
   LogAndRecordProfileFill(form_structure, trigger_autofill_field,
                           safe_filled_fields, safe_filled_autofill_fields,
                           filled_profile, trigger_source, is_refill);
-
   MaybeShowPlusAddressEmailOverrideNotification(safe_filled_autofill_fields,
                                                 safe_filled_fields,
                                                 filled_profile, form_structure);
 }
 
 void BrowserAutofillManager::AppendFillLogEvents(
-    mojom::ActionPersistence action_persistence,
     const FormData& form,
     FormStructure& form_structure,
     AutofillField& trigger_autofill_field,
@@ -2243,26 +2258,23 @@ void BrowserAutofillManager::AppendFillLogEvents(
     absl::variant<const AutofillProfile*, const CreditCard*>
         profile_or_credit_card,
     bool is_refill) {
-  std::optional<FillEventId> fill_event_id;
-  if (action_persistence == mojom::ActionPersistence::kFill) {
-    std::string country_code;
-    if (const AutofillProfile** address =
-            absl::get_if<const AutofillProfile*>(&profile_or_credit_card)) {
-      country_code =
-          base::UTF16ToUTF8((*address)->GetRawInfo(ADDRESS_HOME_COUNTRY));
-    }
-    TriggerFillFieldLogEvent trigger_fill_field_log_event =
-        TriggerFillFieldLogEvent{
-            .data_type = absl::holds_alternative<const CreditCard*>(
-                             profile_or_credit_card)
-                             ? FillDataType::kCreditCard
-                             : FillDataType::kAutofillProfile,
-            .associated_country_code = country_code,
-            .timestamp = base::Time::Now()};
-    trigger_autofill_field.AppendLogEventIfNotRepeated(
-        trigger_fill_field_log_event);
-    fill_event_id = trigger_fill_field_log_event.fill_event_id;
+  std::string country_code;
+  if (const AutofillProfile** address =
+          absl::get_if<const AutofillProfile*>(&profile_or_credit_card)) {
+    country_code =
+        base::UTF16ToUTF8((*address)->GetRawInfo(ADDRESS_HOME_COUNTRY));
   }
+  TriggerFillFieldLogEvent trigger_fill_field_log_event =
+      TriggerFillFieldLogEvent{
+          .data_type =
+              absl::holds_alternative<const CreditCard*>(profile_or_credit_card)
+                  ? FillDataType::kCreditCard
+                  : FillDataType::kAutofillProfile,
+          .associated_country_code = country_code,
+          .timestamp = base::Time::Now()};
+  trigger_autofill_field.AppendLogEventIfNotRepeated(
+      trigger_fill_field_log_event);
+  FillEventId fill_event_id = trigger_fill_field_log_event.fill_event_id;
 
   for (size_t i = 0; i < form_structure.field_count(); ++i) {
     AutofillField& field = CHECK_DEREF(form_structure.field(i));
@@ -2271,10 +2283,10 @@ void BrowserAutofillManager::AppendFillLogEvents(
     const FieldFillingSkipReason skip_reason =
         skip_reasons[field_id].empty() ? FieldFillingSkipReason::kNotSkipped
                                        : *skip_reasons[field_id].begin();
-    if (fill_event_id && !IsCheckable(field.check_status())) {
+    if (!IsCheckable(field.check_status())) {
       if (skip_reason == FieldFillingSkipReason::kNotSkipped) {
         field.AppendLogEventIfNotRepeated(FillFieldLogEvent{
-            .fill_event_id = *fill_event_id,
+            .fill_event_id = fill_event_id,
             .had_value_before_filling = ToOptionalBoolean(has_value_before),
             .autofill_skipped_status = skip_reason,
             .was_autofilled_before_security_policy = OptionalBoolean::kTrue,
@@ -2287,7 +2299,7 @@ void BrowserAutofillManager::AppendFillLogEvents(
         });
       } else {
         field.AppendLogEventIfNotRepeated(FillFieldLogEvent{
-            .fill_event_id = *fill_event_id,
+            .fill_event_id = fill_event_id,
             .had_value_before_filling = ToOptionalBoolean(has_value_before),
             .autofill_skipped_status = skip_reason,
             .was_autofilled_before_security_policy = OptionalBoolean::kFalse,
@@ -2336,7 +2348,7 @@ void BrowserAutofillManager::LogAndRecordProfileFill(
     AutofillField& trigger_autofill_field,
     base::span<const FormFieldData*> safe_filled_fields,
     base::span<const AutofillField*> safe_filled_autofill_fields,
-    const AutofillProfile* filled_profile,
+    const AutofillProfile& filled_profile,
     AutofillTriggerSource trigger_source,
     bool is_refill) {
   if (!trigger_autofill_field.ShouldSuppressSuggestionsAndFillingByDefault()) {
@@ -2344,24 +2356,26 @@ void BrowserAutofillManager::LogAndRecordProfileFill(
       metrics_->address_form_event_logger.OnDidRefill(form_structure);
     } else {
       metrics_->address_form_event_logger.OnDidFillFormFillingSuggestion(
-          *filled_profile, form_structure, trigger_autofill_field,
+          filled_profile, form_structure, trigger_autofill_field,
           trigger_source);
     }
   }
   if (!is_refill) {
     client().GetPersonalDataManager().address_data_manager().RecordUseOf(
-        *filled_profile);
+        filled_profile);
   }
 }
 
 void BrowserAutofillManager::MaybeShowPlusAddressEmailOverrideNotification(
     base::span<const AutofillField*> safe_filled_autofill_fields,
     base::span<const FormFieldData*> safe_filled_fields,
-    const AutofillProfile* filled_profile,
+    const AutofillProfile& filled_profile,
     const FormStructure& form_structure) {
+  // `filled_profile` might have had its email overridden, which is what makes
+  // it different from `original_profile`.
   const AutofillProfile* original_profile =
       client().GetPersonalDataManager().address_data_manager().GetProfileByGUID(
-          filled_profile->guid());
+          filled_profile.guid());
   if (!original_profile) {
     return;
   }
@@ -2394,7 +2408,7 @@ void BrowserAutofillManager::MaybeShowPlusAddressEmailOverrideNotification(
   // Note that the filled `profile` could have been updated with a plus
   // address email override.
   const std::u16string potential_email_override =
-      filled_profile->GetRawInfo(EMAIL_ADDRESS);
+      filled_profile.GetRawInfo(EMAIL_ADDRESS);
   // If the user has selected a plus address email override, show a
   // notification.
   if (client().GetPlusAddressDelegate() &&
@@ -2487,9 +2501,15 @@ AutofillField* BrowserAutofillManager::GetAutofillField(
 void BrowserAutofillManager::OnCreditCardFetchedSuccessfully(
     const CreditCard& credit_card) {
   votes_uploader_->last_unlocked_credit_card_cvc_ = credit_card.cvc();
-  // If the synced down card is a virtual card, let the client know so that it
-  // can show the UI to help user to manually fill the form, if needed.
-  if (credit_card.record_type() == CreditCard::RecordType::kVirtualCard) {
+  // If the synced down card is a virtual card or a server card enrolled in
+  // runtime retrieval, let the client know so that it can show the UI to help
+  // user to manually fill the form, if needed.
+  // Masked server card was set to kFullServerCard before filling as the filling
+  // process sets its full card number which converts it to a full server card.
+  if (credit_card.record_type() == CreditCard::RecordType::kVirtualCard ||
+      (credit_card.record_type() == CreditCard::RecordType::kFullServerCard &&
+       credit_card.card_info_retrieval_enrollment_state() ==
+           CreditCard::CardInfoRetrievalEnrollmentState::kRetrievalEnrolled)) {
     DCHECK(!credit_card.cvc().empty());
     client().GetFormDataImporter()->CacheFetchedVirtualCard(
         credit_card.LastFourDigits());

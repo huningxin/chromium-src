@@ -262,6 +262,7 @@
 <translation id="4510853178268397146">ამ გაფართოებას არ გამოუქვეყნებია კონფიდენციალური ინფორმაციის გამოყენების პრაქტიკა, მაგალითად, მონაცემების შეგროვებისა და გამოყენების წესები. Chromium გირჩევთ მის ამოშლას.</translation>
 <translation id="452711251841752011">მოგესალმებით Chromium-ში; გახსნილია ბრაუზერის ახალი ფანჯარა</translation>
 <translation id="4531137820806573936">თქვენი გარემოს მოსანიშნად და თქვენი ხელებისთვის თვალის მიდევნებისთვის Chromium საჭრიროებს ნებართვას</translation>
+<translation id="4534145890176164066">Chromium ფორმებს უკეთ აღიქვამს და უფრო სწრაფად შეუძლია მათი შევსება</translation>
 <translation id="4536805923587466102">თქვენ უკვე შესული ხართ Chromium-ის სხვა პროფილში როგორც <ph name="USER_EMAIL_ADDRESS" /></translation>
 <translation id="4544142686420020088">Chromium-ის განახლება ვერ მოხერხდა შეფერხების გამო. <ph name="BEGIN_LINK" />შეასწორეთ Chromium-ის განახლებასთან დაკავშირებული პრობლემები და განუხორციელებელი განახლებები.<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">Chromium-ს შეუძლია, ეს ჩანართი უმოქმედო რეჟიმში გადაიტანოს, რათა გააუმჯობესოს თქვენი დათვალიერების გამოცდილება და მოქმედებების შესრულება ააჩქაროს.</translation>
@@ -442,7 +443,6 @@
 <translation id="6831043979455480757">თარგმნა</translation>
 <translation id="6847869444787758381">Chromium გაცნობებთ, თუ თქვენს პაროლებს ვინმე გატეხავს</translation>
 <translation id="684888714667046800">ინტერნეტთან დაკავშირება ვერ ხერხდება. თუ ქსელის დაცვას იყენებთ, დარწმუნდით, რომ <ph name="PRODUCT_EXE_NAME" /> დაშვებულთა სიაშია.</translation>
-<translation id="685279860330610299">Chromium აღიქვამს მეტი ტიპის ინფორმაციას და ავტომატურად უფრო სწრაფად შეავსებს ფორმებს. შეიტყვეთ მეტი <ph name="BEGIN_LINK" />Chrome-ის ავტომატური შევსების შესახებ<ph name="END_LINK" /></translation>
 <translation id="6857782730669500492">Chromium — <ph name="PAGE_TITLE" /></translation>
 <translation id="6873893289264747459">Chromium-მა აღმოაჩინა, რომ „<ph name="EXTENSION_NAME" />“ შეიცავს მავნე პროგრამას</translation>
 <translation id="6896758677409633944">კოპირება</translation>
@@ -481,6 +481,7 @@ Chromium ვერ შეძლებს თქვენი პარამე�
 <translation id="7349591376906416160">თქვენი სისტემის ადმინისტრატორმა მოახდინა Chromium-ის კონფიგურაცია იმგვარად, რომ <ph name="TARGET_URL_HOSTNAME" />-ზე წვდომისთვის საჭიროა <ph name="ALTERNATIVE_BROWSER_NAME" />-ის გახსნა.</translation>
 <translation id="7355355292030546812">Chromium-მა დაბლოკა ეს ჩამოტვირთვა, რადგან ფაილს შეუძლია თქვენი პირადი და სოციალური ქსელების ანგარიშების (მათ შორის, <ph name="USER_EMAIL" />-ის) დაზიანება.</translation>
 <translation id="7384121030444253939">ეს გაფართოება აღარ არის მხარდაჭერილი. Chromium გირჩევთ მის ამოშლას.</translation>
+<translation id="7389750180956889333">Chromium ფორმებს უკეთ აღიქვამს და უფრო სწრაფად შეუძლია მათი შევსება. შეიტყვეთ მეტი <ph name="BEGIN_LINK" />Chrome-ის ავტომატური შევსების შესახებ<ph name="END_LINK" /></translation>
 <translation id="7398989605938454041">Chromium პროფილები Chromium-ში არსებული თქვენი კონტენტის განცალკევების საშუალებას გაძლევთ. მაგალითად, სამსახურებრივი და პირადი მონაცემების.</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> — Chromium Dev</translation>
 <translation id="7450541714075000668">ტექსტი დაკოპირდა</translation>

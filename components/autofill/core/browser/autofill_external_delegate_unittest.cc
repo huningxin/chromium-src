@@ -1032,8 +1032,8 @@ TEST_F(AutofillExternalDelegateTest,
        AutofillSuggestionAvailability_RetrievePredictionImprovements) {
   IssueOnQuery();
 
-  std::vector<Suggestion> suggestions = {Suggestion(
-      u"Autofill with AI", SuggestionType::kRetrievePredictionImprovements)};
+  std::vector<Suggestion> suggestions = {
+      Suggestion(u"Autofill with AI", SuggestionType::kRetrieveAutofillAi)};
   OnSuggestionsReturned(queried_field().global_id(), suggestions);
 
   EXPECT_CALL(driver(),
@@ -1264,9 +1264,7 @@ TEST_F(AutofillExternalDelegateTest,
        DidAcceptRetrievePredictionImprovementsSuggestionCallsEventHandler) {
   EXPECT_CALL(*client().GetAutofillAiDelegate(), OnClickedTriggerSuggestion);
   external_delegate().DidAcceptSuggestion(
-      Suggestion(u"Autocomplete",
-                 SuggestionType::kRetrievePredictionImprovements),
-      {});
+      Suggestion(u"Autocomplete", SuggestionType::kRetrieveAutofillAi), {});
 }
 
 // Tests that on acceptance of a `kFillPredictionImprovements` suggestion with
@@ -1288,7 +1286,7 @@ TEST_F(AutofillExternalDelegateTest,
       AutofillSuggestionTriggerSource::kPredictionImprovements,
       /*update_datalist=*/false);
   Suggestion fill_suggestion =
-      Suggestion(u"Autocomplete", SuggestionType::kFillPredictionImprovements);
+      Suggestion(u"Autocomplete", SuggestionType::kFillAutofillAi);
   fill_suggestion.payload = Suggestion::PredictionImprovementsPayload(
       {{field_to_fill->global_id(), value_to_fill}}, {});
 
@@ -1314,7 +1312,7 @@ TEST_F(AutofillExternalDelegateTest,
   const std::u16string value_to_fill = u"John";
 
   Suggestion fill_suggestion =
-      Suggestion(u"Autocomplete", SuggestionType::kFillPredictionImprovements);
+      Suggestion(u"Autocomplete", SuggestionType::kFillAutofillAi);
   fill_suggestion.payload = Suggestion::ValueToFill(value_to_fill);
 
   EXPECT_CALL(
@@ -1322,7 +1320,7 @@ TEST_F(AutofillExternalDelegateTest,
       FillOrPreviewField(mojom::ActionPersistence::kFill,
                          mojom::FieldActionType::kReplaceAll,
                          HasQueriedFormId(), HasQueriedFieldId(), value_to_fill,
-                         SuggestionType::kFillPredictionImprovements, _));
+                         SuggestionType::kFillAutofillAi, _));
   external_delegate().DidAcceptSuggestion(fill_suggestion, {});
 }
 
@@ -1345,7 +1343,7 @@ TEST_F(AutofillExternalDelegateTest,
       /*update_datalist=*/false);
   EXPECT_CALL(*client().GetAutofillAiDelegate(), OnSuggestionsShown);
   external_delegate().OnSuggestionsShown(std::vector<Suggestion>{
-      Suggestion(SuggestionType::kPredictionImprovementsLoadingState)});
+      Suggestion(SuggestionType::kAutofillAiLoadingState)});
 }
 
 class AutofillExternalDelegatePlusAddressTest
@@ -1631,7 +1629,6 @@ TEST_F(AutofillExternalDelegatePlusAddressTest,
                       kCreateNewPlusAddressChosen));
   EXPECT_CALL(plus_address_delegate(), DidFillPlusAddress).Times(0);
   EXPECT_CALL(client(), TriggerPlusAddressUserPerceptionSurvey).Times(0);
-
   // Mock out the plus address creation logic to ensure it is deterministic and
   // independent of the client implementations in //chrome or //ios.
   EXPECT_CALL(client(),
@@ -1882,17 +1879,18 @@ TEST_F(AutofillExternalDelegatePlusAddressTest, PlusAddressInlineAccepted) {
   {
     InSequence s;
 
+    ON_CALL(plus_address_delegate(), GetPlusAddressesCount)
+        .WillByDefault(Return(3));
     // `MoveArg` only supports moving out a single argument and cannot be
     // combined via `DoAll` - therefore use a helper.
     EXPECT_CALL(plus_address_delegate(),
                 OnAcceptedInlineSuggestion(
                     _, base::span<const Suggestion>(suggestions()),
-                    /*current_suggestion_index=*/0,
-                    /*is_manual_fallback=*/false, _, _, _, _, _, _))
+                    /*current_suggestion_index=*/0, _, _, _, _, _, _))
         .WillOnce(
             [&](const url::Origin& primary_main_frame_origin,
                 base::span<const Suggestion> current_suggestions,
-                size_t current_suggestion_index, bool is_manual_fallback,
+                size_t current_suggestion_index,
                 UpdateSuggestionsCallback update_suggestions_callback,
                 HideSuggestionsCallback hide_suggestions_callback,
                 PlusAddressCallback fill_field_callback,
@@ -1919,6 +1917,10 @@ TEST_F(AutofillExternalDelegatePlusAddressTest, PlusAddressInlineAccepted) {
                                    plus_address,
                                    SuggestionType::kCreateNewPlusAddressInline,
                                    std::optional(EMAIL_ADDRESS)));
+    EXPECT_CALL(
+        client(),
+        TriggerPlusAddressUserPerceptionSurvey(
+            plus_addresses::hats::SurveyType::kCreatedMultiplePlusAddresses));
   }
 
   external_delegate().DidAcceptSuggestion(suggestions()[0],
@@ -1952,9 +1954,8 @@ TEST_F(AutofillExternalDelegatePlusAddressTest,
   EXPECT_CALL(plus_address_delegate(),
               OnAcceptedInlineSuggestion(
                   _, base::span<const Suggestion>(suggestions()),
-                  /*current_suggestion_index=*/0, /*is_manual_fallback=*/false,
-                  _, _, _, _, _, _))
-      .WillOnce(MoveArg<7>(&show_affiliation_error_callback));
+                  /*current_suggestion_index=*/0, _, _, _, _, _, _))
+      .WillOnce(MoveArg<6>(&show_affiliation_error_callback));
   // Simulate accepting the dialog.
   EXPECT_CALL(client(), ShowPlusAddressAffiliationError(
                             affiliated_domain, affiliated_plus_address, _))
@@ -1986,9 +1987,8 @@ TEST_F(AutofillExternalDelegatePlusAddressTest,
   EXPECT_CALL(plus_address_delegate(),
               OnAcceptedInlineSuggestion(
                   _, base::span<const Suggestion>(suggestions()),
-                  /*current_suggestion_index=*/0, /*is_manual_fallback=*/false,
-                  _, _, _, _, _, _))
-      .WillOnce(MoveArg<8>(&show_error_callback));
+                  /*current_suggestion_index=*/0, _, _, _, _, _, _))
+      .WillOnce(MoveArg<7>(&show_error_callback));
   EXPECT_CALL(
       client(),
       ShowPlusAddressError(
@@ -2012,9 +2012,8 @@ TEST_F(AutofillExternalDelegatePlusAddressTest,
   EXPECT_CALL(plus_address_delegate(),
               OnAcceptedInlineSuggestion(
                   _, base::span<const Suggestion>(suggestions()),
-                  /*current_suggestion_index=*/0, /*is_manual_fallback=*/false,
-                  _, _, _, _, _, _))
-      .WillOnce(MoveArg<9>(&reshow_suggestions));
+                  /*current_suggestion_index=*/0, _, _, _, _, _, _))
+      .WillOnce(MoveArg<8>(&reshow_suggestions));
   EXPECT_CALL(
       driver(),
       RendererShouldTriggerSuggestions(
@@ -2038,12 +2037,11 @@ TEST_F(AutofillExternalDelegatePlusAddressTest,
       AutofillSuggestionTriggerSource::kManualFallbackPlusAddresses);
 
   base::OnceClosure reshow_suggestions;
-  EXPECT_CALL(
-      plus_address_delegate(),
-      OnAcceptedInlineSuggestion(_, base::span<const Suggestion>(suggestions()),
-                                 /*current_suggestion_index=*/0,
-                                 /*is_manual_fallback=*/true, _, _, _, _, _, _))
-      .WillOnce(MoveArg<9>(&reshow_suggestions));
+  EXPECT_CALL(plus_address_delegate(),
+              OnAcceptedInlineSuggestion(
+                  _, base::span<const Suggestion>(suggestions()),
+                  /*current_suggestion_index=*/0, _, _, _, _, _, _))
+      .WillOnce(MoveArg<8>(&reshow_suggestions));
   EXPECT_CALL(
       driver(),
       RendererShouldTriggerSuggestions(
@@ -2068,8 +2066,8 @@ TEST_F(
       UserFeedbackReceived(AutofillAiDelegate::UserFeedback::kThumbsUp));
 
   external_delegate().DidPerformButtonActionForSuggestion(
-      Suggestion(SuggestionType::kPredictionImprovementsFeedback),
-      PredictionImprovementsButtonActions::kThumbsUpClicked);
+      Suggestion(SuggestionType::kAutofillAiFeedback),
+      AutofillAiSuggestionButtonAction::kThumbsUpClicked);
 }
 
 TEST_F(
@@ -2084,8 +2082,8 @@ TEST_F(
       UserFeedbackReceived(AutofillAiDelegate::UserFeedback::kThumbsDown));
 
   external_delegate().DidPerformButtonActionForSuggestion(
-      Suggestion(SuggestionType::kPredictionImprovementsFeedback),
-      PredictionImprovementsButtonActions::kThumbsDownClicked);
+      Suggestion(SuggestionType::kAutofillAiFeedback),
+      AutofillAiSuggestionButtonAction::kThumbsDownClicked);
 }
 
 TEST_F(AutofillExternalDelegateTest,
@@ -2097,8 +2095,8 @@ TEST_F(AutofillExternalDelegateTest,
   EXPECT_CALL(*client().GetAutofillAiDelegate(), UserClickedLearnMore());
 
   external_delegate().DidPerformButtonActionForSuggestion(
-      Suggestion(SuggestionType::kPredictionImprovementsFeedback),
-      PredictionImprovementsButtonActions::kLearnMoreClicked);
+      Suggestion(SuggestionType::kAutofillAiFeedback),
+      AutofillAiSuggestionButtonAction::kLearnMoreClicked);
 }
 
 TEST_F(AutofillExternalDelegateTest,
@@ -2491,6 +2489,37 @@ TEST_F(AutofillExternalDelegateTest,
 
   histogram_tester.ExpectUniqueSample(
       "Autofill.SuggestionAcceptedIndex.Autocomplete", 0, 1);
+}
+
+TEST_F(AutofillExternalDelegateTest,
+       ExternalDelegateFillFieldWithValue_AutofillAddressOnTyping) {
+  EXPECT_CALL(client(), HideAutofillSuggestions(
+                            SuggestionHidingReason::kAcceptSuggestion));
+  const AutofillProfile profile = test::GetFullProfile();
+  pdm().address_data_manager().AddProfile(profile);
+  IssueOnQuery();
+
+  std::u16string dummy_autocomplete_string(u"Jon doe");
+  Suggestion suggestion = test::CreateAutofillSuggestion(
+      SuggestionType::kAddressEntryOnTyping, dummy_autocomplete_string,
+      Suggestion::AutofillProfilePayload(Suggestion::Guid(profile.guid())));
+  suggestion.field_by_field_filling_type_used = NAME_FULL;
+  base::HistogramTester histogram_tester;
+
+  EXPECT_CALL(
+      manager(),
+      FillOrPreviewField(
+          mojom::ActionPersistence::kFill, mojom::FieldActionType::kReplaceAll,
+          HasQueriedFormId(), HasQueriedFieldId(),
+          profile.GetRawInfo(*suggestion.field_by_field_filling_type_used),
+          SuggestionType::kAddressEntryOnTyping, std::optional(NAME_FULL)));
+  EXPECT_CALL(manager(), OnDidFillAddressFormFillingSuggestion).Times(0);
+
+  external_delegate().DidAcceptSuggestion(suggestion,
+                                          SuggestionPosition{.row = 0});
+
+  histogram_tester.ExpectUniqueSample("Autofill.Suggestions.AcceptedType",
+                                      SuggestionType::kAddressEntryOnTyping, 1);
 }
 
 TEST_F(AutofillExternalDelegateTest,

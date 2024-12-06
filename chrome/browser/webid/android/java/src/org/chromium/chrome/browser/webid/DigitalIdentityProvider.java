@@ -18,7 +18,6 @@ import org.chromium.base.ResettersForTesting;
 import org.chromium.content.browser.webid.IdentityCredentialsDelegate;
 import org.chromium.content_public.browser.webid.DigitalIdentityRequestStatusForMetrics;
 import org.chromium.ui.base.WindowAndroid;
-import org.chromium.url.Origin;
 
 /** Class for issuing request to the Identity Credentials Manager in GMS core. */
 public class DigitalIdentityProvider {
@@ -77,7 +76,10 @@ public class DigitalIdentityProvider {
      * @param request The request.
      */
     @CalledByNative
-    void request(WindowAndroid window, String origin, String request) {
+    void request(
+            WindowAndroid window,
+            @JniType("std::string") String origin,
+            @JniType("std::string") String request) {
         sCredentials
                 .get(window.getActivity().get(), origin, request)
                 .then(
@@ -112,10 +114,10 @@ public class DigitalIdentityProvider {
     @CalledByNative
     void create(
             WindowAndroid window,
-            @JniType("url::Origin") Origin origin,
+            @JniType("std::string") String origin,
             @JniType("std::string") String request) {
         sCredentials
-                .create(window.getActivity().get(), origin.toString(), request)
+                .create(window.getActivity().get(), origin, request)
                 .then(
                         data -> {
                             if (mDigitalIdentityProvider != 0) {

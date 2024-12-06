@@ -1052,8 +1052,7 @@ void ChromeClientImpl::NotifyPresentationTime(LocalFrame& frame,
   FrameWidget* widget = frame.GetWidgetForLocalRoot();
   if (!widget)
     return;
-  widget->NotifyPresentationTimeInBlink(
-      ConvertToBaseOnceCallback(std::move(callback)));
+  widget->NotifyPresentationTime(std::move(callback));
 }
 
 void ChromeClientImpl::RequestBeginMainFrameNotExpected(LocalFrame& frame,
@@ -1365,7 +1364,7 @@ void ChromeClientImpl::DidUpdateBrowserControls() const {
 }
 
 void ChromeClientImpl::DidUpdateMaxSafeAreaInsets(
-    const gfx::Insets& max_safe_area_insets) const {
+    const gfx::InsetsF& max_safe_area_insets) const {
   DCHECK(web_view_);
   web_view_->DidUpdateMaxSafeAreaInsets(max_safe_area_insets);
 }

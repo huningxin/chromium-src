@@ -14,7 +14,6 @@
 #include "chrome/browser/accessibility/page_colors_factory.h"
 #include "chrome/browser/affiliations/affiliation_service_factory.h"
 #include "chrome/browser/ai/ai_data_keyed_service_factory.h"
-#include "chrome/browser/ai/ai_manager_keyed_service_factory.h"
 #include "chrome/browser/autocomplete/autocomplete_classifier_factory.h"
 #include "chrome/browser/autocomplete/document_suggestions_service_factory.h"
 #include "chrome/browser/autocomplete/in_memory_url_index_factory.h"
@@ -649,9 +648,6 @@ void ChromeBrowserMainExtraPartsProfiles::
 #endif
   AffiliationServiceFactory::GetInstance();
   AiDataKeyedServiceFactory::GetInstance();
-  if (base::FeatureList::IsEnabled(blink::features::kBuiltInAIAPI)) {
-    AIManagerKeyedServiceFactory::GetInstance();
-  }
   AnnouncementNotificationServiceFactory::GetInstance();
 #if BUILDFLAG(IS_CHROMEOS)
   app_list::AppListSyncableServiceFactory::GetInstance();
@@ -907,7 +903,7 @@ void ChromeBrowserMainExtraPartsProfiles::
 #endif
 #if BUILDFLAG(ENABLE_GLIC)
   if (GlicEnabling::IsEnabledByFlags()) {
-    GlicKeyedServiceFactory::GetInstance();
+    glic::GlicKeyedServiceFactory::GetInstance();
   }
 #endif  // BUILDFLAG(ENABLE_GLIC)
 #if !BUILDFLAG(IS_ANDROID)

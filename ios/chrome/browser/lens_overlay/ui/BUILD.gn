@@ -14,6 +14,42 @@ source_set("protocols") {
   frameworks = [ "UIKit.framework" ]
 }
 
+source_set("results_page_presenter") {
+  sources = [
+    "lens_overlay_results_page_presenter.h",
+    "lens_overlay_results_page_presenter.mm",
+    "lens_overlay_results_page_presenter_delegate.h",
+  ]
+  deps = [
+    ":protocols",
+    ":view_controller",
+    "//base",
+    "//ios/chrome/browser/lens_overlay/model",
+    "//ios/chrome/browser/shared/coordinator/scene:scene_state_header",
+    "//ui/base",
+  ]
+  frameworks = [ "UIKit.framework" ]
+}
+
+source_set("container_presenter") {
+  sources = [
+    "lens_overlay_container_presenter.h",
+    "lens_overlay_container_presenter.mm",
+  ]
+  deps = [
+    ":protocols",
+    ":view_controller",
+    "//base",
+    "//ios/chrome/app/application_delegate:app_state",
+    "//ios/chrome/app/profile",
+    "//ios/chrome/browser/lens_overlay/model",
+    "//ios/chrome/browser/shared/coordinator/scene:scene_state_header",
+    "//ios/chrome/browser/ui/device_orientation",
+    "//ui/base",
+  ]
+  frameworks = [ "UIKit.framework" ]
+}
+
 source_set("view_controller") {
   sources = [
     "lens_overlay_consent_view_controller.h",
@@ -99,6 +135,22 @@ source_set("network_issue_alert_presenter") {
     ":protocols",
     "//base",
     "//ios/chrome/app/strings:ios_strings_grit",
+    "//ui/base",
+    "//url",
+  ]
+}
+
+source_set("consent_presenter") {
+  sources = [
+    "lens_overlay_consent_presenter.h",
+    "lens_overlay_consent_presenter.mm",
+  ]
+  deps = [
+    ":protocols",
+    ":view_controller",
+    "//base",
+    "//ios/chrome/app/strings:ios_strings_grit",
+    "//ios/chrome/browser/lens_overlay/model",
     "//ui/base",
     "//url",
   ]

@@ -154,6 +154,7 @@ declare global {
         custodianApprovalRequired: boolean;
         parentDisabledPermissions: boolean;
         unsupportedManifestVersion: boolean;
+        unsupportedDeveloperExtension: boolean;
       }
 
       export interface OptionsPage {
@@ -269,6 +270,7 @@ declare global {
         pinnedToToolbar?: boolean;
         isAffectedByMV2Deprecation: boolean;
         didAcknowledgeMV2DeprecationNotice: boolean;
+        canUploadAsAccountExtension: boolean;
       }
 
       export interface ProfileInfo {

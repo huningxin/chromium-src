@@ -78,19 +78,17 @@ class PLATFORM_EXPORT CachedMetadata : public RefCounted<CachedMetadata> {
                                   estimated_body_size);
     uint32_t marker = CachedMetadataHandler::kSingleEntryWithTag;
     CHECK_EQ(vector.size(), offsetof(CachedMetadataHeader, marker));
-    vector.Append(reinterpret_cast<const uint8_t*>(&marker), sizeof(uint32_t));
+    vector.AppendSpan(base::byte_span_from_ref(marker));
     CHECK_EQ(vector.size(), offsetof(CachedMetadataHeader, type));
-    vector.Append(reinterpret_cast<const uint8_t*>(&data_type_id),
-                  sizeof(uint32_t));
+    vector.AppendSpan(base::byte_span_from_ref(data_type_id));
     CHECK_EQ(vector.size(), offsetof(CachedMetadataHeader, tag));
-    vector.Append(reinterpret_cast<const uint8_t*>(&tag), sizeof(uint64_t));
+    vector.AppendSpan(base::byte_span_from_ref(tag));
     CHECK_EQ(vector.size(), sizeof(CachedMetadataHeader));
     return vector;
   }
 
   static scoped_refptr<CachedMetadata> Create(uint32_t data_type_id,
-                                              const uint8_t* data,
-                                              size_t size,
+                                              base::span<const uint8_t> data,
                                               uint64_t tag = 0);
   static scoped_refptr<CachedMetadata> CreateFromSerializedData(
       Vector<uint8_t> data);
@@ -100,8 +98,7 @@ class PLATFORM_EXPORT CachedMetadata : public RefCounted<CachedMetadata> {
 
   CachedMetadata(Vector<uint8_t> data, base::PassKey<CachedMetadata>);
   CachedMetadata(uint32_t data_type_id,
-                 const uint8_t* data,
-                 wtf_size_t size,
+                 base::span<const uint8_t> data,
                  uint64_t tag,
                  base::PassKey<CachedMetadata>);
   CachedMetadata(mojo_base::BigBuffer data,

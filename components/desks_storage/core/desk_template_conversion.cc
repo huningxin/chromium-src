@@ -828,30 +828,18 @@ std::string GetAppTypeForJson(apps::AppRegistryCache* apps_cache,
         return kAppTypeChrome;
       }
 
-    case apps::AppType::kStandaloneBrowser:
-      if (app_id == app_constants::kLacrosAppId) {
-        return kAppTypeBrowser;
-      } else {
-        return kAppTypeUnsupported;
-      }
-
     case apps::AppType::kArc:
       return kAppTypeArc;
-
-    case apps::AppType::kStandaloneBrowserChromeApp:
-      return kAppTypeChrome;
 
     case apps::AppType::kUnknown:
       return kAppTypeUnknown;
 
-    case apps::AppType::kBuiltIn:
     case apps::AppType::kCrostini:
     case apps::AppType::kPluginVm:
     case apps::AppType::kRemote:
     case apps::AppType::kBorealis:
     case apps::AppType::kBruschetta:
     case apps::AppType::kExtension:
-    case apps::AppType::kStandaloneBrowserExtension:
       // Default to unsupported. This app should not be captured.
       return kAppTypeUnsupported;
   }
@@ -1728,30 +1716,6 @@ bool FillApp(const std::string& app_id,
       break;
     }
 
-    case apps::AppType::kStandaloneBrowser: {
-      if (app_constants::kLacrosAppId == app_id) {
-        // Lacros Chrome browser window or PWA hosted in Lacros Chrome.
-        BrowserAppWindow* browser_app_window =
-            out_app->mutable_app()->mutable_browser_app_window();
-        FillBrowserAppWindow(app_restore_data, browser_app_window);
-      } else {
-        // Chrome app running in Lacros should have
-        // AppType::kStandaloneBrowserChromeApp and never reach here.
-        NOTREACHED();
-      }
-
-      break;
-    }
-
-    case apps::AppType::kStandaloneBrowserChromeApp: {
-      // Chrome App hosted in Lacros.
-      ChromeApp* chrome_app_window =
-          out_app->mutable_app()->mutable_chrome_app();
-      chrome_app_window->set_app_id(app_id);
-      FillAppWithLaunchContainerAndOpenDisposition(app_restore_data, out_app);
-      break;
-    }
-
     case apps::AppType::kArc: {
       ArcApp* arc_app = out_app->mutable_app()->mutable_arc_app();
       arc_app->set_app_id(app_id);
@@ -1759,7 +1723,6 @@ bool FillApp(const std::string& app_id,
       break;
     }
 
-    case apps::AppType::kBuiltIn:
     case apps::AppType::kCrostini:
     case apps::AppType::kPluginVm:
     case apps::AppType::kUnknown:
@@ -1767,7 +1730,6 @@ bool FillApp(const std::string& app_id,
     case apps::AppType::kBorealis:
     case apps::AppType::kBruschetta:
     case apps::AppType::kExtension:
-    case apps::AppType::kStandaloneBrowserExtension:
       // Unsupported app types will be ignored.
       return false;
   }

@@ -17,10 +17,10 @@
 #include "chrome/browser/ui/tabs/organization/tab_organization_service_factory.h"
 #include "chrome/browser/ui/tabs/organization/tab_organization_utils.h"
 #include "chrome/browser/ui/ui_features.h"
-#include "chrome/browser/ui/views/tabs/tab_organization_button.h"
 #include "chrome/browser/ui/views/tabs/tab_search_button.h"
 #include "chrome/browser/ui/views/tabs/tab_strip.h"
 #include "chrome/browser/ui/views/tabs/tab_strip_controller.h"
+#include "chrome/browser/ui/views/tabs/tab_strip_nudge_button.h"
 #include "chrome/common/chrome_features.h"
 #include "chrome/grit/generated_resources.h"
 #include "ui/base/l10n/l10n_util.h"
@@ -72,7 +72,7 @@ Edge GetFlatEdge(bool is_search_button, bool tab_search_before_chips) {
 
 TabSearchContainer::TabOrganizationAnimationSession::
     TabOrganizationAnimationSession(
-        TabOrganizationButton* button,
+        TabStripNudgeButton* button,
         TabSearchContainer* container,
         AnimationSessionType session_type,
         base::OnceCallback<void()> on_animation_ended)
@@ -211,7 +211,9 @@ TabSearchContainer::TabSearchContainer(
     bool tab_search_before_chips,
     View* locked_expansion_view,
     BrowserWindowInterface* browser_window_interface,
-    tabs::TabDeclutterController* tab_declutter_controller)
+    tabs::TabDeclutterController* tab_declutter_controller,
+    views::View* anchor_view,
+    TabStrip* tab_strip)
     : AnimationDelegateViews(this),
       locked_expansion_view_(locked_expansion_view),
       tab_declutter_controller_(tab_declutter_controller),
@@ -233,14 +235,16 @@ TabSearchContainer::TabSearchContainer(
     // opposite edge should be rounded with no change on chip animation.
     tab_search_button = std::make_unique<TabSearchButton>(
         tab_strip_controller, browser_window_interface,
-        base::i18n::IsRTL() ? Edge::kRight : Edge::kLeft, Edge::kNone);
+        base::i18n::IsRTL() ? Edge::kRight : Edge::kLeft, Edge::kNone,
+        anchor_view ? anchor_view : this, tab_strip);
     tab_search_button->SetFlatEdgeFactor(1);
   } else {
     // Edge adjacent to new tab button should be rounded and opposite edge
     // should animate to flat on chip show.
     tab_search_button = std::make_unique<TabSearchButton>(
         tab_strip_controller, browser_window_interface, Edge::kNone,
-        GetFlatEdge(true, tab_search_before_chips));
+        GetFlatEdge(true, tab_search_before_chips),
+        anchor_view ? anchor_view : this, tab_strip);
   }
   tab_search_button->SetProperty(views::kCrossAxisAlignmentKey,
                                  views::LayoutAlignment::kCenter);
@@ -280,7 +284,7 @@ TabSearchContainer::~TabSearchContainer() {
   }
 }
 
-void TabSearchContainer::SetupButtonProperties(TabOrganizationButton* button,
+void TabSearchContainer::SetupButtonProperties(TabStripNudgeButton* button,
                                                bool tab_search_before_chips) {
   // Set the margins for the button
   const int space_between_buttons = features::IsTabstripComboButtonEnabled()
@@ -298,34 +302,33 @@ void TabSearchContainer::SetupButtonProperties(TabOrganizationButton* button,
   button->SetOpacity(0);
 }
 
-std::unique_ptr<TabOrganizationButton>
+std::unique_ptr<TabStripNudgeButton>
 TabSearchContainer::CreateAutoTabGroupButton(
     TabStripController* tab_strip_controller,
     bool tab_search_before_chips) {
-  auto button = std::make_unique<TabOrganizationButton>(
+  auto button = std::make_unique<TabStripNudgeButton>(
       tab_strip_controller,
       base::BindRepeating(&TabSearchContainer::OnAutoTabGroupButtonClicked,
                           base::Unretained(this)),
       base::BindRepeating(&TabSearchContainer::OnAutoTabGroupButtonDismissed,
                           base::Unretained(this)),
-      l10n_util::GetStringUTF16(IDS_TAB_ORGANIZE),
-      l10n_util::GetStringUTF16(IDS_TOOLTIP_TAB_ORGANIZE),
-      l10n_util::GetStringUTF16(IDS_ACCNAME_TAB_ORGANIZE),
-      kAutoTabGroupButtonElementId,
+      l10n_util::GetStringUTF16(IDS_TAB_ORGANIZE), kAutoTabGroupButtonElementId,
       features::IsTabstripComboButtonEnabled()
           ? Edge::kNone
           : GetFlatEdge(false, tab_search_before_chips));
-
+  button->SetTooltipText(l10n_util::GetStringUTF16(IDS_TOOLTIP_TAB_ORGANIZE));
+  button->GetViewAccessibility().SetName(
+      l10n_util::GetStringUTF16(IDS_ACCNAME_TAB_ORGANIZE));
   button->SetProperty(views::kCrossAxisAlignmentKey,
                       views::LayoutAlignment::kCenter);
   return button;
 }
 
-std::unique_ptr<TabOrganizationButton>
+std::unique_ptr<TabStripNudgeButton>
 TabSearchContainer::CreateTabDeclutterButton(
     TabStripController* tab_strip_controller,
     bool tab_search_before_chips) {
-  auto button = std::make_unique<TabOrganizationButton>(
+  auto button = std::make_unique<TabStripNudgeButton>(
       tab_strip_controller,
       base::BindRepeating(&TabSearchContainer::OnTabDeclutterButtonClicked,
                           base::Unretained(this)),
@@ -334,23 +337,26 @@ TabSearchContainer::CreateTabDeclutterButton(
       features::IsTabstripDedupeEnabled()
           ? l10n_util::GetStringUTF16(IDS_TAB_DECLUTTER_WITH_DEDUPE)
           : l10n_util::GetStringUTF16(IDS_TAB_DECLUTTER),
-      features::IsTabstripDedupeEnabled()
-          ? l10n_util::GetStringUTF16(IDS_TOOLTIP_TAB_DECLUTTER_WITH_DEDUPE)
-          : l10n_util::GetStringUTF16(IDS_TOOLTIP_TAB_DECLUTTER),
-      features::IsTabstripDedupeEnabled()
-          ? l10n_util::GetStringUTF16(IDS_ACCNAME_TAB_DECLUTTER_WITH_DEDUPE)
-          : l10n_util::GetStringUTF16(IDS_ACCNAME_TAB_DECLUTTER),
       kTabDeclutterButtonElementId,
       features::IsTabstripComboButtonEnabled()
           ? Edge::kNone
           : GetFlatEdge(false, tab_search_before_chips));
+
+  button->SetTooltipText(
+      features::IsTabstripDedupeEnabled()
+          ? l10n_util::GetStringUTF16(IDS_TOOLTIP_TAB_DECLUTTER_WITH_DEDUPE)
+          : l10n_util::GetStringUTF16(IDS_TOOLTIP_TAB_DECLUTTER));
+  button->GetViewAccessibility().SetName(
+      features::IsTabstripDedupeEnabled()
+          ? l10n_util::GetStringUTF16(IDS_ACCNAME_TAB_DECLUTTER_WITH_DEDUPE)
+          : l10n_util::GetStringUTF16(IDS_ACCNAME_TAB_DECLUTTER));
 
   button->SetProperty(views::kCrossAxisAlignmentKey,
                       views::LayoutAlignment::kCenter);
   return button;
 }
 
-void TabSearchContainer::ShowTabOrganization(TabOrganizationButton* button) {
+void TabSearchContainer::ShowTabOrganization(TabStripNudgeButton* button) {
   if (locked_expansion_view_->IsMouseHovered()) {
     SetLockedExpansionMode(LockedExpansionMode::kWillShow, button);
   }
@@ -359,7 +365,7 @@ void TabSearchContainer::ShowTabOrganization(TabOrganizationButton* button) {
   }
 }
 
-void TabSearchContainer::HideTabOrganization(TabOrganizationButton* button) {
+void TabSearchContainer::HideTabOrganization(TabStripNudgeButton* button) {
   if (locked_expansion_view_->IsMouseHovered()) {
     SetLockedExpansionMode(LockedExpansionMode::kWillHide, button);
   }
@@ -370,7 +376,7 @@ void TabSearchContainer::HideTabOrganization(TabOrganizationButton* button) {
 
 void TabSearchContainer::SetLockedExpansionModeForTesting(
     LockedExpansionMode mode,
-    TabOrganizationButton* button) {
+    TabStripNudgeButton* button) {
   SetLockedExpansionMode(mode, button);
 }
 
@@ -397,8 +403,7 @@ void TabSearchContainer::OnAutoTabGroupButtonDismissed() {
   ExecuteHideTabOrganization(auto_tab_group_button_);
 }
 
-void TabSearchContainer::OnOrganizeButtonTimeout(
-    TabOrganizationButton* button) {
+void TabSearchContainer::OnOrganizeButtonTimeout(TabStripNudgeButton* button) {
   if (button == auto_tab_group_button_) {
     base::UmaHistogramEnumeration(kAutoTabGroupsTriggerOutcomeName,
                                   TriggerOutcome::kTimedOut);
@@ -414,7 +419,7 @@ void TabSearchContainer::OnOrganizeButtonTimeout(
 }
 
 void TabSearchContainer::SetLockedExpansionMode(LockedExpansionMode mode,
-                                                TabOrganizationButton* button) {
+                                                TabStripNudgeButton* button) {
   if (mode == LockedExpansionMode::kNone) {
     if (locked_expansion_mode_ == LockedExpansionMode::kWillShow) {
       ExecuteShowTabOrganization(locked_expansion_button_);
@@ -430,7 +435,7 @@ void TabSearchContainer::SetLockedExpansionMode(LockedExpansionMode mode,
 }
 
 void TabSearchContainer::ExecuteShowTabOrganization(
-    TabOrganizationButton* button) {
+    TabStripNudgeButton* button) {
   if (browser_ && (button == auto_tab_group_button_) &&
       !TabOrganizationUtils::GetInstance()->IsEnabled(browser_->profile())) {
     return;
@@ -460,7 +465,7 @@ void TabSearchContainer::ExecuteShowTabOrganization(
 }
 
 void TabSearchContainer::ExecuteHideTabOrganization(
-    TabOrganizationButton* button) {
+    TabStripNudgeButton* button) {
   // Hide the current animation if the shown button is the same button. Do not
   // create a new animation session.
   if (animation_session_ &&

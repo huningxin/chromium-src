@@ -138,7 +138,7 @@
 #include "components/strings/grit/components_strings.h"
 #else  // !BUILDFLAG(IS_ANDROID)
 #include "chrome/browser/autofill_ai/chrome_autofill_ai_client.h"
-#include "chrome/browser/ui/autofill/autofill_prediction_improvements/save_autofill_prediction_improvements_controller.h"
+#include "chrome/browser/ui/autofill/autofill_ai/save_autofill_ai_data_controller.h"
 #include "chrome/browser/ui/autofill/delete_address_profile_dialog_controller_impl.h"
 #include "chrome/browser/ui/autofill/payments/offer_notification_bubble_controller_impl.h"
 #include "chrome/browser/ui/browser.h"
@@ -220,6 +220,24 @@ void LaunchPlusAddressUserPerceptionSurvey(
       }
       survey_trigger = kHatsSurveyTriggerPlusAddressDeclinedFirstTimeCreate;
       break;
+    case plus_addresses::hats::SurveyType::kCreatedMultiplePlusAddresses:
+      if (!base::FeatureList::IsEnabled(
+              autofill::features::
+                  kPlusAddressUserCreatedMultiplePlusAddressesSurvey)) {
+        return;
+      }
+      survey_trigger =
+          kHatsSurveyTriggerPlusAddressCreatedMultiplePlusAddresses;
+      break;
+    case plus_addresses::hats::SurveyType::kCreatedPlusAddressViaManualFallback:
+      if (!base::FeatureList::IsEnabled(
+              autofill::features::
+                  kPlusAddressUserCreatedPlusAddressViaManualFallbackSurvey)) {
+        return;
+      }
+      survey_trigger =
+          kHatsSurveyTriggerPlusAddressCreatedPlusAddressViaManualFallback;
+      break;
     case plus_addresses::hats::SurveyType::kDidChoosePlusAddressOverEmail:
       if (!base::FeatureList::IsEnabled(
               autofill::features::
@@ -247,8 +265,6 @@ void LaunchPlusAddressUserPerceptionSurvey(
       survey_trigger =
           kHatsSurveyTriggerPlusAddressFilledPlusAddressViaManualFallback;
       break;
-    default:
-      NOTREACHED();
   }
 
   hats_service->LaunchSurveyForWebContents(
@@ -310,13 +326,13 @@ ChromeAutofillClient::GetURLLoaderFactory() {
       ->GetURLLoaderFactoryForBrowserProcess();
 }
 
-AutofillCrowdsourcingManager* ChromeAutofillClient::GetCrowdsourcingManager() {
+AutofillCrowdsourcingManager& ChromeAutofillClient::GetCrowdsourcingManager() {
   if (!crowdsourcing_manager_) {
     // Lazy initialization to avoid virtual function calls in the constructor.
     crowdsourcing_manager_ = std::make_unique<AutofillCrowdsourcingManager>(
         this, GetChannel(), GetLogManager());
   }
-  return crowdsourcing_manager_.get();
+  return *crowdsourcing_manager_;
 }
 
 AutofillOptimizationGuide* ChromeAutofillClient::GetAutofillOptimizationGuide()
@@ -789,13 +805,10 @@ bool ChromeAutofillClient::IsPasswordManagerEnabled() const {
       password_manager::PasswordManagerSetting::kOfferToSavePasswords);
 }
 
-void ChromeAutofillClient::DidFillOrPreviewForm(
-    mojom::ActionPersistence action_persistence,
-    AutofillTriggerSource trigger_source,
-    bool is_refill) {
+void ChromeAutofillClient::DidFillForm(AutofillTriggerSource trigger_source,
+                                       bool is_refill) {
 #if BUILDFLAG(IS_ANDROID)
-  if (action_persistence == mojom::ActionPersistence::kFill &&
-      trigger_source == AutofillTriggerSource::kTouchToFillCreditCard &&
+  if (trigger_source == AutofillTriggerSource::kTouchToFillCreditCard &&
       !is_refill) {
     // TODO(crbug.com/40900538): Test that the message was announced.
     autofill::AnnounceTextForA11y(

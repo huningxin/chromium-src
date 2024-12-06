@@ -17,8 +17,9 @@ namespace blink {
 
 void UseCounterCallback(v8::Isolate* isolate,
                         v8::Isolate::UseCounterFeature feature) {
-  if (V8PerIsolateData::From(isolate)->IsUseCounterDisabled())
+  if (V8PerIsolateData::From(isolate)->IsUseCounterDisabled()) {
     return;
+  }
 
   std::optional<WebFeature> blink_feature;
   std::optional<WebDXFeature> webdx_feature;
@@ -433,6 +434,21 @@ void UseCounterCallback(v8::Isolate* isolate,
       break;
     case v8::Isolate::kLocaleInfoFunctions:
       webdx_feature = WebDXFeature::kLocaleInfoFunctions;
+      break;
+    case v8::Isolate::kExtendingNonExtensibleWithPrivate:
+      blink_feature = WebFeature::kV8ExtendingNonExtensibleWithPrivate;
+      break;
+    case v8::Isolate::kPromiseTry:
+      webdx_feature = WebDXFeature::kPromiseTry;
+      break;
+    case v8::Isolate::kStringReplaceAll:
+      webdx_feature = WebDXFeature::kStringReplaceall;
+      break;
+    case v8::Isolate::kStringWellFormed:
+      webdx_feature = WebDXFeature::kStringWellformed;
+      break;
+    case v8::Isolate::kWeakReferences:
+      webdx_feature = WebDXFeature::kWeakReferences;
       break;
     default:
       // This can happen if V8 has added counters that this version of Blink

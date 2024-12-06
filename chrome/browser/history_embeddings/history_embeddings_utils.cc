@@ -74,21 +74,18 @@ void PopulateSourceForWebUI(content::WebUIDataSource* source,
        IDS_HISTORY_EMBEDDINGS_ANSWERER_ERROR_MODEL_UNAVAILABLE},
       {"historyEmbeddingsAnswererErrorTryAgain",
        IDS_HISTORY_EMBEDDINGS_ANSWERER_ERROR_TRY_AGAIN},
+      {"historyEmbeddingsMatch", IDS_HISTORY_SEARCH_EMBEDDINGS_MATCH_RESULT},
+      {"historyEmbeddingsMatches", IDS_HISTORY_SEARCH_EMBEDDINGS_MATCH_RESULTS},
   };
   source->AddLocalizedStrings(kHistoryEmbeddingsStrings);
   source->AddInteger("historyEmbeddingsSearchMinimumWordCount",
                      history_embeddings::GetFeatureParameters()
                          .search_query_minimum_word_count);
-#if !BUILDFLAG(IS_ANDROID)
   source->AddString("historyEmbeddingsSettingsUrl",
                     base::FeatureList::IsEnabled(
                         optimization_guide::features::kAiSettingsPageRefresh)
                         ? chrome::kHistorySearchV2SettingURL
                         : chrome::kHistorySearchSettingURL);
-#else   // !BUILDFLAG(IS_ANDROID)
-  source->AddString("historyEmbeddingsSettingsUrl",
-                    chrome::kHistorySearchSettingURL);
-#endif  // !BUILDFLAG(IS_ANDROID)
 }
 
 }  // namespace history_embeddings

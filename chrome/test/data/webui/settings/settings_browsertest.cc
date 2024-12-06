@@ -379,10 +379,6 @@ IN_PROC_BROWSER_TEST_F(SettingsTest, ResetProfileBanner) {
   RunTest("settings/reset_profile_banner_test.js", "mocha.run()");
 }
 
-IN_PROC_BROWSER_TEST_F(SettingsTest, SafetyCheckPage) {
-  RunTest("settings/safety_check_page_test.js", "mocha.run()");
-}
-
 IN_PROC_BROWSER_TEST_F(SettingsTest, ScrollableMixin) {
   RunTest("settings/scrollable_mixin_test.js", "mocha.run()");
 }
@@ -652,10 +648,6 @@ IN_PROC_BROWSER_TEST_F(SettingsBasicPageTest, Performance) {
   RunTest("settings/basic_page_test.js", "runMochaSuite('Performance')");
 }
 
-IN_PROC_BROWSER_TEST_F(SettingsBasicPageTest, SafetyHubDisabled) {
-  RunTest("settings/basic_page_test.js", "runMochaSuite('SafetyHubDisabled')");
-}
-
 IN_PROC_BROWSER_TEST_F(SettingsBasicPageTest, ExperimentalAdvanced) {
   RunTest("settings/basic_page_test.js",
           "runMochaSuite('ExperimentalAdvanced')");
@@ -683,18 +675,6 @@ IN_PROC_BROWSER_TEST_F(SettingsClearBrowsingDataTest,
           "runMochaSuite('ClearBrowsingDataDesktop')");
 }
 #endif
-
-IN_PROC_BROWSER_TEST_F(SettingsClearBrowsingDataTest,
-                       CbdTimeRangeExperiment_ExperimentOn) {
-  RunTest("settings/clear_browsing_data_test.js",
-          "runMochaSuite('CbdTimeRangeExperiment_ExperimentOn')");
-}
-
-IN_PROC_BROWSER_TEST_F(SettingsClearBrowsingDataTest,
-                       CbdTimeRangeExperiment_ExperimentOff) {
-  RunTest("settings/clear_browsing_data_test.js",
-          "runMochaSuite('CbdTimeRangeExperiment_ExperimentOff')");
-}
 
 IN_PROC_BROWSER_TEST_F(SettingsClearBrowsingDataTest,
                        ClearBrowsingDataForSupervisedUsers) {
@@ -747,6 +727,10 @@ class SettingsWithPixelOutputTest : public SettingsBrowserTest {
     SettingsBrowserTest::SetUpCommandLine(command_line);
   }
 };
+
+IN_PROC_BROWSER_TEST_F(SettingsWithPixelOutputTest, CrLottie) {
+  RunTest("settings/cr_lottie_test.js", "mocha.run()");
+}
 
 // https://crbug.com/1044390 - maybe flaky on Mac?
 #if BUILDFLAG(IS_MAC)
@@ -1104,12 +1088,6 @@ IN_PROC_BROWSER_TEST_F(SettingsPrivacyPageTest, NotificationPermissionReview) {
           "runMochaSuite('NotificationPermissionReview')");
 }
 
-IN_PROC_BROWSER_TEST_F(SettingsPrivacyPageTest,
-                       NotificationPermissionReviewSafetyHubDisabled) {
-  RunTest("settings/privacy_page_test.js",
-          "runMochaSuite('NotificationPermissionReviewSafetyHubDisabled')");
-}
-
 // TODO(crbug.com/40669164): flaky crash on Linux Tests (dbg).
 IN_PROC_BROWSER_TEST_F(SettingsPrivacyPageTest, DISABLED_PrivacyPageSound) {
   RunTest("settings/privacy_page_test.js", "runMochaSuite('PrivacyPageSound')");
@@ -1215,10 +1193,6 @@ IN_PROC_BROWSER_TEST_F(SettingsPrivacySandboxPageTest,
           "runMochaSuite('ManageTopicsAndAdTopicsPageState')");
 }
 
-IN_PROC_BROWSER_TEST_F(SettingsTest, ReviewNotificationPermissions) {
-  RunTest("settings/review_notification_permissions_test.js", "mocha.run()");
-}
-
 using SettingsRouteTest = SettingsBrowserTest;
 
 IN_PROC_BROWSER_TEST_F(SettingsRouteTest, Basic) {
@@ -1233,10 +1207,6 @@ IN_PROC_BROWSER_TEST_F(SettingsRouteTest, SafetyHubReachable) {
   RunTest("settings/route_test.js", "runMochaSuite('SafetyHubReachable')");
 }
 
-IN_PROC_BROWSER_TEST_F(SettingsRouteTest, SafetyHubNotReachable) {
-  RunTest("settings/route_test.js", "runMochaSuite('SafetyHubNotReachable')");
-}
-
 // Copied from Polymer 2 test:
 // Failing on ChromiumOS dbg. https://crbug.com/709442
 #if (BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS_ASH)) && !defined(NDEBUG)
@@ -1247,26 +1217,6 @@ IN_PROC_BROWSER_TEST_F(SettingsRouteTest, SafetyHubNotReachable) {
 IN_PROC_BROWSER_TEST_F(SettingsRouteTest, MAYBE_NonExistentRoute) {
   RunTest("settings/route_test.js", "runMochaSuite('NonExistentRoute')");
 }
-
-#if BUILDFLAG(ENABLE_EXTENSIONS)
-class SettingsSafetyCheckPermissionsTest : public SettingsBrowserTest {
- protected:
-  SettingsSafetyCheckPermissionsTest() {
-    scoped_feature_list_.InitWithFeatures(
-        {
-            content_settings::features::kSafetyCheckUnusedSitePermissions,
-        },
-        {});
-  }
-
- private:
-  base::test::ScopedFeatureList scoped_feature_list_;
-};
-
-IN_PROC_BROWSER_TEST_F(SettingsSafetyCheckPermissionsTest, All) {
-  RunTest("settings/safety_check_permissions_test.js", "mocha.run()");
-}
-#endif
 
 class SettingsSafetyHubTest : public SettingsBrowserTest {
  protected:
@@ -1485,37 +1435,9 @@ IN_PROC_BROWSER_TEST_F(SettingsSiteSettingsPageTest,
           "runMochaSuite('UnusedSitePermissionsReview')");
 }
 
-// TODO(crbug.com/40884439): Flaky.
-#if BUILDFLAG(IS_LINUX) && !defined(NDEBUG)
-#define MAYBE_UnusedSitePermissionsReviewDisabled \
-  DISABLED_UnusedSitePermissionsReviewDisabled
-#else
-#define MAYBE_UnusedSitePermissionsReviewDisabled \
-  UnusedSitePermissionsReviewDisabled
-#endif
-IN_PROC_BROWSER_TEST_F(SettingsSiteSettingsPageTest,
-                       MAYBE_UnusedSitePermissionsReviewDisabled) {
-  RunTest("settings/site_settings_page_test.js",
-          "runMochaSuite('UnusedSitePermissionsReviewDisabled')");
-}
-
-IN_PROC_BROWSER_TEST_F(SettingsSiteSettingsPageTest,
-                       UnusedSitePermissionsReviewSafetyHubDisabled) {
-  RunTest("settings/site_settings_page_test.js",
-          "runMochaSuite('UnusedSitePermissionsReviewSafetyHubDisabled')");
-}
-
 IN_PROC_BROWSER_TEST_F(SettingsSiteSettingsPageTest, SafetyHubDisabled) {
   RunTest("settings/site_settings_page_test.js",
           "runMochaSuite('SafetyHubDisabled')");
-}
-
-IN_PROC_BROWSER_TEST_F(
-    SettingsSiteSettingsPageTest,
-    AbusiveNotificationsEnabledUnusedSitePermissionsDisabled) {
-  RunTest("settings/site_settings_page_test.js",
-          "runMochaSuite('"
-          "AbusiveNotificationsEnabledUnusedSitePermissionsDisabled')");
 }
 
 #if !BUILDFLAG(IS_CHROMEOS_ASH)
@@ -1540,13 +1462,3 @@ IN_PROC_BROWSER_TEST_F(SettingsTranslatePageTest, MetricsBrowser) {
   RunTest("settings/translate_page_metrics_test_browser.js", "mocha.run()");
 }
 #endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
-
-class SettingsUnusedSitePermissionsTest : public SettingsBrowserTest {
- private:
-  base::test::ScopedFeatureList scoped_feature_list_{
-      content_settings::features::kSafetyCheckUnusedSitePermissions};
-};
-
-IN_PROC_BROWSER_TEST_F(SettingsUnusedSitePermissionsTest, All) {
-  RunTest("settings/unused_site_permissions_test.js", "mocha.run()");
-}

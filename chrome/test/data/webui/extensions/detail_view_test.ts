@@ -603,6 +603,15 @@ suite('ExtensionDetailViewTest', function() {
     testWarningVisible('#allowlist-warning', false);
   });
 
+  test('UnsupportedDeveloperExtensionWarning', async () => {
+    assertFalse(
+        isChildVisible(item, '#unsupported-developer-extension-warning'));
+
+    await updateItemDisableReasons({unsupportedDeveloperExtension: true});
+    assertTrue(
+        isChildVisible(item, '#unsupported-developer-extension-warning'));
+  });
+
   test('NoSiteAccessWithEnhancedSiteControls', async () => {
     const testIsVisible = isChildVisible.bind(null, item);
 
@@ -1023,5 +1032,11 @@ suite('ExtensionDetailViewTest', function() {
     await microtasksFinished();
     assertTrue(isVisible(itemPinnedToggle));
     assertFalse(itemPinnedToggle!.checked);
+  });
+
+  test('CanUploadAsAccountExtension', async () => {
+    testVisible(item, '#account-upload-button', false);
+    await updateItemData({canUploadAsAccountExtension: true});
+    testVisible(item, '#account-upload-button', true);
   });
 });

@@ -350,78 +350,6 @@ class RenderWidgetHostInputEventRouterTest : public testing::Test {
   std::unique_ptr<MockInputTargetClient> input_target_client_root_;
 };
 
-// A GestureTapCancel followed by GestureEnd signals the end of a gesture
-// sequence. This test verifies that `touchscreen_gesture_target_` is cleared
-// in that case. At present, this test is only supported for Aura, but that may
-// expand to include other platforms as https://crbug.com/380896827 gets
-// resolved.
-#if defined(USE_AURA)
-TEST_F(RenderWidgetHostInputEventRouterTest,
-       GestureTapCancelPlusGestureEndClearsTarget) {
-  view_root_->SetHittestResult(view_root_.get(), false);
-
-  // Generate sequence: GestureBegin + GestureTapDown + GestureTapCancel +
-  // GestureEnd.
-  blink::WebTouchEvent touch_event(
-      blink::WebInputEvent::Type::kTouchStart,
-      blink::WebInputEvent::kNoModifiers,
-      blink::WebInputEvent::GetStaticTimeStampForTests());
-  touch_event.touches_length = 1;
-  touch_event.touches[0].state = blink::WebTouchPoint::State::kStatePressed;
-  touch_event.unique_touch_event_id = 1;
-
-  rwhier()->RouteTouchEvent(view_root_.get(), &touch_event, ui::LatencyInfo());
-  EXPECT_EQ(view_root_.get(), touch_target());
-
-  blink::WebGestureEvent gesture_event(
-      blink::WebInputEvent::Type::kGestureBegin,
-      blink::WebInputEvent::kNoModifiers,
-      blink::WebInputEvent::GetStaticTimeStampForTests(),
-      blink::WebGestureDevice::kTouchscreen);
-  gesture_event.unique_touch_event_id = touch_event.unique_touch_event_id;
-  rwhier()->RouteGestureEvent(view_root_.get(), &gesture_event,
-                              ui::LatencyInfo());
-  // TODO(https://crbug.com/380896827): At present, since the target isn't set
-  // until GestureTapDown, the GestureBegin isn't sent to ProcessGestureEvent,
-  // and we can't check it via `last_gesture_seen()`. Once the code is updated
-  // to set the target at GestureBegin, change the expected type below to be
-  // kGestureBegin
-  EXPECT_EQ(blink::WebInputEvent::Type::kUndefined,
-            view_root_->last_gesture_seen());
-
-  gesture_event.SetType(blink::WebInputEvent::Type::kGestureTapDown);
-  rwhier()->RouteGestureEvent(view_root_.get(), &gesture_event,
-                              ui::LatencyInfo());
-
-  // At this point in time, the target isn't set until GestureTapDown, but in
-  // future it may be set on GestureBegin. See https://crbug.com/380896827.
-  EXPECT_EQ(view_root_.get(), touchscreen_gesture_target());
-  EXPECT_EQ(blink::WebInputEvent::Type::kGestureTapDown,
-            view_root_->last_gesture_seen());
-
-  touch_event.SetType(blink::WebInputEvent::Type::kTouchMove);
-  touch_event.touches[0].state = blink::WebTouchPoint::State::kStateMoved;
-  touch_event.unique_touch_event_id += 1;
-  rwhier()->RouteTouchEvent(view_root_.get(), &touch_event, ui::LatencyInfo());
-
-  gesture_event.SetType(blink::WebInputEvent::Type::kGestureTapCancel);
-  gesture_event.unique_touch_event_id = touch_event.unique_touch_event_id;
-  rwhier()->RouteGestureEvent(view_root_.get(), &gesture_event,
-                              ui::LatencyInfo());
-  EXPECT_EQ(blink::WebInputEvent::Type::kGestureTapCancel,
-            view_root_->last_gesture_seen());
-
-  gesture_event.SetType(blink::WebInputEvent::Type::kGestureEnd);
-  rwhier()->RouteGestureEvent(view_root_.get(), &gesture_event,
-                              ui::LatencyInfo());
-  EXPECT_EQ(blink::WebInputEvent::Type::kGestureEnd,
-            view_root_->last_gesture_seen());
-
-  // The sequence GestureTapCancel + GestureEnd should reset the target view.
-  EXPECT_EQ(nullptr, touchscreen_gesture_target());
-}
-#endif
-
 // Make sure that when a touch scroll crosses out of the area for a
 // RenderWidgetHostView, the RenderWidgetHostInputEventRouter continues to
 // route gesture events to the same RWHV until the end of the gesture.
@@ -1101,6 +1029,67 @@ TEST_F(RenderWidgetHostInputEventRouterTest,
 
   EXPECT_EQ(nullptr, bubbling_gesture_scroll_origin());
   EXPECT_EQ(nullptr, bubbling_gesture_scroll_target());
+}
+
+// Same as DoNotBubbleIfUnrelatedGestureInTarget, except this time the unrelated
+// gesture is from a different source device, so allow the bubbling to proceed.
+// This tests the fix for https://crbug.com/346629231.
+TEST_F(RenderWidgetHostInputEventRouterTest, DoBubbleIfSourceDeviceMismatch) {
+  if (!base::FeatureList::IsEnabled(
+          input::features::kIgnoreBubblingCollisionIfSourceDevicesMismatch)) {
+    return;
+  }
+
+  gfx::Vector2dF delta(0.f, 10.f);
+  blink::WebGestureEvent scroll_begin =
+      blink::SyntheticWebGestureEventBuilder::BuildScrollBegin(
+          delta.x(), delta.y(), blink::WebGestureDevice::kTouchpad);
+
+  ChildViewState child = MakeChildView(view_root_.get());
+
+  view_root_->SetHittestResult(view_root_.get(), false);
+
+  blink::WebTouchEvent touch_event(
+      blink::WebInputEvent::Type::kTouchStart,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  touch_event.touches_length = 1;
+  touch_event.touches[0].state = blink::WebTouchPoint::State::kStatePressed;
+  touch_event.unique_touch_event_id = 123;
+
+  rwhier()->RouteTouchEvent(view_root_.get(), &touch_event, ui::LatencyInfo());
+  EXPECT_EQ(view_root_.get(), touch_target());
+
+  blink::WebGestureEvent gesture_event(
+      blink::WebInputEvent::Type::kGestureTapDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests(),
+      blink::WebGestureDevice::kTouchscreen);
+  gesture_event.unique_touch_event_id = touch_event.unique_touch_event_id;
+
+  rwhier()->RouteGestureEvent(view_root_.get(), &gesture_event,
+                              ui::LatencyInfo());
+  EXPECT_EQ(view_root_.get(), touchscreen_gesture_target());
+
+  // Send a TouchCancel so the touch_target will be cleared before we attempt
+  // to do the bubbling.
+  blink::WebTouchEvent touch_cancel_event(
+      blink::WebInputEvent::Type::kTouchCancel,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  touch_cancel_event.touches_length = 1;
+  touch_cancel_event.touches[0].state =
+      blink::WebTouchPoint::State::kStateCancelled;
+  touch_cancel_event.unique_touch_event_id = 124;
+  rwhier()->RouteTouchEvent(view_root_.get(), &touch_cancel_event,
+                            ui::LatencyInfo());
+
+  // Now that we have a gesture in |view_root_|, suppose that there was a
+  // previous gesture from a different source device in |child.view| that has
+  // resulted in a scroll which we will now attempt to bubble. This should
+  // succeed.
+  EXPECT_TRUE(rwhier()->BubbleScrollEvent(view_root_.get(), child.view.get(),
+                                          scroll_begin));
 }
 
 // Like DoNotBubbleIfUnrelatedGestureInTarget, but considers bubbling from a

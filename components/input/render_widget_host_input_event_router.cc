@@ -1276,9 +1276,25 @@ bool RenderWidgetHostInputEventRouter::BubbleScrollEvent(
     // If target_view has unrelated gesture events in progress, do
     // not proceed. This could cause confusion between independent
     // scrolls.
-    if (target_view == touchscreen_gesture_target_.get() ||
-        target_view == touchpad_gesture_target_ ||
-        target_view == touch_target_) {
+    bool bubbling_collision_detected;
+    if (base::FeatureList::IsEnabled(
+            features::kIgnoreBubblingCollisionIfSourceDevicesMismatch)) {
+      // Only consider the bubbling to have collided if it hits the same target
+      // as the bubbling event's type.
+      bubbling_collision_detected =
+          (target_view == touchscreen_gesture_target_.get() &&
+           event.SourceDevice() == blink::WebGestureDevice::kTouchscreen) ||
+          (target_view == touchpad_gesture_target_ &&
+           event.SourceDevice() == blink::WebGestureDevice::kTouchpad) ||
+          (target_view == touch_target_ &&
+           event.SourceDevice() == blink::WebGestureDevice::kTouchscreen);
+    } else {
+      bubbling_collision_detected =
+          target_view == touchscreen_gesture_target_.get() ||
+          target_view == touchpad_gesture_target_ ||
+          target_view == touch_target_;
+    }
+    if (bubbling_collision_detected) {
       TRACE_EVENT_INSTANT("input", "EarlyOut-GestureInProgress", "target_view",
                           static_cast<void*>(target_view),
                           "touchscreen_gesture_target_",
@@ -1699,34 +1715,8 @@ void RenderWidgetHostInputEventRouter::DispatchTouchscreenGestureEvent(
   bool no_matching_id =
       gesture_target_it == touchscreen_gesture_target_map_.end();
 
-#if defined(USE_AURA)
-  // The following code is a targeted fix for https://crbug.com/346569466. In
-  // this bug, we see short sequences terminated by GestureTapCancel+GestureEnd
-  // that do not clear touchscreen_gesture_target_, leaving a stale target
-  // pointer in place that can later collide with (for example) legitimate
-  // scroll bubbling from trackpad scrolling. Ultimately, GestureBegin/End pairs
-  // should be reliably generated so that the preceding GestureTapCancel is
-  // immaterial, but at present there are some cases where GestureTapCancels
-  // don't have following GestureEnds, but should have. See
-  // https://crbug.com/380896827.
-  bool final_gesture_end_seen = false;
-  if (gesture_event.GetType() == blink::WebInputEvent::Type::kGestureBegin) {
-    touchscreen_gesture_begin_end_count_++;
-  } else if (gesture_event.GetType() ==
-             blink::WebInputEvent::Type::kGestureEnd) {
-    CHECK(touchscreen_gesture_begin_end_count_ > 0);
-    touchscreen_gesture_begin_end_count_--;
-    final_gesture_end_seen =
-        touchscreen_gesture_begin_end_count_ == 0 &&
-        last_event_type_ == blink::WebInputEvent::Type::kGestureTapCancel;
-  }
-  last_event_type_ = gesture_event.GetType();
-#endif
   // We use GestureTapDown to detect the start of a gesture sequence since
   // there is no WebGestureEvent equivalent for EventType::kGestureBegin.
-  // TODO(https://crbug.com/380896827): the preceding two comment lines are
-  // stale. We should definitely mark the start of the sequence with with a
-  // GestureBegin where touchscreen_gesture_begin_end_count_ == 1.
   const bool is_gesture_start =
       gesture_event.GetType() == blink::WebInputEvent::Type::kGestureTapDown;
 
@@ -1838,9 +1828,6 @@ void RenderWidgetHostInputEventRouter::DispatchTouchscreenGestureEvent(
   // If we have one of the following events, then the user has lifted their
   // last finger.
   const bool is_gesture_end =
-#if defined(USE_AURA)
-      final_gesture_end_seen ||
-#endif
       gesture_event.GetType() == blink::WebInputEvent::Type::kGestureTap ||
       gesture_event.GetType() == blink::WebInputEvent::Type::kGestureLongTap ||
       gesture_event.GetType() ==
@@ -2250,14 +2237,13 @@ void RenderWidgetHostInputEventRouter::ForwardDelegatedInkPoint(
     const blink::WebInputEvent& input_event,
     const blink::WebPointerProperties& pointer_properties,
     bool hovering) {
-  const std::optional<cc::DelegatedInkBrowserMetadata>& metadata =
+  std::optional<bool> delegated_ink_hovering =
       target_view->GetViewRenderInputRouter()
           ->delegate()
-          ->GetLastRenderFrameMetadata()
-          .delegated_ink_metadata;
+          ->IsDelegatedInkHovering();
 
-  if (IsMoveEvent(input_event.GetTypeAsUiEventType()) && metadata &&
-      hovering == metadata.value().delegated_ink_is_hovering) {
+  if (IsMoveEvent(input_event.GetTypeAsUiEventType()) &&
+      delegated_ink_hovering && hovering == *delegated_ink_hovering) {
     gfx::PointF position = pointer_properties.PositionInWidget();
     root_view->TransformPointToRootSurface(&position);
     position.Scale(target_view->GetDeviceScaleFactor());

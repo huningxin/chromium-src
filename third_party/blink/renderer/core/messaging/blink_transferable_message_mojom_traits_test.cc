@@ -95,8 +95,7 @@ TEST(BlinkTransferableMessageStructTraitsTest,
   ArrayBufferContents& deserialized_contents =
       out.message->GetArrayBufferContentsArray()[0];
   Vector<uint8_t> deserialized_data;
-  deserialized_data.Append(static_cast<uint8_t*>(deserialized_contents.Data()),
-                           8);
+  deserialized_data.AppendSpan(deserialized_contents.ByteSpan().first(8u));
   ASSERT_EQ(deserialized_data.size(), 8U);
   for (wtf_size_t i = 0; i < deserialized_data.size(); i++) {
     ASSERT_TRUE(deserialized_data[i] == i);
@@ -143,7 +142,8 @@ TEST(BlinkTransferableMessageStructTraitsTest,
   ASSERT_EQ(originalContentsData, deserialized_contents.Data());
 
   // The original ArrayBufferContents should be detached.
-  ASSERT_EQ(nullptr, v8_buffer->GetBackingStore()->Data());
+  ASSERT_TRUE(v8_buffer->WasDetached());
+  ASSERT_EQ(0UL, v8_buffer->GetBackingStore()->ByteLength());
   ASSERT_TRUE(original_array_buffer->IsDetached());
 }
 
@@ -251,7 +251,7 @@ class BlinkTransferableMessageStructTraitsWithFakeGpuTest : public Test {
     return MakeGarbageCollected<ImageBitmap>(
         AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
             std::move(client_si), GenTestSyncToken(100), 0,
-            SkImageInfo::MakeN32Premul(100, 100), GL_TEXTURE_2D, true,
+            SkImageInfo::MakeN32Premul(100, 100), GL_TEXTURE_2D,
             SharedGpuContext::ContextProviderWrapper(),
             base::PlatformThread::CurrentRef(),
             base::MakeRefCounted<base::NullTaskRunner>(),

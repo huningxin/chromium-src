@@ -262,6 +262,7 @@
 <translation id="4510853178268397146">આ એક્સ્ટેન્શન દ્વારા તેની ડેટા એકત્રિત કરવાની અને તેનો ઉપયોગ કરવાની રીત જેવી પ્રાઇવસી પ્રૅક્ટિસ પબ્લિશ કરવામાં આવી નથી. Chromium તેને કાઢી નાખવાનો સુઝાવ તમને આપે છે.</translation>
 <translation id="452711251841752011">Chromium પર આપનું સ્વાગત છે; નવી બ્રાઉઝર વિન્ડો ખોલી છે</translation>
 <translation id="4531137820806573936">તમારી આસપાસના વિસ્તારો અને તમારા હાથને ટ્રૅક કરવા માટે, Chromiumને પરવાનગીની જરૂર છે</translation>
+<translation id="4534145890176164066">Chromium ફોર્મને વધુ સારી રીતે સમજે છે અને તમારા માટે ઑટોમૅટિક રીતે ભરવાની સુવિધાનો ઉપયોગ કરીને તેમને ઝડપથી ભરી શકે છે</translation>
 <translation id="4536805923587466102">તમે પહેલેથી Chromiumની અન્ય પ્રોફાઇલમાં <ph name="USER_EMAIL_ADDRESS" /> તરીકે સાઇન ઇન થયા છો</translation>
 <translation id="4544142686420020088">કંઈક ખોટુ થયું હોવાને કારણે Chromium અપડેટ થયું નથી. <ph name="BEGIN_LINK" />Chromium અપડેટ કરવામાં આવતી સમસ્યાઓ અને નિષ્ફળ થયેલા અપડેટ સુધારો.<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">તમારો બ્રાઉઝિંગ અનુભવ બહેતર બનાવવા અને જે-તે બાબતની ઝડપ જાળવી રાખવા માટે Chromium આ ટૅબને નિષ્ક્રિય કરી શકે છે.</translation>
@@ -442,7 +443,6 @@
 <translation id="6831043979455480757">અનુવાદ કરો</translation>
 <translation id="6847869444787758381">Chromium વડે તમે તમારા પાસવર્ડમાં ક્યારેક ચેડાં થાય તો તેના વિશે જાણકારી મેળવી શકો છો</translation>
 <translation id="684888714667046800">ઇન્ટરનેટ સાથે કનેક્ટ કરી શકતા નથી. જો તમે કોઈ ફાયરવૉલનો ઉપયોગ કરતા હો, તો કૃપા કરીને ખાતરી કરો કે <ph name="PRODUCT_EXE_NAME" /> વ્હાઇટલિસ્ટમાં છે.</translation>
-<translation id="685279860330610299">Chromium વધુ પ્રકારની માહિતી સમજી શકે છે અને તમારા ફોર્મ વધુ ઝડપથી ઑટોમૅટિક રીતે ભરી શકે છે. <ph name="BEGIN_LINK" />Chromeની ઑટોમૅટિક રીતે ભરવાની સુવિધા<ph name="END_LINK" /> વિશે વધુ જાણો</translation>
 <translation id="6857782730669500492">Chromium - <ph name="PAGE_TITLE" /></translation>
 <translation id="6873893289264747459">Chromiumને "<ph name="EXTENSION_NAME" />"માં માલવેર હોવાનું જાણવા મળ્યું છે</translation>
 <translation id="6896758677409633944">કૉપિ કરો</translation>
@@ -481,6 +481,7 @@ Chromium તમારા સેટિંગને રિકવર શકતુ�
 <translation id="7349591376906416160">તમારા સિસ્ટમ વ્યવસ્થાપકે <ph name="TARGET_URL_HOSTNAME" />ને ઍક્સેસ કરવા Chromiumને <ph name="ALTERNATIVE_BROWSER_NAME" /> ખોલવા માટે ગોઠવેલું છે.</translation>
 <translation id="7355355292030546812">Chromium દ્વારા આ ડાઉનલોડ બ્લૉક કરવામાં આવ્યું છે, કારણ કે આ ફાઇલ <ph name="USER_EMAIL" /> સહિત તમારા વ્યક્તિગત અને સોશિયલ નેટવર્ક એકાઉન્ટને નુકસાન પહોંચાડી શકે છે</translation>
 <translation id="7384121030444253939">આ એક્સ્ટેન્શન હવે સપોર્ટેડ રહ્યું નથી. એના બદલે Chromium તેને કાઢી નાખવાનો સુઝાવ તમને આપે છે.</translation>
+<translation id="7389750180956889333">Chromium ફોર્મને વધુ સારી રીતે સમજે છે અને તમારા માટે ઑટોમૅટિક રીતે ભરવાની સુવિધાનો ઉપયોગ કરીને તેમને ઝડપથી ભરી શકે છે. <ph name="BEGIN_LINK" />Chromeની ઑટોમૅટિક રીતે ભરવાની સુવિધા<ph name="END_LINK" /> વિશે વધુ જાણો</translation>
 <translation id="7398989605938454041">Chromium પ્રોફાઇલ વડે તમે તમારી બધી વસ્તુઓ Chromium પર અલગ-અલગ રાખી શકો છો. આનાથી ઑફિસ અને મનોરંજન વચ્ચે વિભાજન કરવાનું સરળ બને છે.</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> - Chromium Dev</translation>
 <translation id="7450541714075000668">ટેક્સ્ટ કૉપિ કરી</translation>

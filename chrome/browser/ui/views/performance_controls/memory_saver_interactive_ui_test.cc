@@ -71,7 +71,7 @@ constexpr char kSkipPixelTestsReason[] = "Should only run in pixel_tests.";
 
 constexpr char kDocumentWithAudio[] = "/autoplay_audio.html";
 constexpr char kDocumentWithVideo[] = "/media/bigbuck-player.html";
-constexpr char kDocumentWithForm[] = "/form_search.html";
+constexpr char kDocumentWithForm[] = "/form_interaction.html";
 
 }  // namespace
 
@@ -201,7 +201,7 @@ IN_PROC_BROWSER_TEST_P(MemorySaverDiscardPolicyInteractiveTest,
   input_value_updated.event = kInputValueIsUpated;
   input_value_updated.where = input_text_box;
   input_value_updated.type = StateChange::Type::kExistsAndConditionTrue;
-  input_value_updated.test_function = "(el) => { return !!el.value; }";
+  input_value_updated.test_function = "(el) => { return el.value !== 'test'; }";
 
   const GURL url = embedded_test_server()->GetURL(kDocumentWithForm);
 
@@ -215,11 +215,13 @@ IN_PROC_BROWSER_TEST_P(MemorySaverDiscardPolicyInteractiveTest,
 
       // Wait until the input text box is focused and simulate typing a letter
       ExecuteJsAt(kFirstTabContents, input_text_box,
-                  "(el) => { el.focus(); el.select(); }"),
+                  "() => { FocusTextField(); }"),
+
       WaitForStateChange(kFirstTabContents, input_is_focused), PressKeyboard(),
       WaitForStateChange(kFirstTabContents, input_value_updated),
 
-      AddInstrumentedTab(kSecondTabContents, GURL(chrome::kChromeUINewTabURL)),
+      AddInstrumentedTab(kSecondTabContents, GURL(chrome::kChromeUINewTabURL),
+                         1),
       TryDiscardTab(0), CheckTabIsDiscarded(0, false));
 }
 

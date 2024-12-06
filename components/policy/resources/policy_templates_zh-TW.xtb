@@ -266,13 +266,6 @@
 <translation id="117080706484659953">允許 <ph name="MAC_OS_NAME" /> 上的政策範圍偵測</translation>
 <translation id="1171106901454883937">啟用裝置版本資訊回報功能</translation>
 <translation id="1173493742686115032">在所有網頁上啟用 <ph name="SEARCH_SIDE_PANEL_FEATURE_NAME" /></translation>
-<translation id="1177567780207290133">你可以透過設定這項政策來控管安全網站的網址篩選器，這個篩選器會使用 Google Safe Search API 判別網址是否指向色情內容。
-
-      這項政策可設定的選項如下：
-
-      *「不要過濾含有成人內容的網站」或是未設定時：網站不會經過篩選
-
-      *「過濾含有成人內容的頂層網站」：系統會篩除色情網站</translation>
 <translation id="1177624681620856105"> 這項政策可控管系統是否要在外部通訊協定的啟動確認提示中顯示「一律開啟」核取方塊。
 
       如果將這項政策設為 True 或不予設定，當系統顯示外部通訊協定的確認訊息時，使用者可以選取「一律允許」，這樣日後會略過這個網站上的所有通訊協定確認提示。
@@ -4005,6 +3998,15 @@
 <translation id="4027608872760987929">啟用預設搜尋引擎</translation>
 <translation id="4030152268425532846">停用自動登入規避</translation>
 <translation id="4043796890723386527">禁止使用者在 <ph name="LACROS_NAME" /> 瀏覽器中建立及使用次要設定檔，以及使用訪客模式</translation>
+<translation id="4047633048700722778">設定這項政策可控管安全網站的網址篩選器，這個篩選器會使用 Google Safe Search API 分辨網址是否指向色情內容。
+
+這項政策可設定的選項如下：
+
+*「不要針對成人內容篩選網站」或未設定：系統不會篩選網站
+
+*「篩選成人內容網站」：系統會篩除色情網站
+
+這項政策會同時套用至使用者前往的網址和 iframe。<ph name="URL_ALLOWLIST_POLICY_NAME" /> 政策的優先順序高於這項政策，可用於覆寫 Google Safe Search API 的判定結果。</translation>
 <translation id="4051723201852944592">啟用視窗遮蔽功能</translation>
 <translation id="4052529125939620019">啟動時載入 CryptoToken 元件擴充功能</translation>
 <translation id="4053157306171963473">停用裝置活動時間回報功能</translation>
@@ -7621,7 +7623,6 @@ Microsoft Sharepoint 資訊卡需要額外的管理員設定。想進一步瞭�
       系統不支援 (且會略過) 在 75 版以前使用多個擴充功能 ID (並以半形逗號分隔) 的版本。系統會套用政策中的其他部分。
 
       注意：這項政策也會影響使用 <ph name="EXTENSION_INSTALL_FORCELIST_POLICY_NAME" /> 強制安裝的擴充功能和應用程式。</translation>
-<translation id="6731757988219967594">過濾含有成人內容的頂層網站 (而非嵌入的 iframe)</translation>
 <translation id="6733851879899284032">
       指定 SharedArrayBuffers 是否可用於非跨來源隔離內容。由於網路相容性方面的原因，自 <ph name="PRODUCT_NAME" /> 91 版 (2021 年 5 月 25 日推出) 起，<ph name="PRODUCT_NAME" /> 會要求使用 SharedArrayBuffers 時進行跨來源隔離。詳情請前往：https://developer.chrome.com/blog/enabling-shared-array-buffer/。
       如果啟用這項政策，網站就可以不受限制地使用 SharedArrayBuffer。
@@ -8271,6 +8272,15 @@ Microsoft Sharepoint 資訊卡需要額外的管理員設定。想進一步瞭�
       你必須已安裝 Chrome 遠端桌面主機，否則系統將忽略這些政策。</translation>
 <translation id="7202925763179776247">允許下載限制</translation>
 <translation id="7203243973351251622">錄音工具 (自 130 版開始支援)</translation>
+<translation id="7205989349935313324">透過智慧鏡頭重疊功能，使用者可與目前網頁的螢幕截圖 (疊加在實際網頁內容上) 互動，使用 Google 搜尋相關資訊。此外，使用者也能根據目前網頁的內容，使用 Google 搜尋相關資訊。智慧鏡頭重疊功能會將網頁內容傳送給 Google，讓 Google 根據使用者目前所在網頁的內容回覆查詢，以便提供相關解答。
+
+這項功能無法透過使用者設定控制，使用者只要將預設搜尋引擎設為 Google，通常就能使用此功能 (除非這項政策設為停用)。
+
+0 = 為使用者啟用這項功能，並將相關資料傳送給 Google，協助訓練 AI 模型或提升模型品質。相關資料可能包括提示、輸入內容、輸出內容和來源材料 (視功能而定)。這些資料可能會送交人工審查，以提升 AI 模型品質。預設值為 0，但以下註明的情形除外。
+
+1 = 為使用者啟用這項功能，但不傳送資料給 Google 做為訓練或改善 AI 模型之用。如果是 <ph name="GOOGLE_ADMIN_CONSOLE_PRODUCT_NAME" />管理的企業版使用者，以及 <ph name="GOOGLE_WORKSPACE_PRODUCT_NAME" /> 管理的教育版帳戶，預設值為 1。
+
+2 = 停用這項功能。</translation>
 <translation id="7207095846245296855">強制啟用 Google 安全搜尋模式</translation>
 <translation id="7211368186050418507">一律不自動偵測時區</translation>
 <translation id="721617466745658461">允許使用者選取 <ph name="LACROS_NAME" /> 瀏覽器二進位檔</translation>
@@ -9407,6 +9417,7 @@ Microsoft Sharepoint 資訊卡需要額外的管理員設定。想進一步瞭�
       如果將這項政策設為停用或不設定，系統不會傳送任何封包。</translation>
 <translation id="8168359201203671567">彩虹鍵盤背光顏色</translation>
 <translation id="8169452762291746260">停用裝置健康狀態監控功能</translation>
+<translation id="8170359860920320269">篩選成人內容網站</translation>
 <translation id="8171262216089271568">在登入畫面上啟用大型游標</translation>
 <translation id="8171924760436219650">在登入畫面上將滑鼠的主要按鈕切換為右鍵</translation>
 <translation id="81724933026241365">允許使用者透過關機圖示或實體電源按鈕關閉裝置</translation>

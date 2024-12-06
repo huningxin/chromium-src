@@ -2,11 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-// TODO(crbug.com/40285824): Remove this and convert code to safer constructs.
-#pragma allow_unsafe_buffers
-#endif
-
 #include "chrome/browser/ui/webui/discards/discards_ui.h"
 
 #include <utility>
@@ -117,7 +112,7 @@ class DiscardsDetailsProviderImpl : public discards::mojom::DetailsProvider {
   DiscardsDetailsProviderImpl& operator=(const DiscardsDetailsProviderImpl&) =
       delete;
 
-  ~DiscardsDetailsProviderImpl() override {}
+  ~DiscardsDetailsProviderImpl() override = default;
 
   // discards::mojom::DetailsProvider overrides:
   void GetTabDiscardsInfo(GetTabDiscardsInfoCallback callback) override {
@@ -305,9 +300,8 @@ DiscardsUI::DiscardsUI(content::WebUI* web_ui)
       base::FeatureList::IsEnabled(
           performance_manager::features::kPerformanceInterventionDemoMode));
 
-  webui::SetupWebUIDataSource(
-      source, base::make_span(kDiscardsResources, kDiscardsResourcesSize),
-      IDR_DISCARDS_DISCARDS_HTML);
+  webui::SetupWebUIDataSource(source, kDiscardsResources,
+                              IDR_DISCARDS_DISCARDS_HTML);
 
   content::URLDataSource::Add(
       profile, std::make_unique<FaviconSource>(
@@ -318,7 +312,7 @@ DiscardsUI::DiscardsUI(content::WebUI* web_ui)
 
 WEB_UI_CONTROLLER_TYPE_IMPL(DiscardsUI)
 
-DiscardsUI::~DiscardsUI() {}
+DiscardsUI::~DiscardsUI() = default;
 
 void DiscardsUI::BindInterface(
     mojo::PendingReceiver<discards::mojom::DetailsProvider> receiver) {

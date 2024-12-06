@@ -82,6 +82,13 @@ export function getHtml(this: ItemElement) {
           <span id="blocklisted-warning" class="cr-secondary-text"><!--
             -->${this.data.blocklistText}<!-- No whitespace; use :empty in css.
        --></span>
+          <span id="unsupported-developer-extension-warning"
+              class="cr-secondary-text"
+              ?hidden="${!this.data.disableReasons.
+            unsupportedDeveloperExtension}">
+            <!--TODO(crbug.com/362756477) Replace after string is finalized.-->
+            <span>This extension is only supported in developer mode.</span>
+          </span>
         </div>` : ''}
       ${this.showMv2DeprecationWarning_() ? html`
         <div id="warnings">
@@ -146,7 +153,11 @@ export function getHtml(this: ItemElement) {
           $i18n{itemErrors}
         </cr-button>` : ''}
     </div>
-    ${!this.computeDevReloadButtonHidden_() ? html`
+    ${this.showAccountUploadButton_() ? html`
+      <cr-icon-button id="account-upload-button" class="no-overlap"
+          iron-icon="extensions-icons:extension_cloud_upload">
+      </cr-icon-button>` : ''}
+    ${this.showDevReloadButton_() ? html`
       <cr-icon-button id="dev-reload-button" class="icon-refresh no-overlap"
           title="$i18n{itemReload}" aria-label="$i18n{itemReload}"
           aria-describedby="a11yAssociation" @click="${this.onReloadClick_}">

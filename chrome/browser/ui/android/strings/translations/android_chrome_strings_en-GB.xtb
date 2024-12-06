@@ -374,7 +374,7 @@ Only someone with your passphrase can read your encrypted data. The passphrase i
 <translation id="2677748264148917807">Leave</translation>
 <translation id="2702516483241149200">New: Share a link that scrolls to this text</translation>
 <translation id="2705073298859543115">Create summary</translation>
-<translation id="2708051474374549906">Real-time, proactive protection against dangerous sites, downloads and extensions that’s based on your browsing data getting sent to Google</translation>
+<translation id="2708051474374549906">Real-time, proactive protection against dangerous sites, downloads and extensions that are based on your browsing data getting sent to Google</translation>
 <translation id="2708226184420201102">Open in <ph name="PRODUCT_NAME" /> browser</translation>
 <translation id="271033894570825754">New</translation>
 <translation id="2718352093833049315">Only on Wi-Fi</translation>
@@ -942,6 +942,7 @@ Your Google Account may have other forms of browsing history such as searches an
 <translation id="5316947901395241499">Password saving has been turned off by your administrator</translation>
 <translation id="5317780077021120954">Save</translation>
 <translation id="5319359161174645648">Google recommends Chrome</translation>
+<translation id="5326246328175179736">You can't sign in using this account</translation>
 <translation id="5328542107300944283">Use with <ph name="IDENTITY_PROVIDER_ETLD_PLUS_ONE" /></translation>
 <translation id="5342314432463739672">Permission requests</translation>
 <translation id="534580735623577507">No sites from the <ph name="TIME_PERIOD" /></translation>
@@ -951,6 +952,7 @@ Your Google Account may have other forms of browsing history such as searches an
 <translation id="5375577065097716013">Search image with Google Lens <ph name="BEGIN_NEW" />New<ph name="END_NEW" /></translation>
 <translation id="5394331612381306435">Switch out of Incognito</translation>
 <translation id="5395376160638294582">Make sure that you can always use the Chrome data in your Google Account</translation>
+<translation id="5397794290049113714">You</translation>
 <translation id="539881862970320163">Strong password suggested. Keyboard hidden.</translation>
 <translation id="5409881200985013443">Submit <ph name="ONE_TIME_CODE" /> on <ph name="CLIENT_NAME" />?</translation>
 <translation id="5410300144953132176"><ph name="OWNER_FULL_NAME" /> (<ph name="OWNER_EMAIL" />) wants you to join a tab group. Anyone with the link can edit all tabs, so join with care. Link expires in 48 hours.</translation>
@@ -978,6 +980,7 @@ Your Google Account may have other forms of browsing history such as searches an
 <translation id="5514904542973294328">Disabled by the administrator of this device</translation>
 <translation id="5515439363601853141">Unlock to view your password</translation>
 <translation id="5517095782334947753">You have bookmarks, history, passwords and other settings from <ph name="FROM_ACCOUNT" />.</translation>
+<translation id="5517326820028369152">Recent activity bottom sheet</translation>
 <translation id="5524843473235508879">Redirect blocked.</translation>
 <translation id="5526281268548144413">Can't be closed across multiple windows</translation>
 <translation id="5528925345478618296">{MINUTES,plural, =1{# min ago}other{# mins ago}}</translation>
@@ -1004,6 +1007,7 @@ Your Google Account may have other forms of browsing history such as searches an
 <translation id="562289928968387744">Manage reactions</translation>
 <translation id="5626134646977739690">Name:</translation>
 <translation id="5628604359369369630">Unread – available offline</translation>
+<translation id="5631483240431073854">Manage open tabs</translation>
 <translation id="5641456720590409793"><ph name="BEGIN_LINK1" />Search history<ph name="END_LINK1" /> and <ph name="BEGIN_LINK2" />other forms of activity<ph name="END_LINK2" /> may be saved in your Google Account</translation>
 <translation id="5648166631817621825">Last 7 days</translation>
 <translation id="5655963694829536461">Search your downloads</translation>
@@ -1280,6 +1284,7 @@ For example, some websites may respond to this request by showing you ads that a
 <translation id="6817747507826986771">Quickly share this page. To edit this shortcut, touch and hold.</translation>
 <translation id="6820686453637990663">CVC</translation>
 <translation id="6820942662346226299">Google Password Manager update closed</translation>
+<translation id="6824933543577433709">Recent activity bottom sheet closed</translation>
 <translation id="6828070228333235514">Stop tracking price</translation>
 <translation id="6830728435402077660">Not secure</translation>
 <translation id="6831043979455480757">Translate</translation>
@@ -1317,6 +1322,7 @@ For example, some websites may respond to this request by showing you ads that a
 <translation id="6910211073230771657">Deleted</translation>
 <translation id="6918398787259831832">If this issue keeps happening, <ph name="BEGIN_LINK" />get more information<ph name="END_LINK" /> from <ph name="IDENTITY_PROVIDER_ETLD_PLUS_ONE" />.</translation>
 <translation id="6922812712751566567"><ph name="PERMISSION" /> <ph name="SEPARATOR" /> Chrome removed these permissions because you haven't visited recently</translation>
+<translation id="6927821422725196292">{TABS_COUNT,plural, =1{1 tab}other{<ph name="NUMBER_OF_TABS" /> tabs}}</translation>
 <translation id="6929224077895306814">All security codes saved on your device and in your Google Account will be deleted</translation>
 <translation id="6937524809504266803">Personalisation and linking</translation>
 <translation id="6937876069006524083">Nickname (optional)</translation>
@@ -1497,6 +1503,7 @@ To change this setting, <ph name="BEGIN_LINK" />delete the Chrome data in your a
 <translation id="7691043218961417207">Explore content to follow</translation>
 <translation id="7697383401610880082">Drag handle</translation>
 <translation id="7698359219371678927">Create email in <ph name="APP_NAME" /></translation>
+<translation id="7702420606070050505">Recent activity bottom sheet opened at full height</translation>
 <translation id="7707922173985738739">Use mobile data</translation>
 <translation id="7709918231054955894">Get all your tabs</translation>
 <translation id="7733878270780732638">Not enough space on device.</translation>

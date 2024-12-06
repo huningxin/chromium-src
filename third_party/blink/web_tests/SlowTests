@@ -1,4 +1,4 @@
-# tags: [ Android Fuchsia Linux Mac Mac11 Mac11-arm64 Mac12 Mac12-arm64 Mac13 Mac13-arm64 Mac14 Mac14-arm64 Win Win10.20h2 Win11 Win11-arm64 ]
+# tags: [ Android Fuchsia Linux Mac Mac11 Mac11-arm64 Mac12 Mac12-arm64 Mac13 Mac13-arm64 Mac14 Mac14-arm64 Mac15 Mac15-arm64 Webview Win Win10.20h2 Win11 Win11-arm64 iOS17-simulator ]
 # tags: [ Release Debug ]
 # results: [ Slow ]
 
@@ -1464,3 +1464,7 @@ crbug.com/374045525 [ Debug Mac14 ] webaudio/AudioParam/audioparam-rate-change-3
 crbug.com/375337253 external/wpt/shadow-dom/reference-target/tentative/property-reflection.html [ Slow ]
 
 crbug.com/378325771 [ Mac ] wpt_internal/css/css-overflow/scroll-markers-updated-by-user-scroll.html [ Slow ]
+
+crbug.com/381648149 [ Mac14 ] wpt_internal/hid/hidDevice_reports.https.window.html [ Slow ]
+crbug.com/382173821 [ Mac11 ] wpt_internal/hid/hid_requestDevice.https.window.html [ Slow ]
+crbug.com/382173821 [ Mac12 ] wpt_internal/hid/hid_requestDevice.https.window.html [ Slow ]

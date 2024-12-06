@@ -19,9 +19,9 @@
 #include "chromeos/ash/components/nearby/common/proto/timestamp.pb.h"
 #include "components/cross_device/logging/logging.h"
 #include "crypto/aead.h"
+#include "crypto/aes_ctr.h"
 #include "crypto/ec_private_key.h"
 #include "crypto/ec_signature_creator.h"
-#include "crypto/encryptor.h"
 #include "crypto/hmac.h"
 #include "crypto/sha2.h"
 #include "crypto/symmetric_key.h"
@@ -237,24 +237,18 @@ NearbySharePrivateCertificate::EncryptMetadataKey() {
     return std::nullopt;
   }
 
-  std::unique_ptr<crypto::Encryptor> encryptor =
-      CreateNearbyShareCtrEncryptor(secret_key_.get(), *salt);
-  if (!encryptor) {
-    CD_LOG(ERROR, Feature::NS)
-        << "Encryption failed: Could not create CTR encryptor.";
-    return std::nullopt;
-  }
+  auto key = base::as_byte_span(secret_key_->key());
+  auto counter = DeriveNearbyShareKey(*salt, crypto::aes_ctr::kCounterSize);
 
   DCHECK_EQ(kNearbyShareNumBytesMetadataEncryptionKey,
             metadata_encryption_key_.size());
-  std::vector<uint8_t> encrypted_metadata_key;
-  if (!encryptor->Encrypt(metadata_encryption_key_, &encrypted_metadata_key)) {
-    CD_LOG(ERROR, Feature::NS)
-        << "Encryption failed: Could not encrypt metadata key.";
-    return std::nullopt;
-  }
 
-  return NearbyShareEncryptedMetadataKey(*salt, encrypted_metadata_key);
+  return NearbyShareEncryptedMetadataKey(
+      *salt,
+      crypto::aes_ctr::Encrypt(
+          key,
+          base::span<const uint8_t, crypto::aes_ctr::kCounterSize>(counter),
+          metadata_encryption_key_));
 }
 
 std::optional<std::vector<uint8_t>> NearbySharePrivateCertificate::Sign(
@@ -273,9 +267,8 @@ std::optional<std::vector<uint8_t>> NearbySharePrivateCertificate::Sign(
 
 std::vector<uint8_t> NearbySharePrivateCertificate::HashAuthenticationToken(
     base::span<const uint8_t> authentication_token) const {
-  return ComputeAuthenticationTokenHash(
-      authentication_token,
-      base::as_bytes(base::make_span(secret_key_->key())));
+  return ComputeAuthenticationTokenHash(authentication_token,
+                                        base::as_byte_span(secret_key_->key()));
 }
 
 std::optional<nearby::sharing::proto::PublicCertificate>
@@ -481,10 +474,9 @@ NearbySharePrivateCertificate::EncryptMetadata() const {
   unencrypted_metadata_.SerializeToArray(metadata_array.data(),
                                          metadata_array.size());
 
-  return aead.Seal(
-      metadata_array,
-      /*nonce=*/
-      DeriveNearbyShareKey(base::as_bytes(base::make_span(secret_key_->key())),
-                           kNearbyShareNumBytesAesGcmIv),
-      /*additional_data=*/base::span<const uint8_t>());
+  return aead.Seal(metadata_array,
+                   /*nonce=*/
+                   DeriveNearbyShareKey(base::as_byte_span(secret_key_->key()),
+                                        kNearbyShareNumBytesAesGcmIv),
+                   /*additional_data=*/base::span<const uint8_t>());
 }

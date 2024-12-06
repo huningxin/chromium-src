@@ -4,6 +4,7 @@
 
 package org.chromium.chrome.browser.task_manager.ui;
 
+import static org.chromium.chrome.browser.task_manager.ui.TaskManagerProperties.ALL_COLUMN_KEYS;
 import static org.chromium.chrome.browser.task_manager.ui.TaskManagerProperties.COLUMNS;
 import static org.chromium.chrome.browser.task_manager.ui.TaskManagerProperties.CPU;
 import static org.chromium.chrome.browser.task_manager.ui.TaskManagerProperties.IS_KILLABLE;
@@ -30,6 +31,8 @@ import org.chromium.ui.modelutil.PropertyModel;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
@@ -40,7 +43,6 @@ class TaskManagerMediator {
     private final int mRefreshTimeMillis;
     private final TaskManagerServiceBridge mBridge = new TaskManagerServiceBridge();
     private TaskManagerServiceBridge.ObserverHandle mObserverHandle;
-    private final PropertyKey[] mColumnKeys;
 
     private final PropertyModel mHeader;
     // The list containing the properties representing tasks. Sorted by task id.
@@ -56,19 +58,19 @@ class TaskManagerMediator {
      * @param refreshTimeMillis How often the model should be refreshed.
      * @param header The model for the header. The model must accept COLUMNS as a key.
      * @param tasks The model for tasks.
-     * @param columnKeys The columns to be updated. TASK_ID must not be set.
+     * @param initialColumnKeys The initial columns to be shown. Must be a subsequence of
+     *     ALL_COLUMN_KEYS.
      */
     TaskManagerMediator(
             int refreshTimeMillis,
             PropertyModel header,
             ModelList tasks,
-            PropertyKey... columnKeys) {
+            PropertyKey... initialColumnKeys) {
         mRefreshTimeMillis = refreshTimeMillis;
         mHeader = header;
         mTasks = tasks;
-        mColumnKeys = columnKeys;
 
-        mHeader.set(COLUMNS, columnKeys);
+        mHeader.set(COLUMNS, initialColumnKeys);
         mHeader.set(SORT_DESCRIPTOR, null);
     }
 
@@ -79,7 +81,7 @@ class TaskManagerMediator {
             // TODO(crbug.com/380154740): Update only the refreshType when columns are
             // added/removed.
             @RefreshType int refreshType = 0;
-            for (PropertyKey columnKey : mColumnKeys) {
+            for (PropertyKey columnKey : ALL_COLUMN_KEYS) {
                 refreshType |= getRequiredRefreshType(columnKey);
             }
             mObserverHandle = mBridge.addObserver(tmObserver, mRefreshTimeMillis, refreshType);
@@ -129,27 +131,63 @@ class TaskManagerMediator {
     }
 
     /**
-     * Cycles through the sort orderings for the key.
+     * Cycles through the sort orderings for the key. The initial ordering when the column is not
+     * sorted yet is decided based on the key.
      *
      * <ul>
-     *   <li>If the column is not sorted, sorts it in descending order.
-     *   <li>If the column is sorted in descending order, sorts it in ascending order.
-     *   <li>If the column is sorted in ascending order, removes the sorting.
+     *   <li>If the column is not sorted, sorts it in initial order.
+     *   <li>If the column is sorted in the initial order, sorts it in the opposite order.
+     *   <li>If the column is sorted in the opposite of the initial order, removes the sorting.
      * </ul>
      */
     void cycleSortOrder(PropertyKey columnKey) {
         @Nullable SortDescriptor descriptor = mHeader.get(SORT_DESCRIPTOR);
 
-        // TODO(crbug.com/381351182): change default sort order per column type.
+        boolean ascendingFirst = TaskManagerProperties.initialSortIsAscending(columnKey);
+
         if (descriptor != null && descriptor.key == columnKey) {
-            if (descriptor.ascending) {
-                setSortDescriptor(null);
+            if (descriptor.ascending == ascendingFirst) {
+                setSortDescriptor(new SortDescriptor(columnKey, !ascendingFirst));
             } else {
-                setSortDescriptor(new SortDescriptor(columnKey, true));
+                setSortDescriptor(null);
             }
         } else {
-            setSortDescriptor(new SortDescriptor(columnKey, false));
+            setSortDescriptor(new SortDescriptor(columnKey, ascendingFirst));
         }
+    }
+
+    /**
+     * Toggles the state of whether the column is filtered or not. It will not filter out all the
+     * columns.
+     *
+     * @return Whether the request was fulfilled.
+     */
+    boolean toggleColumnFiltering(PropertyKey columnKey) {
+        HashSet<PropertyKey> keysToSelect = new HashSet<>(List.of(mHeader.get(COLUMNS)));
+        if (keysToSelect.contains(columnKey)) {
+            keysToSelect.remove(columnKey);
+        } else {
+            keysToSelect.add(columnKey);
+        }
+        // Ensure at least one column is visible at any given time.
+        if (keysToSelect.isEmpty()) {
+            return false;
+        }
+
+        PropertyKey[] newKeys = new PropertyKey[keysToSelect.size()];
+        int i = 0;
+        // Keep the ordering the same as ALL_COLUMN_KEYS.
+        for (PropertyKey key : ALL_COLUMN_KEYS) {
+            if (keysToSelect.contains(key)) {
+                newKeys[i++] = key;
+            }
+        }
+        mHeader.set(COLUMNS, newKeys);
+
+        // TODO(crbug.com/380165957): Consider stopping getting task properties for the keys that
+        // are not in newKeys.
+
+        return true;
     }
 
     private @RefreshType int getRequiredRefreshType(PropertyKey columnKey) {
@@ -168,7 +206,7 @@ class TaskManagerMediator {
     private ListItem createTaskModel(long taskId) {
         PropertyKey[] keys =
                 PropertyModel.concatKeys(
-                        mColumnKeys, new PropertyKey[] {TASK_ID, IS_SELECTED, IS_KILLABLE});
+                        ALL_COLUMN_KEYS, new PropertyKey[] {TASK_ID, IS_SELECTED, IS_KILLABLE});
         return new ListItem(
                 RowType.TASK,
                 new PropertyModel.Builder(keys)
@@ -181,7 +219,7 @@ class TaskManagerMediator {
     // TODO(crbug.com/380165957): Confirm pid and task name never change and stop
     // refreshing them.
     private void updateTaskModel(ListItem task, long taskId) {
-        for (PropertyKey columnKey : mColumnKeys) {
+        for (PropertyKey columnKey : ALL_COLUMN_KEYS) {
             if (columnKey == TASK_NAME) {
                 task.model.set(TASK_NAME, mBridge.getTitle(taskId));
             } else if (columnKey == MEMORY_FOOTPRINT) {

@@ -182,7 +182,7 @@ class WTF_EXPORT String {
   [[nodiscard]] std::string Ascii() const;
   [[nodiscard]] std::string Latin1() const;
   [[nodiscard]] std::string Utf8(
-      UTF8ConversionMode mode = kLenientUTF8Conversion) const {
+      Utf8ConversionMode mode = Utf8ConversionMode::kLenient) const {
     return StringView(*this).Utf8(mode);
   }
 
@@ -442,10 +442,6 @@ class WTF_EXPORT String {
   void AppendTo(BufferType&,
                 unsigned start = 0,
                 unsigned length = UINT_MAX) const;
-  template <typename BufferType>
-  void PrependTo(BufferType&,
-                 unsigned start = 0,
-                 unsigned length = UINT_MAX) const;
 
   // Convert the string into a number.
 
@@ -683,15 +679,6 @@ void String::AppendTo(BufferType& result,
   impl_->AppendTo(result, position, length);
 }
 
-template <typename BufferType>
-void String::PrependTo(BufferType& result,
-                       unsigned position,
-                       unsigned length) const {
-  if (!impl_)
-    return;
-  impl_->PrependTo(result, position, length);
-}
-
 template <typename T>
 struct HashTraits;
 // Defined in string_hash.h.
@@ -742,13 +729,12 @@ inline StringView::StringView(const String& string LIFETIME_BOUND)
 
 WTF_ALLOW_MOVE_AND_INIT_WITH_MEM_FUNCTIONS(String)
 
-using WTF::kStrictUTF8Conversion;
-using WTF::kStrictUTF8ConversionReplacingUnpairedSurrogatesWithFFFD;
-using WTF::String;
-using WTF::g_empty_string;
-using WTF::g_empty_string16_bit;
 using WTF::Equal;
 using WTF::Find;
+using WTF::g_empty_string;
+using WTF::g_empty_string16_bit;
+using WTF::String;
+using WTF::Utf8ConversionMode;
 
 #include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"
 #endif  // THIRD_PARTY_BLINK_RENDERER_PLATFORM_WTF_TEXT_WTF_STRING_H_

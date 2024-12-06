@@ -341,6 +341,7 @@ component("platform") {
   output_name = "blink_platform"
 
   sources = [
+    "accept_languages_watcher.h",
     "animation/animation_translation_util.cc",
     "animation/animation_translation_util.h",
     "animation/compositor_animation.cc",
@@ -359,6 +360,8 @@ component("platform") {
     "audio/audio_channel.h",
     "audio/audio_destination.cc",
     "audio/audio_destination.h",
+    "audio/audio_destination_uma_reporter.cc",
+    "audio/audio_destination_uma_reporter.h",
     "audio/audio_dsp_kernel.cc",
     "audio/audio_dsp_kernel.h",
     "audio/audio_dsp_kernel_processor.cc",
@@ -2139,6 +2142,7 @@ source_set("blink_platform_unittests_sources") {
     "animation/compositor_animation_test.cc",
     "animation/timing_function_test.cc",
     "audio/audio_destination_test.cc",
+    "audio/audio_destination_uma_reporter_test.cc",
     "audio/audio_frame_stats_accumulator_test.cc",
     "audio/push_pull_fifo_multithread_test.cc",
     "audio/push_pull_fifo_test.cc",
@@ -2765,6 +2769,7 @@ fuzzer_test("blink_avif_decoder_fuzzer") {
   sources = [ "image-decoders/avif/avif_image_decoder_fuzzer.cc" ]
   deps = [
     ":blink_fuzzer_test_support",
+    ":blink_image_decoder_fuzzer_test_support",
     ":platform",
   ]
   seed_corpuses = [ "//third_party/blink/web_tests/images/resources/avif" ]
@@ -2777,6 +2782,7 @@ fuzzer_test("blink_crabbyavif_decoder_fuzzer") {
   sources = [ "image-decoders/avif/crabbyavif_image_decoder_fuzzer.cc" ]
   deps = [
     ":blink_fuzzer_test_support",
+    ":blink_image_decoder_fuzzer_test_support",
     ":platform",
   ]
   seed_corpuses = [ "//third_party/blink/web_tests/images/resources/avif" ]

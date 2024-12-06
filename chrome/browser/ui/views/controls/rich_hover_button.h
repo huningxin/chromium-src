@@ -9,6 +9,7 @@
 
 #include "base/memory/raw_ptr.h"
 #include "chrome/browser/ui/views/controls/hover_button.h"
+#include "ui/views/layout/table_layout.h"
 
 namespace test {
 class PageInfoBubbleViewTestApi;
@@ -58,16 +59,26 @@ class RichHoverButton : public HoverButton {
 
   void SetSubtitleMultiline(bool is_multiline);
 
+  // TODO(crbug.com/40281048): Remove; at least color, and possibly both of
+  // these, should instead be computed automatically from a single context value
+  // on the button.
+  void SetTitleTextStyleAndColor(int style, ui::ColorId);
+  void SetSubtitleTextStyleAndColor(int style, ui::ColorId);
+
   // Add custom view under the |title_text|.
   // ...
   // |-------------------------------------------------------------------------|
   // |      | |custom_view|                                                    |
   // *-------------------------------------------------------------------------*
   template <typename T>
-  T* AddCustomSubtitle(std::unique_ptr<T> custom_view);
-
-  views::Label* title() { return title_; }
-  views::Label* subtitle() { return subtitle_; }
+  T* AddCustomSubtitle(std::unique_ptr<T> custom_view) {
+    static_cast<views::TableLayout*>(GetLayoutManager())
+        ->AddRows(1, views::TableLayout::kFixedSize);
+    AddChildView(std::make_unique<views::View>());  // main icon column
+    auto* view = AddChildView(std::move(custom_view));
+    AddFillerViews();
+    return view;
+  }
 
   const views::Label* GetTitleViewForTesting() const;
   const views::Label* GetSubTitleViewForTesting() const;

@@ -1881,6 +1881,7 @@ LocalFrame::LocalFrame(
               this)),
       // TODO(https://crbug.com/352165586): Give non-null context to the proxy.
       browser_interface_broker_proxy_(nullptr /* No LocalDOMWindow yet... */) {
+  TRACE_EVENT("navigation", "LocalFrame");
   auto frame_tracking_result =
       GetLocalFramesMap().insert(FrameToken::Hasher()(GetFrameToken()), this);
   CHECK(frame_tracking_result.stored_value) << "Inserting a duplicate item.";
@@ -2304,13 +2305,25 @@ LocalFrame::LazyLoadImageSetting LocalFrame::GetLazyLoadImageSetting() const {
     return LocalFrame::LazyLoadImageSetting::kDisabled;
   }
 
-  // Disable explicit and automatic lazyload for backgrounded pages including
-  // NoStatePrefetch and Prerender.
-  if (!GetDocument()->IsPageVisible()) {
-    return LocalFrame::LazyLoadImageSetting::kDisabled;
+  if (GetDocument()->IsPageVisible()) {
+    return LocalFrame::LazyLoadImageSetting::kEnabledExplicit;
   }
 
-  return LocalFrame::LazyLoadImageSetting::kEnabledExplicit;
+  if (base::FeatureList::IsEnabled(
+          features::kEnableLazyLoadImageForInvisiblePage)) {
+    switch (features::kEnableLazyLoadImageForInvisiblePageTypeParam.Get()) {
+      case features::EnableLazyLoadImageForInvisiblePageType::kAllInvisiblePage:
+        return LocalFrame::LazyLoadImageSetting::kEnabledExplicit;
+      case features::EnableLazyLoadImageForInvisiblePageType::kPrerenderPage:
+        if (GetDocument()->IsPrerendering()) {
+          return LocalFrame::LazyLoadImageSetting::kEnabledExplicit;
+        }
+        return LocalFrame::LazyLoadImageSetting::kDisabled;
+    }
+  }
+  // Disable lazyload for backgrounded pages including NoStatePrefetch and
+  // Prerender.
+  return LocalFrame::LazyLoadImageSetting::kDisabled;
 }
 
 scoped_refptr<network::SharedURLLoaderFactory>
@@ -2709,20 +2722,6 @@ SmoothScrollSequencer* LocalFrame::GetSmoothScrollSequencer() const {
   if (!IsLocalRoot())
     return LocalFrameRoot().GetSmoothScrollSequencer();
   return smooth_scroll_sequencer_.Get();
-}
-
-ukm::UkmRecorder* LocalFrame::GetUkmRecorder() {
-  Document* document = GetDocument();
-  if (!document)
-    return nullptr;
-  return document->UkmRecorder();
-}
-
-int64_t LocalFrame::GetUkmSourceId() {
-  Document* document = GetDocument();
-  if (!document)
-    return ukm::kInvalidSourceId;
-  return document->UkmSourceID();
 }
 
 void LocalFrame::UpdateTaskTime(base::TimeDelta time) {

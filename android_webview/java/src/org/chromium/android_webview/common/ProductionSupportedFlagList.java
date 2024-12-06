@@ -80,8 +80,6 @@ public final class ProductionSupportedFlagList {
                 "Renders a border around compositor layers to help debug and study layer "
                         + "compositing."),
         Flag.commandLine(
-                CcSwitches.ANIMATED_IMAGE_RESUME, "Resumes animated images from where they were."),
-        Flag.commandLine(
                 AwSwitches.FINCH_SEED_EXPIRATION_AGE,
                 "Forces all variations seeds to be considered stale.",
                 "0"),
@@ -178,6 +176,8 @@ public final class ProductionSupportedFlagList {
         Flag.baseFeature(VizFeatures.WEBVIEW_VULKAN_INTERMEDIATE_BUFFER, "For debugging vulkan"),
         Flag.baseFeature(
                 VizFeatures.WEBVIEW_ENABLE_ADPF, "Pass WebView threads to HWUI ADPF session"),
+        Flag.baseFeature(
+                VizFeatures.WEBVIEW_ENABLE_ADPF_GPU_MAIN, "Include GPU Main into ADPF session"),
         Flag.baseFeature(
                 VizFeatures.WEBVIEW_ENABLE_ADPF_RENDERER_MAIN,
                 "Include Renderer Main into ADPF session"),
@@ -732,6 +732,10 @@ public final class ProductionSupportedFlagList {
         Flag.baseFeature(
                 "UseAAudioInput",
                 "Enables the use of AAudio for capturing audio input. (Android Q+ only)"),
+        Flag.baseFeature(
+                "AudioInputConfirmReadsViaShmem",
+                "Enables an audio input optimization that uses shared memory instead of"
+                        + " socket messages for audio IPC read confirmations."),
         Flag.baseFeature("UseRustJsonParser"),
         Flag.baseFeature("V8BaselineBatchCompilation"),
         Flag.baseFeature("V8ConcurrentSparkplug"),
@@ -750,7 +754,8 @@ public final class ProductionSupportedFlagList {
         Flag.baseFeature("V8GCSpeedUsesCounters"),
         Flag.baseFeature("WebAssemblyTurboshaft"),
         Flag.baseFeature("WebAssemblyTurboshaftInstructionSelection"),
-        Flag.baseFeature("WebAssemblyInlining"),
+        Flag.baseFeature("WebAssemblyDeopt"),
+        Flag.baseFeature("WebAssemblyInliningCallIndirect"),
         Flag.baseFeature(
                 AwFeatures.WEBVIEW_MEDIA_INTEGRITY_API_BLINK_EXTENSION,
                 "Enable the WebView Media Integrity API as a Blink extension. Only works if"

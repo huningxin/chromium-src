@@ -28,9 +28,9 @@ class StackStringViewAllocator {
   using ResultStringType = StringView;
 
   template <typename CharType>
-  StringView Alloc(wtf_size_t length, CharType*& buffer) {
+  StringView Alloc(wtf_size_t length, base::span<CharType>& buffer) {
     buffer = backing_store_.Realloc<CharType>(length);
-    return StringView(buffer, length);
+    return StringView(buffer);
   }
 
   StringView CoerceOriginal(StringView string) { return string; }
@@ -41,7 +41,10 @@ class StackStringViewAllocator {
 }  // namespace
 
 StringView::StringView(const UChar* chars)
-    : StringView(chars, chars ? LengthOfNullTerminatedString(chars) : 0) {}
+    // SAFETY: It's safe if `chars` points to a NUL-terminated string.
+    : StringView(UNSAFE_BUFFERS(
+          base::span(chars, chars ? LengthOfNullTerminatedString(chars) : 0))) {
+}
 
 #if DCHECK_IS_ON()
 StringView::~StringView() {
@@ -61,7 +64,7 @@ static inline void PutUTF8Triple(base::span<uint8_t, 3u> buffer, UChar ch) {
   buffer[2] = (ch & 0x3F) | 0x80;
 }
 
-std::string StringView::Utf8(UTF8ConversionMode mode) const {
+std::string StringView::Utf8(Utf8ConversionMode mode) const {
   unsigned length = this->length();
 
   if (!length)
@@ -92,7 +95,7 @@ std::string StringView::Utf8(UTF8ConversionMode mode) const {
     base::span<const UChar> characters = Span16();
     base::span<uint8_t> buffer(base::as_writable_byte_span(buffer_vector));
 
-    if (mode == kStrictUTF8ConversionReplacingUnpairedSurrogatesWithFFFD) {
+    if (mode == Utf8ConversionMode::kStrictReplacingErrors) {
       while (!characters.empty()) {
         // Use strict conversion to detect unpaired surrogates.
         unicode::ConversionResult result =
@@ -116,7 +119,7 @@ std::string StringView::Utf8(UTF8ConversionMode mode) const {
       }
       buffer_written = buffer_vector.size() - buffer.size();
     } else {
-      const bool strict = mode == kStrictUTF8Conversion;
+      const bool strict = mode == Utf8ConversionMode::kStrict;
 
       unicode::ConversionResult result =
           unicode::ConvertUTF16ToUTF8(characters, buffer, strict);

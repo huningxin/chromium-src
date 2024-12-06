@@ -54,7 +54,6 @@
 namespace blink {
 
 CanvasResource::CanvasResource(base::WeakPtr<CanvasResourceProvider> provider,
-                               cc::PaintFlags::FilterQuality filter_quality,
                                gfx::Size size,
                                viz::SharedImageFormat format,
                                SkAlphaType alpha_type,
@@ -66,8 +65,7 @@ CanvasResource::CanvasResource(base::WeakPtr<CanvasResourceProvider> provider,
       size_(size),
       format_(format),
       alpha_type_(alpha_type),
-      color_space_(color_space),
-      filter_quality_(filter_quality) {}
+      color_space_(color_space) {}
 
 CanvasResource::~CanvasResource() {}
 
@@ -184,7 +182,8 @@ bool CanvasResource::PrepareTransferableResource(
 
   if (!out_resource)
     return true;
-  if (SupportsAcceleratedCompositing()) {
+
+  if (CreatesAcceleratedTransferableResources()) {
     return UsesClientSharedImage()
                ? PrepareAcceleratedTransferableResourceFromClientSI(
                      out_resource, needs_verified_synctoken)
@@ -217,9 +216,7 @@ bool CanvasResource::PrepareAcceleratedTransferableResourceFromClientSI(
     bool needs_verified_synctoken) {
   TRACE_EVENT0("blink",
                "CanvasResource::PrepareAcceleratedTransferableResource");
-  // This method should only be called if this instance actually supports
-  // accelerated compositing and uses ClientSharedImage.
-  CHECK(SupportsAcceleratedCompositing());
+  CHECK(CreatesAcceleratedTransferableResources());
   CHECK(UsesClientSharedImage());
 
   // Gpu compositing is a prerequisite for compositing an accelerated resource
@@ -271,10 +268,8 @@ CanvasResourceSharedBitmap::CanvasResourceSharedBitmap(
     gfx::ColorSpace color_space,
     base::WeakPtr<CanvasResourceProvider> provider,
     base::WeakPtr<WebGraphicsSharedImageInterfaceProvider>
-        shared_image_interface_provider,
-    cc::PaintFlags::FilterQuality filter_quality)
+        shared_image_interface_provider)
     : CanvasResource(std::move(provider),
-                     filter_quality,
                      size,
                      format,
                      alpha_type,
@@ -344,11 +339,10 @@ scoped_refptr<CanvasResourceSharedBitmap> CanvasResourceSharedBitmap::Create(
     gfx::ColorSpace color_space,
     base::WeakPtr<CanvasResourceProvider> provider,
     base::WeakPtr<WebGraphicsSharedImageInterfaceProvider>
-        shared_image_interface_provider,
-    cc::PaintFlags::FilterQuality filter_quality) {
+        shared_image_interface_provider) {
   auto resource = AdoptRef(new CanvasResourceSharedBitmap(
       size, format, alpha_type, color_space, std::move(provider),
-      std::move(shared_image_interface_provider), filter_quality));
+      std::move(shared_image_interface_provider)));
   return resource->IsValid() ? resource : nullptr;
 }
 
@@ -383,11 +377,9 @@ CanvasResourceSharedImage::CanvasResourceSharedImage(
     gfx::ColorSpace color_space,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
     base::WeakPtr<CanvasResourceProvider> provider,
-    cc::PaintFlags::FilterQuality filter_quality,
     bool is_accelerated,
     gpu::SharedImageUsageSet shared_image_usage_flags)
     : CanvasResource(std::move(provider),
-                     filter_quality,
                      size,
                      format,
                      alpha_type,
@@ -486,14 +478,13 @@ scoped_refptr<CanvasResourceSharedImage> CanvasResourceSharedImage::Create(
     gfx::ColorSpace color_space,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
     base::WeakPtr<CanvasResourceProvider> provider,
-    cc::PaintFlags::FilterQuality filter_quality,
     bool is_accelerated,
     gpu::SharedImageUsageSet shared_image_usage_flags) {
   TRACE_EVENT0("blink", "CanvasResourceSharedImage::Create");
   auto resource = base::AdoptRef(new CanvasResourceSharedImage(
       size, format, alpha_type, color_space,
-      std::move(context_provider_wrapper), std::move(provider), filter_quality,
-      is_accelerated, shared_image_usage_flags));
+      std::move(context_provider_wrapper), std::move(provider), is_accelerated,
+      shared_image_usage_flags));
   return resource->IsValid() ? resource : nullptr;
 }
 
@@ -672,14 +663,12 @@ scoped_refptr<StaticBitmapImage> CanvasResourceSharedImage::Bitmap() {
   auto client_shared_image = GetClientSharedImage();
   uint32_t texture_target = client_shared_image->GetTextureTarget();
 
-  CHECK_EQ(client_shared_image->surface_origin(), kTopLeft_GrSurfaceOrigin);
   // If its cross thread, then the sync token was already verified.
   image = AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
       std::move(client_shared_image), GetSyncToken(), texture_id_for_image,
-      image_info, texture_target, /*is_origin_top_left=*/true,
-      context_provider_wrapper_, owning_thread_ref_, owning_thread_task_runner_,
-      std::move(release_callback), supports_display_compositing_,
-      is_overlay_candidate_);
+      image_info, texture_target, context_provider_wrapper_, owning_thread_ref_,
+      owning_thread_task_runner_, std::move(release_callback),
+      supports_display_compositing_, is_overlay_candidate_);
 
   DCHECK(image);
   return image;
@@ -818,17 +807,17 @@ void CanvasResourceSharedImage::OnMemoryDump(
 scoped_refptr<ExternalCanvasResource> ExternalCanvasResource::Create(
     scoped_refptr<gpu::ClientSharedImage> client_si,
     const viz::TransferableResource& transferable_resource,
+    bool is_overlay_candidate,
     viz::ReleaseCallback release_callback,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
-    base::WeakPtr<CanvasResourceProvider> provider,
-    cc::PaintFlags::FilterQuality filter_quality) {
+    base::WeakPtr<CanvasResourceProvider> provider) {
   TRACE_EVENT0("blink", "ExternalCanvasResource::Create");
   CHECK(client_si);
   CHECK(client_si->mailbox() == transferable_resource.mailbox());
   auto resource = AdoptRef(new ExternalCanvasResource(
-      std::move(client_si), transferable_resource, std::move(release_callback),
-      std::move(context_provider_wrapper), std::move(provider),
-      filter_quality));
+      std::move(client_si), transferable_resource, is_overlay_candidate,
+      std::move(release_callback), std::move(context_provider_wrapper),
+      std::move(provider)));
   return resource->IsValid() ? resource : nullptr;
 }
 
@@ -874,15 +863,12 @@ scoped_refptr<StaticBitmapImage> ExternalCanvasResource::Bitmap() {
       },
       base::RetainedRef(this));
 
-  const bool is_origin_top_left =
-      client_si_->surface_origin() == kTopLeft_GrSurfaceOrigin;
   return AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
       client_si_, GetSyncToken(), /*shared_image_texture_id=*/0u,
-      CreateSkImageInfo(), transferable_resource_.texture_target(),
-      is_origin_top_left, context_provider_wrapper_, owning_thread_ref_,
-      owning_thread_task_runner_, std::move(release_callback),
-      /*supports_display_compositing=*/true,
-      transferable_resource_.is_overlay_candidate);
+      CreateSkImageInfo(), client_si_->GetTextureTarget(),
+      context_provider_wrapper_, owning_thread_ref_, owning_thread_task_runner_,
+      std::move(release_callback),
+      /*supports_display_compositing=*/true, is_overlay_candidate_);
 }
 
 const gpu::SyncToken
@@ -927,19 +913,27 @@ bool ExternalCanvasResource::
       "blink",
       "ExternalCanvasResource::PrepareAcceleratedTransferableResource");
   GenOrFlushSyncToken();
-  *out_resource = transferable_resource_;
+
+  *out_resource = viz::TransferableResource::MakeGpu(
+      client_si_, client_si_->GetTextureTarget(),
+      transferable_resource_.sync_token(), client_si_->size(),
+      client_si_->format(), is_overlay_candidate_,
+      transferable_resource_.resource_source);
+  out_resource->color_space = transferable_resource_.color_space;
+  out_resource->hdr_metadata = transferable_resource_.hdr_metadata;
+  out_resource->origin = client_si_->surface_origin();
+
   return true;
 }
 
 ExternalCanvasResource::ExternalCanvasResource(
     scoped_refptr<gpu::ClientSharedImage> client_si,
     const viz::TransferableResource& transferable_resource,
+    bool is_overlay_candidate,
     viz::ReleaseCallback out_callback,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
-    base::WeakPtr<CanvasResourceProvider> provider,
-    cc::PaintFlags::FilterQuality filter_quality)
+    base::WeakPtr<CanvasResourceProvider> provider)
     : CanvasResource(std::move(provider),
-                     filter_quality,
                      transferable_resource.size,
                      transferable_resource.format,
                      kPremul_SkAlphaType,
@@ -947,14 +941,11 @@ ExternalCanvasResource::ExternalCanvasResource(
       client_si_(std::move(client_si)),
       context_provider_wrapper_(std::move(context_provider_wrapper)),
       transferable_resource_(transferable_resource),
+      is_overlay_candidate_(is_overlay_candidate),
       release_callback_(std::move(out_callback)) {
   CHECK(client_si_);
   CHECK(client_si_->mailbox() == transferable_resource_.mailbox());
   DCHECK(!release_callback_ || transferable_resource_.sync_token().HasData());
-  // Not all call-sites set TransferableResource::origin yet, so we set it here.
-  // TODO(crbug.com/378688985): Move this all the way to TransferableResource
-  // creation.
-  transferable_resource_.origin = client_si_->surface_origin();
 }
 
 // CanvasResourceSwapChain
@@ -965,13 +956,11 @@ scoped_refptr<CanvasResourceSwapChain> CanvasResourceSwapChain::Create(
     SkAlphaType alpha_type,
     gfx::ColorSpace color_space,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
-    base::WeakPtr<CanvasResourceProvider> provider,
-    cc::PaintFlags::FilterQuality filter_quality) {
+    base::WeakPtr<CanvasResourceProvider> provider) {
   TRACE_EVENT0("blink", "CanvasResourceSwapChain::Create");
-  auto resource = AdoptRef(
-      new CanvasResourceSwapChain(size, format, alpha_type, color_space,
-                                  std::move(context_provider_wrapper),
-                                  std::move(provider), filter_quality));
+  auto resource = AdoptRef(new CanvasResourceSwapChain(
+      size, format, alpha_type, color_space,
+      std::move(context_provider_wrapper), std::move(provider)));
   return resource->IsValid() ? resource : nullptr;
 }
 
@@ -1030,8 +1019,7 @@ scoped_refptr<StaticBitmapImage> CanvasResourceSwapChain::Bitmap() {
 
   return AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
       back_buffer_shared_image_, GetSyncToken(), shared_texture_id, image_info,
-      back_buffer_shared_image_->GetTextureTarget(),
-      true /*is_origin_top_left*/, context_provider_wrapper_,
+      back_buffer_shared_image_->GetTextureTarget(), context_provider_wrapper_,
       owning_thread_ref_, owning_thread_task_runner_,
       std::move(release_callback), /*supports_display_compositing=*/true,
       /*is_overlay_candidate=*/true);
@@ -1105,10 +1093,8 @@ CanvasResourceSwapChain::CanvasResourceSwapChain(
     SkAlphaType alpha_type,
     gfx::ColorSpace color_space,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
-    base::WeakPtr<CanvasResourceProvider> provider,
-    cc::PaintFlags::FilterQuality filter_quality)
+    base::WeakPtr<CanvasResourceProvider> provider)
     : CanvasResource(std::move(provider),
-                     filter_quality,
                      size,
                      format,
                      alpha_type,

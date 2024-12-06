@@ -50,6 +50,7 @@ struct FrameTimingDetails;
 
 namespace blink {
 
+class AnimationFrameTimingInfo;
 class LocalFrame;
 // In interface exposed within Blink from local root frames that provides
 // local-root specific things related to compositing and input. This
@@ -88,7 +89,7 @@ class PLATFORM_EXPORT FrameWidget {
   // is presented to the user. If the presentation is successful, the argument
   // passed to the callback is the presentation timestamp; otherwise, it would
   // be timestamp of when the failure is detected.
-  virtual void NotifyPresentationTimeInBlink(
+  virtual void NotifyPresentationTime(
       base::OnceCallback<void(const viz::FrameTimingDetails&)>
           presentation_callback) = 0;
 
@@ -324,7 +325,8 @@ class PLATFORM_EXPORT FrameWidget {
   // Implementation of
   // https://w3c.github.io/long-animation-frames/#record-rendering-time (the
   // other parameters are recorded earlier).
-  virtual void RecordRenderingUpdateEndTime(base::TimeTicks) = 0;
+  virtual AnimationFrameTimingInfo* RecordRenderingUpdateEndTime(
+      base::TimeTicks) = 0;
 };
 
 }  // namespace blink

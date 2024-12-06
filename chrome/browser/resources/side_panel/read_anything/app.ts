@@ -221,6 +221,12 @@ export class AppElement extends AppElementBase {
   // disabled state based on the message.onStart callback to avoid flickering.
   private firstUtteranceSpoken_ = false;
 
+  // When a new TTS Engine extension is loaded into reading mode, we want to try
+  // to install new natural voices from it. However, the new engine isn't ready
+  // until it calls onvoiceschanged, so set this and wait for that call to
+  // request the install.
+  private waitingForNewEngine_ = false;
+
   synth = window.speechSynthesis;
 
   protected selectedVoice_: SpeechSynthesisVoice|undefined;
@@ -472,6 +478,10 @@ export class AppElement extends AppElementBase {
 
     chrome.readingMode.onLockScreen = () => {
       this.onLockScreen();
+    };
+
+    chrome.readingMode.onTtsEngineInstalled = () => {
+      this.onTtsEngineInstalled();
     };
   }
 
@@ -881,11 +891,14 @@ export class AppElement extends AppElementBase {
     this.updateApplicationState(lang, newVoicePackStatus);
 
     if (isVoicePackStatusError(newVoicePackStatus)) {
-      // Disable the associated language if there are no other Google voices for
-      // it.
+      // On ChromeOS, disable the associated language if there are no other
+      // Google voices for it. Otherwise, only disable it if there are no
+      // voices at all for this language.
       const availableVoicesForLang = this.getVoices_().filter(
           v => getVoicePackConvertedLangIfExists(v.lang) === lang);
-      if (!availableVoicesForLang.some(voice => isGoogle(voice))) {
+      if (!availableVoicesForLang.length ||
+          (chrome.readingMode.isChromeOsAsh &&
+           !availableVoicesForLang.some(voice => isGoogle(voice)))) {
         chrome.readingMode.onLanguagePrefChange(lang, false);
         this.enabledLangs = this.enabledLangs.filter(
             enabledLang =>
@@ -988,6 +1001,17 @@ export class AppElement extends AppElementBase {
   }
 
   onVoicesChanged() {
+    if (this.waitingForNewEngine_) {
+      this.enabledLangs.forEach(lang => {
+        this.installVoicePackIfPossible(
+            lang,
+            /* onlyInstallExactGoogleLocaleMatch=*/ true,
+            /* retryIfPreviousInstallFailed= */ true);
+      });
+      this.waitingForNewEngine_ = false;
+      return;
+    }
+
     const previousSize = this.availableVoices_.length;
     // Get a new list of voices. This should be done before we call
     // refreshVoicePackStatuses();
@@ -2392,6 +2416,10 @@ export class AppElement extends AppElementBase {
     if (this.speechPlayingState.isSpeechActive) {
       this.stopSpeech(PauseActionSource.DEFAULT);
     }
+  }
+
+  onTtsEngineInstalled() {
+    this.waitingForNewEngine_ = true;
   }
 
   languageChanged() {

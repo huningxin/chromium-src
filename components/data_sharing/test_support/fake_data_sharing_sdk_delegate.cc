@@ -75,7 +75,7 @@ void FakeDataSharingSDKDelegate::RemoveMember(
 }
 
 void FakeDataSharingSDKDelegate::AddAccount(const std::string& email,
-                                            const std::string& gaia_id) {
+                                            const GaiaId& gaia_id) {
   email_to_gaia_id_[email] = gaia_id;
 }
 
@@ -102,8 +102,9 @@ void FakeDataSharingSDKDelegate::ReadGroups(
         const base::expected<data_sharing_pb::ReadGroupsResult, absl::Status>&)>
         callback) {
   data_sharing_pb::ReadGroupsResult result;
-  for (const auto& raw_group_id : params.group_ids()) {
-    const GroupId group_id(raw_group_id);
+  for (const data_sharing_pb::ReadGroupsParams::GroupParams& group_params :
+       params.group_params()) {
+    const GroupId group_id(group_params.group_id());
     if (groups_.find(group_id) != groups_.end()) {
       *result.add_group_data() = groups_[group_id];
     } else {
@@ -249,7 +250,7 @@ void FakeDataSharingSDKDelegate::AddAccessToken(
       FROM_HERE, base::BindOnce(std::move(callback), result));
 }
 
-void FakeDataSharingSDKDelegate::SetUserGaiaId(const std::string& gaia_id) {
+void FakeDataSharingSDKDelegate::SetUserGaiaId(const GaiaId& gaia_id) {
   user_gaia_id_ = gaia_id;
 }
 

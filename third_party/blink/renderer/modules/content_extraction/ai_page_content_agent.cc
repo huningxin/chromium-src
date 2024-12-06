@@ -10,12 +10,14 @@
 #include "third_party/blink/renderer/core/html/html_image_element.h"
 #include "third_party/blink/renderer/core/layout/layout_embedded_content.h"
 #include "third_party/blink/renderer/core/layout/layout_html_canvas.h"
+#include "third_party/blink/renderer/core/layout/layout_iframe.h"
 #include "third_party/blink/renderer/core/layout/layout_image.h"
 #include "third_party/blink/renderer/core/layout/layout_media.h"
 #include "third_party/blink/renderer/core/layout/layout_object.h"
 #include "third_party/blink/renderer/core/layout/layout_text_fragment.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_root.h"
+#include "third_party/blink/renderer/core/style/computed_style.h"
 #include "ui/gfx/geometry/rect_conversions.h"
 
 namespace blink {
@@ -24,6 +26,11 @@ namespace {
 constexpr MapCoordinatesFlags kMapCoordinatesFlags =
     kTraverseDocumentBoundaries | kApplyRemoteMainFrameTransform;
 constexpr VisualRectFlags kVisualRectFlags = kUseGeometryMapper;
+
+constexpr float kHeading1FontSizeMultiplier = 2;
+constexpr float kHeading3FontSizeMultiplier = 1.17;
+constexpr float kHeading5FontSizeMultiplier = 0.83;
+constexpr float kHeading6FontSizeMultiplier = 0.67;
 
 // TODO(khushalsagar): This is duplicating logic from
 // UnsupportedTagTypeValueForNode, consider reusing it.
@@ -36,9 +43,54 @@ bool IsHeadingTag(const HTMLElement& element) {
          element.HasTagName(html_names::kH6Tag);
 }
 
+// Returns the relative text size of the object compared to the document
+// default. Ratios are based on browser defaults for headings, which are as
+// follows:
+//
+// Heading 1: 2em
+// Heading 2: 1.5em
+// Heading 3: 1.17em
+// Heading 4: 1em
+// Heading 5: 0.83em
+// Heading 6: 0.67em
+mojom::blink::AIPageContentTextSize GetTextSize(
+    const ComputedStyle& style,
+    const ComputedStyle& document_style) {
+  float font_size_multiplier =
+      style.ComputedFontSize() / document_style.ComputedFontSize();
+  if (font_size_multiplier >= kHeading1FontSizeMultiplier) {
+    return mojom::blink::AIPageContentTextSize::kXL;
+  } else if (font_size_multiplier >= kHeading3FontSizeMultiplier &&
+             font_size_multiplier < kHeading1FontSizeMultiplier) {
+    return mojom::blink::AIPageContentTextSize::kL;
+  } else if (font_size_multiplier >= kHeading5FontSizeMultiplier &&
+             font_size_multiplier < kHeading3FontSizeMultiplier) {
+    return mojom::blink::AIPageContentTextSize::kM;
+  } else if (font_size_multiplier >= kHeading6FontSizeMultiplier &&
+             font_size_multiplier < kHeading5FontSizeMultiplier) {
+    return mojom::blink::AIPageContentTextSize::kS;
+  } else {  // font_size_multiplier < kHeading6FontSizeMultiplier
+    return mojom::blink::AIPageContentTextSize::kXS;
+  }
+}
+
+// If the style has a non-normal font weight, has applied text decorations, or
+// is a super/subscript, then the text is considered to have emphasis.
+bool HasEmphasis(const ComputedStyle& style) {
+  return style.GetFontWeight() != kNormalWeightValue ||
+         style.GetFontStyle() != kNormalSlopeValue ||
+         style.HasAppliedTextDecorations() ||
+         style.VerticalAlign() == EVerticalAlign::kSub ||
+         style.VerticalAlign() == EVerticalAlign::kSuper;
+}
+
+const LayoutIFrame* GetIFrame(const LayoutObject& object) {
+  return DynamicTo<LayoutIFrame>(object);
+}
+
 std::optional<mojom::blink::AIPageContentAttributeType> GetAttributeType(
     const LayoutObject& object) {
-  if (object.IsLayoutIFrame()) {
+  if (GetIFrame(object)) {
     return mojom::blink::AIPageContentAttributeType::kIframe;
   }
 
@@ -73,31 +125,6 @@ std::optional<mojom::blink::AIPageContentAttributeType> GetAttributeType(
   return std::nullopt;
 }
 
-// Returns true if `object` should be skipped because it's a cross-process or
-// cross-origin iframe.
-//
-// Returns false if `object` is not an iframe or it's a same-origin iframe.
-//
-// The second param is set to the child Document if it's a same-origin iframe.
-std::tuple<bool, const LayoutView*> ShouldSkipNestedIFrame(
-    const LayoutObject& object) {
-  auto* frame = DynamicTo<LayoutEmbeddedContent>(object);
-  if (!frame) {
-    return std::make_tuple(false, nullptr);
-  }
-
-  auto* frame_view = DynamicTo<LocalFrameView>(frame->ChildFrameView());
-  if (!frame_view) {
-    return std::make_tuple(true, nullptr);
-  }
-
-  if (frame_view->GetFrame().IsCrossOriginToParentOrOuterDocument()) {
-    return std::make_tuple(true, nullptr);
-  }
-
-  return std::make_tuple(false, frame_view->GetFrame().ContentLayoutObject());
-}
-
 std::optional<DOMNodeId> GetNodeId(const LayoutObject& object) {
   auto* node = object.GetNode();
   if (object.IsLayoutView()) {
@@ -108,6 +135,12 @@ std::optional<DOMNodeId> GetNodeId(const LayoutObject& object) {
     return std::nullopt;
   }
   return DOMNodeIds::IdForNode(node);
+}
+
+// TODO(crbug.com/381273397): Add content for embed and object.
+bool ShouldSkipEmbeddedContent(const LayoutObject& object) {
+  auto* layout_embedded_content = DynamicTo<LayoutEmbeddedContent>(object);
+  return layout_embedded_content && !GetIFrame(object);
 }
 
 }  // namespace
@@ -126,7 +159,6 @@ void AIPageContentAgent::BindReceiver(
     mojo::PendingReceiver<mojom::blink::AIPageContentAgent> receiver) {
   CHECK(frame && frame->GetDocument());
   CHECK(frame->IsLocalRoot());
-  CHECK(frame->IsOutermostMainFrame());
 
   auto& document = *frame->GetDocument();
   auto* agent = AIPageContentAgent::From(document);
@@ -187,45 +219,71 @@ mojom::blink::AIPageContentPtr AIPageContentAgent::GetAIPageContentSync()
       DocumentUpdateReason::kUnknown);
 
   auto* layout_view = document.GetLayoutView();
+  auto* document_style = layout_view->Style();
   auto root_node = MaybeGenerateContentNode(*layout_view);
   CHECK(root_node);
 
-  ProcessNode(*layout_view, *root_node);
+  ProcessNode(*layout_view, *root_node, *document_style);
   page_content->root_node = std::move(root_node);
   return page_content;
 }
 
 void AIPageContentAgent::ProcessNode(
     const LayoutObject& object,
-    mojom::blink::AIPageContentNode& content_node) const {
+    mojom::blink::AIPageContentNode& content_node,
+    const ComputedStyle& document_style) const {
   if (object.ChildPrePaintBlockedByDisplayLock()) {
     return;
   }
 
   for (auto* child = object.SlowFirstChild(); child;
        child = child->NextSibling()) {
-    auto [skip, child_layout_view] = ShouldSkipNestedIFrame(*child);
-    if (skip) {
+    if (ShouldSkipEmbeddedContent(*child)) {
       continue;
     }
 
     auto child_content_node = MaybeGenerateContentNode(*child);
-    auto& node_for_child =
-        child_content_node ? *child_content_node : content_node;
-
-    MaybeAddNodeContent(*child, *node_for_child.content_attributes);
-
-    // We could generate a ContentNode for the child LayoutView but that seems
-    // redundant given we already have one for the iframe.
-    if (child_layout_view) {
-      ProcessNode(*child_layout_view, node_for_child);
+    if (child_content_node &&
+        child_content_node->content_attributes->attribute_type ==
+            mojom::blink::AIPageContentAttributeType::kIframe) {
+      ProcessIframe(*GetIFrame(*child), *child_content_node);
     } else {
-      ProcessNode(*child, node_for_child);
+      auto& node_for_child =
+          child_content_node ? *child_content_node : content_node;
+      MaybeAddNodeContent(*child, *node_for_child.content_attributes,
+                          document_style);
+      ProcessNode(*child, node_for_child, document_style);
     }
 
     if (child_content_node) {
       content_node.children_nodes.emplace_back(std::move(child_content_node));
     }
+  }
+}
+
+void AIPageContentAgent::ProcessIframe(
+    const LayoutIFrame& object,
+    mojom::blink::AIPageContentNode& content_node) const {
+  auto& frame = object.ChildFrameView()->GetFrame();
+
+  auto iframe_data = mojom::blink::AIPageContentIframeData::New();
+  iframe_data->frame_token = frame.GetFrameToken();
+  iframe_data->likely_ad_frame = frame.IsAdFrame();
+  content_node.content_attributes->iframe_data = std::move(iframe_data);
+
+  auto* local_frame = DynamicTo<LocalFrame>(frame);
+  auto* child_layout_view =
+      local_frame ? local_frame->ContentLayoutObject() : nullptr;
+  if (child_layout_view) {
+    // Add a node for the iframe's LayoutView for consistency with remote
+    // frames.
+    auto child_content_node = MaybeGenerateContentNode(*child_layout_view);
+    MaybeAddNodeContent(*child_layout_view,
+                        *child_content_node->content_attributes,
+                        *child_layout_view->Style());
+    ProcessNode(*child_layout_view, *child_content_node,
+                *child_layout_view->Style());
+    content_node.children_nodes.emplace_back(std::move(child_content_node));
   }
 }
 
@@ -235,7 +293,7 @@ mojom::blink::AIPageContentNodePtr AIPageContentAgent::MaybeGenerateContentNode(
   if (!attribute_type) {
     return nullptr;
   }
-
+  LOG(ERROR) << "Generated content node : " << object;
   auto content_node = mojom::blink::AIPageContentNode::New();
   content_node->content_attributes =
       mojom::blink::AIPageContentAttributes::New();
@@ -253,7 +311,8 @@ mojom::blink::AIPageContentNodePtr AIPageContentAgent::MaybeGenerateContentNode(
 
 void AIPageContentAgent::MaybeAddNodeContent(
     const LayoutObject& object,
-    mojom::blink::AIPageContentAttributes& attributes) const {
+    mojom::blink::AIPageContentAttributes& attributes,
+    const ComputedStyle& document_style) const {
   if (object.Style()->Visibility() != EVisibility::kVisible) {
     return;
   }
@@ -261,10 +320,15 @@ void AIPageContentAgent::MaybeAddNodeContent(
   if (const auto* layout_text = DynamicTo<LayoutText>(object)) {
     AddNodeId(object, attributes);
 
+    auto text_style = mojom::blink::AIPageContentTextStyle::New();
+    text_style->text_size = GetTextSize(*layout_text->Style(), document_style);
+    text_style->has_emphasis = HasEmphasis(*layout_text->Style());
+
     auto text_info = mojom::blink::AIPageContentTextInfo::New();
     text_info->text_content = layout_text->TransformedText();
     text_info->text_bounding_box =
         layout_text->AbsoluteBoundingBoxRect(kMapCoordinatesFlags);
+    text_info->text_style = std::move(text_style);
     attributes.text_info.emplace_back(std::move(text_info));
     return;
   }
@@ -292,6 +356,7 @@ void AIPageContentAgent::MaybeAddNodeContent(
       // which could be reused for this.
       image_info->image_caption = image_element->AltText();
     }
+    // TODO(khushalsagar): Include image source origin.
     attributes.image_info.emplace_back(std::move(image_info));
   }
 }

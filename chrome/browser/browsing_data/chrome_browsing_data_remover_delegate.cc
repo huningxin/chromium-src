@@ -114,6 +114,7 @@
 #include "components/history/core/common/pref_names.h"
 #include "components/keyed_service/core/service_access_type.h"
 #include "components/language/core/browser/url_language_histogram.h"
+#include "components/lens/lens_features.h"
 #include "components/media_device_salt/media_device_salt_service.h"
 #include "components/nacl/browser/nacl_browser.h"
 #include "components/nacl/browser/pnacl_host.h"
@@ -547,6 +548,17 @@ void ChromeBrowsingDataRemoverDelegate::RemoveEmbedderData(
         OptimizationGuideKeyedServiceFactory::GetForProfile(profile_);
     if (optimization_guide_keyed_service)
       optimization_guide_keyed_service->ClearData();
+
+#if !BUILDFLAG(IS_ANDROID)
+    // Remove localStorage data from Lens Overlay UI whenever any history is
+    // deleted.
+    if (lens::features::IsLensOverlayTranslateLanguagesFetchEnabled()) {
+      profile_->GetDefaultStoragePartition()->ClearDataForOrigin(
+          content::StoragePartition::REMOVE_DATA_MASK_LOCAL_STORAGE,
+          /*quota_storage_remove_mask=*/0,
+          GURL(chrome::kChromeUILensOverlayUntrustedURL), base::DoNothing());
+    }
+#endif
 
     content::PrefetchServiceDelegate::ClearData(profile_);
 
@@ -1584,10 +1596,9 @@ void ChromeBrowsingDataRemoverDelegate::OnTaskComplete(
     should_clear_sync_account_settings_ = false;
     signin::IdentityManager* identity_manager =
         IdentityManagerFactory::GetForProfile(profile_);
-    base::flat_set<std::string> gaia_ids =
-        signin::GetAllGaiaIdsForKeyedPreferences(
-            identity_manager,
-            signin::AccountsInCookieJarInfo() /* empty_cookies */);
+    base::flat_set<GaiaId> gaia_ids = signin::GetAllGaiaIdsForKeyedPreferences(
+        identity_manager,
+        signin::AccountsInCookieJarInfo() /* empty_cookies */);
     if (syncer::SyncService* sync_service =
             SyncServiceFactory::GetForProfile(profile_);
         sync_service) {

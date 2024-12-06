@@ -14,6 +14,7 @@
 #import "ios/chrome/test/earl_grey/test_switches.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
 
+using chrome_test_util::CancelButton;
 using chrome_test_util::CloseGroupButton;
 using chrome_test_util::CreateTabGroupAtIndex;
 using chrome_test_util::CreateTabGroupCreateButton;
@@ -27,6 +28,7 @@ using chrome_test_util::TabGridOpenTabsPanelButton;
 using chrome_test_util::TabGridTabGroupsPanelButton;
 using chrome_test_util::TabGroupBackButton;
 using chrome_test_util::TabGroupCreationView;
+using chrome_test_util::TabGroupSnackBar;
 using chrome_test_util::TabGroupSnackBarAction;
 using chrome_test_util::TabGroupsPanel;
 using chrome_test_util::TabGroupsPanelCellAtIndex;
@@ -84,7 +86,7 @@ void UngroupGroupAtIndex(int group_cell_index) {
   [[EarlGrey selectElementWithMatcher:UngroupConfirmationButton()]
       performAction:grey_tap()];
 
-  // Waits until the tab grid cell appears at `group_cell_index`.
+  // Wait until the tab grid cell appears at `group_cell_index`.
   [ChromeEarlGrey
       waitForUIElementToAppearWithMatcher:TabGridCellAtIndex(group_cell_index)];
 }
@@ -95,7 +97,7 @@ void CloseGroupAtIndex(int group_cell_index) {
   [[EarlGrey selectElementWithMatcher:CloseGroupButton()]
       performAction:grey_tap()];
 
-  // Waits until the tab group cell disappears at `group_cell_index`.
+  // Wait until the tab group cell disappears at `group_cell_index`.
   [ChromeEarlGrey
       waitForUIElementToDisappearWithMatcher:TabGridGroupCellAtIndex(
                                                  group_cell_index)];
@@ -173,7 +175,7 @@ void CloseGroupAtIndex(int group_cell_index) {
 - (void)testDeleteTabGroupInThirdPanel {
   [ChromeEarlGreyUI openTabGrid];
 
-  // Creates a tab group with an item at 0.
+  // Create a tab group with an item at 0.
   CreateTabGroupAtIndex(0, kGroup1Name);
 
   // Switch over to the third panel.
@@ -224,7 +226,7 @@ void CloseGroupAtIndex(int group_cell_index) {
 - (void)testRenameGroupInTabGrid {
   [ChromeEarlGreyUI openTabGrid];
 
-  // Creates a tab group with an item at 0.
+  // Create a tab group with an item at 0.
   CreateTabGroupAtIndex(0, kGroup1Name);
 
   // Switch over to the third panel.
@@ -266,7 +268,7 @@ void CloseGroupAtIndex(int group_cell_index) {
 - (void)testUngroupGroupInTabGrid {
   [ChromeEarlGreyUI openTabGrid];
 
-  // Creates a tab group with an item at 0.
+  // Create a tab group with an item at 0.
   CreateTabGroupAtIndex(0, kGroup1Name);
 
   // Switch over to the third panel.
@@ -301,18 +303,12 @@ void CloseGroupAtIndex(int group_cell_index) {
                   @"The number of saved tab groups should be 0.");
 }
 
-// TODO(crbug.com/376964632): Deflake test on simulator.
-#if TARGET_IPHONE_SIMULATOR
-#define MAYBE_testCloseGroupInTabGrid DISABLED_testCloseGroupInTabGrid
-#else
-#define MAYBE_testCloseGroupInTabGrid testCloseGroupInTabGrid
-#endif
 // Tests that closing a group in the tab grid reflects the change in the
 // Tab Groups panel.
-- (void)MAYBE_testCloseGroupInTabGrid {
+- (void)testCloseGroupInTabGrid {
   [ChromeEarlGreyUI openTabGrid];
 
-  // Creates a tab group with an item at 0.
+  // Create a tab group with an item at 0.
   CreateTabGroupAtIndex(0, kGroup1Name);
 
   // Switch over to the third panel.
@@ -335,10 +331,9 @@ void CloseGroupAtIndex(int group_cell_index) {
   [[EarlGrey selectElementWithMatcher:TabGridGroupCellWithName(kGroup1Name, 1)]
       assertWithMatcher:grey_nil()];
 
-  // Switch over to the third panel.
-  [ChromeEarlGrey
-      waitForUIElementToAppearWithMatcher:TabGridTabGroupsPanelButton()];
-  [[EarlGrey selectElementWithMatcher:TabGridTabGroupsPanelButton()]
+  // Switch over to the third panel by tapping the snackbar action.
+  [ChromeEarlGrey waitForUIElementToAppearWithMatcher:TabGroupSnackBar(1)];
+  [[EarlGrey selectElementWithMatcher:TabGroupSnackBarAction()]
       performAction:grey_tap()];
 
   // Check that the group with `kGroup1Name` still exists.
@@ -417,7 +412,7 @@ void CloseGroupAtIndex(int group_cell_index) {
   [ChromeEarlGrey openNewIncognitoTab];
   [ChromeEarlGreyUI openTabGrid];
 
-  // Creates a tab group with an item at 0.
+  // Create a tab group with an item at 0.
   CreateTabGroupAtIndex(0, kGroup1Name);
 
   // Switch over to the third panel.
@@ -425,6 +420,120 @@ void CloseGroupAtIndex(int group_cell_index) {
       performAction:grey_tap()];
 
   // Check that the group with `kGroup1Name` doesn't exist.
+  [[EarlGrey
+      selectElementWithMatcher:TabGroupsPanelCellWithName(kGroup1Name, 1)]
+      assertWithMatcher:grey_nil()];
+  GREYAssertEqual(0, [TabGroupSyncEarlGrey countOfSavedTabGroups],
+                  @"The number of saved tab groups should be 0.");
+}
+
+// Tests that the cancellation of ungrouping in the tab grid doesn't ungroup a
+// group and ungrouping again after the cancellation works well.
+- (void)testConfirmationCancelledForUngroupGroupInTabGrid {
+  // Cancel button only exists on iPhone. Skip the test on iPad.
+  if ([ChromeEarlGrey isIPadIdiom]) {
+    EARL_GREY_TEST_SKIPPED(@"Skipped for iPad");
+  }
+
+  [ChromeEarlGreyUI openTabGrid];
+
+  // Create a tab group with an item at 0.
+  CreateTabGroupAtIndex(0, kGroup1Name);
+
+  // Try to ungroup a group.
+  DisplayContextMenuForGroupCellAtIndex(0);
+  [[EarlGrey selectElementWithMatcher:UngroupButton()]
+      performAction:grey_tap()];
+
+  // Cancel ungrouping a group in the confirmation dialog.
+  [ChromeEarlGrey
+      waitForUIElementToAppearWithMatcher:UngroupConfirmationButton()];
+  [[EarlGrey selectElementWithMatcher:CancelButton()] performAction:grey_tap()];
+
+  // Wait until the confirmation dialog disappears.
+  [ChromeEarlGrey
+      waitForUIElementToDisappearWithMatcher:UngroupConfirmationButton()];
+
+  // Verify that the tab group with `kGroup1Name` still exists.
+  [ChromeEarlGrey waitForUIElementToAppearWithMatcher:TabGridGroupCellWithName(
+                                                          kGroup1Name, 1)];
+  [[EarlGrey selectElementWithMatcher:TabGridGroupCellWithName(kGroup1Name, 1)]
+      assertWithMatcher:grey_notNil()];
+  GREYAssertEqual(1, [TabGroupSyncEarlGrey countOfSavedTabGroups],
+                  @"The number of saved tab groups should be 1.");
+
+  // Ungroup a group.
+  UngroupGroupAtIndex(0);
+
+  // Verity that the group with `kGroup1Name` doesn't exist anymore.
+  [[EarlGrey selectElementWithMatcher:TabGridGroupCellWithName(kGroup1Name, 1)]
+      assertWithMatcher:grey_nil()];
+  GREYAssertEqual(0, [TabGroupSyncEarlGrey countOfSavedTabGroups],
+                  @"The number of saved tab groups should be 0.");
+}
+
+// Tests that the cancellation of deleting in the Tab Groups panel doesn't
+// delete a group and deleting a group again after the cancellation works well.
+- (void)testConfirmationCancelledForDeleteGroupInThirdPanel {
+  // Cancel button only exists on iPhone. Skip the test on iPad.
+  if ([ChromeEarlGrey isIPadIdiom]) {
+    EARL_GREY_TEST_SKIPPED(@"Skipped for iPad");
+  }
+
+  [ChromeEarlGreyUI openTabGrid];
+
+  // Create a tab group with an item at 0.
+  CreateTabGroupAtIndex(0, kGroup1Name);
+
+  // Switch over to the third panel.
+  [[EarlGrey selectElementWithMatcher:TabGridTabGroupsPanelButton()]
+      performAction:grey_tap()];
+
+  // Check that the group exists.
+  [[EarlGrey
+      selectElementWithMatcher:TabGroupsPanelCellWithName(kGroup1Name, 1)]
+      assertWithMatcher:grey_notNil()];
+  GREYAssertEqual(1, [TabGroupSyncEarlGrey countOfSavedTabGroups],
+                  @"The number of saved tab groups should be 1.");
+
+  // Try to delete a group from the context menu of a tab groups panel cell.
+  [[EarlGrey selectElementWithMatcher:TabGroupsPanelCellAtIndex(0)]
+      performAction:grey_longPress()];
+  [ChromeEarlGrey waitForUIElementToAppearWithMatcher:DeleteGroupButton()];
+  [[EarlGrey selectElementWithMatcher:DeleteGroupButton()]
+      performAction:grey_tap()];
+
+  // Cancel the deletion in the confirmation dialog.
+  [ChromeEarlGrey
+      waitForUIElementToAppearWithMatcher:DeleteGroupConfirmationButton()];
+  [[EarlGrey selectElementWithMatcher:CancelButton()] performAction:grey_tap()];
+
+  // Wait until the confirmation dialog disappears.
+  [ChromeEarlGrey
+      waitForUIElementToDisappearWithMatcher:DeleteGroupConfirmationButton()];
+
+  // Verify that the group with `kGroup1Name` still exists.
+  [[EarlGrey
+      selectElementWithMatcher:TabGroupsPanelCellWithName(kGroup1Name, 1)]
+      assertWithMatcher:grey_notNil()];
+  GREYAssertEqual(1, [TabGroupSyncEarlGrey countOfSavedTabGroups],
+                  @"The number of saved tab groups should be 1.");
+
+  // Delete a group from the context menu of a tab groups panel cell.
+  [[EarlGrey selectElementWithMatcher:TabGroupsPanelCellAtIndex(0)]
+      performAction:grey_longPress()];
+  [ChromeEarlGrey waitForUIElementToAppearWithMatcher:DeleteGroupButton()];
+  [[EarlGrey selectElementWithMatcher:DeleteGroupButton()]
+      performAction:grey_tap()];
+  [ChromeEarlGrey
+      waitForUIElementToAppearWithMatcher:DeleteGroupConfirmationButton()];
+  [[EarlGrey selectElementWithMatcher:DeleteGroupConfirmationButton()]
+      performAction:grey_tap()];
+
+  // Check that the group with `kGroup1Name` is deleted.
+  [ChromeEarlGrey
+      waitForUIElementToDisappearWithMatcher:TabGroupsPanelCellWithName(
+                                                 kGroup1Name, 1)];
   [[EarlGrey
       selectElementWithMatcher:TabGroupsPanelCellWithName(kGroup1Name, 1)]
       assertWithMatcher:grey_nil()];

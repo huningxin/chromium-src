@@ -259,6 +259,7 @@
 <translation id="4510853178268397146">ส่วนขยายนี้ไม่ได้เผยแพร่หลักปฏิบัติเกี่ยวกับนโยบายความเป็นส่วนตัว เช่น วิธีเก็บรวบรวมและใช้ข้อมูล Chromium แนะนำให้คุณนำออก</translation>
 <translation id="452711251841752011">ยินดีต้อนรับสู่ Chromium เปิดหน้าต่างเบราวเซอร์ใหม่แล้ว</translation>
 <translation id="4531137820806573936">Chromium ต้องการสิทธิ์ในการแมปสิ่งต่างๆ รอบตัวคุณและติดตามการเคลื่อนไหวของมือ</translation>
+<translation id="4534145890176164066">Chromium เข้าใจแบบฟอร์มได้ดีขึ้นและสามารถป้อนข้อมูลอัตโนมัติให้คุณได้เร็วขึ้น</translation>
 <translation id="4536805923587466102">คุณลงชื่อเข้าใช้ด้วย <ph name="USER_EMAIL_ADDRESS" /> ในโปรไฟล์ Chromium อื่นอยู่แล้ว</translation>
 <translation id="4544142686420020088">Chromium ไม่ได้อัปเดตเนื่องจากเกิดข้อผิดพลาด <ph name="BEGIN_LINK" />โปรดแก้ปัญหาการอัปเดต Chrome และการอัปเดตที่ไม่สำเร็จ<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">Chromium สามารถทำให้แท็บนี้ไม่ทำงานเพื่อปรับปรุงประสบการณ์การท่องเว็บและทำให้ทุกอย่างทำงานได้เร็วขึ้น</translation>
@@ -439,7 +440,6 @@
 <translation id="6831043979455480757">แปลภาษา</translation>
 <translation id="6847869444787758381">Chromium จะแจ้งให้ทราบหากมีคนล่วงรู้รหัสผ่านของคุณ</translation>
 <translation id="684888714667046800">เชื่อมต่อกับอินเทอร์เน็ตไม่ได้ หากคุณใช้ไฟร์วอลล์ โปรดตรวจสอบว่า <ph name="PRODUCT_EXE_NAME" /> อยู่ในรายการที่อนุญาต</translation>
-<translation id="685279860330610299">Chromium สามารถเข้าใจข้อมูลได้หลากหลายประเภทและป้อนข้อความอัตโนมัติในแบบฟอร์มได้เร็วขึ้น ดูข้อมูลเพิ่มเติมเกี่ยวกับ<ph name="BEGIN_LINK" />การป้อนข้อความอัตโนมัติของ Chrome<ph name="END_LINK" /></translation>
 <translation id="6857782730669500492">Chromium - <ph name="PAGE_TITLE" /></translation>
 <translation id="6873893289264747459">Chromium พบว่า "<ph name="EXTENSION_NAME" />" มีมัลแวร์</translation>
 <translation id="6896758677409633944">คัดลอก</translation>
@@ -478,6 +478,7 @@ Chromium ไม่สามารถกู้คืนการตั้งค�
 <translation id="7349591376906416160">ผู้ดูแลระบบได้กำหนดค่าให้ Chromium เปิด <ph name="ALTERNATIVE_BROWSER_NAME" /> เพื่อเข้าถึง <ph name="TARGET_URL_HOSTNAME" /></translation>
 <translation id="7355355292030546812">Chromium บล็อกการดาวน์โหลดนี้เนื่องจากไฟล์อาจเป็นอันตรายต่อบัญชีส่วนตัวและบัญชีโซเชียลเน็ตเวิร์กของคุณ รวมถึง <ph name="USER_EMAIL" /></translation>
 <translation id="7384121030444253939">ระบบไม่รองรับส่วนขยายนี้แล้ว Chromium แนะนำให้คุณนำออกแทน</translation>
+<translation id="7389750180956889333">Chromium เข้าใจแบบฟอร์มได้ดีขึ้นและสามารถป้อนข้อมูลอัตโนมัติให้คุณได้เร็วขึ้น ดูเพิ่มเติมเกี่ยวกับ<ph name="BEGIN_LINK" />การป้อนข้อความอัตโนมัติของ Chrome<ph name="END_LINK" /></translation>
 <translation id="7398989605938454041">โปรไฟล์ Chromium ช่วยให้คุณแยกข้อมูลต่างๆ ใน Chromium ได้ ซึ่งทำให้แยกการทำงานออกจากความบันเทิงได้ง่ายขึ้น</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> - Chromium Dev</translation>
 <translation id="7450541714075000668">คัดลอกข้อความแล้ว</translation>

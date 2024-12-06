@@ -328,7 +328,7 @@ void ReuseDefaultProcessFromDifferentBrowsingInstanceIfPossible(
   DCHECK(!new_instance->RequiresDedicatedProcess());
   DCHECK(!new_instance->HasProcess());
   RenderFrameHostImpl* root = rfh->GetOutermostMainFrame();
-  root->ForEachRenderFrameHostWithAction(
+  root->ForEachRenderFrameHostImplWithAction(
       [site_instance = std::move(new_instance),
        root](RenderFrameHostImpl* rfhi) {
         if (rfhi->GetParent())
@@ -1020,21 +1020,23 @@ void RenderFrameHostManager::PrepareForCollectingPage(
   TRACE_EVENT("navigation", "RenderFrameHostManager::PrepareForCollectingPage");
 
   // We insert RenderViewHosts for all frames.
-  main_render_frame_host->ForEachRenderFrameHost([&](RenderFrameHostImpl* rfh) {
-    render_view_hosts->insert(rfh->render_view_host()->GetSafeRef());
-    if (rfh->is_main_frame()) {
-      for (auto& it : rfh->browsing_context_state()->proxy_hosts()) {
-        // This avoids including the proxy created when starting a
-        // new cross-process, cross-BrowsingInstance navigation, as well as any
-        // restored proxies which are also in a different BrowsingInstance.
-        if (rfh->GetSiteInstance()->group()->IsRelatedSiteInstanceGroup(
-                it.second->site_instance_group())) {
-          render_view_hosts->insert(
-              it.second->GetRenderViewHost()->GetSafeRef());
+  main_render_frame_host->ForEachRenderFrameHostImpl(
+      [&](RenderFrameHostImpl* rfh) {
+        render_view_hosts->insert(rfh->render_view_host()->GetSafeRef());
+        if (rfh->is_main_frame()) {
+          for (auto& it : rfh->browsing_context_state()->proxy_hosts()) {
+            // This avoids including the proxy created when starting a
+            // new cross-process, cross-BrowsingInstance navigation, as well as
+            // any restored proxies which are also in a different
+            // BrowsingInstance.
+            if (rfh->GetSiteInstance()->group()->IsRelatedSiteInstanceGroup(
+                    it.second->site_instance_group())) {
+              render_view_hosts->insert(
+                  it.second->GetRenderViewHost()->GetSafeRef());
+            }
+          }
         }
-      }
-    }
-  });
+      });
 
   // When BrowsingContextState is decoupled from the FrameTreeNode and
   // RenderFrameHostManager (legacy mode is disabled), proxies and
@@ -3201,6 +3203,11 @@ RenderFrameHostManager::DetermineSiteInstanceForURL(
     BrowsingContextGroupSwap browsing_context_group_swap,
     bool was_server_redirect,
     std::string* reason) {
+  TRACE_EVENT("navigation",
+              "RenderFrameHostManager::DetermineSiteInstanceForURL",
+              ChromeTrackEvent::kFrameTreeNodeInfo, *frame_tree_node_, "url",
+              dest_url_info.url);
+
   // Note that this function should return a SiteInstanceDescriptor with
   // SiteInstanceRelation::UNRELATED or
   // SiteInstanceRelation::RELATED_IN_COOP_GROUP relations to `current_instance`
@@ -4096,6 +4103,11 @@ bool RenderFrameHostManager::CreateSpeculativeRenderFrameHost(
     SiteInstanceImpl* old_instance,
     SiteInstanceImpl* new_instance,
     bool recovering_without_early_commit) {
+  TRACE_EVENT("navigation",
+              "RenderFrameHostManager::CreateSpeculativeRenderFrameHost",
+              ChromeTrackEvent::kFrameTreeNodeInfo, *frame_tree_node_,
+              ChromeTrackEvent::kSiteInstance, old_instance,
+              ChromeTrackEvent::kSiteInstance, new_instance);
   base::ScopedUmaHistogramTimer histogram_timer(
       "Navigation.CreateSpeculativeRFH");
   CHECK(new_instance);
@@ -4310,10 +4322,10 @@ void RenderFrameHostManager::CreateRenderFrameProxy(
     const scoped_refptr<BrowsingContextState>& browsing_context_state,
     BatchedProxyIPCSender* batched_proxy_ipc_sender) {
   CHECK(group);
-  TRACE_EVENT_INSTANT("navigation.debug",
-                      "RenderFrameHostManager::CreateRenderFrameProxy",
-                      ChromeTrackEvent::kSiteInstanceGroup, *group,
-                      ChromeTrackEvent::kFrameTreeNodeInfo, *frame_tree_node_);
+  TRACE_EVENT("navigation.debug",
+              "RenderFrameHostManager::CreateRenderFrameProxy",
+              ChromeTrackEvent::kSiteInstanceGroup, *group,
+              ChromeTrackEvent::kFrameTreeNodeInfo, *frame_tree_node_);
   // If we are creating a proxy to recover from a crash and skipping the early
   // CommitPending then it could be in the same SiteInstanceGroup. In all other
   // cases we should be creating it in a different one.
@@ -4576,6 +4588,11 @@ RenderFrameHostManager::GetSiteInstanceForNavigationRequest(
     IsSameSiteGetter& is_same_site,
     BrowsingContextGroupSwap* browsing_context_group_swap,
     std::string* reason) {
+  TRACE_EVENT("navigation",
+              "RenderFrameHostManager::GetSiteInstanceForNavigationRequest",
+              ChromeTrackEvent::kFrameTreeNodeInfo, *frame_tree_node_,
+              "navigation_request", request);
+
   SiteInstanceImpl* current_site_instance =
       render_frame_host_->GetSiteInstance();
 

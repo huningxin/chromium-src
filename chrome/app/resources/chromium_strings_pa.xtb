@@ -262,6 +262,7 @@
 <translation id="4510853178268397146">ਇਸ ਐਕਸਟੈਂਸ਼ਨ ਨੇ ਇਸ ਵੱਲੋਂ ਡਾਟੇ ਨੂੰ ਇਕੱਤਰ ਕਰਨ ਅਤੇ ਉਸਦੀ ਵਰਤੋਂ ਦੇ ਤਰੀਕੇ ਵਰਗੇ ਪਰਦੇਦਾਰੀ ਵਿਹਾਰਾਂ ਨੂੰ ਪ੍ਰਕਾਸ਼ਿਤ ਨਹੀਂ ਕੀਤਾ ਹੈ। Chromium ਸਿਫ਼ਾਰਸ਼ ਕਰਦਾ ਹੈ ਕਿ ਤੁਸੀਂ ਇਸਨੂੰ ਹਟਾ ਦਿਓ।</translation>
 <translation id="452711251841752011">Chromium ਵਿੱਚ ਜੀ ਆਇਆਂ ਨੂੰ; ਨਵੀਂ ਬ੍ਰਾਊਜ਼ਰ ਵਿੰਡੋ ਖੋਲ੍ਹੀ ਗਈ</translation>
 <translation id="4531137820806573936">Chromium ਨੂੰ ਤੁਹਾਡੇ ਆਲੇ-ਦੁਆਲੇ ਦਾ ਨਕਸ਼ਾ ਬਣਾਉਣ ਅਤੇ ਤੁਹਾਡੇ ਹੱਥਾਂ ਨੂੰ ਟਰੈਕ ਕਰਨ ਲਈ ਇਜਾਜ਼ਤ ਦੀ ਲੋੜ ਹੈ</translation>
+<translation id="4534145890176164066">Chromium ਫ਼ਾਰਮਾਂ ਨੂੰ ਬਿਹਤਰ ਢੰਗ ਨਾਲ ਸਮਝਦਾ ਹੈ ਅਤੇ ਤੁਹਾਡੇ ਲਈ ਉਨ੍ਹਾਂ ਨੂੰ ਤੇਜ਼ੀ ਨਾਲ ਆਟੋਫਿਲ ਕਰ ਸਕਦਾ ਹੈ</translation>
 <translation id="4536805923587466102">ਤੁਸੀਂ ਪਹਿਲਾਂ ਹੀ ਕਿਸੇ ਹੋਰ Chromium ਪ੍ਰੋਫਾਈਲ ਵਿੱਚ <ph name="USER_EMAIL_ADDRESS" /> ਵਜੋਂ ਸਾਈਨ-ਇਨ ਕੀਤਾ ਹੋਇਆ ਹੈ</translation>
 <translation id="4544142686420020088">Chromium ਅੱਪਡੇਟ ਨਹੀਂ ਹੋਇਆ, ਕੋਈ ਗੜਬੜ ਹੋ ਗਈ। <ph name="BEGIN_LINK" />Chromium ਅੱਪਡੇਟ ਦੀਆਂ ਸਮੱਸਿਆਵਾਂ ਅਤੇ ਅਸਫਲ ਹੋਈਆਂ ਅੱਪਡੇਟਾਂ ਨੂੰ ਠੀਕ ਕਰੋ।<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">Chromium ਤੁਹਾਡੇ ਬ੍ਰਾਊਜ਼ਿੰਗ ਅਨੁਭਵ ਨੂੰ ਬਿਹਤਰ ਬਣਾਉਣ ਅਤੇ ਚੀਜ਼ਾਂ ਨੂੰ ਤੇਜ਼ੀ ਨਾਲ ਚੱਲਦਾ ਰੱਖਣ ਲਈ ਇਸ ਟੈਬ ਨੂੰ ਅਕਿਰਿਆਸ਼ੀਲ ਕਰ ਸਕਦਾ ਹੈ।</translation>
@@ -442,7 +443,6 @@
 <translation id="6831043979455480757">ਅਨੁਵਾਦ ਕਰੋ</translation>
 <translation id="6847869444787758381">Chromium ਤੁਹਾਨੂੰ ਇਹ ਗੱਲ ਦੱਸਦਾ ਹੈ ਕਿ ਤੁਹਾਡੇ ਪਾਸਵਰਡਾਂ ਨਾਲ ਪਹਿਲਾਂ ਕਦੇ ਛੇੜਛਾੜ ਹੋਈ ਹੈ ਜਾਂ ਨਹੀਂ</translation>
 <translation id="684888714667046800">ਇੰਟਰਨੈੱਟ ਨਾਲ ਕਨੈਕਟ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ। ਜੇ ਤੁਸੀਂ ਫ਼ਾਇਰਵਾਲ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋ, ਤਾਂ ਕਿਰਪਾ ਕਰਕੇ ਇਹ ਪੱਕਾ ਕਰੋ ਕਿ <ph name="PRODUCT_EXE_NAME" /> ਪ੍ਰਵਾਨਿਤ ਸੂਚੀ ਸ਼ਾਮਲ ਹੈ।</translation>
-<translation id="685279860330610299">Chromium ਜਾਣਕਾਰੀ ਦੀਆਂ ਹੋਰ ਕਿਸਮਾਂ ਨੂੰ ਸਮਝ ਸਕਦਾ ਹੈ ਅਤੇ ਤੁਹਾਡੇ ਫ਼ਾਰਮਾਂ ਨੂੰ ਤੇਜ਼ੀ ਨਾਲ ਆਟੋਫਿਲ ਕਰ ਸਕਦਾ ਹੈ। <ph name="BEGIN_LINK" />Chrome ਆਟੋਫਿਲ<ph name="END_LINK" /> ਬਾਰੇ ਹੋਰ ਜਾਣੋ</translation>
 <translation id="6857782730669500492">Chromium - <ph name="PAGE_TITLE" /></translation>
 <translation id="6873893289264747459">Chromium ਨੂੰ ਇਹ ਪਤਾ ਲੱਗਾ ਕਿ "<ph name="EXTENSION_NAME" />" ਵਿੱਚ ਮਾਲਵੇਅਰ ਸ਼ਾਮਲ ਹਨ</translation>
 <translation id="6896758677409633944">ਕਾਪੀ ਕਰੋ</translation>
@@ -481,6 +481,7 @@ Chromium ਤੁਹਾਡੀਆਂ ਸੈਟਿੰਗਾਂ ਮੁੜ-ਹਾਸ�
 <translation id="7349591376906416160">ਤੁਹਾਡੇ ਸਿਸਟਮ ਪ੍ਰਸ਼ਾਸਕ ਨੇ <ph name="TARGET_URL_HOSTNAME" /> ਤੱਕ ਪਹੁੰਚ ਕਰਨ ਵਾਸਤੇ <ph name="ALTERNATIVE_BROWSER_NAME" /> ਖੋਲ੍ਹਣ ਲਈ Chromium ਦਾ ਸੰਰੂਪਣ ਕੀਤਾ ਹੈ।</translation>
 <translation id="7355355292030546812">Chromium ਨੇ ਇਸ ਡਾਊਨਲੋਡ ਨੂੰ ਬਲਾਕ ਕਰ ਦਿੱਤਾ ਹੈ, ਕਿਉਂਕਿ ਇਹ ਫ਼ਾਈਲ <ph name="USER_EMAIL" /> ਸਮੇਤ, ਤੁਹਾਡੇ ਨਿੱਜੀ ਅਤੇ ਸੋਸ਼ਲ ਨੈੱਟਵਰਕ ਖਾਤਿਆਂ ਨੂੰ ਨੁਕਸਾਨ ਪਹੁੰਚਾ ਸਕਦੀ ਹੈ</translation>
 <translation id="7384121030444253939">ਇਹ ਐਕਸਟੈਂਸ਼ਨ ਹੁਣ ਸਮਰਥਿਤ ਨਹੀਂ ਹੈ। Chromium ਸਿਫ਼ਾਰਸ਼ ਕਰਦਾ ਹੈ ਕਿ ਇਸਦੀ ਬਜਾਏ ਤੁਸੀਂ ਇਸਨੂੰ ਹਟਾ ਦਿਓ।</translation>
+<translation id="7389750180956889333">Chromium ਫ਼ਾਰਮਾਂ ਨੂੰ ਬਿਹਤਰ ਢੰਗ ਨਾਲ ਸਮਝਦਾ ਹੈ ਅਤੇ ਤੁਹਾਡੇ ਲਈ ਉਨ੍ਹਾਂ ਨੂੰ ਤੇਜ਼ੀ ਨਾਲ ਆਟੋਫਿਲ ਕਰ ਸਕਦਾ ਹੈ। <ph name="BEGIN_LINK" />Chrome ਆਟੋਫਿਲ<ph name="END_LINK" /> ਬਾਰੇ ਹੋਰ ਜਾਣੋ</translation>
 <translation id="7398989605938454041">Chromium ਪ੍ਰੋਫਾਈਲਾਂ ਨਾਲ ਤੁਸੀਂ ਆਪਣੀ ਸਾਰੀ Chromium ਸਮੱਗਰੀ ਨੂੰ ਵੱਖ ਕਰ ਸਕਦੇ ਹੋ। ਇਹ ਕਾਰਜ ਅਤੇ ਮੌਜ-ਮਸਤੀ ਵਿਚਕਾਰ ਵੰਡਣ ਲਈ ਇਸਨੂੰ ਆਸਾਨ ਬਣਾਉਂਦਾ ਹੈ।</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> - Chromium Dev</translation>
 <translation id="7450541714075000668">ਲਿਖਤ ਕਾਪੀ ਕੀਤੀ ਗਈ</translation>

@@ -590,8 +590,8 @@ class ComputedStyle final : public ComputedStyleBase {
 
   // column-rule-width
   GapDataList<int> ColumnRuleWidth() const {
-    if (ColumnRuleStyle() == EBorderStyle::kNone ||
-        ColumnRuleStyle() == EBorderStyle::kHidden) {
+    if (ColumnRuleStyle().GetLegacyValue() == EBorderStyle::kNone ||
+        ColumnRuleStyle().GetLegacyValue() == EBorderStyle::kHidden) {
       return GapDataList<int>(0);
     }
     return ColumnRuleWidthInternal();
@@ -1009,7 +1009,7 @@ class ComputedStyle final : public ComputedStyleBase {
       return false;
     }
     return ColumnRuleWidth().GetLegacyValue() && !ColumnRuleIsTransparent() &&
-           BorderStyleIsVisible(ColumnRuleStyle());
+           BorderStyleIsVisible(ColumnRuleStyle().GetLegacyValue());
   }
 
   // Flex utility functions.
@@ -1089,6 +1089,9 @@ class ComputedStyle final : public ComputedStyleBase {
   }
   bool IsHorizontalWritingMode() const {
     return blink::IsHorizontalWritingMode(GetWritingMode());
+  }
+  bool IsVerticalWritingMode() const {
+    return blink::IsVerticalWritingMode(GetWritingMode());
   }
   bool IsHorizontalTypographicMode() const {
     return blink::IsHorizontalTypographicMode(GetWritingMode());
@@ -2293,6 +2296,12 @@ class ComputedStyle final : public ComputedStyleBase {
       return ScrollMarkerGroup() == EScrollMarkerGroup::kAfter &&
              IsScrollContainer();
     }
+    if (pseudo == kPseudoIdScrollUpButton ||
+        pseudo == kPseudoIdScrollDownButton ||
+        pseudo == kPseudoIdScrollLeftButton ||
+        pseudo == kPseudoIdScrollRightButton) {
+      return HasPseudoElementStyle(kPseudoIdScrollButton);
+    }
     if (!HasPseudoElementStyle(pseudo)) {
       return false;
     }
@@ -2303,7 +2312,7 @@ class ComputedStyle final : public ComputedStyleBase {
     // ::after, but the rest of the pseudo-elements should only be used for
     // elements with an actual layout object.
     return pseudo == kPseudoIdCheckMark || pseudo == kPseudoIdBefore ||
-           pseudo == kPseudoIdAfter || pseudo == kPseudoIdSelectArrow;
+           pseudo == kPseudoIdAfter || pseudo == kPseudoIdPickerIcon;
   }
 
   bool HasScrollMarkerGroupBefore() const {

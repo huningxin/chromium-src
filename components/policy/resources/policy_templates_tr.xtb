@@ -264,13 +264,6 @@ Politika, Etkin değerine ayarlanırsa kullanıcıların, <ph name="CHALLENGE_US
 <translation id="117080706484659953"><ph name="MAC_OS_NAME" /> işletim sisteminde politika kapsamını algılamaya izin ver</translation>
 <translation id="1171106901454883937">Cihaz sürüm bilgisi raporlamasını etkinleştir</translation>
 <translation id="1173493742686115032"><ph name="SEARCH_SIDE_PANEL_FEATURE_NAME" /> öğesini tüm web sayfalarında etkinleştir</translation>
-<translation id="1177567780207290133">Politikanın ayarlanması, URL'lerin pornografik olup olmadığını sınıflandırmak için Google Safe Search API'yi kullanan SafeSites URL filtresini kontrol eder.
-
-      Bu politika:
-
-      * Yetişkinlere uygun içerik için siteleri filtreleme seçeneğine ayarlanır veya ayarlanmadan bırakılırsa siteler filtrelenmez
-
-      * Üst düzey siteleri yetişkinlere uygun içerik için filtrele seçeneğine ayarlanırsa pornografik siteler filtrelenir</translation>
 <translation id="1177624681620856105"> Bu politika, harici protokol başlatma onayı istemlerinde "Her zaman aç" onay kutusunun gösterilip gösterilmeyeceğini kontrol eder.
 
       Bu politika True (Doğru) değerine ayarlanırsa veya hiç ayarlanmazsa bir harici protokol onayı gösterildiğinde, kullanıcı ileride bu sitede tüm protokol onay istemlerini atlamak için "Her zaman izin ver"i seçebilir.
@@ -955,6 +948,9 @@ Politika ayarlanmadan bırakılırsa <ph name="PRODUCT_OS_NAME" />, dahili mant�
 <translation id="165769015320654523">Bu sitelere, sağlanan tedarikçi ve ürün kimlikleriyle otomatik olarak HID cihazlarına bağlanma izni verir.</translation>
 <translation id="1659406551862245683">Varsayılan sanal klavye yeniden boyutlandırma davranışı, düzen görüntü alanını yeniden boyutlandırmak için değiştirilir</translation>
 <translation id="166427968280387991">Proxy sunucu</translation>
+<translation id="1665033825018489686">Bu politika, Etkin değerine ayarlanırsa veya yapılandırılmazsa <ph name="PRODUCT_NAME" />, misafir girişlerini etkinleştirir. Misafir girişleri, tüm pencerelerin gizli modda olduğu <ph name="PRODUCT_NAME" /> profilleridir.
+
+Bu politika, Devre Dışı değerine ayarlanırsa <ph name="PRODUCT_NAME" />, misafir profillerinin başlatılmasına izin vermez.</translation>
 <translation id="1666001345366986837">Generative AI ve Background özelliğiyle ilgili ayarlar</translation>
 <translation id="1670638264428789878">İlgili Web Sitesi Gruplarını etkinleştir</translation>
 <translation id="1671405606278443620">Yapay zeka destekli geçmişte arama ayarları</translation>
@@ -1512,6 +1508,15 @@ Genellikle bu politika kimlik avına karşı bir savunma olarak Devre Dışıdı
         Politika, Etkin değerine ayarlanır veya ayarlanmadan bırakılırsa oturum içi Kiosk Chrome uygulamaları güncellemesine izin verilir.
         </translation>
 <translation id="2082205219176343977">Cihaz için izin verilen minimum Chrome sürümünü yapılandır.</translation>
+<translation id="2083016623552073519">Canlı altyazıların çevrilmesini etkinleştirin. Altyazılar, çeviri için Google'a gönderilir.
+
+Bu politika, Etkin değerine ayarlanırsa Canlı Çeviri özelliği her zaman açık olur.
+
+Bu politika, Devre Dışı değerine ayarlanırsa Canlı Çeviri özelliği her zaman kapalı olur.
+
+Bu politikayı zorunlu olarak ayarlarsanız kullanıcılar politikayı değiştiremez veya geçersiz kılamaz.
+
+Bu politika ayarlanmadan bırakılırsa Canlı Çeviri özelliği başlangıçta devre dışı bırakılır, ancak kullanıcılar istedikleri zaman etkinleştirebilir.</translation>
 <translation id="2083696311760456171">Otomatik Doldurma Tahmini'ne izin verme</translation>
 <translation id="20838788335877967">Kullanıcı tanımlama bilgilerinin raporlanmasını devre dışı bırak</translation>
 <translation id="208566302163036794">Devre dışı bırakılan özellikleri engelle</translation>
@@ -4159,6 +4164,15 @@ Her ikisi de tarayıcı davranışı üzerinde aynı etkiye sahiptir.</translati
 <translation id="4027608872760987929">Varsayılan arama sağlayıcıyı etkinleştir</translation>
 <translation id="4030152268425532846">Otomatik giriş kurtarmayı devre dışı bırak</translation>
 <translation id="4043796890723386527">Kullanıcıların, <ph name="LACROS_NAME" /> tarayıcıda ikinci profiller oluşturup kullanmalarını ve misafir modunu kullanmalarını engelle.</translation>
+<translation id="4047633048700722778">Politikanın ayarlanması, URL'lerin pornografik olup olmadığını sınıflandırmak için Google Safe Search API'yi kullanan SafeSites URL filtresini kontrol eder.
+
+Bu politika:
+
+* Yetişkinlere uygun içerik için siteleri filtreleme seçeneğine ayarlanır veya ayarlanmadan bırakılırsa siteler filtrelenmez.
+
+* Yetişkinlere uygun içerik için siteleri filtreleme seçeneğine ayarlanırsa pornografik siteler filtrelenir.
+
+Politika, hem kullanıcının gittiği URL hem de iframe'ler için geçerlidir. <ph name="URL_ALLOWLIST_POLICY_NAME" /> politikası bu politikaya göre daha önceliklidir ve Google Güvenli Arama API kararlarını geçersiz kılmak için kullanılabilir.</translation>
 <translation id="4051723201852944592">Pencere Kapamayı Etkinleştir</translation>
 <translation id="4052529125939620019">CryptoToken bileşen uzantısını başlangıçta yükle</translation>
 <translation id="4053157306171963473">Cihaz etkinlik zamanı raporlamasını devre dışı bırak</translation>
@@ -6655,6 +6669,7 @@ geçerlidir ve politika ayarlanmadan bırakılırsa varsayılan olarak devre dı
 <translation id="588135807064822874">Dokun ve Ara'yı etkinleştir</translation>
 <translation id="5882345429632338713">Alternatif tarayıcı açılmadan önce geçecek süre (milisaniye)</translation>
 <translation id="5883015257301027298">Varsayılan çerezler ayarı</translation>
+<translation id="5883631290631802010">Canlı Çeviri'yi etkinleştir</translation>
 <translation id="5883754873839596178">Politika ayarlanırsa proxy sunucuyla yapılabilecek maksimum eşzamanlı bağlantı sayısı belirtilir. Bazı proxy sunucular istemci başına çok sayıda eşzamanlı bağlantıyı işleyemez. Bu sorun, bu politikanın daha düşük bir değere ayarlanmasıyla çözülür. Değer, 100'den küçük, 6'dan büyük olmalıdır. Bazı web uygulamalarının askıda kalan GET'lerle çok fazla bağlantı kullandığı bilinmektedir. Bu nedenle, 32'den küçük bir değerin ayarlanması, askıda bağlantısı olan çok fazla web uygulamasının açık olması halinde tarayıcı bağlantılarının yavaşlamasına neden olabilir. Varsayılanın altında bir değer ayarlayacaksanız bunun tüm riski size aittir.
 
       Politika ayarlanmadan bırakılırsa, varsayılan değer olarak 32 kullanılır.</translation>
@@ -7917,7 +7932,6 @@ Bu politika Etkin değerine ayarlandığında veriler toplanıp <ph name="GOOGLE
       75 sürümünden önce, birden fazla virgülle ayrılmış uzantı kimliğinin kullanılması desteklenmez ve atlanır. Politikanın geri kalanı geçerlidir.
 
       Not: Bu politika ayrıca <ph name="EXTENSION_INSTALL_FORCELIST_POLICY_NAME" /> kullanılarak zorunlu yüklenmiş uzantıları ve uygulamaları da etkiler.</translation>
-<translation id="6731757988219967594">Üst düzey siteleri (ancak yerleştirilmiş iframe'leri değil) yetişkinlere yönelik içerik için filtrele</translation>
 <translation id="6733851879899284032">
       Kökler arası erişime kapalı olmayan bir bağlamda SharedArrayBuffers kullanılıp kullanılamayacağını belirler. <ph name="PRODUCT_NAME" />, <ph name="PRODUCT_NAME" /> 91 ve sonrasında (25.05.2021) Web Uyumluluğu nedeniyle SharedArrayBuffers kullanımında kökler arası erişime kapalı olmayı gerektirecek. Daha fazla ayrıntıyı aşağıdaki adreste bulabilirsiniz: https://developer.chrome.com/blog/enabling-shared-array-buffer/.
 
@@ -8166,6 +8180,7 @@ olarak bu tür istekleri engelleme davranışı geçerli olur.</translation>
 <translation id="6938424179790370595">Politikayı Yok değerine ayarlamak, ekran büyütecini kapatır.
 
       Bu politikayı ayarlarsanız kullanıcılar değiştiremez. Ayarlanmazsa ekran büyüteci ilk başta kapalıdır, ancak kullanıcılar istedikleri zaman açabilir.</translation>
+<translation id="6938524853892166974">Canlı Çeviri'yi devre dışı bırak</translation>
 <translation id="6940243892299228102">Kullanıcıların masa şablonları kullanmalarına izin verme</translation>
 <translation id="6943577887654905793">Mac/Linux tercih adı:</translation>
 <translation id="694602410134474029"><ph name="PRODUCT_NAME" /> öğesinin, yazıcı sürücüleriyle ayrı bir hizmet işleminden etkileşime geçip geçmediğini kontrol eder. Mevcut yazıcıları sorgulamak, yazdırma sürücüsü ayarlarını almak ve doküman göndererek yerel yazıcılara yazdırmak için yapılan platform yazdırma çağrıları, hizmet işleminden gerçekleştirilir. Bu tür çağrıları, tarayıcı işleminin dışına taşımak, kararlılığı iyileştirmeye ve Yazdırma Önizleme'deki donmuş kullanıcı arayüzü davranışını azaltmaya yardımcı olur.
@@ -8597,6 +8612,15 @@ Aralıkları çakışan programlar desteklenmez. İki tane çakışan aralık i�
       değilse bu politikalar yoksayılır.</translation>
 <translation id="7202925763179776247">İndirme kısıtlamalarına izin ver</translation>
 <translation id="7203243973351251622">Kaydedici (130 sürümünden itibaren desteklenir)</translation>
+<translation id="7205989349935313324">Yer Paylaşımlı Lens özelliğinde mevcut sayfanın ekran görüntüsü, asıl web içeriğinin üzerine yerleştirilir ve kullanıcılar bu görüntüyle etkileşimde bulunarak Google araması yapabilirler. Ayrıca mevcut sayfanın içeriğine duyarlı Google aramaları yapabilirler. Yer Paylaşımlı Lens, sorguyu kullanıcının bulunduğu sayfanın içeriğine göre yanıtlayarak içeriğe duyarlı yanıtlar vermek için sayfanın içeriğini Google'a gönderir.
+
+Bu özelliği kontrol eden bir kullanıcı ayarı yoktur. Bu politika ile devre dışı bırakılmadığı sürece, genellikle varsayılan arama motoru Google olan herkes tarafından kullanılabilir.
+
+0 = Özelliği kullanıcılar için etkinleştirin ve Google'a alakalı verileri göndererek yapay zeka modellerini eğitmesine ya da iyileştirmesine yardımcı olun. Alakalı veriler arasında özelliğe bağlı olarak istemler, girişler, çıkışlar ve kaynak materyalleri yer alabilir. Bu bilgiler, gerçek kişiler tarafından yalnızca yapay zeka modellerini iyileştirmek amacıyla incelenebilir. Aşağıdaki değerler belirtilmediği sürece varsayılan değer 0'dır.
+
+1 = Özelliği kullanıcılar için etkinleştirin ancak yapay zeka modellerini eğitmesi veya iyileştirmesi için Google'a veri göndermeyin. <ph name="GOOGLE_ADMIN_CONSOLE_PRODUCT_NAME" /> tarafından yönetilen kurumsal kullanıcılar ve <ph name="GOOGLE_WORKSPACE_PRODUCT_NAME" /> tarafından yönetilen eğitim hesapları için varsayılan değer 1'dir.
+
+2 = Özelliği devre dışı bırakın.</translation>
 <translation id="7207095846245296855">Google Güvenli Arama'yı zorla</translation>
 <translation id="7211368186050418507">Saat dilimini hiçbir zaman otomatik algılama</translation>
 <translation id="721617466745658461">Kullanıcıların <ph name="LACROS_NAME" /> tarayıcı ikili programını seçmesine izin ver</translation>
@@ -9787,6 +9811,7 @@ Bu politika ayarlanmadan bırakılırsa gizlilik ekranı başta devre dışı b�
       Politika Devre Dışı değerine ayarlanır veya ayarlanmadan bırakılırsa paket gönderilmez.</translation>
 <translation id="8168359201203671567">Klavye arka ışığı gökkuşağı renginde</translation>
 <translation id="8169452762291746260">Cihaz sağlığını izlemeyi devre dışı bırak</translation>
+<translation id="8170359860920320269">Yetişkinlere uygun içerik barındıran siteleri filtrele</translation>
 <translation id="8171262216089271568">Giriş ekranında büyük imleci etkinleştir</translation>
 <translation id="8171924760436219650">Giriş ekranında birincil fare düğmesini sağ düğme yap</translation>
 <translation id="81724933026241365">Kullanıcıların kapat simgesini veya fiziksel güç düğmesini kullanarak cihazı kapatmasına izin ver</translation>

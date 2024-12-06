@@ -185,7 +185,6 @@ BASE_FEATURE(kOnDeviceModelFetchPerformanceClassEveryStartup,
              "OnDeviceModelFetchPerformanceClassEveryStartup",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-#if !BUILDFLAG(IS_ANDROID)
 // Enable the "Synapse" refreshed AI settings page.
 BASE_FEATURE(kAiSettingsPageRefresh,
              "AiSettingsPageRefresh",
@@ -193,7 +192,6 @@ BASE_FEATURE(kAiSettingsPageRefresh,
 
 const base::FeatureParam<bool> kShowAiSettingsForTesting{
     &kAiSettingsPageRefresh, "show_ai_settings_for_testing", false};
-#endif
 
 const base::FeatureParam<std::string> kPerformanceClassListForOnDeviceModel{
     &kOptimizationGuideOnDeviceModel,
@@ -770,13 +768,6 @@ bool GetOnDeviceModelRetractUnsafeContent() {
 
 bool ShouldUseTextSafetyClassifierModel() {
   return base::FeatureList::IsEnabled(kTextSafetyClassifier);
-}
-
-uint32_t GetOnDeviceModelTextSafetyTokenInterval() {
-  static const base::FeatureParam<int32_t>
-      kOnDeviceModelTextSafetyTokenInterval{
-          &kTextSafetyClassifier, "on_device_text_safety_token_interval", 10};
-  return static_cast<uint32_t>(kOnDeviceModelTextSafetyTokenInterval.Get());
 }
 
 double GetOnDeviceModelLanguageDetectionMinimumReliability() {

@@ -821,19 +821,19 @@ scoped_refptr<StaticBitmapImage> WebGLRenderingContextBase::GetImage(
   // custom resource provider. This avoids consuming compositing-specific
   // resources (e.g. GpuMemoryBuffer). We tag the SharedImage with display usage
   // since there are uncommon paths which may use this snapshot for compositing.
-  const auto image_info =
-      SkImageInfo::Make(SkISize::Make(size.width(), size.height()),
-                        CanvasRenderingContextSkColorInfo());
+  const auto color_info = CanvasRenderingContextSkColorInfo();
   constexpr auto kShouldInitialize =
       CanvasResourceProvider::ShouldInitialize::kNo;
   std::unique_ptr<CanvasResourceProvider> resource_provider =
       CanvasResourceProvider::CreateSharedImageProvider(
-          image_info, GetDrawingBuffer()->FilterQuality(), kShouldInitialize,
+          size, color_info.colorType(), color_info.alphaType(),
+          color_info.refColorSpace(), kShouldInitialize,
           SharedGpuContext::ContextProviderWrapper(), RasterMode::kGPU,
           gpu::SHARED_IMAGE_USAGE_DISPLAY_READ);
   if (!resource_provider || !resource_provider->IsValid()) {
     resource_provider = CanvasResourceProvider::CreateBitmapProvider(
-        image_info, GetDrawingBuffer()->FilterQuality(),
+        size, color_info.colorType(), color_info.alphaType(),
+        color_info.refColorSpace(),
         CanvasResourceProvider::ShouldInitialize::kNo);
   }
 
@@ -1322,7 +1322,7 @@ scoped_refptr<DrawingBuffer> WebGLRenderingContextBase::CreateDrawingBuffer(
       std::move(context_provider), graphics_info, using_swap_chain, this,
       ClampedCanvasSize(), premultiplied_alpha, want_alpha_channel,
       want_depth_buffer, want_stencil_buffer, want_antialiasing, desynchronized,
-      preserve, web_gl_version, chromium_image_usage, Host()->FilterQuality(),
+      preserve, web_gl_version, chromium_image_usage,
       drawing_buffer_color_space_,
       PowerPreferenceToGpuPreference(attrs.power_preference));
 }
@@ -3401,15 +3401,15 @@ bool WebGLRenderingContextBase::TimerQueryExtensionsEnabled() {
               .IsWorkaroundEnabled(gpu::ENABLE_WEBGL_TIMER_QUERY_EXTENSIONS));
 }
 
-ScriptValue WebGLRenderingContextBase::getExtension(ScriptState* script_state,
-                                                    const String& name) {
+ScriptObject WebGLRenderingContextBase::getExtension(ScriptState* script_state,
+                                                     const String& name) {
   if (name == WebGLDebugRendererInfo::ExtensionName()) {
     ExecutionContext* context = ExecutionContext::From(script_state);
     UseCounter::Count(context, WebFeature::kWebGLDebugRendererInfo);
   }
 
   WebGLExtension* extension = EnableExtensionIfSupported(name);
-  return ScriptValue(
+  return ScriptObject(
       script_state->GetIsolate(),
       ToV8Traits<IDLNullable<WebGLExtension>>::ToV8(script_state, extension));
 }
@@ -4423,7 +4423,7 @@ ScriptValue WebGLRenderingContextBase::getUniform(
         }
         switch (base_type) {
           case GL_FLOAT: {
-            GLfloat value[16] = {0};
+            GLfloat value[16] = {};
             ContextGL()->GetUniformfv(ObjectOrZero(program), location, value);
             if (length == 1)
               return WebGLAny(script_state, value[0]);
@@ -4431,7 +4431,7 @@ ScriptValue WebGLRenderingContextBase::getUniform(
                                               base::span(value).first(length)));
           }
           case GL_INT: {
-            GLint value[4] = {0};
+            GLint value[4] = {};
             ContextGL()->GetUniformiv(ObjectOrZero(program), location, value);
             if (length == 1)
               return WebGLAny(script_state, value[0]);
@@ -4439,7 +4439,7 @@ ScriptValue WebGLRenderingContextBase::getUniform(
                                               base::span(value).first(length)));
           }
           case GL_UNSIGNED_INT: {
-            GLuint value[4] = {0};
+            GLuint value[4] = {};
             ContextGL()->GetUniformuiv(ObjectOrZero(program), location, value);
             if (length == 1)
               return WebGLAny(script_state, value[0]);
@@ -7201,13 +7201,6 @@ void WebGLRenderingContextBase::SetHdrMetadata(
   }
 }
 
-void WebGLRenderingContextBase::SetFilterQuality(
-    cc::PaintFlags::FilterQuality filter_quality) {
-  if (!isContextLost() && GetDrawingBuffer()) {
-    GetDrawingBuffer()->SetFilterQuality(filter_quality);
-  }
-}
-
 Extensions3DUtil* WebGLRenderingContextBase::ExtensionsUtil() {
   if (!extensions_util_) {
     gpu::gles2::GLES2Interface* gl = ContextGL();
@@ -7353,6 +7346,11 @@ void WebGLRenderingContextBase::
   if (reason) {
     PrintWarningToConsole(reason);
   }
+}
+
+void WebGLRenderingContextBase::DrawingBufferClientInitializeLayer(
+    cc::Layer* layer) {
+  Host()->InitializeLayerWithCSSProperties(layer);
 }
 
 ScriptValue WebGLRenderingContextBase::GetBooleanParameter(
@@ -8608,7 +8606,8 @@ CanvasResourceProvider* WebGLRenderingContextBase::
   } else {
     // TODO(fserb): why is this a BITMAP?
     temp = CanvasResourceProvider::CreateBitmapProvider(
-        info, cc::PaintFlags::FilterQuality::kLow,
+        gfx::Size(info.width(), info.height()), info.colorType(),
+        info.alphaType(), info.refColorSpace(),
         CanvasResourceProvider::ShouldInitialize::kNo);  // TODO: should this
                                                          // use the canvas's
   }

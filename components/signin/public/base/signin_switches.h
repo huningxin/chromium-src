@@ -41,9 +41,6 @@ BASE_DECLARE_FEATURE(kUseConsentLevelSigninForLegacyAccountEmailPref);
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kCctSignInPrompt);
 
-COMPONENT_EXPORT(SIGNIN_SWITCHES)
-BASE_DECLARE_FEATURE(kPutParcelableSigninConfigInExtra);
-
 #endif
 
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
@@ -179,15 +176,6 @@ BASE_DECLARE_FEATURE(kProfilesReordering);
 
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kOutlineSilhouetteIcon);
-
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
-COMPONENT_EXPORT(SIGNIN_SWITCHES)
-BASE_DECLARE_FEATURE(kForceSigninFlowInProfilePicker);
-// Default value is false, and the URL used would be /AccountChooser.
-COMPONENT_EXPORT(SIGNIN_SWITCHES)
-extern const base::FeatureParam<bool>
-    kForceSigninReauthInProfilePickerUseAddSession;
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
 #if BUILDFLAG(IS_ANDROID)
 COMPONENT_EXPORT(SIGNIN_SWITCHES)

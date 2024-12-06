@@ -573,14 +573,18 @@ public class FirstRunIntegrationTest {
     @Test
     @MediumTest
     public void testFirstRunPages_ProgressHistogramRecording_NoPromos() throws Exception {
-        HistogramWatcher histograms =
+        HistogramWatcher.Builder histogramBuilder =
                 HistogramWatcher.newBuilder()
                         .expectIntRecords(
                                 "MobileFre.Progress.ViewIntent",
                                 MobileFreProgress.STARTED,
-                                MobileFreProgress.WELCOME_SHOWN,
-                                MobileFreProgress.WELCOME_DISMISS)
-                        .build();
+                                MobileFreProgress.WELCOME_SHOWN);
+        // There is no dismiss button on automotive devices.
+        if (!BuildInfo.getInstance().isAutomotive) {
+            histogramBuilder.expectIntRecord(
+                    "MobileFre.Progress.ViewIntent", MobileFreProgress.WELCOME_DISMISS);
+        }
+        HistogramWatcher histograms = histogramBuilder.build();
 
         initializePreferences(new FirstRunPagesTestCase());
 

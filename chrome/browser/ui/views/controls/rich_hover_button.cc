@@ -187,14 +187,18 @@ void RichHoverButton::SetSubtitleMultiline(bool is_multiline) {
   subtitle_->SetMultiLine(is_multiline);
 }
 
-template <typename T>
-T* RichHoverButton::AddCustomSubtitle(std::unique_ptr<T> custom_view) {
-  static_cast<views::TableLayout*>(GetLayoutManager())
-      ->AddRows(1, views::TableLayout::kFixedSize);
-  AddChildView(std::make_unique<views::View>());  // main icon column
-  auto* view = AddChildView(std::move(custom_view));
-  AddFillerViews();
-  return view;
+void RichHoverButton::SetTitleTextStyleAndColor(int style,
+                                                ui::ColorId color_id) {
+  title_->SetTextStyle(style);
+  title_->SetEnabledColorId(color_id);
+}
+
+void RichHoverButton::SetSubtitleTextStyleAndColor(int style,
+                                                   ui::ColorId color_id) {
+  if (subtitle_) {
+    subtitle_->SetTextStyle(style);
+    subtitle_->SetEnabledColorId(color_id);
+  }
 }
 
 const views::Label* RichHoverButton::GetTitleViewForTesting() const {

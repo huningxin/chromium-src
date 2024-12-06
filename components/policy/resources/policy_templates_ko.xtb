@@ -265,13 +265,6 @@ DevTools 생성형 AI 기능에는 다음이 포함됩니다.
 <translation id="117080706484659953"><ph name="MAC_OS_NAME" />에서 정책 범위 감지 허용</translation>
 <translation id="1171106901454883937">기기 버전 정보 보고 사용 설정</translation>
 <translation id="1173493742686115032">모든 웹페이지에서 <ph name="SEARCH_SIDE_PANEL_FEATURE_NAME" /> 사용 설정</translation>
-<translation id="1177567780207290133">이 정책을 설정하면 SafeSites URL 필터를 제어할 수 있습니다. 이 필터는 Google Safe Search API를 사용하여 음란물이 포함된 URL을 분류합니다.
-
-      정책 설정과 그 결과는 다음과 같습니다.
-
-      * '사이트에 성인용 콘텐츠 필터링을 적용하지 않음' 또는 설정하지 않음 - 사이트가 필터링되지 않습니다.
-
-      * '최상위 사이트에 성인용 콘텐츠 필터링 적용' - 음란물 사이트가 필터링됩니다.</translation>
 <translation id="1177624681620856105"> 이 정책은 '항상 열기' 체크박스를 외부 프로토콜 시작 확인 메시지에 표시할지 제어합니다.
 
       이 정책이 True로 설정되거나 설정되지 않으면 외부 프로토콜 확인이 표시될 경우 사용자는 '항상 허용'을 선택하여 이 사이트에 있는 프로토콜의 향후 모든 확인 메시지를 건너뛸 수 있습니다.
@@ -4130,6 +4123,15 @@ Chrome에서 퍼스트 파티 세트 관련 통합을 지원하는지 제어합�
 <translation id="4027608872760987929">기본 검색 공급자 사용</translation>
 <translation id="4030152268425532846">자동 로그인 취소 사용 중지</translation>
 <translation id="4043796890723386527">사용자가 <ph name="LACROS_NAME" /> 브라우저에서 보조 프로필을 만들어 사용하거나 게스트 모드를 사용하지 못하도록 차단</translation>
+<translation id="4047633048700722778">이 정책을 설정하면 SafeSites URL 필터를 제어할 수 있습니다. 이 필터는 Google Safe Search API를 사용하여 음란물이 포함된 URL을 분류합니다.
+
+정책 설정과 그 결과는 다음과 같습니다.
+
+* '사이트에 성인용 콘텐츠 필터링을 적용하지 않음' 또는 설정하지 않음 - 사이트가 필터링되지 않습니다.
+
+* '사이트에 성인용 콘텐츠 필터링을 적용함' - 음란물 사이트가 필터링됩니다.
+
+정책은 사용자가 이동하는 URL과 iframe 모두에 적용됩니다. <ph name="URL_ALLOWLIST_POLICY_NAME" /> 정책이 이 정책보다 우선 적용되며 Google Safe Search API의 확인 결과를 재정의하는 데 사용될 수 있습니다.</translation>
 <translation id="4051723201852944592">창 오클루전 사용 설정</translation>
 <translation id="4052529125939620019">시작 시 CryptoToken 구성요소 확장 프로그램 로드</translation>
 <translation id="4053157306171963473">기기 활동 시간 보고 사용 중지</translation>
@@ -7900,7 +7902,6 @@ false로 설정되면 Crostini 컨테이너로 포트 전달이 사용 중지됩
       쉼표로 구분되는 확장 프로그램 ID를 여러 개 사용하는 75 이전 버전은 지원되지 않으며 건너뛰게 됩니다. 정책의 나머지 부분은 적용됩니다.
 
       참고: 이 정책은 <ph name="EXTENSION_INSTALL_FORCELIST_POLICY_NAME" />로 강제 설치되는 확장 프로그램과 앱에도 영향을 미칩니다.</translation>
-<translation id="6731757988219967594">최상위 사이트(삽입된 iframe 제외)에 성인용 콘텐츠 필터링을 적용함</translation>
 <translation id="6733851879899284032">
       SharedArrayBuffers가 교차 출처 분리되지 않은 컨텍스트에서 사용될 수 있는지 지정합니다. <ph name="PRODUCT_NAME" />은 <ph name="PRODUCT_NAME" /> 91(2021년 5월 25일 출시) 이상에서 SharedArrayBuffers를 사용할 때 웹 호환성을 이유로 교차 출처 분리를 요구합니다. 자세한 내용은 다음 페이지에서 확인하세요.: https://developer.chrome.com/blog/enabling-shared-array-buffer/
 
@@ -8566,6 +8567,15 @@ EphemeralNetworkPolicies 기능이 기본적으로 사용 설정되면 이 정�
       이 정책은 무시됩니다.</translation>
 <translation id="7202925763179776247">다운로드 제한 허용</translation>
 <translation id="7203243973351251622">녹음기(버전 130부터 지원됨)</translation>
+<translation id="7205989349935313324">렌즈 오버레이를 사용하면 실제 웹 콘텐츠 위에 표시된 현재 페이지의 스크린샷과 상호작용하여 Google 검색을 실행할 수 있습니다. 또한 현재 페이지의 문맥을 인지하는 Google 검색도 실행할 수 있습니다. 렌즈 오버레이는 문맥에 맞는 답변을 제공하기 위해 Google에 페이지 콘텐츠를 전송하여 사용자가 현재 있는 페이지의 맥락에 따라 사용자의 질문에 답변합니다.
+
+이 기능을 제어하는 사용자 설정은 없으며, 이 정책에서 사용 중지하지 않는 한 일반적으로 Google을 기본 검색엔진으로 사용하는 모든 사용자에게 이 기능이 제공됩니다.
+
+0 = 사용자를 위해 이 기능을 사용 설정하고 AI 모델을 학습시키거나 개선하는 데 도움이 되도록 관련 데이터를 Google에 전송합니다. 관련 데이터에는 기능에 따라 프롬프트, 입력, 출력, 소스 자료가 포함될 수 있습니다. AI 모델 개선 목적으로만 사람이 데이터를 검토할 수 있습니다. 아래에 명시된 경우를 제외하고 0이 기본값입니다.
+
+1 = 사용자를 위해 기능을 사용 설정하지만 AI 모델을 학습시키거나 개선하기 위한 데이터를 Google로 전송하지 않습니다. 1은 <ph name="GOOGLE_ADMIN_CONSOLE_PRODUCT_NAME" />에서 관리되는 기업 사용자 및 <ph name="GOOGLE_WORKSPACE_PRODUCT_NAME" />에서 관리되는 Education 계정의 기본값입니다.
+
+2 = 기능을 사용 중지합니다.</translation>
 <translation id="7207095846245296855">Google 세이프서치 강제 실행</translation>
 <translation id="7211368186050418507">시간대 자동 감지 기능을 사용하지 않습니다.</translation>
 <translation id="721617466745658461">사용자가 <ph name="LACROS_NAME" /> 브라우저 바이너리를 선택하도록 허용</translation>
@@ -9736,6 +9746,7 @@ False로 설정하면 로그인 화면이 표시될 때 개인 정보 보호 화
       정책을 사용 중지하거나 설정하지 않으면 패킷을 전송하지 않습니다.</translation>
 <translation id="8168359201203671567">키보드 백라이트 색상: 무지개</translation>
 <translation id="8169452762291746260">기기 상태 모니터링 사용 중지</translation>
+<translation id="8170359860920320269">사이트에 성인용 콘텐츠 필터링을 적용함</translation>
 <translation id="8171262216089271568">로그인 화면에서 큰 커서 사용 설정</translation>
 <translation id="8171924760436219650">로그인 화면의 기본 마우스 버튼을 오른쪽 버튼으로 변경</translation>
 <translation id="81724933026241365">사용자가 종료 아이콘 또는 기기의 전원 버튼을 사용하여 기기를 끌 수 있도록 허용</translation>

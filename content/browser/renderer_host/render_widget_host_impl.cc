@@ -588,6 +588,10 @@ RenderWidgetHostViewBase* RenderWidgetHostImpl::GetView() {
   return view_.get();
 }
 
+const RenderWidgetHostViewBase* RenderWidgetHostImpl::GetView() const {
+  return view_.get();
+}
+
 VisibleTimeRequestTrigger&
 RenderWidgetHostImpl::GetVisibleTimeRequestTrigger() {
   return delegate()->GetVisibleTimeRequestTrigger();
@@ -2508,16 +2512,24 @@ void RenderWidgetHostImpl::ResetDelegatedInkPointPrediction(
   }
 }
 
-const cc::RenderFrameMetadata&
-RenderWidgetHostImpl::GetLastRenderFrameMetadata() {
-  return render_frame_metadata_provider()->LastRenderFrameMetadata();
+std::optional<bool> RenderWidgetHostImpl::IsDelegatedInkHovering() {
+  const std::optional<cc::DelegatedInkBrowserMetadata>& metadata =
+      render_frame_metadata_provider()
+          ->LastRenderFrameMetadata()
+          .delegated_ink_metadata;
+
+  if (!metadata) {
+    return std::nullopt;
+  }
+
+  return metadata.value().delegated_ink_is_hovering;
 }
 
 void RenderWidgetHostImpl::NotifyObserversOfInputEvent(
     const WebInputEvent& event) {
   AddPendingUserActivation(event);
   for (auto& observer : input_event_observers_) {
-    observer.OnInputEvent(event);
+    observer.OnInputEvent(*this, event);
   }
 }
 
@@ -2526,7 +2538,7 @@ void RenderWidgetHostImpl::NotifyObserversOfInputEventAcks(
     blink::mojom::InputEventResultState ack_result,
     const WebInputEvent& event) {
   for (auto& input_event_observer : input_event_observers_) {
-    input_event_observer.OnInputEventAck(ack_source, ack_result, event);
+    input_event_observer.OnInputEventAck(*this, ack_source, ack_result, event);
   }
 }
 

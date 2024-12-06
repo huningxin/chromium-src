@@ -12,6 +12,9 @@
 #include "components/signin/internal/identity_manager/account_capabilities_constants.h"
 #include "components/signin/public/identity_manager/account_capabilities.h"
 #include "components/signin/public/identity_manager/account_info.h"
+#include "components/signin/public/identity_manager/signin_constants.h"
+
+using signin::constants::kNoHostedDomainFound;
 
 namespace {
 // Keys used to store the different values in the JSON dictionary received
@@ -42,7 +45,7 @@ std::optional<AccountInfo> AccountInfoFromUserInfo(
 
   AccountInfo account_info;
   account_info.email = *email_value;
-  account_info.gaia = *gaia_id_value;
+  account_info.gaia = GaiaId(*gaia_id_value);
 
   // All other fields are optional, some with default values.
   const std::string* hosted_domain_value =

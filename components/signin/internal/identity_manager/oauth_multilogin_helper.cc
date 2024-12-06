@@ -17,6 +17,7 @@
 #include "components/signin/internal/identity_manager/profile_oauth2_token_service.h"
 #include "components/signin/public/base/signin_client.h"
 #include "components/signin/public/identity_manager/set_accounts_in_cookie_result.h"
+#include "google_apis/gaia/gaia_id.h"
 #include "google_apis/gaia/google_service_auth_error.h"
 #include "google_apis/gaia/oauth_multilogin_result.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
@@ -39,7 +40,7 @@ static_assert(kMaxFetcherRetries > 1, "Must have at least one retry attempt");
 
 CoreAccountId FindAccountIdForGaiaId(
     const std::vector<OAuthMultiloginHelper::AccountIdGaiaIdPair>& accounts,
-    const std::string& gaia_id) {
+    const GaiaId& gaia_id) {
   auto it = std::ranges::find(
       accounts, gaia_id, &OAuthMultiloginHelper::AccountIdGaiaIdPair::second);
   return it != accounts.end() ? it->first : CoreAccountId();
@@ -294,13 +295,15 @@ void OAuthMultiloginHelper::StartSettingCookies(
       // Permit it to set a SameSite cookie if it wants to.
       options.set_same_site_cookie_context(
           net::CookieOptions::SameSiteCookieContext::MakeInclusive());
+      net::CookieInclusionStatus cookie_inclusion_status;
+      cookie_inclusion_status.AddExclusionReason(
+          net::CookieInclusionStatus::EXCLUDE_UNKNOWN_ERROR);
       cookie_manager->SetCanonicalCookie(
           cookie, net::cookie_util::SimulatedCookieSource(cookie, "https"),
           options,
           mojo::WrapCallbackWithDefaultInvokeIfNotRun(
               std::move(callback),
-              net::CookieAccessResult(net::CookieInclusionStatus(
-                  net::CookieInclusionStatus::EXCLUDE_UNKNOWN_ERROR))));
+              net::CookieAccessResult(cookie_inclusion_status)));
     } else {
       LOG(ERROR) << "Duplicate cookie found: " << cookie.Name() << " "
                  << cookie.Domain();

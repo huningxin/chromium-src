@@ -466,6 +466,10 @@ class COMPOSITOR_EXPORT Layer : public LayerAnimationDelegate,
     return texture_layer_.get() || surface_layer_.get();
   }
 
+  const viz::SurfaceId& external_content_surface_id() const {
+    return surface_layer_->surface_id();
+  }
+
   // Show a solid color instead of delegated or surface contents.
   void SetShowSolidColorContent();
 
@@ -644,7 +648,7 @@ class COMPOSITOR_EXPORT Layer : public LayerAnimationDelegate,
                                   PropertyChangeReason reason) override;
   void SetGrayscaleFromAnimation(float grayscale,
                                  PropertyChangeReason reason) override;
-  void SetColorFromAnimation(SkColor color,
+  void SetColorFromAnimation(SkColor4f color,
                              PropertyChangeReason reason) override;
   void SetClipRectFromAnimation(const gfx::Rect& clip_rect,
                                 PropertyChangeReason reason) override;
@@ -660,7 +664,7 @@ class COMPOSITOR_EXPORT Layer : public LayerAnimationDelegate,
   bool GetVisibilityForAnimation() const override;
   float GetBrightnessForAnimation() const override;
   float GetGrayscaleForAnimation() const override;
-  SkColor GetColorForAnimation() const override;
+  SkColor4f GetColorForAnimation() const override;
   gfx::Rect GetClipRectForAnimation() const override;
   gfx::RoundedCornersF GetRoundedCornersForAnimation() const override;
   const gfx::LinearGradient& GetGradientMaskForAnimation() const override;

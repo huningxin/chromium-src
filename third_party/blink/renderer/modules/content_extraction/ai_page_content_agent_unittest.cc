@@ -322,12 +322,15 @@ TEST_F(AIPageContentAgentTest, IFrameWithContent) {
 
   const auto& iframe = *root.children_nodes[0];
   const auto& iframe_attributes = *iframe.content_attributes;
-  EXPECT_TRUE(iframe.children_nodes.empty());
 
   EXPECT_EQ(iframe_attributes.attribute_type,
             mojom::blink::AIPageContentAttributeType::kIframe);
-  ASSERT_EQ(iframe_attributes.text_info.size(), 1u);
-  EXPECT_EQ(iframe_attributes.text_info[0]->text_content, "inside iframe");
+
+  const auto& iframe_root = iframe.children_nodes[0];
+  const auto& iframe_root_attributes = *iframe_root->content_attributes;
+
+  ASSERT_EQ(iframe_root_attributes.text_info.size(), 1u);
+  EXPECT_EQ(iframe_root_attributes.text_info[0]->text_content, "inside iframe");
 }
 
 TEST_F(AIPageContentAgentTest, NoLayoutElement) {
@@ -370,6 +373,109 @@ TEST_F(AIPageContentAgentTest, VisibilityHidden) {
   const auto& root = *content->root_node;
   EXPECT_TRUE(root.children_nodes.empty());
   EXPECT_TRUE(root.content_attributes->text_info.empty());
+}
+
+TEST_F(AIPageContentAgentTest, TextSize) {
+  frame_test_helpers::LoadHTMLString(
+      helper_.LocalMainFrame(),
+      "<body>"
+      "  <h1>Extra large text</h1>"
+      "  <h2>Large text</h2>"
+      "  <p>Regular text</p>"
+      "  <h6>Small text</h6>"
+      "  <p style='font-size: 0.25em;'>Extra small text</p>"
+      "</body>",
+      url_test_helpers::ToKURL("http://foobar.com"));
+
+  auto* agent = AIPageContentAgent::GetOrCreateForTesting(
+      *helper_.LocalMainFrame()->GetFrame()->GetDocument());
+  ASSERT_TRUE(agent);
+
+  auto content = agent->GetAIPageContentSync();
+  ASSERT_TRUE(content);
+  ASSERT_TRUE(content->root_node);
+
+  const auto& root = *content->root_node;
+  ASSERT_EQ(root.children_nodes.size(), 5u);
+
+  const auto& xl_text = *root.children_nodes[0]->content_attributes;
+  ASSERT_EQ(xl_text.text_info.size(), 1u);
+  EXPECT_EQ(xl_text.text_info[0]->text_style->text_size,
+            mojom::blink::AIPageContentTextSize::kXL);
+
+  const auto& l_text = *root.children_nodes[1]->content_attributes;
+  ASSERT_EQ(l_text.text_info.size(), 1u);
+  EXPECT_EQ(l_text.text_info[0]->text_style->text_size,
+            mojom::blink::AIPageContentTextSize::kL);
+
+  const auto& m_text = *root.children_nodes[2]->content_attributes;
+  ASSERT_EQ(m_text.text_info.size(), 1u);
+  EXPECT_EQ(m_text.text_info[0]->text_style->text_size,
+            mojom::blink::AIPageContentTextSize::kM);
+
+  const auto& s_text = *root.children_nodes[3]->content_attributes;
+  ASSERT_EQ(s_text.text_info.size(), 1u);
+  EXPECT_EQ(s_text.text_info[0]->text_style->text_size,
+            mojom::blink::AIPageContentTextSize::kS);
+
+  const auto& xs_text = *root.children_nodes[4]->content_attributes;
+  ASSERT_EQ(xs_text.text_info.size(), 1u);
+  EXPECT_EQ(xs_text.text_info[0]->text_style->text_size,
+            mojom::blink::AIPageContentTextSize::kXS);
+}
+
+TEST_F(AIPageContentAgentTest, TextEmphasis) {
+  frame_test_helpers::LoadHTMLString(
+      helper_.LocalMainFrame(),
+      "<body>"
+      "<p>Regular text"
+      "<b>Bolded text</b>"
+      "<i>Italicized text</i>"
+      "<u>Underlined text</u>"
+      "<sub>Subscript text</sub>"
+      "<sup>Superscript text</sup>"
+      "<em>Emphasized text</em>"
+      "<strong>Strong text</strong>"
+      "</p>"
+      "</body>",
+      url_test_helpers::ToKURL("http://foobar.com"));
+
+  auto* agent = AIPageContentAgent::GetOrCreateForTesting(
+      *helper_.LocalMainFrame()->GetFrame()->GetDocument());
+  ASSERT_TRUE(agent);
+
+  auto content = agent->GetAIPageContentSync();
+  ASSERT_TRUE(content);
+  ASSERT_TRUE(content->root_node);
+
+  const auto& root = *content->root_node;
+  ASSERT_EQ(root.children_nodes.size(), 1u);
+  const auto& text = *root.children_nodes[0]->content_attributes;
+  ASSERT_EQ(text.text_info.size(), 8u);
+
+  EXPECT_EQ(text.text_info[0]->text_content, "Regular text");
+  EXPECT_FALSE(text.text_info[0]->text_style->has_emphasis);
+
+  EXPECT_EQ(text.text_info[1]->text_content, "Bolded text");
+  EXPECT_TRUE(text.text_info[1]->text_style->has_emphasis);
+
+  EXPECT_EQ(text.text_info[2]->text_content, "Italicized text");
+  EXPECT_TRUE(text.text_info[2]->text_style->has_emphasis);
+
+  EXPECT_EQ(text.text_info[3]->text_content, "Underlined text");
+  EXPECT_TRUE(text.text_info[3]->text_style->has_emphasis);
+
+  EXPECT_EQ(text.text_info[4]->text_content, "Subscript text");
+  EXPECT_TRUE(text.text_info[4]->text_style->has_emphasis);
+
+  EXPECT_EQ(text.text_info[5]->text_content, "Superscript text");
+  EXPECT_TRUE(text.text_info[5]->text_style->has_emphasis);
+
+  EXPECT_EQ(text.text_info[6]->text_content, "Emphasized text");
+  EXPECT_TRUE(text.text_info[6]->text_style->has_emphasis);
+
+  EXPECT_EQ(text.text_info[7]->text_content, "Strong text");
+  EXPECT_TRUE(text.text_info[7]->text_style->has_emphasis);
 }
 
 }  // namespace

@@ -228,7 +228,6 @@
 #import "ios/chrome/browser/tab_switcher/ui_bundled/tab_strip/coordinator/tab_strip_coordinator.h"
 #import "ios/chrome/browser/tabs/model/tab_title_util.h"
 #import "ios/chrome/browser/tabs/ui_bundled/tab_strip_legacy_coordinator.h"
-#import "ios/chrome/browser/text_fragments/ui_bundled/text_fragments_coordinator.h"
 #import "ios/chrome/browser/text_zoom/ui_bundled/text_zoom_coordinator.h"
 #import "ios/chrome/browser/tips_manager/model/tips_manager_ios.h"
 #import "ios/chrome/browser/tips_manager/model/tips_manager_ios_factory.h"
@@ -544,9 +543,6 @@ enum class ToolbarKind {
 // Coordinator for presenting SKStoreProductViewController.
 @property(nonatomic, strong) StoreKitCoordinator* storeKitCoordinator;
 
-// The coordinator used for the Text Fragments feature.
-@property(nonatomic, strong) TextFragmentsCoordinator* textFragmentsCoordinator;
-
 // Coordinator for Text Zoom.
 @property(nonatomic, strong) TextZoomCoordinator* textZoomCoordinator;
 
@@ -748,6 +744,7 @@ enum class ToolbarKind {
   [self hideDriveFilePicker];
 
   [self.passKitCoordinator stop];
+  self.passKitCoordinator = nil;
 
   [self.printCoordinator dismissAnimated:YES];
 
@@ -769,7 +766,7 @@ enum class ToolbarKind {
   [self.passwordSuggestionCoordinator stop];
   self.passwordSuggestionCoordinator = nil;
 
-  [self.pageInfoCoordinator stop];
+  [self hidePageInfo];
 
   [self.paymentsSuggestionBottomSheetCoordinator stop];
   self.paymentsSuggestionBottomSheetCoordinator = nil;
@@ -791,8 +788,7 @@ enum class ToolbarKind {
   self.passwordSettingsCoordinator.delegate = nil;
   self.passwordSettingsCoordinator = nil;
 
-  [self.priceNotificationsViewCoordiantor stop];
-  self.priceNotificationsViewCoordiantor = nil;
+  [self hidePriceNotifications];
 
   [self.unitConversionCoordinator stop];
   self.unitConversionCoordinator = nil;
@@ -1352,11 +1348,6 @@ enum class ToolbarKind {
                          browser:self.browser];
   [self.safeBrowsingCoordinator start];
 
-  self.textFragmentsCoordinator = [[TextFragmentsCoordinator alloc]
-      initWithBaseViewController:self.viewController
-                         browser:self.browser];
-  [self.textFragmentsCoordinator start];
-
   // TODO(crbug.com/40228065): Refactor this coordinator so it doesn't directly
   // access the BVC's view.
   self.formInputAccessoryCoordinator = [[FormInputAccessoryCoordinator alloc]
@@ -1429,8 +1420,7 @@ enum class ToolbarKind {
   [self.vcardCoordinator stop];
   self.vcardCoordinator = nil;
 
-  [self.pageInfoCoordinator stop];
-  self.pageInfoCoordinator = nil;
+  [self hidePageInfo];
 
   [self.passKitCoordinator stop];
   self.passKitCoordinator = nil;
@@ -1465,8 +1455,7 @@ enum class ToolbarKind {
   [self.printCoordinator stop];
   self.printCoordinator = nil;
 
-  [self.priceNotificationsViewCoordiantor stop];
-  self.priceNotificationsViewCoordiantor = nil;
+  [self hidePriceNotifications];
 
   [self.promosManagerCoordinator stop];
   self.promosManagerCoordinator = nil;
@@ -1492,8 +1481,7 @@ enum class ToolbarKind {
 
   [self stopStoreKitCoordinator];
 
-  [self.textZoomCoordinator stop];
-  self.textZoomCoordinator = nil;
+  [self hideTextZoomUI];
 
   [self stopAutofillAddCreditCardCoordinator];
 
@@ -1502,9 +1490,6 @@ enum class ToolbarKind {
 
   [self.infobarModalOverlayContainerCoordinator stop];
   self.infobarModalOverlayContainerCoordinator = nil;
-
-  [self.textFragmentsCoordinator stop];
-  self.textFragmentsCoordinator = nil;
 
   [self.nonModalPromoCoordinator stop];
   self.nonModalPromoCoordinator = nil;
@@ -2428,6 +2413,7 @@ enum class ToolbarKind {
     helper->StopFinding();
   } else {
     [self.findBarCoordinator stop];
+    self.findBarCoordinator = nil;
   }
 }
 
@@ -2454,6 +2440,7 @@ enum class ToolbarKind {
     helper->DismissFindNavigator();
   } else {
     [self.findBarCoordinator stop];
+    self.findBarCoordinator = nil;
   }
 }
 
@@ -2521,8 +2508,7 @@ enum class ToolbarKind {
     return;
   }
 
-  FindBarCoordinator* findBarCoordinator = self.findBarCoordinator;
-  [findBarCoordinator stop];
+  [self.findBarCoordinator stop];
   self.findBarCoordinator = [self newFindBarCoordinator];
   [self.findBarCoordinator start];
 }
@@ -2734,13 +2720,10 @@ enum class ToolbarKind {
 
 - (void)toolbarAccessoryCoordinatorDidDismissUI:
     (ChromeCoordinator*)coordinator {
-  if (self.findBarCoordinator) {
-    self.findBarCoordinator = nil;
-  }
+  [self.findBarCoordinator stop];
+  self.findBarCoordinator = nil;
 
-  if (self.textZoomCoordinator) {
-    self.textZoomCoordinator = nil;
-  }
+  [self hideTextZoomUI];
 
   if (!_nextToolbarToPresent.has_value()) {
     return;
@@ -2780,11 +2763,7 @@ enum class ToolbarKind {
     }
   }
 
-  TextZoomCoordinator* textZoomCoordinator = self.textZoomCoordinator;
-  if (textZoomCoordinator) {
-    [textZoomCoordinator stop];
-  }
-
+  [self.textZoomCoordinator stop];
   self.textZoomCoordinator = [self newTextZoomCoordinator];
   [self.textZoomCoordinator start];
 }
@@ -2798,7 +2777,7 @@ enum class ToolbarKind {
       fontSizeTabHelper->SetTextZoomUIActive(false);
     }
   }
-  [self.textZoomCoordinator stop];
+  [self hideTextZoomUI];
 }
 
 - (void)showTextZoomUIIfActive {
@@ -2819,6 +2798,7 @@ enum class ToolbarKind {
 
 - (void)hideTextZoomUI {
   [self.textZoomCoordinator stop];
+  self.textZoomCoordinator = nil;
 }
 
 - (TextZoomCoordinator*)newTextZoomCoordinator {
@@ -3110,6 +3090,7 @@ enum class ToolbarKind {
 
 - (void)hidePriceNotifications {
   [self.priceNotificationsViewCoordiantor stop];
+  self.priceNotificationsViewCoordiantor = nil;
 }
 
 - (void)presentPriceNotificationsWhileBrowsingIPH {
@@ -3441,11 +3422,15 @@ enum class ToolbarKind {
 
   NewTabPageTabHelper* NTPHelper = NewTabPageTabHelper::FromWebState(webState);
   if (NTPHelper && NTPHelper->IsActive()) {
-    BOOL canShowTabStrip = IsRegularXRegularSizeClass(self.viewController);
+    const BOOL canShowTabStrip =
+        IsRegularXRegularSizeClass(self.viewController);
+    const BOOL isSplitToolbarMode = IsSplitToolbarMode(self.viewController);
     // If the NTP is active, then it's used as the base view for snapshotting.
-    // When the tab strip is visible, or for the incognito NTP, the NTP is laid
-    // out between the toolbars, so it should not be inset while snapshotting.
-    if (canShowTabStrip || self.browser->GetProfile()->IsOffTheRecord()) {
+    // When the tab strip is visible, the toolbars are not splitted or for the
+    // incognito NTP, the NTP is already laid out between the toolbars, so it
+    // should not be inset while snapshotting.
+    if (canShowTabStrip || !isSplitToolbarMode ||
+        self.browser->GetProfile()->IsOffTheRecord()) {
       return UIEdgeInsetsZero;
     }
 

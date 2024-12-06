@@ -96,7 +96,6 @@
 #include "components/signin/public/base/signin_buildflags.h"
 #include "components/signin/public/base/signin_metrics.h"
 #include "components/signin/public/base/signin_pref_names.h"
-#include "components/signin/public/base/signin_switches.h"
 #include "components/signin/public/identity_manager/account_capabilities.h"
 #include "components/signin/public/identity_manager/account_capabilities_test_mutator.h"
 #include "components/signin/public/identity_manager/account_info.h"
@@ -104,6 +103,7 @@
 #include "components/signin/public/identity_manager/identity_test_utils.h"
 #include "components/signin/public/identity_manager/identity_utils.h"
 #include "components/signin/public/identity_manager/primary_account_mutator.h"
+#include "components/signin/public/identity_manager/signin_constants.h"
 #include "components/supervised_user/core/browser/supervised_user_preferences.h"
 #include "components/supervised_user/core/common/features.h"
 #include "components/supervised_user/core/common/pref_names.h"
@@ -138,6 +138,8 @@
 #include "chrome/browser/signin/dice_tab_helper.h"
 #include "chrome/browser/signin/process_dice_header_delegate_impl.h"
 #endif
+
+using signin::constants::kNoHostedDomainFound;
 
 namespace {
 const SkColor kProfileColor = SK_ColorRED;
@@ -619,8 +621,6 @@ class ProfilePickerCreationFlowBrowserTest
  private:
   network::TestURLLoaderFactory test_url_loader_factory_;
   base::CallbackListSubscription create_services_subscription_;
-  base::test::ScopedFeatureList scoped_feature_list_{
-      kForceSigninFlowInProfilePicker};
 #if BUILDFLAG(IS_MAC)
   std::unique_ptr<policy::ScopedManagementServiceOverrideForTesting>
       platform_management_;
@@ -763,48 +763,10 @@ IN_PROC_BROWSER_TEST_F(ProfilePickerCreationFlowBrowserTest,
 
   // Wait for the picker to open on the profile creation flow.
   ShowPickerAndWait();
-  auto* profile_picker_view =
-      static_cast<ProfilePickerView*>(ProfilePicker::GetViewForTesting());
 
-  if (base::FeatureList::IsEnabled(kForceSigninFlowInProfilePicker)) {
-    // The DICE navigation happens in a new web contents (for the profile being
-    // created), wait for it.
-    profiles::testing::WaitForPickerUrl(GetSigninChromeSyncDiceUrl());
-  } else {
-    // Wait for the force signin dialog to load.
-    LOG(WARNING)
-        << "DEBUG - Picker shown. Ensuring that the dialog is shown. "
-        << (profile_picker_view->dialog_host_.GetDialogDelegateViewForTesting()
-                ? "We already"
-                : "We don't yet")
-        << " have a dialog delegate view.";
-    GURL force_signin_webui_url = signin::GetEmbeddedPromoURL(
-        signin_metrics::AccessPoint::ACCESS_POINT_USER_MANAGER,
-        signin_metrics::Reason::kForcedSigninPrimaryAccount, true);
-    force_signin_webui_url =
-        AddFromProfilePickerURLParameter(force_signin_webui_url);
-
-    // Memorize the WebContents that shows the sign-in URL.
-    auto* signin_web_contents =
-        profile_picker_view->get_dialog_web_contents_for_testing();
-    WaitForLoadStop(force_signin_webui_url, signin_web_contents);
-    LOG(WARNING) << "DEBUG - Finished waiting for the dialog.";
-
-    // The dialog view should be created.
-    EXPECT_TRUE(
-        profile_picker_view->dialog_host_.GetDialogDelegateViewForTesting());
-
-    // A new profile should have been created for the forced sign-in flow.
-    EXPECT_EQ(2u, g_browser_process->profile_manager()->GetNumberOfProfiles());
-    // Get the profile that was used to load the `force_signin_webui_url`.
-    Profile* force_signin_profile =
-        Profile::FromBrowserContext(signin_web_contents->GetBrowserContext());
-    EXPECT_TRUE(force_signin_profile);
-    // Make sure that the force_signin profile is different from the main one.
-    EXPECT_FALSE(force_signin_profile->IsSameOrParent(browser()->profile()));
-
-    // The tail end of the flow is handled by inline_login_*
-  }
+  // The DICE navigation happens in a new web contents (for the profile being
+  // created), wait for it.
+  profiles::testing::WaitForPickerUrl(GetSigninChromeSyncDiceUrl());
 }
 
 // Force signin is disabled on Linux and ChromeOS.
@@ -2754,18 +2716,12 @@ IN_PROC_BROWSER_TEST_F(ProfilePickerEnterpriseCreationFlowBrowserTest,
   EXPECT_EQ(entry, nullptr);
 }
 
-// Testing param: bool `is_consented_primary_account`.
-class ProfilePickerEnterpriseCreationFlowWithSyncParamBrowserTest
-    : public ProfilePickerEnterpriseCreationFlowBrowserTest,
-      public testing::WithParamInterface<bool> {};
-
-IN_PROC_BROWSER_TEST_P(
-    ProfilePickerEnterpriseCreationFlowWithSyncParamBrowserTest,
-    CreateSignedInProfileSigninAlreadyExists_ConfirmSwitch) {
+IN_PROC_BROWSER_TEST_F(ProfilePickerEnterpriseCreationFlowBrowserTest,
+                       CreateSignedInProfileSigninAlreadyExists_ConfirmSwitch) {
   ASSERT_EQ(1u, BrowserList::GetInstance()->size());
 
-  // Create a pre-existing profile signed in/syncing (based on `GetParam()`)
-  // with the same account as the profile being created.
+  // Create a pre-existing profile syncing with the same account as the profile
+  // being created.
   base::FilePath other_path = CreateNewProfileWithoutBrowser();
   ProfileAttributesStorage& storage =
       g_browser_process->profile_manager()->GetProfileAttributesStorage();
@@ -2774,7 +2730,7 @@ IN_PROC_BROWSER_TEST_P(
   ASSERT_NE(other_entry, nullptr);
   // Fake sync is enabled in this profile with Joe's account.
   other_entry->SetAuthInfo(kGaiaId, u"joe.consumer@gmail.com",
-                           /*is_consented_primary_account=*/GetParam());
+                           /*is_consented_primary_account=*/true);
   other_entry->SetGaiaIds({kGaiaId});
 
   size_t initial_profile_count = g_browser_process->profile_manager()
@@ -2817,13 +2773,12 @@ IN_PROC_BROWSER_TEST_P(
                                        .GetNumberOfProfiles());
 }
 
-IN_PROC_BROWSER_TEST_P(
-    ProfilePickerEnterpriseCreationFlowWithSyncParamBrowserTest,
-    CreateSignedInProfileSigninAlreadyExists_CancelSwitch) {
+IN_PROC_BROWSER_TEST_F(ProfilePickerEnterpriseCreationFlowBrowserTest,
+                       CreateSignedInProfileSigninAlreadyExists_CancelSwitch) {
   ASSERT_EQ(1u, BrowserList::GetInstance()->size());
 
-  // Create a pre-existing profile signed in/syncing (based on `GetParam()`)
-  // with the same account as the profile being created.
+  // Create a pre-existing profile syncing with the same account as the profile
+  // being created.
   base::FilePath other_path = CreateNewProfileWithoutBrowser();
   ProfileAttributesStorage& storage =
       g_browser_process->profile_manager()->GetProfileAttributesStorage();
@@ -2832,7 +2787,7 @@ IN_PROC_BROWSER_TEST_P(
   ASSERT_NE(other_entry, nullptr);
   // Fake sync is enabled in this profile with Joe's account.
   other_entry->SetAuthInfo(kGaiaId, u"joe.consumer@gmail.com",
-                           /*is_consented_primary_account=*/GetParam());
+                           /*is_consented_primary_account=*/true);
   other_entry->SetGaiaIds({kGaiaId});
 
   size_t initial_profile_count = g_browser_process->profile_manager()
@@ -2872,11 +2827,6 @@ IN_PROC_BROWSER_TEST_P(
                                        ->GetProfileAttributesStorage()
                                        .GetNumberOfProfiles());
 }
-
-INSTANTIATE_TEST_SUITE_P(
-    ,
-    ProfilePickerEnterpriseCreationFlowWithSyncParamBrowserTest,
-    testing::Bool());
 
 class ProfilePickerCreationFlowEphemeralProfileBrowserTest
     : public ProfilePickerCreationFlowBrowserTest,

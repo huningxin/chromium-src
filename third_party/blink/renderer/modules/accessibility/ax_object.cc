@@ -117,7 +117,7 @@
 #include "third_party/blink/renderer/modules/accessibility/aria_notification.h"
 #include "third_party/blink/renderer/modules/accessibility/ax_enums.h"
 #include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"
-#if DCHECK_IS_ON()
+#if AX_FAIL_FAST_BUILD()
 #include "third_party/blink/renderer/modules/accessibility/ax_debug_utils.h"
 #endif
 #include "third_party/blink/renderer/bindings/core/v8/v8_highlight_type.h"
@@ -153,7 +153,7 @@ using mojom::blink::FormControlType;
 
 namespace {
 
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
 // TODO(accessibility) Move this out of DEBUG by having a new enum in
 // ax_enums.mojom, and a matching ToString() in ax_enum_utils, as well as move
 // out duplicate code of String IgnoredReasonName(AXIgnoredReason reason) in
@@ -507,7 +507,7 @@ static constexpr uint32_t kMaxStaticTextLength = 3227574;
 
 std::string TruncateString(const String& str,
                            uint32_t max_len = kMaxStringAttributeLength) {
-  auto str_utf8 = str.Utf8(kStrictUTF8Conversion);
+  auto str_utf8 = str.Utf8(Utf8ConversionMode::kStrict);
   if (str_utf8.size() > max_len) {
     std::string truncated;
     base::TruncateUTF8ToByteSize(str_utf8, max_len, &truncated);
@@ -709,19 +709,16 @@ void AXObject::SetAncestorsHaveDirtyDescendants() {
     }
     ancestor->SetHasDirtyDescendants(true);
   }
-#if DCHECK_IS_ON()
+#if AX_FAIL_FAST_BUILD()
   // Walk up the tree looking for dirty bits that failed to be set. If any
   // are found, this is a bug.
-  bool fail = false;
   for (auto* obj = ParentObject(); obj; obj = obj->ParentObject()) {
     if (obj->CachedIsIncludedInTree() && !obj->has_dirty_descendants_) {
-      fail = true;
-      break;
+      NOTREACHED() << "Failed to set dirty bits on some ancestors:\n"
+                   << ParentChainToStringHelper(this);
     }
   }
-  DCHECK(!fail) << "Failed to set dirty bits on some ancestors:\n"
-                << ParentChainToStringHelper(this);
-#endif
+#endif  // AX_FAIL_FAST_BUILD()
 }
 
 void AXObject::Init(AXObject* parent) {
@@ -779,7 +776,7 @@ void AXObject::Detach() {
   cached_is_ignored_ = true;
   cached_is_ignored_but_included_in_tree_ = false;
 
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
   SANITIZER_CHECK(ax_object_cache_);
   SANITIZER_CHECK(!ax_object_cache_->IsFrozen())
       << "Do not detach children while the tree is frozen, in order to avoid "
@@ -1168,7 +1165,7 @@ AXObject* AXObject::ComputeNonARIAParent(AXObjectCacheImpl& cache,
   return cache.Get(parent_node);
 }
 
-#if DCHECK_IS_ON()
+#if AX_FAIL_FAST_BUILD()
 std::string AXObject::GetAXTreeForThis() const {
   return TreeToStringWithMarkedObjectHelper(AXObjectCache().Root(), this);
 }
@@ -3444,7 +3441,7 @@ bool AXObject::IsIgnored() const {
 bool AXObject::IsIgnored() {
   CheckCanAccessCachedValues();
   UpdateCachedAttributeValuesIfNeeded();
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
   if (!cached_is_ignored_ && IsDetached()) {
     NOTREACHED()
         << "A detached node cannot be ignored: " << this
@@ -3708,8 +3705,8 @@ void AXObject::UpdateCachedAttributeValuesIfNeeded(
     OnInheritedCachedValuesChanged();
   }
 
-#if DCHECK_IS_ON()
-  DCHECK(!NeedsToUpdateCachedValues())
+#if AX_FAIL_FAST_BUILD()
+  CHECK(!NeedsToUpdateCachedValues())
       << "While recomputing cached values, they were invalidated again.";
   if (included_in_tree_changed) {
     AXObjectCache().UpdateIncludedNodeCount(this);
@@ -5726,6 +5723,10 @@ ax::mojom::blink::Role AXObject::DetermineRawAriaRole() const {
 }
 
 ax::mojom::blink::Role AXObject::DetermineAriaRole() const {
+  if (!GetElement()) {
+    return ax::mojom::blink::Role::kUnknown;
+  }
+
   ax::mojom::blink::Role role = DetermineRawAriaRole();
 
   if ((role == ax::mojom::blink::Role::kForm ||
@@ -5751,12 +5752,17 @@ ax::mojom::blink::Role AXObject::DetermineAriaRole() const {
   // It also states user agents should ignore the presentational role if
   // the element has global ARIA states and properties.
   if (ui::IsPresentational(role)) {
-    if (IsFrame(GetNode()))
+    if (IsFrame(GetNode())) {
       return ax::mojom::blink::Role::kIframePresentational;
-    if ((GetElement() && GetElement()->SupportsFocus(
-                             Element::UpdateBehavior::kNoneForAccessibility) !=
-                             FocusableState::kNotFocusable) ||
-        ElementHasAnyAriaAttribute(true /* does_undo_role_presentation */)) {
+    }
+    // Focusable nodes can never be presentational.
+    if (GetElement()->SupportsFocus(
+            Element::UpdateBehavior::kNoneForAccessibility) !=
+        FocusableState::kNotFocusable) {
+      return ax::mojom::blink::Role::kUnknown;
+    }
+    // ARIA attributes undoe presentational roles unless its a custom element.
+    if (ElementHasAnyAriaAttribute(true /* does_undo_role_presentation */)) {
       // Must be exposed with a role if focusable or has a global ARIA
       // property that is allowed in this context. See
       // https://w3c.github.io/aria/#presentation for more information about
@@ -6518,7 +6524,7 @@ void AXObject::SetNeedsToUpdateChildren(bool update) {
     return;
   }
 
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
   SANITIZER_CHECK(!is_adding_children_)
       << "Should not invalidate children while adding them: " << this;
 #endif
@@ -6627,7 +6633,7 @@ void AXObject::ClearChildren() {
 
   // Loop through AXObject children.
 
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
   SANITIZER_CHECK(!is_adding_children_)
       << "Should not attempt to simultaneously add and clear children on: "
       << this;
@@ -8225,7 +8231,7 @@ void AXObject::PreSerializationConsistencyCheck() const{
     DUMP_WILL_BE_NOTREACHED() << "Do not serialize unincluded nodes: " << this
                               << "\nIncluded parent: " << included_parent;
   }
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
   // A bit more expensive, so only check in builds used for testing.
   CHECK_EQ(IsAriaHidden(), !!FindAncestorWithAriaHidden(this))
       << "IsAriaHidden() doesn't match existence of an aria-hidden ancestor: "
@@ -8324,7 +8330,7 @@ String AXObject::ToString(bool verbose) const {
     }
     if (IsIgnored()) {
       string_builder = string_builder + " isIgnored";
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
       // TODO(accessibility) Move this out of AX_FAIL_FAST_BUILD by having a new
       // ax_enum, and a ToString() in ax_enum_utils, as well as move out of
       // String IgnoredReasonName(AXIgnoredReason reason) in

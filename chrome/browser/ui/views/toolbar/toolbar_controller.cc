@@ -18,6 +18,7 @@
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_actions.h"
+#include "chrome/browser/ui/toolbar/pinned_toolbar/pinned_toolbar_actions_model.h"
 #include "chrome/browser/ui/toolbar_controller_util.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_action_callback.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_enums.h"
@@ -124,12 +125,14 @@ ToolbarController::ToolbarController(
     int element_flex_order_start,
     views::View* toolbar_container_view,
     OverflowButton* overflow_button,
-    ToolbarController::PinnedActionsDelegate* pinned_actions_delegate)
+    ToolbarController::PinnedActionsDelegate* pinned_actions_delegate,
+    PinnedToolbarActionsModel* pinned_actions_model)
     : responsive_elements_(responsive_elements),
       element_flex_order_start_(element_flex_order_start),
       toolbar_container_view_(toolbar_container_view),
       overflow_button_(overflow_button),
-      pinned_actions_delegate_(pinned_actions_delegate) {
+      pinned_actions_delegate_(pinned_actions_delegate),
+      pinned_actions_model_(pinned_actions_model) {
   if (ToolbarControllerUtil::PreventOverflow()) {
     return;
   }
@@ -197,10 +200,14 @@ ToolbarController::ToolbarController(
             }},
         overflow_id);
   }
+
+  responsive_elements_ = GetResponsiveElementsWithOrderedActions();
+  pinned_actions_model_->AddObserver(this);
 }
 
 ToolbarController::~ToolbarController() {
   CloseMenu();
+  pinned_actions_model_->RemoveObserver(this);
 }
 
 std::vector<ToolbarController::ResponsiveElementInfo>
@@ -552,6 +559,10 @@ bool ToolbarController::IsOverflowed(
                                       : toolbar_element->GetVisible());
                        }},
       element.overflow_id);
+}
+
+void ToolbarController::OnActionsChanged() {
+  responsive_elements_ = GetResponsiveElementsWithOrderedActions();
 }
 
 // This function returns responsive_elements_ but with some portions reordered.

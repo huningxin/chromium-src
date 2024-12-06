@@ -31,6 +31,7 @@
 #include "components/sync/base/pref_names.h"
 #include "components/sync/service/sync_feature_status_for_migrations_recorder.h"
 #include "components/sync/service/sync_prefs.h"
+#include "google_apis/gaia/gaia_id.h"
 
 namespace browser_sync {
 
@@ -188,7 +189,7 @@ void UndoSyncToSigninMigration(PrefService* pref_service) {
 
   // Mark the user as syncing again.
   pref_service->SetBoolean(prefs::kGoogleServicesConsentedToSync, true);
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
   pref_service->SetBoolean(
       syncer::prefs::internal::kSyncInitialSyncFeatureSetupComplete, true);
 #endif
@@ -375,8 +376,8 @@ void MaybeMigrateSyncingUserToSignedInInternal(
 
   // The account identifier of an account is its Gaia ID. So
   // `kGoogleServicesAccountId` stores the Gaia ID of the syncing account.
-  const std::string gaia_id =
-      pref_service->GetString(prefs::kGoogleServicesAccountId);
+  const GaiaId gaia_id =
+      GaiaId(pref_service->GetString(prefs::kGoogleServicesAccountId));
   // Guaranteed to be non-empty by GetSyncToSigninMigrationDecision().
   CHECK(!gaia_id.empty());
 
@@ -388,7 +389,7 @@ void MaybeMigrateSyncingUserToSignedInInternal(
   // Save the ID and username of the migrated account, to be able to revert the
   // migration if necessary.
   pref_service->SetString(prefs::kGoogleServicesSyncingGaiaIdMigratedToSignedIn,
-                          gaia_id);
+                          gaia_id.ToString());
   pref_service->SetString(
       prefs::kGoogleServicesSyncingUsernameMigratedToSignedIn,
       pref_service->GetString(prefs::kGoogleServicesLastSyncingUsername));
@@ -398,7 +399,7 @@ void MaybeMigrateSyncingUserToSignedInInternal(
   // Also clear the "InitialSyncFeatureSetup" pref. It's not needed
   // post-migration, and that pref being true without ConsentLevel::kSync would
   // be an inconsistent state.
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
   pref_service->ClearPref(
       syncer::prefs::internal::kSyncInitialSyncFeatureSetupComplete);
 #endif
@@ -484,7 +485,7 @@ SyncToSigninMigrationDataTypeDecision GetSyncToSigninMigrationDataTypeDecision(
     const PrefService* pref_service,
     syncer::DataType type,
     const char* type_enabled_pref) {
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   // In ChromeOS-Ash, the "initial-setup-complete" pref doesn't exist.
   bool initial_setup_complete = true;
 #else
@@ -535,11 +536,11 @@ bool WasPrimaryAccountMigratedFromSyncingToSignedIn(
   // Check if the current signed-in account ID matches the migrated account ID.
   // In the common case where the account was *not* migrated, the migrated
   // account ID will be empty, and thus not match the current account ID.
-  std::string authenticated_gaia_id =
+  const GaiaId authenticated_gaia_id =
       identity_manager->GetPrimaryAccountInfo(signin::ConsentLevel::kSignin)
           .gaia;
-  std::string migrated_gaia_id = pref_service->GetString(
-      prefs::kGoogleServicesSyncingGaiaIdMigratedToSignedIn);
+  const GaiaId migrated_gaia_id(pref_service->GetString(
+      prefs::kGoogleServicesSyncingGaiaIdMigratedToSignedIn));
   return migrated_gaia_id == authenticated_gaia_id;
 }
 

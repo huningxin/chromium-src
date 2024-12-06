@@ -98,16 +98,12 @@ IntentHandlingMetrics::Platform GetMetricsPlatform(AppType app_type) {
     case AppType::kSystemWeb:
       return IntentHandlingMetrics::Platform::PWA;
     case AppType::kUnknown:
-    case AppType::kBuiltIn:
     case AppType::kCrostini:
     case AppType::kChromeApp:
     case AppType::kPluginVm:
-    case AppType::kStandaloneBrowser:
     case AppType::kRemote:
     case AppType::kBorealis:
-    case AppType::kStandaloneBrowserChromeApp:
     case AppType::kExtension:
-    case AppType::kStandaloneBrowserExtension:
     case AppType::kBruschetta:
       NOTREACHED();
   }

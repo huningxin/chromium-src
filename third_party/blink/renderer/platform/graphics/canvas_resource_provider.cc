@@ -160,14 +160,12 @@ class CanvasResourceProviderBitmap : public CanvasResourceProvider {
                                SkColorType sk_color_type,
                                SkAlphaType alpha_type,
                                sk_sp<SkColorSpace> sk_color_space,
-                               cc::PaintFlags::FilterQuality filter_quality,
                                CanvasResourceHost* resource_host)
       : CanvasResourceProvider(kBitmap,
                                size,
                                sk_color_type,
                                alpha_type,
                                std::move(sk_color_space),
-                               filter_quality,
                                /*context_provider_wrapper=*/nullptr,
                                resource_host) {}
 
@@ -200,7 +198,7 @@ class CanvasResourceProviderBitmap : public CanvasResourceProvider {
 
 // * Renders to a shared memory bitmap.
 // * Uses SharedBitmaps to pass frames directly to the compositor.
-class CanvasResourceProviderSharedBitmap : public CanvasResourceProviderBitmap,
+class CanvasResourceProviderSharedBitmap : public CanvasResourceProvider,
                                            public BitmapGpuChannelLostObserver {
  public:
   CanvasResourceProviderSharedBitmap(
@@ -208,26 +206,39 @@ class CanvasResourceProviderSharedBitmap : public CanvasResourceProviderBitmap,
       SkColorType sk_color_type,
       SkAlphaType alpha_type,
       sk_sp<SkColorSpace> sk_color_space,
-      cc::PaintFlags::FilterQuality filter_quality,
       WebGraphicsSharedImageInterfaceProvider* shared_image_interface_provider,
       CanvasResourceHost* resource_host)
-      : CanvasResourceProviderBitmap(size,
-                                     sk_color_type,
-                                     alpha_type,
-                                     std::move(sk_color_space),
-                                     filter_quality,
-                                     resource_host),
+      : CanvasResourceProvider(kSharedBitmap,
+                               size,
+                               sk_color_type,
+                               alpha_type,
+                               std::move(sk_color_space),
+                               /*context_provider_wrapper=*/nullptr,
+                               resource_host),
         shared_image_interface_provider_(
             shared_image_interface_provider
                 ? shared_image_interface_provider->GetWeakPtr()
                 : nullptr) {
-    type_ = kSharedBitmap;
-
     if (shared_image_interface_provider_) {
       shared_image_interface_provider_->AddGpuChannelLostObserver(this);
     }
   }
 
+  scoped_refptr<StaticBitmapImage> Snapshot(
+      FlushReason reason,
+      ImageOrientation orientation) override {
+    TRACE_EVENT0("blink", "CanvasResourceProviderSharedBitmap::Snapshot");
+    return SnapshotInternal(orientation, reason);
+  }
+
+  sk_sp<SkSurface> CreateSkSurface() const override {
+    TRACE_EVENT0("blink",
+                 "CanvasResourceProviderSharedBitmap::CreateSkSurface");
+
+    const auto info = GetSkImageInfo().makeAlphaType(kPremul_SkAlphaType);
+    const auto props = GetSkSurfaceProps();
+    return SkSurfaces::Raster(info, &props);
+  }
   ~CanvasResourceProviderSharedBitmap() override {
     if (shared_image_interface_provider_) {
       shared_image_interface_provider_->RemoveGpuChannelLostObserver(this);
@@ -241,6 +252,7 @@ class CanvasResourceProviderSharedBitmap : public CanvasResourceProviderBitmap,
     return !IsSharedBitmapGpuChannelLost() && GetSkSurface();
   }
 
+  bool IsAccelerated() const final { return false; }
   bool SupportsDirectCompositing() const override { return true; }
   base::WeakPtr<WebGraphicsSharedImageInterfaceProvider>
       shared_image_interface_provider_;
@@ -266,7 +278,7 @@ class CanvasResourceProviderSharedBitmap : public CanvasResourceProviderBitmap,
             info.colorInfo().colorType()),
         info.colorInfo().alphaType(),
         SkColorSpaceToGfxColorSpace(info.colorInfo().refColorSpace()),
-        CreateWeakPtr(), shared_image_interface_provider_, FilterQuality());
+        CreateWeakPtr(), shared_image_interface_provider_);
   }
 
   scoped_refptr<CanvasResource> ProduceCanvasResource(
@@ -296,7 +308,6 @@ class CanvasResourceProviderSharedImage : public CanvasResourceProvider {
       SkColorType sk_color_type,
       SkAlphaType alpha_type,
       sk_sp<SkColorSpace> sk_color_space,
-      cc::PaintFlags::FilterQuality filter_quality,
       base::WeakPtr<WebGraphicsContext3DProviderWrapper>
           context_provider_wrapper,
       bool is_accelerated,
@@ -307,7 +318,6 @@ class CanvasResourceProviderSharedImage : public CanvasResourceProvider {
                                sk_color_type,
                                alpha_type,
                                std::move(sk_color_space),
-                               filter_quality,
                                std::move(context_provider_wrapper),
                                resource_host),
         is_accelerated_(is_accelerated),
@@ -438,8 +448,8 @@ class CanvasResourceProviderSharedImage : public CanvasResourceProvider {
             info.colorInfo().colorType()),
         info.colorInfo().alphaType(),
         SkColorSpaceToGfxColorSpace(info.colorInfo().refColorSpace()),
-        ContextProviderWrapper(), CreateWeakPtr(), FilterQuality(),
-        is_accelerated_, shared_image_usage_flags_);
+        ContextProviderWrapper(), CreateWeakPtr(), is_accelerated_,
+        shared_image_usage_flags_);
   }
 
   bool UseOopRasterization() final { return use_oop_rasterization_; }
@@ -478,7 +488,6 @@ class CanvasResourceProviderSharedImage : public CanvasResourceProvider {
       return nullptr;
     }
     scoped_refptr<CanvasResource> resource = resource_;
-    resource->SetFilterQuality(FilterQuality());
     if (ContextProviderWrapper()
             ->ContextProvider()
             .GetCapabilities()
@@ -838,17 +847,18 @@ class CanvasResourceProviderSharedImage : public CanvasResourceProvider {
 class CanvasResourceProviderPassThrough final : public CanvasResourceProvider {
  public:
   CanvasResourceProviderPassThrough(
-      const SkImageInfo& info,
-      cc::PaintFlags::FilterQuality filter_quality,
+      gfx::Size size,
+      SkColorType sk_color_type,
+      SkAlphaType alpha_type,
+      sk_sp<SkColorSpace> sk_color_space,
       base::WeakPtr<WebGraphicsContext3DProviderWrapper>
           context_provider_wrapper,
       CanvasResourceHost* resource_host)
       : CanvasResourceProvider(kPassThrough,
-                               gfx::Size(info.width(), info.height()),
-                               info.colorType(),
-                               info.alphaType(),
-                               info.refColorSpace(),
-                               filter_quality,
+                               size,
+                               sk_color_type,
+                               alpha_type,
+                               std::move(sk_color_space),
                                std::move(context_provider_wrapper),
                                resource_host) {}
 
@@ -891,7 +901,6 @@ class CanvasResourceProviderSwapChain final : public CanvasResourceProvider {
       SkColorType sk_color_type,
       SkAlphaType alpha_type,
       sk_sp<SkColorSpace> sk_color_space,
-      cc::PaintFlags::FilterQuality filter_quality,
       base::WeakPtr<WebGraphicsContext3DProviderWrapper>
           context_provider_wrapper,
       CanvasResourceHost* resource_host)
@@ -900,7 +909,6 @@ class CanvasResourceProviderSwapChain final : public CanvasResourceProvider {
                                sk_color_type,
                                alpha_type,
                                std::move(sk_color_space),
-                               filter_quality,
                                std::move(context_provider_wrapper),
                                resource_host),
         use_oop_rasterization_(ContextProviderWrapper()
@@ -910,7 +918,7 @@ class CanvasResourceProviderSwapChain final : public CanvasResourceProvider {
     resource_ = CanvasResourceSwapChain::Create(
         size, viz::SkColorTypeToSinglePlaneSharedImageFormat(sk_color_type),
         alpha_type, SkColorSpaceToGfxColorSpace(std::move(sk_color_space)),
-        ContextProviderWrapper(), CreateWeakPtr(), FilterQuality());
+        ContextProviderWrapper(), CreateWeakPtr());
     // CanvasResourceProviderSwapChain can only operate in a single buffered
     // mode so enable it as soon as possible.
     TryEnableSingleBuffering();
@@ -1053,13 +1061,15 @@ class CanvasResourceProviderSwapChain final : public CanvasResourceProvider {
 
 std::unique_ptr<CanvasResourceProvider>
 CanvasResourceProvider::CreateBitmapProvider(
-    const SkImageInfo& info,
-    cc::PaintFlags::FilterQuality filter_quality,
+    gfx::Size size,
+    SkColorType sk_color_type,
+    SkAlphaType alpha_type,
+    sk_sp<SkColorSpace> sk_color_space,
     ShouldInitialize should_initialize,
     CanvasResourceHost* resource_host) {
   auto provider = std::make_unique<CanvasResourceProviderBitmap>(
-      gfx::Size(info.width(), info.height()), info.colorType(),
-      info.alphaType(), info.refColorSpace(), filter_quality, resource_host);
+      size, sk_color_type, alpha_type, std::move(sk_color_space),
+      resource_host);
   if (provider->IsValid()) {
     if (should_initialize ==
         CanvasResourceProvider::ShouldInitialize::kCallClear)
@@ -1071,8 +1081,10 @@ CanvasResourceProvider::CreateBitmapProvider(
 
 std::unique_ptr<CanvasResourceProvider>
 CanvasResourceProvider::CreateSharedBitmapProvider(
-    const SkImageInfo& info,
-    cc::PaintFlags::FilterQuality filter_quality,
+    gfx::Size size,
+    SkColorType sk_color_type,
+    SkAlphaType alpha_type,
+    sk_sp<SkColorSpace> sk_color_space,
     ShouldInitialize should_initialize,
     WebGraphicsSharedImageInterfaceProvider* shared_image_interface_provider,
     CanvasResourceHost* resource_host) {
@@ -1087,10 +1099,8 @@ CanvasResourceProvider::CreateSharedBitmapProvider(
   }
 
   auto provider = std::make_unique<CanvasResourceProviderSharedBitmap>(
-      gfx::Size(info.width(), info.height()), info.colorType(),
-      info.alphaType(), info.refColorSpace(),
-
-      filter_quality, shared_image_interface_provider, resource_host);
+      size, sk_color_type, alpha_type, std::move(sk_color_space),
+      shared_image_interface_provider, resource_host);
   if (provider->IsValid()) {
     if (should_initialize ==
         CanvasResourceProvider::ShouldInitialize::kCallClear)
@@ -1103,8 +1113,10 @@ CanvasResourceProvider::CreateSharedBitmapProvider(
 
 std::unique_ptr<CanvasResourceProvider>
 CanvasResourceProvider::CreateSharedImageProvider(
-    const SkImageInfo& info,
-    cc::PaintFlags::FilterQuality filter_quality,
+    gfx::Size size,
+    SkColorType sk_color_type,
+    SkAlphaType alpha_type,
+    sk_sp<SkColorSpace> sk_color_space,
     ShouldInitialize should_initialize,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
     RasterMode raster_mode,
@@ -1125,33 +1137,32 @@ CanvasResourceProvider::CreateSharedImageProvider(
 
   const auto& capabilities =
       context_provider_wrapper->ContextProvider().GetCapabilities();
-  if ((info.width() < 1 || info.height() < 1 ||
-       info.width() > capabilities.max_texture_size ||
-       info.height() > capabilities.max_texture_size)) {
+  if ((size.width() < 1 || size.height() < 1 ||
+       size.width() > capabilities.max_texture_size ||
+       size.height() > capabilities.max_texture_size)) {
     return nullptr;
   }
 
   const bool is_accelerated = raster_mode == RasterMode::kGPU;
 
-  SkImageInfo adjusted_info = info;
+  SkColorType adjusted_color_type = sk_color_type;
   // TODO(https://crbug.com/1210946): Pass in info as is for all cases.
   // Overriding the info to use RGBA instead of N32 is needed because code
   // elsewhere assumes RGBA. OTOH the software path seems to be assuming N32
   // somewhere in the later pipeline but for offscreen canvas only.
   if (!shared_image_usage_flags.HasAny(gpu::SHARED_IMAGE_USAGE_WEBGPU_READ |
                                        gpu::SHARED_IMAGE_USAGE_WEBGPU_WRITE)) {
-    adjusted_info = adjusted_info.makeColorType(
-        is_accelerated && info.colorType() != kRGBA_F16_SkColorType
-            ? kRGBA_8888_SkColorType
-            : info.colorType());
+    if (is_accelerated && sk_color_type != kRGBA_F16_SkColorType) {
+      adjusted_color_type = kRGBA_8888_SkColorType;
+    }
   }
 
   const bool is_gpu_memory_buffer_image_allowed =
       is_gpu_compositing_enabled &&
-      IsGMBAllowed(gfx::Size(adjusted_info.width(), adjusted_info.height()),
-                   viz::SkColorTypeToSinglePlaneSharedImageFormat(
-                       adjusted_info.colorType()),
-                   capabilities) &&
+      IsGMBAllowed(
+          size,
+          viz::SkColorTypeToSinglePlaneSharedImageFormat(adjusted_color_type),
+          capabilities) &&
       SharedGpuContext::GetGpuMemoryBufferManager();
 
   if (raster_mode == RasterMode::kCPU && !is_gpu_memory_buffer_image_allowed)
@@ -1176,18 +1187,17 @@ CanvasResourceProvider::CreateSharedImageProvider(
 
 #if BUILDFLAG(IS_MAC)
   if (shared_image_usage_flags.Has(gpu::SHARED_IMAGE_USAGE_SCANOUT) &&
-      is_accelerated && adjusted_info.colorType() == kRGBA_8888_SkColorType) {
+      is_accelerated && adjusted_color_type == kRGBA_8888_SkColorType) {
     // GPU-accelerated scannout usage on Mac uses IOSurface.  Must switch from
     // RGBA_8888 to BGRA_8888 in that case.
-    adjusted_info = adjusted_info.makeColorType(kBGRA_8888_SkColorType);
+    adjusted_color_type = kBGRA_8888_SkColorType;
   }
 #endif
 
   auto provider = std::make_unique<CanvasResourceProviderSharedImage>(
-      gfx::Size(adjusted_info.width(), adjusted_info.height()),
-      adjusted_info.colorType(), adjusted_info.alphaType(),
-      adjusted_info.refColorSpace(), filter_quality, context_provider_wrapper,
-      is_accelerated, shared_image_usage_flags, resource_host);
+      size, adjusted_color_type, alpha_type, std::move(sk_color_space),
+      context_provider_wrapper, is_accelerated, shared_image_usage_flags,
+      resource_host);
   if (provider->IsValid()) {
     if (should_initialize ==
         CanvasResourceProvider::ShouldInitialize::kCallClear)
@@ -1200,7 +1210,10 @@ CanvasResourceProvider::CreateSharedImageProvider(
 
 std::unique_ptr<CanvasResourceProvider>
 CanvasResourceProvider::CreateWebGPUImageProvider(
-    const SkImageInfo& info,
+    gfx::Size size,
+    SkColorType sk_color_type,
+    SkAlphaType alpha_type,
+    sk_sp<SkColorSpace> sk_color_space,
     gpu::SharedImageUsageSet shared_image_usage_flags,
     CanvasResourceHost* resource_host) {
   auto context_provider_wrapper = SharedGpuContext::ContextProviderWrapper();
@@ -1213,7 +1226,7 @@ CanvasResourceProvider::CreateWebGPUImageProvider(
   //   the WebGPU interface)
   // Hence, both WEBGPU_READ and WEBGPU_WRITE usage are needed here.
   return CreateSharedImageProvider(
-      info, cc::PaintFlags::FilterQuality::kLow,
+      size, sk_color_type, alpha_type, std::move(sk_color_space),
       CanvasResourceProvider::ShouldInitialize::kNo,
       std::move(context_provider_wrapper), RasterMode::kGPU,
       shared_image_usage_flags | gpu::SHARED_IMAGE_USAGE_WEBGPU_READ |
@@ -1223,8 +1236,10 @@ CanvasResourceProvider::CreateWebGPUImageProvider(
 
 std::unique_ptr<CanvasResourceProvider>
 CanvasResourceProvider::CreatePassThroughProvider(
-    const SkImageInfo& info,
-    cc::PaintFlags::FilterQuality filter_quality,
+    gfx::Size size,
+    SkColorType sk_color_type,
+    SkAlphaType alpha_type,
+    sk_sp<SkColorSpace> sk_color_space,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
     CanvasResourceHost* resource_host) {
   // SharedGpuContext::IsGpuCompositingEnabled can potentially replace the
@@ -1235,8 +1250,8 @@ CanvasResourceProvider::CreatePassThroughProvider(
 
   const auto& capabilities =
       context_provider_wrapper->ContextProvider().GetCapabilities();
-  if (info.width() > capabilities.max_texture_size ||
-      info.height() > capabilities.max_texture_size) {
+  if (size.width() > capabilities.max_texture_size ||
+      size.height() > capabilities.max_texture_size) {
     return nullptr;
   }
 
@@ -1247,8 +1262,7 @@ CanvasResourceProvider::CreatePassThroughProvider(
   // Either swap_chain or gpu memory buffer should be enabled for this be used
   if (!shared_image_capabilities.shared_image_swap_chain &&
       (!IsGMBAllowed(
-           gfx::Size(info.width(), info.height()),
-           viz::SkColorTypeToSinglePlaneSharedImageFormat(info.colorType()),
+           size, viz::SkColorTypeToSinglePlaneSharedImageFormat(sk_color_type),
            capabilities) ||
        !Platform::Current()->GetGpuMemoryBufferManager())) {
     return nullptr;
@@ -1260,7 +1274,8 @@ CanvasResourceProvider::CreatePassThroughProvider(
   // fact that it simply delegates the internal parts of the resource to other
   // classes).
   auto provider = std::make_unique<CanvasResourceProviderPassThrough>(
-      info, filter_quality, context_provider_wrapper, resource_host);
+      size, sk_color_type, alpha_type, std::move(sk_color_space),
+      context_provider_wrapper, resource_host);
   CHECK(provider->IsValid());
   return provider;
 }
@@ -1271,7 +1286,6 @@ CanvasResourceProvider::CreateSwapChainProvider(
     SkColorType sk_color_type,
     SkAlphaType alpha_type,
     sk_sp<SkColorSpace> sk_color_space,
-    cc::PaintFlags::FilterQuality filter_quality,
     ShouldInitialize should_initialize,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
     CanvasResourceHost* resource_host) {
@@ -1296,7 +1310,7 @@ CanvasResourceProvider::CreateSwapChainProvider(
 
   auto provider = std::make_unique<CanvasResourceProviderSwapChain>(
       size, sk_color_type, alpha_type, std::move(sk_color_space),
-      filter_quality, context_provider_wrapper, resource_host);
+      context_provider_wrapper, resource_host);
   if (provider->IsValid()) {
     if (should_initialize ==
         CanvasResourceProvider::ShouldInitialize::kCallClear)
@@ -1461,7 +1475,6 @@ CanvasResourceProvider::CanvasResourceProvider(
     SkColorType sk_color_type,
     SkAlphaType alpha_type,
     sk_sp<SkColorSpace> sk_color_space,
-    cc::PaintFlags::FilterQuality filter_quality,
     base::WeakPtr<WebGraphicsContext3DProviderWrapper> context_provider_wrapper,
     CanvasResourceHost* resource_host)
     : type_(type),
@@ -1471,7 +1484,6 @@ CanvasResourceProvider::CanvasResourceProvider(
                               sk_color_type,
                               alpha_type,
                               std::move(sk_color_space))),
-      filter_quality_(filter_quality),
       resource_host_(resource_host),
       recorder_(std::make_unique<MemoryManagedPaintRecorder>(Size(), this)),
       snapshot_paint_image_id_(cc::PaintImage::GetNextId()) {

@@ -758,6 +758,23 @@
     </message>
   </if>
 
+  <!-- card info retrieval enrolled card related strings - start -->
+  <if expr="not is_ios and not is_android">
+    <message name="IDS_AUTOFILL_FILLED_CARD_INFORMATION_BUBBLE_TITLE" desc="The title shown in the Autofill filled card information bubble on Desktop. This bubble shows the complete information for the regular card selected to fill the form.">
+      Card details
+    </message>
+    <message name="IDS_AUTOFILL_FILLED_CARD_INFORMATION_BUBBLE_EDUCATIONAL_BODY_LABEL" desc="The label shown in body of the Autofill filled card information bubble on Desktop. The label serves as a educational message to explain to users how to use the bubble to fill card information to the form. This bubble shows the complete information for the regular card selected to fill the form.">
+      Click card details below to copy and paste if the card wasn't filled. <ph name="IDS_AUTOFILL_FILLED_CARD_INFORMATION_BUBBLE_LEARN_MORE_LINK_LABEL">$1<ex>Learn more</ex></ph>
+    </message>
+    <message name="IDS_AUTOFILL_FILLED_CARD_INFORMATION_BUBBLE_LEARN_MORE_LINK_LABEL" desc="Link text to learn more about card info retrieval enrolled card. Added to the end of the explanatory message of the filled card information bubble in IDS_AUTOFILL_FILLED_CARD_INFORMATION_BUBBLE_EDUCATIONAL_BODY_LABEL">
+      Learn more
+    </message>
+    <message name="IDS_AUTOFILL_FILLED_CARD_INFORMATION_BUBBLE_CARD_NUMBER_LABEL" desc="Text shown next to the regular card number in the filled card information bubble on Desktop. This bubble shows the complete information for the regular card selected to fill the form.">
+      Card number:
+    </message>
+  </if>
+  <!-- card info retrieval enrolled card related strings - end -->
+
   <!-- virtual cards related strings - start -->
   <if expr="not is_ios">
     <message name="IDS_AUTOFILL_VIRTUAL_CARD_ENTRY_PREFIX" desc="Notifies users that the type of card they are enrolling in is a virtual card." formatter_data="android_java">
@@ -988,6 +1005,14 @@
   </message>
   <message name="IDS_AUTOFILL_REGULAR_CARD_MANUAL_FALLBACK_BUBBLE_CARD_NUMBER_LABEL_IOS" desc="Text shown above the card number in the manual fallback bubble on IOS. This bubble shows the card number for the card being shown to fill the form. Clicking this button will populate the available card-related fields of the form.">
       Card number:
+  </message>
+
+  <!-- Buy now pay later related strings -->
+  <message name="IDS_AUTOFILL_BNPL_CREDIT_CARD_SUGGESTION_MAIN_TEXT" desc="Main text for the Buy Now Pay Later option in the autofill credit card popup. If the option is selected, a pop up will be shown to allow users choose a Buy Now Pay Later issuer.">
+    Pay over time options
+  </message>
+  <message name="IDS_AUTOFILL_BNPL_CREDIT_CARD_SUGGESTION_LABEL" desc="One line label shows the minimum qualifying amount for the Buy Now Pay Later option in the autofill credit card popup. If the option is selected, a pop up will be shown to allow users choose a Buy Now Pay Later issuer.">
+    Available for purchases over <ph name="RANGE_MINIMUM">$1<ex>$35</ex></ph>
   </message>
 
   <!-- Credit card benefits-related strings -->

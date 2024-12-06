@@ -4,12 +4,17 @@
 
 #include "chrome/browser/chrome_process_singleton.h"
 
+#include <windows.h>
+
+#include <processthreadsapi.h>
+
 #include "base/command_line.h"
 #include "base/compiler_specific.h"
 #include "base/files/file_path.h"
 #include "base/files/scoped_temp_dir.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
+#include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
 #include "build/build_config.h"
 #include "chrome/common/chrome_features.h"
@@ -99,9 +104,14 @@ TEST(ChromeProcessSingletonTest, OverridePrefetch) {
   base::ScopedTempDir profile_dir;
   ASSERT_TRUE(profile_dir.CreateUniqueTempDir());
   ChromeProcessSingleton ps(profile_dir.GetPath());
+  base::HistogramTester tester;
 
   ProcessSingleton::NotifyResult result = ps.NotifyOtherProcessOrCreate();
   ASSERT_EQ(ProcessSingleton::PROCESS_NONE, result);
 
   ps.ChromeProcessSingleton::InitializeFeatures();
+
+  auto buckets = tester.GetAllSamples("Startup.PrefetchOverrideErrorCode");
+  EXPECT_EQ(1UL, buckets.size());
+  EXPECT_EQ(1, buckets[0].count);
 }

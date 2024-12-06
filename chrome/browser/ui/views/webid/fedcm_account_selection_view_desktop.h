@@ -114,17 +114,20 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   content::WebContents* GetRpWebContents() override;
 
   // FedCmModalDialogView::Observer
+  // This method is only called when the user manually closes the popup window.
+  // This is because the only way to programmatically close the popup is via
+  // CloseModalDialog, which resets the observer of popup_window_ which prevents
+  // this method from being called.
   void OnPopupWindowDestroyed() override;
 
-  // Closes the widget and notifies the delegate.
-  void Close();
+  // Programmatically closes the widget. This is never from user action.
+  void Close(bool notify_delegate);
 
   // content::WebContentsObserver
   void PrimaryPageChanged(content::Page& page) override;
 
   void SetInputEventActivationProtectorForTesting(
       std::unique_ptr<views::InputEventActivationProtector>);
-  void SetIdpSigninPopupWindowForTesting(std::unique_ptr<FedCmModalDialogView>);
 
   // AccountSelectionBubbleView::Observer:
   content::WebContents* ShowModalDialog(const GURL& url,
@@ -142,15 +145,14 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   // Public for testing.
   void TabWillEnterBackground(tabs::TabInterface* tab);
 
-  // Called when the accounts UI is displayed.
+  // Called after the widget associated with Show() has been shown.
   void OnAccountsDisplayed();
 
   // Called when a user either selects the account from the multi-account
   // chooser or clicks the "continue" button.
   // Takes `account` as well as `idp_data` since passing `account_id`
   // is insufficient in the multiple IDP case.
-  void OnAccountSelected(const content::IdentityRequestAccount& account,
-                         const content::IdentityProviderData& idp_data,
+  void OnAccountSelected(const IdentityRequestAccountPtr& account,
                          const ui::Event& event);
 
   // Called when the user clicks "privacy policy" or "terms of service" link.
@@ -208,6 +210,8 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   void WillDetach(tabs::TabInterface* tab,
                   tabs::TabInterface::DetachReason reason);
 
+  FedCmModalDialogView* GetPopupWindowForTesting();
+
  protected:
   friend class FedCmAccountSelectionViewBrowserTest;
 
@@ -232,6 +236,10 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   // dialog is bubble or modal.
   // Virtual for testing.
   virtual std::unique_ptr<views::Widget> CreateDialogWidget();
+
+  // Creates a popup window that is used to sign in to the IdP, or other flows.
+  // Virtual for testing.
+  virtual std::unique_ptr<FedCmModalDialogView> CreatePopupWindow();
 
  private:
   FRIEND_TEST_ALL_PREFIXES(FedCmAccountSelectionViewDesktopTest,
@@ -261,6 +269,10 @@ class FedCmAccountSelectionView : public AccountSelectionView,
                            UserClosingPopupAfterVerifyingSheetShouldNotify);
   FRIEND_TEST_ALL_PREFIXES(FedCmAccountSelectionViewDesktopTest,
                            AccountChooserResultMetric);
+  FRIEND_TEST_ALL_PREFIXES(FedCmAccountSelectionViewDesktopTest,
+                           LoadingDialogResultMetric);
+  FRIEND_TEST_ALL_PREFIXES(FedCmAccountSelectionViewDesktopTest,
+                           DisclosureDialogResultMetric);
   FRIEND_TEST_ALL_PREFIXES(FedCmAccountSelectionViewDesktopTest,
                            RequestPermissionFalseAndNewIdpDataDisclosureText);
 
@@ -334,7 +346,7 @@ class FedCmAccountSelectionView : public AccountSelectionView,
     kMaxValue = kAccountsNotReceivedAndPopupNotClosedByIdp
   };
 
-  // This enum describes the outcome an account chooser and is used for
+  // This enum describes the outcome of the account chooser and is used for
   // histograms. Do not remove or modify existing values, but you may add new
   // values at the end. This enum should be kept in sync with
   // AccountChooserResult in
@@ -355,6 +367,32 @@ class FedCmAccountSelectionView : public AccountSelectionView,
     kMaxValue = kTapScrim
   };
 
+  // This enum describes the outcome of the loading dialog and is used for
+  // histograms. Do not remove or modify existing values, but you may add new
+  // values at the end. This enum should be kept in sync with
+  // FedCmLoadingDialogResult in tools/metrics/histograms/enums.xml.
+  enum class LoadingDialogResult {
+    kProceed,
+    kCancel,
+    kProceedThroughPopup,
+    kDestroy,
+
+    kMaxValue = kDestroy
+  };
+
+  // This enum describes the outcome of the disclosure dialog and is used for
+  // histograms. Do not remove or modify existing values, but you may add new
+  // values at the end. This enum should be kept in sync with
+  // FedCmDisclosureDialogResult in tools/metrics/histograms/enums.xml.
+  enum class DisclosureDialogResult {
+    kContinue,
+    kCancel,
+    kBack,
+    kDestroy,
+
+    kMaxValue = kDestroy
+  };
+
   // Called when the tab's WebContents is discarded.
   void WillDiscardContents(tabs::TabInterface* tab,
                            content::WebContents* old_contents,
@@ -367,7 +405,7 @@ class FedCmAccountSelectionView : public AccountSelectionView,
       const content::IdentityProviderData& idp_data);
 
   // Shows the verifying sheet.
-  void ShowVerifyingSheet(const Account& account);
+  void ShowVerifyingSheet(const IdentityRequestAccountPtr& account);
 
   // Shows the dialog widget.
   void ShowDialogWidget();
@@ -375,21 +413,8 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   // Returns the SheetType to be used for metrics reporting.
   AccountSelectionView::SheetType GetSheetType();
 
-  // Closes widget if it exists and never notifies.
-  // Virtual for testing purposes.
-  virtual void CloseWidgetNoNotify();
-
   // Returns whether an IDP sign-in pop-up window is currently open.
   bool IsIdpSigninPopupOpen();
-
-  // Returns whether the dialog widget is ready.
-  bool IsDialogWidgetReady();
-
-  // Returns whether the dialog widget should be shown.
-  bool ShouldShowDialogWidget();
-
-  // Updates the dialog's position and shows the dialog.
-  void UpdateAndShowDialogWidget();
 
   // Hides the dialog widget and notifies the input protector.
   void HideDialogWidget();
@@ -416,9 +441,24 @@ class FedCmAccountSelectionView : public AccountSelectionView,
                            blink::mojom::RpMode rp_mode,
                            bool has_modal_support);
 
-  // Synchronously closes dialog_widet_. This method can result in synchronous
+  // Synchronously closes dialog_widget_. This method can result in synchronous
   // destruction of `this`.
-  void CloseWidget(views::Widget::ClosedReason reason);
+  void CloseWidget(bool notify_delegate, views::Widget::ClosedReason reason);
+
+  // Called when the user closes the dialog. This is called by
+  // OnCloseButtonClicked() if the user clicks the close button, and directly
+  // called by views toolkit if the user dismisses with another mechanism such
+  // as pressing "esc".
+  void OnUserClosedDialog(views::Widget::ClosedReason reason);
+
+  // This method calculates whether the dialog should be visible. This method
+  // always updates the dialog position if the dialog should be visible. If the
+  // dialog should be visible, and it is not, this method makes the dialog
+  // visible and focuses the dialog.
+  void UpdateDialogVisibilityAndPosition();
+
+  // Called when any of the Show*() methods is called.
+  void ResetDialogWidgetStateOnAnyShow();
 
   std::vector<IdentityProviderDataPtr> idp_list_;
 
@@ -436,9 +476,6 @@ class FedCmAccountSelectionView : public AccountSelectionView,
 
   DialogType dialog_type_{DialogType::BUBBLE};
 
-  // Whether to notify the delegate when the widget is closed.
-  bool notify_delegate_of_dismiss_{true};
-
   std::unique_ptr<views::InputEventActivationProtector> input_protector_;
 
   std::unique_ptr<FedCmModalDialogView> popup_window_;
@@ -451,18 +488,21 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   // is asked to verify phone number, change password, etc.
   base::OnceClosure show_accounts_dialog_callback_;
 
-  // Because the tab that shows the accounts dialog may be invisible initially,
-  // e.g. when a user opens a new tab, we'd delay showing the dialog until the
-  // tab becomes visible. This callback notifies the controller when the dialog
-  // is displayed to the user for the first time.
-  base::OnceClosure accounts_displayed_callback_;
+  // When we are using the bubble dialog, and the user opens an IDP login popup
+  // window, and a new accounts fetch has not yet completed, we keep hiding the
+  // dialog widget ever after CloseModalDialog(). This ensures we do not show
+  // the previous UI (could be mismatch UI or account picker). Instead we wait
+  // for Show() to be called with new information, and then show the updated
+  // dialog widget.
+  //
+  // If the IDP never sends a login status header, then CloseModalDialog() will
+  // closes the popup, but Show() will never be called. This is currently not
+  // handled by the fedcm control-flow. For now we keep hiding the dialog.
+  bool hide_dialog_widget_after_idp_login_popup_{false};
 
-  // If dialog has NOT been populated with accounts yet as a result of the IDP
-  // sign-in flow and the IDP sign-in pop-up window has been closed, we use this
-  // boolean to let the widget know it should unhide itself when the dialog is
-  // ready. This can happen when the accounts fetch has yet to finish but the
-  // pop-up window has already been closed.
-  bool is_modal_closed_but_accounts_fetch_pending_{false};
+  // If Show() is called, the intention is to show the accounts dialog. This
+  // callback is invoked when the widget is actually shown for the first time.
+  base::OnceClosure accounts_widget_shown_callback_;
 
   // Whether the "Continue" button on the mismatch dialog is clicked. Once the
   // "Continue" button is clicked, a pop-up window is shown for the user to sign
@@ -493,6 +533,14 @@ class FedCmAccountSelectionView : public AccountSelectionView,
   // The current state of the modal account chooser, if initiated by user. This
   // is nullopt when no modal account chooser has been opened.
   std::optional<AccountChooserResult> modal_account_chooser_state_;
+
+  // The current state of the modal loading dialog. This is nullopt when no
+  // modal loading dialog has been opened.
+  std::optional<LoadingDialogResult> modal_loading_dialog_state_;
+
+  // The current state of the modal disclosure dialog. This is nullopt when no
+  // modal disclosure dialog has been opened.
+  std::optional<DisclosureDialogResult> modal_disclosure_dialog_state_;
 
   // Whether the widget is occluded by PIP (and therefore we should ignore
   // inputs).

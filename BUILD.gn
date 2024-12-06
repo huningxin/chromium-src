@@ -359,9 +359,6 @@ group("gn_all") {
       deps += [
         "//chrome/credential_provider",
         "//chrome/credential_provider/test:gcp_unittests",
-
-        # TODO(grt): Remove when chrome depends on the service.
-        "//chrome/windows_services/elevated_tracing_service",
       ]
 
       if (enable_platform_experience) {
@@ -416,6 +413,7 @@ group("gn_all") {
         "//tools/android/audio_focus_grabber:audio_focus_grabber_apk",
         "//tools/android/customtabs_benchmark:customtabs_benchmark_apk",
         "//tools/android/kerberos/SpnegoAuthenticator:spnego_authenticator_apk",
+        "//tools/pgo:generate_profile_android_trichrome_chrome_bundle",
         "//ui:ui_junit_tests",
       ]
       deps -= [
@@ -441,17 +439,8 @@ group("gn_all") {
         ]
       }
 
-      if (android_64bit_target_cpu) {
-        deps += [
-          "//tools/pgo:generate_profile_android_trichrome_chrome_64_32_bundle",
-        ]
-      }
-
       if (enable_chrome_android_internal) {
-        deps += [
-          "//clank",
-          "//tools/pgo:generate_profile_android_clank_trichrome_bundle",
-        ]
+        deps += [ "//clank" ]
       }
     }
 
@@ -1158,6 +1147,14 @@ if (use_blink && !is_cronet_build) {
                       root_out_dir) + ")",
     ]
   }
+  if (is_chrome_for_testing) {
+    _common_web_test_options += [
+      "--additional-expectations",
+      "@WrappedPath(" +
+          rebase_path("//third_party/blink/web_tests/CfTTestExpecations",
+                      root_out_dir) + ")",
+    ]
+  }
   if (is_msan) {
     _common_web_test_options += [
       "--enable-sanitizer",
@@ -1508,6 +1505,9 @@ if (use_blink && !is_cronet_build) {
     if (is_asan) {
       data += [ "//third_party/blink/web_tests/ASANExpectations" ]
     }
+    if (is_chrome_for_testing) {
+      data += [ "//third_party/blink/web_tests/CfTTestExpecations" ]
+    }
     if (is_msan) {
       data += [ "//third_party/blink/web_tests/MSANExpectations" ]
     }
@@ -1683,6 +1683,7 @@ if (use_blink && !is_cronet_build) {
       "//third_party/blink/renderer/build/scripts/",
       "//third_party/blink/tools/",
       "//third_party/blink/web_tests/ASANExpectations",
+      "//third_party/blink/web_tests/CfTTestExpecations",
       "//third_party/blink/web_tests/FlagExpectations/",
       "//third_party/blink/web_tests/LeakExpectations",
       "//third_party/blink/web_tests/MSANExpectations",

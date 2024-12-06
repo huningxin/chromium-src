@@ -11,7 +11,6 @@
 <translation id="1200396280085622191">ใช้ Chrome ทุกครั้งที่คุณแตะลิงก์ในข้อความและแอปอื่นๆ</translation>
 <translation id="1229222343402087523">ค้นหา ${searchPhrase} ใน Chrome</translation>
 <translation id="1237769345474105984">จาก Chrome</translation>
-<translation id="1240190568154816272">เคล็ดลับการใช้ Chrome</translation>
 <translation id="124228879633599436">Chrome ของคุณเป็นเวอร์ชันเก่า โปรดอัปเดตเพื่อความปลอดภัย</translation>
 <translation id="1333745675627230582">เล่นเกมไดโนเสาร์ Chrome</translation>
 <translation id="1352919863522755794">เครื่องมือจัดการรหัสผ่านบน Google ตรวจสอบรหัสผ่านของคุณไม่ได้ โปรดลองตรวจสอบการเชื่อมต่ออินเทอร์เน็ต</translation>
@@ -222,6 +221,7 @@
 หากต้องการการตั้งค่าเพิ่มเติมที่ใช้ข้อมูลเพื่อปรับปรุงประสบการณ์การใช้งาน Chrome ให้ไปที่<ph name="BEGIN_LINK" />บริการของ Google<ph name="END_LINK" /></translation>
 <translation id="6922332667202044570">ลบข้อมูลการท่องเว็บใน Chrome</translation>
 <translation id="6924922227983877439">เปิดลิงก์ใน Chrome โดยค่าเริ่มต้น</translation>
+<translation id="6931601805528922498">การลงชื่อเข้าใช้จะเพิ่มบัญชีของคุณไปยัง Chrome สำหรับการท่องเว็บที่เกี่ยวข้องกับงาน</translation>
 <translation id="6975725306479268850">เลือก Chrome สำหรับการป้อนข้อความอัตโนมัติ</translation>
 <translation id="7056826488869329999">เปิดและเรียกใช้การตรวจสอบความปลอดภัยใน Chrome</translation>
 <translation id="7061455974939528301">กดไอคอน Chrome ค้างไว้แล้วคลิก "แก้ไขหน้าจอหลัก"</translation>

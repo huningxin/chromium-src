@@ -402,8 +402,6 @@ api::autotest_private::AppType GetAppType(apps::AppType type) {
   switch (type) {
     case apps::AppType::kArc:
       return api::autotest_private::AppType::kArc;
-    case apps::AppType::kBuiltIn:
-      return api::autotest_private::AppType::kBuiltIn;
     case apps::AppType::kCrostini:
       return api::autotest_private::AppType::kCrostini;
     case apps::AppType::kChromeApp:
@@ -416,18 +414,12 @@ api::autotest_private::AppType GetAppType(apps::AppType type) {
       return api::autotest_private::AppType::kWeb;
     case apps::AppType::kUnknown:
       return api::autotest_private::AppType::kNone;
-    case apps::AppType::kStandaloneBrowser:
-      return api::autotest_private::AppType::kStandaloneBrowser;
     case apps::AppType::kRemote:
       return api::autotest_private::AppType::kRemote;
     case apps::AppType::kBorealis:
       return api::autotest_private::AppType::kBorealis;
     case apps::AppType::kBruschetta:
       return api::autotest_private::AppType::kBruschetta;
-    case apps::AppType::kStandaloneBrowserExtension:
-      return api::autotest_private::AppType::kNone;
-    case apps::AppType::kStandaloneBrowserChromeApp:
-      return api::autotest_private::AppType::kExtension;
   }
   NOTREACHED();
 }
@@ -6586,7 +6578,7 @@ AutotestPrivateStartOverdrawTrackingFunction::Run() {
         Error(base::StrCat({"Invalid displayId: ", *params->display_id})));
   }
 
-  DVLOG(1) << "AutotestPrivateStopOverdrawTrackingFunction displayId:"
+  DVLOG(1) << "AutotestPrivateStartOverdrawTrackingFunction displayId:"
            << target_display_id;
 
   // Validate display id.

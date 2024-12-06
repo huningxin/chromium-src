@@ -229,9 +229,6 @@ class CORE_EXPORT WebFrameWidgetImpl
   void SetRootLayer(scoped_refptr<cc::Layer>) override;
   void RequestDecode(const cc::PaintImage&,
                      base::OnceCallback<void(bool)>) override;
-  void NotifyPresentationTimeInBlink(
-      base::OnceCallback<void(const viz::FrameTimingDetails&)>
-          presentation_callback) final;
   void RequestBeginMainFrameNotExpected(bool request) final;
   int GetLayerTreeId() final;
   const cc::LayerTreeSettings* GetLayerTreeSettings() final;
@@ -336,13 +333,13 @@ class CORE_EXPORT WebFrameWidgetImpl
   bool GetMayThrottleIfUndrawnFramesForTesting();
 
   // AnimationFrameTimingMonitor::Client overrides
-  void ReportLongAnimationFrameTiming(AnimationFrameTimingInfo* info) override;
   bool ShouldReportLongAnimationFrameTiming() const override;
   void ReportLongTaskTiming(base::TimeTicks start_time,
                             base::TimeTicks end,
                             ExecutionContext* task_context) override;
   bool RequestedMainFramePending() override;
-  void RecordRenderingUpdateEndTime(base::TimeTicks) override;
+  AnimationFrameTimingInfo* RecordRenderingUpdateEndTime(
+      base::TimeTicks) override;
   ukm::UkmRecorder* MainFrameUkmRecorder() override;
   ukm::SourceId MainFrameUkmSourceId() override;
 
@@ -585,7 +582,7 @@ class CORE_EXPORT WebFrameWidgetImpl
   // content (only clip it).
   void SetBrowserControlsParams(cc::BrowserControlsParams params);
 
-  void SetMaxSafeAreaInsets(const gfx::Insets& max_safe_area_insets);
+  void SetMaxSafeAreaInsets(const gfx::InsetsF& max_safe_area_insets);
 
   // This function provides zooming for find in page results when browsing with
   // page autosize.

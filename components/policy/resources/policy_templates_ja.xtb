@@ -257,13 +257,6 @@
 <translation id="117080706484659953"><ph name="MAC_OS_NAME" /> でポリシー スコープの検出を許可します</translation>
 <translation id="1171106901454883937">デバイスのバージョン情報の報告を有効にする</translation>
 <translation id="1173493742686115032">すべてのウェブページで <ph name="SEARCH_SIDE_PANEL_FEATURE_NAME" /> を有効にする</translation>
-<translation id="1177567780207290133">このポリシーでは、セーフサイトの URL フィルタを制御できます。このフィルタは、Google Safe Search API を使用して URL をポルノとそれ以外に分類します。
-
-      このポリシーには次の値を設定できます。
-
-      * アダルト コンテンツに基づくサイトの除外を行わない、または未設定: サイトの除外は行われません。
-
-      * アダルト コンテンツに基づいて最上位サイトを除外する: ポルノに分類されたサイトは除外されます。</translation>
 <translation id="1177624681620856105"> このポリシーでは、外部プロトコルの呼び出しに関する確認メッセージに [常に開く] チェックボックスを表示するかどうかを管理します。
 
       このポリシーを True に設定するか、未設定の場合、ユーザーは外部プロトコルに関する確認メッセージが表示されたときに [常に許可] を選択して、それ以降このサイトでのプロトコルに関する確認メッセージをスキップできます。
@@ -3977,6 +3970,15 @@ URL は「http://example.com」、「https://example.com」のような標準的
 <translation id="4027608872760987929">デフォルトの検索プロバイダを有効にする</translation>
 <translation id="4030152268425532846">自動ログインの回避を無効にする</translation>
 <translation id="4043796890723386527">ユーザーに <ph name="LACROS_NAME" /> ブラウザでの予備のプロフィールの作成と使用、およびゲストモードの使用を許可しない</translation>
+<translation id="4047633048700722778">このポリシーでは、セーフサイトの URL フィルタを制御できます。このフィルタは、Google Safe Search API を使用して URL をポルノとそれ以外に分類します。
+
+このポリシーには次の値を設定できます。
+
+* アダルト コンテンツのサイトを除外しない、または未設定: サイトの除外は行われません。
+
+* アダルト コンテンツのサイトを除外する: ポルノに分類されたサイトは除外されます。
+
+このポリシーは、ユーザーの移動先の URL と iframe の両方に適用されます。<ph name="URL_ALLOWLIST_POLICY_NAME" /> ポリシーはこのポリシーより優先され、Google Safe Search API の判定をオーバーライドする目的で使用できます。</translation>
 <translation id="4051723201852944592">ウィンドウ オクルージョンを有効にします</translation>
 <translation id="4052529125939620019">起動時に CryptoToken コンポーネント拡張機能を読み込む</translation>
 <translation id="4053157306171963473">デバイスのアクティビティ時間の報告を無効にする</translation>
@@ -7467,7 +7469,6 @@ False に設定すると、P2P は使用されません。
       複数の拡張機能 ID をカンマで区切って指定している 75 より前のバージョンについてはサポートされておらず、スキップされます。ポリシーのその他の部分は適用されます。
 
       注: このポリシーは、<ph name="EXTENSION_INSTALL_FORCELIST_POLICY_NAME" /> を使用して強制的にインストールされる拡張機能やアプリにも影響します。</translation>
-<translation id="6731757988219967594">アダルト コンテンツに基づいて最上位サイト（埋め込み iframe 以外）を除外する</translation>
 <translation id="6733851879899284032">
       クロスオリジン分離コンテキスト以外で SharedArrayBuffers を使用できるかどうかを指定します。ウェブの互換性に関する理由から、<ph name="PRODUCT_NAME" /> 91 以降（2021-05-25）では、SharedArrayBuffers を使用する際に <ph name="PRODUCT_NAME" /> でクロスオリジン分離が必要となります。詳しくはこちらをご覧ください。https://developer.chrome.com/blog/enabling-shared-array-buffer/
       有効に設定した場合、サイトで SharedArrayBuffers を制限なく使用できます。
@@ -8091,6 +8092,15 @@ EphemeralNetworkPolicies 機能がデフォルトで有効になると、この�
       Chrome リモート デスクトップ ホストがインストールされていない場合、これらのポリシーは無視されます。</translation>
 <translation id="7202925763179776247">ダウンロードの制限を許可する</translation>
 <translation id="7203243973351251622">レコーダー（バージョン 130 以降でサポート）</translation>
+<translation id="7205989349935313324">レンズ オーバーレイを使用すると、実際のウェブ コンテンツに重ねた現在のページのスクリーンショットを操作して Google で検索することができます。また、現在のページのコンテンツに基づいて Google で検索することもできます。レンズ オーバーレイでは、コンテンツに基づく回答を提供するため、ページのコンテンツが Google に送信され、ユーザーが現在閲覧しているページのコンテキストに沿ってユーザーのクエリの回答が返されます。
+
+この機能を制御するユーザー設定はありません。通常、このポリシーで無効にしない限り、Google をデフォルトの検索エンジンに設定しているすべてのユーザーが使用できます。
+
+0 = ユーザーに対してこの機能を有効にし、AI モデルのトレーニングまたは改善に役立つ関連データを Google に送信します。関連データには、機能に応じてプロンプト、入力内容、出力内容、ソース資料などが含まれます。関連データは、AI モデルの改善のみを目的として、人間がレビューすることがあります。以下に記載している場合を除き、0 がデフォルト値です。
+
+1 = ユーザーに対してこの機能を有効にしますが、AI モデルのトレーニングや改善に役立つデータを Google に送信しません。1 は、<ph name="GOOGLE_ADMIN_CONSOLE_PRODUCT_NAME" /> で管理されている企業ユーザーと、<ph name="GOOGLE_WORKSPACE_PRODUCT_NAME" /> で管理されている教育機関向けアカウントのデフォルト値です。
+
+2 = この機能を無効にします。</translation>
 <translation id="7207095846245296855">Google セーフサーチを強制する</translation>
 <translation id="7211368186050418507">タイムゾーンを自動検出しない</translation>
 <translation id="721617466745658461">ユーザーに <ph name="LACROS_NAME" /> ブラウザ バイナリの選択を許可する</translation>
@@ -9198,6 +9208,7 @@ Internet Explorer の <ph name="IEEM_SITELIST_POLICY" /> ポリシーについ�
       このポリシーを無効にするか、未設定のままにすると、パケットは送信されません。</translation>
 <translation id="8168359201203671567">虹色のキーボード バックライト</translation>
 <translation id="8169452762291746260">デバイスの稼働状況の監視を無効にする</translation>
+<translation id="8170359860920320269">アダルト コンテンツのサイトを除外する</translation>
 <translation id="8171262216089271568">ログイン画面で大きいカーソルを有効にする</translation>
 <translation id="8171924760436219650">ログイン画面でマウスのメインボタンを右に切り替える</translation>
 <translation id="81724933026241365">ユーザーがシャットダウン アイコンまたは物理的な電源ボタンを使用してデバイスの電源をオフにできるようにする</translation>

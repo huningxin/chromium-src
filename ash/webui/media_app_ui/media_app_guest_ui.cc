@@ -138,8 +138,7 @@ content::WebUIDataSource* CreateAndAddMediaAppUntrustedDataSource(
                           IDR_MEDIA_APP_APP_IMAGE_HANDLER_MODULE_JS);
 
   // Add all resources from chromeos_media_app_bundle_resources.pak.
-  source->AddResourcePaths(base::make_span(
-      kChromeosMediaAppBundleResources, kChromeosMediaAppBundleResourcesSize));
+  source->AddResourcePaths(kChromeosMediaAppBundleResources);
 
   // Note: go/bbsrc/flags.ts processes this.
   delegate->PopulateLoadTimeData(web_ui, source);
@@ -301,18 +300,29 @@ void MediaAppGuestUI::CreateMahiUntrustedService(
       web_ui()->GetWebContents()->GetTopLevelNativeWindow());
 }
 
-void MediaAppGuestUI::CreateMantisUntrustedService(
-    CreateMantisUntrustedServiceCallback callback) {
-  if (!base::FeatureList::IsEnabled(ash::features::kMediaAppImageMantis)) {
-    untrusted_service_factory_.ReportBadMessage(
-        "Trying to bind interface when flag is not enabled.");
-    return;
-  }
+void MediaAppGuestUI::OnMantisAvailableDone(IsMantisAvailableCallback callback,
+                                            bool result) {
+  is_mantis_available_ = result;
+  std::move(callback).Run(result);
+}
 
+void MediaAppGuestUI::IsMantisAvailable(IsMantisAvailableCallback callback) {
   // Mantis does not live in //chrome, no need to use delegate.
   if (mantis_untrusted_service_manager_ == nullptr) {
     mantis_untrusted_service_manager_ =
         std::make_unique<MantisUntrustedServiceManager>();
+  }
+  mantis_untrusted_service_manager_->IsAvailable(
+      base::BindOnce(&MediaAppGuestUI::OnMantisAvailableDone,
+                     weak_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void MediaAppGuestUI::CreateMantisUntrustedService(
+    CreateMantisUntrustedServiceCallback callback) {
+  if (!is_mantis_available_.value_or(false)) {
+    untrusted_service_factory_.ReportBadMessage(
+        "Trying to bind interface when feature is not available.");
+    return;
   }
   mantis_untrusted_service_manager_->Create(std::move(callback));
 }

@@ -72,7 +72,7 @@ class WPTAdapterTest(unittest.TestCase):
         self.fs.write_text_file(
             self.finder.path_from_wpt_tests('MANIFEST.json'),
             json.dumps({
-                'version': 8,
+                'version': 9,
                 'items': {
                     'reftest': {
                         'dir': {
@@ -87,7 +87,7 @@ class WPTAdapterTest(unittest.TestCase):
         self.fs.write_text_file(
             self.finder.path_from_web_tests('wpt_internal', 'MANIFEST.json'),
             json.dumps({
-                'version': 8,
+                'version': 9,
                 'url_base': '/wpt_internal/',
                 'items': {
                     'testharness': {
@@ -199,10 +199,10 @@ class WPTAdapterTest(unittest.TestCase):
         self.assertEqual(
             self.output_stream.getvalue(),
             textwrap.dedent("""\
-                00:00:01.000 INFO: Running tests for headless_shell
-                00:00:02.000 INFO: Using port "test-linux-trusty"
-                00:00:03.000 INFO: View the test results at file:///tmp/layout-test-results/results.html
-                00:00:04.000 INFO: Using Debug build
+                2023-01-01 12:00:02.000 INFO Running tests for headless_shell
+                2023-01-01 12:00:03.000 INFO Using port "test-linux-trusty"
+                2023-01-01 12:00:04.000 INFO View the test results at file:///tmp/layout-test-results/results.html
+                2023-01-01 12:00:05.000 INFO Using Debug build
                 """))
 
     @mock.patch('blinkpy.web_tests.port.test.TestPort.default_child_processes',

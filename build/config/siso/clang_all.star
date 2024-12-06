@@ -24,7 +24,6 @@ def __filegroups(ctx):
             "type": "glob",
             "includes": [
                 "__*",
-                "gross_hack.h",
             ],
         },
 
@@ -98,12 +97,27 @@ __input_deps = {
         "build/toolchain/whole_archive.py",
         "build/toolchain/wrapper_utils.py",
     ],
+    "build/toolchain/gcc_solink_wrapper.py:link": [
+        "build/toolchain/gcc_solink_wrapper.py",
+        "build/toolchain/whole_archive.py",
+        "build/toolchain/wrapper_utils.py",
+    ],
     "build/toolchain/gcc_link_wrapper.py": [
+        "build/toolchain/whole_archive.py",
+        "build/toolchain/wrapper_utils.py",
+    ],
+    "build/toolchain/gcc_link_wrapper.py:link": [
+        "build/toolchain/gcc_link_wrapper.py",
         "build/toolchain/whole_archive.py",
         "build/toolchain/wrapper_utils.py",
     ],
     "build/toolchain/apple/linker_driver.py:link": [
         "build/toolchain/apple/linker_driver.py",
+        "build/toolchain/whole_archive.py",
+    ],
+    "build/toolchain/apple/solink_driver.py:link": [
+        "build/toolchain/apple/linker_driver.py",
+        "build/toolchain/apple/solink_driver.py",
         "build/toolchain/whole_archive.py",
     ],
 }

@@ -126,6 +126,12 @@ class EndpointFetcher {
 
   // Preferred constructor - forms identity_manager and url_loader_factory.
   // OAUTH authentication is used for this constructor.
+  //
+  // Note: When using signin::ConsentLevel::kSignin, please also make sure that
+  // your `scopes` are correctly set in AccessTokenRestrictions, otherwise
+  // AccessTokenFetcher will assume the `scopes` requires full access and crash
+  // if user doesn't have full access (e.g. sign in but not sync).
+  // TODO(crbug.com/382343700): Add a DCHECK to enforce this in EndPointFetcher.
   EndpointFetcher(
       const scoped_refptr<network::SharedURLLoaderFactory>& url_loader_factory,
       const std::string& oauth_consumer_name,
@@ -240,8 +246,7 @@ class EndpointFetcher {
   const scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
   // `identity_manager_` can be null if it is not needed for authentication (in
   // this case, callers should invoke `PerformRequest` directly).
-  const raw_ptr<signin::IdentityManager, AcrossTasksDanglingUntriaged>
-      identity_manager_;
+  const raw_ptr<signin::IdentityManager> identity_manager_;
   // `consent_level_` is used together with `identity_manager_`, so it can be
   // null if `identity_manager_` is null.
   const std::optional<signin::ConsentLevel> consent_level_;

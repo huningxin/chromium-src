@@ -87,7 +87,6 @@ class PlusAddressService : public KeyedService,
   // Virtual to allow overriding the behavior in tests.
   virtual void ConfirmPlusAddress(const url::Origin& origin,
                                   const PlusAddress& plus_address,
-                                  bool is_manual_fallback,
                                   PlusAddressRequestCallback on_completed) = 0;
 
   // Returns whether refreshing a plus address on `origin` is supported.
@@ -118,9 +117,6 @@ class PlusAddressService : public KeyedService,
 
   // Returns true if the feature is supported for the user.
   virtual bool IsEnabled() const = 0;
-
-  // Triggers the HaTS survey of the `survey_type`.
-  virtual void TriggerUserPerceptionSurvey(hats::SurveyType survey_type) = 0;
 };
 
 }  // namespace plus_addresses

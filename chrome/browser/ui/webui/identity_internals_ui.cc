@@ -2,11 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-// TODO(crbug.com/40285824): Remove this and convert code to safer constructs.
-#pragma allow_unsafe_buffers
-#endif
-
 #include "chrome/browser/ui/webui/identity_internals_ui.h"
 
 #include <memory>
@@ -143,9 +138,11 @@ class IdentityInternalsTokenRevoker : public GaiaAuthConsumer {
   raw_ptr<IdentityInternalsUIMessageHandler> consumer_;  // weak.
 };
 
-IdentityInternalsUIMessageHandler::IdentityInternalsUIMessageHandler() {}
+IdentityInternalsUIMessageHandler::IdentityInternalsUIMessageHandler() =
+    default;
 
-IdentityInternalsUIMessageHandler::~IdentityInternalsUIMessageHandler() {}
+IdentityInternalsUIMessageHandler::~IdentityInternalsUIMessageHandler() =
+    default;
 
 void IdentityInternalsUIMessageHandler::OnTokenRevokerDone(
     IdentityInternalsTokenRevoker* token_revoker,
@@ -301,7 +298,7 @@ IdentityInternalsTokenRevoker::IdentityInternalsTokenRevoker(
   fetcher_.StartRevokeOAuth2Token(access_token);
 }
 
-IdentityInternalsTokenRevoker::~IdentityInternalsTokenRevoker() {}
+IdentityInternalsTokenRevoker::~IdentityInternalsTokenRevoker() = default;
 
 void IdentityInternalsTokenRevoker::OnOAuth2RevokeTokenCompleted(
     GaiaAuthConsumer::TokenRevocationStatus status) {
@@ -318,8 +315,7 @@ IdentityInternalsUI::IdentityInternalsUI(content::WebUI* web_ui)
           Profile::FromWebUI(web_ui), chrome::kChromeUIIdentityInternalsHost);
 
   // Required resources
-  html_source->AddResourcePaths(base::make_span(
-      kIdentityInternalsResources, kIdentityInternalsResourcesSize));
+  html_source->AddResourcePaths(kIdentityInternalsResources);
   html_source->SetDefaultResource(
       IDR_IDENTITY_INTERNALS_IDENTITY_INTERNALS_HTML);
 
@@ -334,4 +330,4 @@ IdentityInternalsUI::IdentityInternalsUI(content::WebUI* web_ui)
       std::make_unique<IdentityInternalsUIMessageHandler>());
 }
 
-IdentityInternalsUI::~IdentityInternalsUI() {}
+IdentityInternalsUI::~IdentityInternalsUI() = default;

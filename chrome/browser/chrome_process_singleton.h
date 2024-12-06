@@ -49,7 +49,8 @@ class ChromeProcessSingleton {
   bool IsSingletonInstanceForTesting() const { return is_singleton_instance_; }
 
 #if BUILDFLAG(IS_WIN)
-  // Must only be called after initialization of FeatureList.
+  // Must only be called both after initialization of FeatureList and
+  // NotifyOtherProcessOrCreate().
   void InitializeFeatures();
 #endif
 

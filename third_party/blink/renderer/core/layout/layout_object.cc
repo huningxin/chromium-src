@@ -894,6 +894,29 @@ LayoutObject* LayoutObject::GetScrollMarkerGroup() const {
   return nullptr;
 }
 
+LayoutBlock* LayoutObject::ScrollerFromScrollMarkerGroup() const {
+  NOT_DESTROYED();
+  DCHECK(IsScrollMarkerGroup());
+  auto* pseudo_element = DynamicTo<PseudoElement>(GetNode());
+  if (const Element* originating_element = pseudo_element->parentElement()) {
+    if (LayoutObject* object = originating_element->GetLayoutObject()) {
+      if (object->IsFieldset()) {
+        object = To<LayoutFieldset>(object)->FindAnonymousFieldsetContentBox();
+        if (!object) {
+          return nullptr;
+        }
+      }
+      if (!object->IsScrollContainer()) {
+        // TODO(crbug.com/381444307): This shouldn't happen. If there's a scroll
+        // marker group, the originating element should be a scroll container.
+        return nullptr;
+      }
+      return DynamicTo<LayoutBlock>(object);
+    }
+  }
+  return nullptr;
+}
+
 bool LayoutObject::IsListMarkerForSummary() const {
   if (!IsListMarker()) {
     return false;
@@ -1990,11 +2013,18 @@ PhysicalRect LayoutObject::AbsoluteBoundingBoxRectForScrollIntoView() const {
       return originating_object->AbsoluteBoundingBoxRectForScrollIntoView();
     }
     // This is a ::column::scroll-marker
-    const auto* scroller = originating_element->GetLayoutBoxForScrolling();
-    PhysicalRect bounds = column_pseudo->ColumnRect();
-    bounds.offset -= PhysicalOffset::FromVector2dFRound(
-        scroller->GetScrollableArea()->GetScrollOffset());
-    return scroller->LocalToAbsoluteRect(bounds, flag);
+    if (const auto* scroller =
+            originating_element->GetLayoutBoxForScrolling()) {
+      // The originating element (the multicol container) is also the scrollable
+      // container.
+      PhysicalRect bounds = column_pseudo->ColumnRect();
+      bounds.offset -= PhysicalOffset::FromVector2dFRound(
+          scroller->GetScrollableArea()->GetScrollOffset());
+      return scroller->LocalToAbsoluteRect(bounds, flag);
+    }
+    gfx::QuadF quad = originating_object->LocalRectToAbsoluteQuad(
+        column_pseudo->ColumnRect(), flag);
+    return PhysicalRect::EnclosingRect(quad.BoundingBox());
   }
 
   return AbsoluteBoundingBoxRectHandlingEmptyInline(flag);
@@ -2650,7 +2680,7 @@ void LayoutObject::SetPseudoElementStyle(const LayoutObject& owner,
   DCHECK(pseudo_style->StyleType() == kPseudoIdCheckMark ||
          pseudo_style->StyleType() == kPseudoIdBefore ||
          pseudo_style->StyleType() == kPseudoIdAfter ||
-         pseudo_style->StyleType() == kPseudoIdSelectArrow ||
+         pseudo_style->StyleType() == kPseudoIdPickerIcon ||
          pseudo_style->StyleType() == kPseudoIdMarker ||
          pseudo_style->StyleType() == kPseudoIdFirstLetter ||
          pseudo_style->StyleType() == kPseudoIdScrollMarkerGroup ||
@@ -4305,7 +4335,7 @@ const ComputedStyle* LayoutObject::GetCachedPseudoElementStyle(
   DCHECK_NE(pseudo, kPseudoIdBefore);
   DCHECK_NE(pseudo, kPseudoIdCheckMark);
   DCHECK_NE(pseudo, kPseudoIdAfter);
-  DCHECK_NE(pseudo, kPseudoIdSelectArrow);
+  DCHECK_NE(pseudo, kPseudoIdPickerIcon);
   if (!GetNode())
     return nullptr;
 
@@ -4322,7 +4352,7 @@ const ComputedStyle* LayoutObject::GetUncachedPseudoElementStyle(
   DCHECK_NE(request.pseudo_id, kPseudoIdBefore);
   DCHECK_NE(request.pseudo_id, kPseudoIdCheckMark);
   DCHECK_NE(request.pseudo_id, kPseudoIdAfter);
-  DCHECK_NE(request.pseudo_id, kPseudoIdSelectArrow);
+  DCHECK_NE(request.pseudo_id, kPseudoIdPickerIcon);
   if (!GetNode())
     return nullptr;
 

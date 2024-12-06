@@ -260,6 +260,7 @@
 <translation id="4510853178268397146">এই এক্সটেনশন গোপনীয়তা অনুশীলন প্রকাশ করেনি, যেমন কীভাবে এটি ডেটা সংগ্রহ ও ব্যবহার করে। Chromium আপনাকে এটি সরিয়ে দেওয়ার সাজেশন দেয়।</translation>
 <translation id="452711251841752011">Chromium-এ স্বাগতম; নতুন ব্রাউজার উইন্ডো খোলা হয়েছে</translation>
 <translation id="4531137820806573936">আপনার আশপাশ সম্পর্কে জানতে ও হাত ট্র্যাক করতে Chromium-এর অনুমতি প্রয়োজন</translation>
+<translation id="4534145890176164066">Chromium ফর্ম আরও ভালো বুঝতে পারে এবং আপনার জন্য আরও দ্রুত তা অটোফিল করতে পারে</translation>
 <translation id="4536805923587466102">আপনি আগে থেকেই অন্য Chromium প্রোফাইলে <ph name="USER_EMAIL_ADDRESS" /> হিসেবে সাইন-ইন করেছেন</translation>
 <translation id="4544142686420020088">Chromium আপডেট করা যায়নি, কোনও সমস্যা হয়েছে। <ph name="BEGIN_LINK" />Chromium আপডেট করতে না পারার সমস্যা ও আপডেট করা যায়নি এমন সমস্যার সমাধান করুন।<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">আপনার ব্রাউজিংয়ের অভিজ্ঞতা উন্নত ও দ্রুত কাজ চালিয়ে যেতে Chromium এই ট্যাব নিষ্ক্রিয় করতে পারে।</translation>
@@ -438,7 +439,6 @@
 <translation id="6831043979455480757">অনুবাদ</translation>
 <translation id="6847869444787758381">আপনার পাসওয়ার্ড কখনও চুরি হলে তা Chromium আপনাকে জানিয়ে দেবে</translation>
 <translation id="684888714667046800">ইন্টারনেটের সাথে কানেক্ট করা যায়নি। আপনি ফায়ারওয়াল ব্যবহার করলে, <ph name="PRODUCT_EXE_NAME" /> সাদাতালিকায় আছে কিনা দেখে নিন।</translation>
-<translation id="685279860330610299">Chromium আরও অনেক ধরনের তথ্য বুঝতে পারে এবং আপনার ফর্ম আরও দ্রুত অটোফিল করে দিতে পারে। <ph name="BEGIN_LINK" />Chrome অটোফিল<ph name="END_LINK" /> সম্পর্কে আরও জানুন</translation>
 <translation id="6857782730669500492">Chromium - <ph name="PAGE_TITLE" /></translation>
 <translation id="6873893289264747459">Chromium "<ph name="EXTENSION_NAME" />"-এ ম্যালওয়্যার আছে বলে খুঁজে পেয়েছে</translation>
 <translation id="6896758677409633944">কপি</translation>
@@ -477,6 +477,7 @@ Chromium আপনার সেটিংস পুনরুদ্ধার ক�
 <translation id="7349591376906416160"><ph name="TARGET_URL_HOSTNAME" /> অ্যাক্সেস করতে <ph name="ALTERNATIVE_BROWSER_NAME" /> ব্যবহার করার জন্য আপনার সিস্টেম অ্যাডমিনিস্ট্রেটর Chromium কনফিগার করেছে।</translation>
 <translation id="7355355292030546812">Chromium এটি ডাউনলোড করা বন্ধ করে দিয়েছে কারণ ফাইলটি <ph name="USER_EMAIL" /> সহ আপনার ব্যক্তিগত ও সোশ্যাল নেটওয়ার্ক অ্যাকাউন্টের ক্ষতি করতে পারে</translation>
 <translation id="7384121030444253939">এই এক্সটেনশন আর কাজ করবে না। পরিবর্তে, Chromium আপনাকে এটি সরিয়ে দেওয়ার সাজেশন দেয়।</translation>
+<translation id="7389750180956889333">Chromium ফর্ম আরও ভালো বুঝতে পারে এবং আপনার জন্য আরও দ্রুত তা অটোফিল করতে পারে। <ph name="BEGIN_LINK" />Chrome অটোফিল<ph name="END_LINK" /> সম্পর্কে আরও জানুন</translation>
 <translation id="7398989605938454041">Chromium প্রোফাইল থেকে আপনার সব Chromium-এ থাকা ডেটা আলাদা করতে পারবেন। এর ফলে সহজেই অফিস এবং বিনোদনের প্রোফাইল আলাদা করা যায়।</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> - Chromium Dev</translation>
 <translation id="7450541714075000668">টেক্সট কপি করা হয়েছে</translation>

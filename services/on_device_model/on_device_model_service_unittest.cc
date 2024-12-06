@@ -564,17 +564,22 @@ TEST_F(OnDeviceModelServiceTest, AddContextWithTokens) {
 
 TEST_F(OnDeviceModelServiceTest, AddContextWithImages) {
   auto model = LoadModel();
+  auto params = mojom::LoadAdaptationParams::New();
+  params->enable_image_input = true;
+  auto adaptation = LoadAdaptationWithParams(*model, std::move(params));
 
   TestResponseHolder response;
   mojo::Remote<mojom::Session> session;
-  model->StartSession(session.BindNewPipeAndPassReceiver());
+  adaptation->StartSession(session.BindNewPipeAndPassReceiver());
 
   {
     std::vector<ml::InputPiece> pieces;
     pieces.push_back("cheddar");
 
     SkBitmap cheesy_bitmap;
-    cheesy_bitmap.allocN32Pixels(7, 21);
+    cheesy_bitmap.allocPixels(
+        SkImageInfo::Make(7, 21, kRGBA_8888_SkColorType, kOpaque_SkAlphaType),
+        0);
     cheesy_bitmap.eraseColor(SK_ColorYELLOW);
     pieces.push_back(cheesy_bitmap);
 
@@ -588,7 +593,9 @@ TEST_F(OnDeviceModelServiceTest, AddContextWithImages) {
     pieces.push_back("bleu");
 
     SkBitmap moldy_cheese;
-    moldy_cheese.allocN32Pixels(63, 42);
+    moldy_cheese.allocPixels(
+        SkImageInfo::Make(63, 42, kRGBA_8888_SkColorType, kOpaque_SkAlphaType),
+        0);
     moldy_cheese.eraseColor(SK_ColorBLUE);
     pieces.push_back(moldy_cheese);
 

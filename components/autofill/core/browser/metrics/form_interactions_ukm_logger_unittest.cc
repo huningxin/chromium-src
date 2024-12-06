@@ -286,7 +286,8 @@ TEST_F(FieldLogUkmMetricTest, TestShowSuggestionAutofillStatus) {
     SubmitForm(form);
 
     // Record Autofill2.FieldInfo UKM event at autofill manager reset.
-    test_api(autofill_manager()).Reset();
+    test_api(autofill_client().GetAutofillDriverFactory())
+        .Reset(autofill_driver());
 
     // Verify FieldInfo UKM event for every field.
     auto field_entries =
@@ -360,7 +361,8 @@ TEST_F(FieldLogUkmMetricTest, AddressSubmittedFormLogEvents) {
     SubmitForm(form);
 
     // Record Autofill2.FieldInfo UKM event at autofill manager reset.
-    test_api(autofill_manager()).Reset();
+    test_api(autofill_client().GetAutofillDriverFactory())
+        .Reset(autofill_driver());
 
     // Verify FieldInfo UKM event for every field.
     auto field_entries =
@@ -578,7 +580,8 @@ TEST_F(FieldLogUkmMetricTest, AutofillFieldInfoMetricsFieldType) {
   base::HistogramTester histogram_tester;
   SubmitForm(form);
   // Record Autofill2.FieldInfo UKM event at autofill manager reset.
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   auto entries =
       test_ukm_recorder().GetEntriesByName(UkmFieldInfoType::kEntryName);
@@ -767,7 +770,8 @@ TEST_F(FieldLogUkmMetricTest, AutofillFieldInfoMetricsEditedFieldWithoutFill) {
   SubmitForm(form);
 
   // Record Autofill2.FieldInfo UKM event at autofill manager reset.
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   // Verify FieldInfo UKM event for every field.
   auto entries =
@@ -888,7 +892,8 @@ TEST_F(FieldLogUkmMetricTest,
   SeeForm(form);
   SubmitForm(form);
 
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   // This form is not parsed in |AutofillManager::OnFormsSeen|.
   auto entries =
@@ -911,7 +916,8 @@ TEST_F(FieldLogUkmMetricTest, AutofillFieldInfoMetricsNotRecordOnSearchBox) {
   SeeForm(form);
   SubmitForm(form);
 
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   // The form that only has a search box is not recorded into any UKM events.
   auto entries =
@@ -938,7 +944,8 @@ TEST_F(FieldLogUkmMetricTest, AutofillFieldInfoMetricsNotRecordOnAllCheckBox) {
 
   SeeForm(form);
   SubmitForm(form);
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   // The form with two checkboxes is not recorded into any UKM events.
   auto entries =
@@ -974,7 +981,8 @@ TEST_F(
 
   SeeForm(form);
   SubmitForm(form);
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   // This form only has one non-checkable field, so the local heuristics are
   // not executed.
@@ -1012,7 +1020,8 @@ TEST_F(FieldLogUkmMetricTest,
   task_environment_.FastForwardBy(base::Milliseconds(3500));
   base::HistogramTester histogram_tester;
   SubmitForm(form);
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   auto entries =
       test_ukm_recorder().GetEntriesByName(UkmFieldInfoType::kEntryName);
@@ -1114,7 +1123,8 @@ TEST_F(FieldLogUkmMetricTest, AutofillFieldInfoMetricsRecordOnDifferentFrames) {
   task_environment_.FastForwardBy(base::Milliseconds(1980000));  // 33m
   base::HistogramTester histogram_tester;
   SubmitForm(form);
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   // Verify FieldInfo UKM event for each field.
   auto entries =
@@ -1756,7 +1766,8 @@ TEST_P(LogFocusedComplexFormAtFormRemoveTest, TestEmittedUKM) {
     SubmitForm(form);
   }
   // Record Autofill2.FocusedComplexForm UKM event at autofill manager / reset.
-  test_api(autofill_manager()).Reset();
+  test_api(autofill_client().GetAutofillDriverFactory())
+      .Reset(autofill_driver());
 
   // Verify UKM event for the form.
   auto interacted_entries = test_ukm_recorder().GetEntriesByName(

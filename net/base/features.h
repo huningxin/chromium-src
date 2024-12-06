@@ -629,6 +629,12 @@ NET_EXPORT BASE_DECLARE_FEATURE(kReportingApiEnableEnterpriseCookieIssues);
 // Optimize parsing data: URLs.
 NET_EXPORT BASE_DECLARE_FEATURE(kOptimizeParsingDataUrls);
 
+// Use the simdutf library to base64 decode data: URLs.
+NET_EXPORT BASE_DECLARE_FEATURE(kSimdutfBase64Support);
+
+// Further optimize parsing data: URLs.
+NET_EXPORT BASE_DECLARE_FEATURE(kFurtherOptimizeParsingDataUrls);
+
 // Enables support for codepoints defined in draft-ietf-tls-tls13-pkcs1, which
 // enable RSA keys to be used with client certificates even if they do not
 // support RSA-PSS.
@@ -674,6 +680,11 @@ NET_EXPORT extern const base::FeatureParam<int>
 // prioritized.
 NET_EXPORT extern const base::FeatureParam<base::TimeDelta>
     kSimpleCachePrioritizedCachingPrioritizationPeriod;
+
+#if BUILDFLAG(USE_NSS_CERTS)
+// If enabled, use new implementation of client cert path building.
+NET_EXPORT BASE_DECLARE_FEATURE(kNewClientCertPathBuilding);
+#endif  // BUILDFLAG(USE_NSS_CERTS)
 
 }  // namespace net::features
 

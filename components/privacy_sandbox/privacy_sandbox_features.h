@@ -127,11 +127,6 @@ BASE_DECLARE_FEATURE(kDefaultAllowPrivacySandboxAttestations);
 COMPONENT_EXPORT(PRIVACY_SANDBOX_FEATURES)
 extern const char kPrivacySandboxEnrollmentOverrides[];
 
-// Allow the Privacy Sandbox Attestations component to load the pre-installed
-// attestation list.
-COMPONENT_EXPORT(PRIVACY_SANDBOX_FEATURES)
-BASE_DECLARE_FEATURE(kPrivacySandboxAttestationsLoadPreInstalledComponent);
-
 // Enables attribution reporting transitional debug reporting for the cookie
 // deprecation experiment.
 COMPONENT_EXPORT(PRIVACY_SANDBOX_FEATURES)
@@ -164,9 +159,6 @@ BASE_DECLARE_FEATURE(kAddLimit3pcsSetting);
 
 COMPONENT_EXPORT(PRIVACY_SANDBOX_FEATURES)
 BASE_DECLARE_FEATURE(kAlwaysBlock3pcsIncognito);
-
-COMPONENT_EXPORT(PRIVACY_SANDBOX_FEATURES)
-BASE_DECLARE_FEATURE(kTrackingProtection3pcdUx);
 
 // Enables fingerprinting protection setting UX.
 COMPONENT_EXPORT(PRIVACY_SANDBOX_FEATURES)

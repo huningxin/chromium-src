@@ -13,6 +13,7 @@
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/signin/public/identity_manager/identity_test_environment.h"
 #include "components/signin/public/identity_manager/identity_test_utils.h"
+#include "components/signin/public/identity_manager/signin_constants.h"
 #include "components/sync/base/data_type.h"
 #include "components/sync/service/local_data_description.h"
 #include "components/sync/test/mock_sync_service.h"
@@ -20,6 +21,7 @@
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
+using signin::constants::kNoHostedDomainFound;
 using testing::_;
 
 namespace {
@@ -183,6 +185,7 @@ TEST_F(BatchUploadServiceTest, NoLocalDataReturned) {
   EXPECT_CALL(sync_service_mock(),
               GetLocalDataDescriptions(
                   syncer::DataTypeSet{syncer::DataType::PASSWORDS,
+                                      syncer::DataType::BOOKMARKS,
                                       syncer::DataType::CONTACT_INFO},
                   _))
       .Times(1);

@@ -261,6 +261,7 @@
 <translation id="4510853178268397146">‏اس ایکسٹینشن نے رازداری کے ضوابط کو شائع نہیں کیا ہے، جیسے کہ اس کا ڈیٹا کو اکٹھا اور استعمال کرنے کا طریقہ۔ Chromium تجویز کرتا ہے کہ آپ اسے ہٹا دیں۔</translation>
 <translation id="452711251841752011">‏Chromium میں آپ کا استقبال ہے، براؤزر کی نئی ونڈو کھلی</translation>
 <translation id="4531137820806573936">‏آپ کے اطراف کا نقشہ بنانے اور آپ کے ہاتھوں کو ٹریک کرنے کیلئے، Chromium کو اجازت درکار ہے</translation>
+<translation id="4534145890176164066">‏‫Chromium فارمز کو بہتر طور پر سمجھتا ہے اور آپ کے لیے انہیں تیزی سے آٹو فل کر سکتا ہے</translation>
 <translation id="4536805923587466102">‏آپ دوسری Chromium پروفائل میں پہلے ہی سے بطور <ph name="USER_EMAIL_ADDRESS" /> سائن ان ہیں</translation>
 <translation id="4544142686420020088">‏Chromium اپ ڈیٹ نہیں ہوا، کچھ غلط ہو گیا۔ <ph name="BEGIN_LINK" />Chrome اپ ڈیٹ کی دشواریوں اور ناکام اپ ڈیٹس کو درست کریں۔<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">‏آپ کے براؤزنگ کے تجربے کو بہتر بنانے اور چیزوں کو تیز بنائے رکھنے کیلئے، Chromium اس ٹیب کو غیر فعال کر سکتا ہے۔</translation>
@@ -441,7 +442,6 @@
 <translation id="6831043979455480757">ترجمہ کریں</translation>
 <translation id="6847869444787758381">‏Chromium آپ کو بتاتا ہے کہ آیا آپ کے پاس ورڈز کے ساتھ کبھی چھیڑ چھاڑ کی گئی ہے</translation>
 <translation id="684888714667046800">انٹرنیٹ سے منسلک ہونے سے قاصر ہے۔ اگر آپ فائر وال استعمال کرتے ہیں، تو براہ کرم یقینی بنائیں کہ <ph name="PRODUCT_EXE_NAME" /> ااجازت یافتہ کی فہرست میں ہے۔</translation>
-<translation id="685279860330610299">‏‫Chromium معلومات کی مزید اقسام کو سمجھ سکتا اور آپ کے فارمز کو تیزی سے آٹو فل کر سکتا ہے۔ ‫<ph name="BEGIN_LINK" />Chrome آٹو فل<ph name="END_LINK" /> کے بارے میں مزید جانیں</translation>
 <translation id="6857782730669500492">Chromium - <ph name="PAGE_TITLE" />‎</translation>
 <translation id="6873893289264747459">‏Chromium کو پتا چلا ہے کہ "<ph name="EXTENSION_NAME" />" میلوئیر پر مشتمل ہے</translation>
 <translation id="6896758677409633944">کاپی کریں</translation>
@@ -480,6 +480,7 @@ Chromium آپ کی ترتیبات کو بازیافت کرنے سے قاصر ہ�
 <translation id="7349591376906416160">‏آپ کے سسٹم کے منتظم نے <ph name="TARGET_URL_HOSTNAME" /> تک رسائی حاصل کرنے کیلئے Chromium کو <ph name="ALTERNATIVE_BROWSER_NAME" /> کھولنے کیلئے کنفیگر کیا ہے۔</translation>
 <translation id="7355355292030546812">‏Chromium نے اس ڈاؤن لوڈ کو مسدود کر دیا کیونکہ فائل <ph name="USER_EMAIL" /> سمیت آپ کے ذاتی اور سوشل نیٹ ورک اکاؤنٹس کو نقصان پہنچا سکتی ہے</translation>
 <translation id="7384121030444253939">‏یہ ایکسٹینشنز اب مزید تعاون یافتہ نہیں ہے۔ اس کے بجائے Chromium تجویز کرتا ہے کہ آپ اسے ہٹا دیں</translation>
+<translation id="7389750180956889333">‏‫Chromium فارمز کو بہتر طور پر سمجھتا ہے اور آپ کے لیے انہیں تیزی سے آٹو فل کر سکتا ہے۔ <ph name="BEGIN_LINK" />‫Chrome آٹو فل<ph name="END_LINK" /> کے بارے میں مزید جانیں</translation>
 <translation id="7398989605938454041">‏Chromium کی پروفائلز کے ساتھ آپ اپنی تمام Chromium چیزوں کو الگ کر سکتے ہیں۔ یہ کام اور تفریح کے درمیان تقسیم کرنا زیادہ آسان بناتا ہے۔</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> - Chromium Dev</translation>
 <translation id="7450541714075000668">متن کاپی ہو گیا</translation>

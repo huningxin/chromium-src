@@ -53,6 +53,7 @@ class FakePlusAddressService : public PlusAddressService {
       autofill::PasswordFormClassification::Type form_type,
       autofill::SuggestionType suggestion_type) override;
   void DidFillPlusAddress() override;
+  size_t GetPlusAddressesCount() override;
   void OnClickedRefreshInlineSuggestion(
       const url::Origin& last_committed_primary_main_frame_origin,
       base::span<const autofill::Suggestion> current_suggestions,
@@ -66,7 +67,6 @@ class FakePlusAddressService : public PlusAddressService {
       const url::Origin& primary_main_frame_origin,
       base::span<const autofill::Suggestion> current_suggestions,
       size_t current_suggestion_index,
-      bool is_manual_fallback,
       UpdateSuggestionsCallback update_suggestions_callback,
       HideSuggestionsCallback hide_suggestions_callback,
       PlusAddressCallback fill_field_callback,
@@ -89,7 +89,6 @@ class FakePlusAddressService : public PlusAddressService {
                           PlusAddressRequestCallback on_completed) override;
   void ConfirmPlusAddress(const url::Origin& origin,
                           const PlusAddress& plus_address,
-                          bool is_manual_fallback,
                           PlusAddressRequestCallback on_completed) override;
   bool IsRefreshingSupported(const url::Origin& origin) override;
   std::optional<PlusAddress> GetPlusAddress(
@@ -101,7 +100,6 @@ class FakePlusAddressService : public PlusAddressService {
                                 bool is_off_the_record) const override;
   void SavePlusProfile(const PlusProfile& profile) override;
   bool IsEnabled() const override;
-  void TriggerUserPerceptionSurvey(hats::SurveyType survey_type) override;
 
   // Resets the state of the class.
   void ClearState();

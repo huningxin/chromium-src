@@ -71,10 +71,12 @@
 #include "components/safe_browsing/core/common/safebrowsing_constants.h"
 #include "components/safe_browsing/core/common/utils.h"
 #include "components/security_interstitials/core/unsafe_resource.h"
+#include "components/security_interstitials/core/unsafe_resource_locator.h"
 #include "components/signin/public/base/consent_level.h"
 #include "components/signin/public/identity_manager/account_info.h"
 #include "components/signin/public/identity_manager/account_managed_status_finder.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
+#include "components/signin/public/identity_manager/signin_constants.h"
 #include "components/strings/grit/components_strings.h"
 #include "components/sync/protocol/user_event_specifics.pb.h"
 #include "components/sync/service/sync_service.h"
@@ -131,6 +133,7 @@ using PasswordReuseEvent =
     safe_browsing::LoginReputationClientRequest::PasswordReuseEvent;
 using SafeBrowsingStatus =
     GaiaPasswordReuse::PasswordReuseDetected::SafeBrowsingStatus;
+using signin::constants::kNoHostedDomainFound;
 
 namespace safe_browsing {
 
@@ -662,8 +665,10 @@ void ChromePasswordProtectionService::MaybeStartThreatDetailsCollection(
         SBThreatType::SB_THREAT_TYPE_SIGNED_IN_NON_SYNC_PASSWORD_REUSE;
   }
   resource.url = web_contents->GetLastCommittedURL();
-  resource.render_process_id = primary_main_frame_id.child_id;
-  resource.render_frame_token = primary_main_frame->GetFrameToken().value();
+  resource.rfh_locator =
+      security_interstitials::UnsafeResourceLocator::CreateForRenderFrameToken(
+          primary_main_frame_id.child_id,
+          primary_main_frame->GetFrameToken().value());
   resource.token = token;
   scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory =
       profile_->GetDefaultStoragePartition()
@@ -1249,7 +1254,7 @@ std::string ChromePasswordProtectionService::GetOrganizationName(
   if (base::FeatureList::IsEnabled(
           safe_browsing::kEnterprisePasswordReuseUiRefresh)) {
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
-    return GetPrefs()->GetString(prefs::kEnterpriseCustomLabel);
+    return GetPrefs()->GetString(prefs::kEnterpriseCustomLabelForProfile);
 #else
     return std::string();
 #endif

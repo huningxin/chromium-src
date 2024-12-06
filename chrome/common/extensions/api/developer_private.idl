@@ -155,6 +155,7 @@ namespace developerPrivate {
     boolean custodianApprovalRequired;
     boolean parentDisabledPermissions;
     boolean unsupportedManifestVersion;
+    boolean unsupportedDeveloperExtension;
   };
 
   dictionary OptionsPage {
@@ -284,6 +285,7 @@ namespace developerPrivate {
     boolean? pinnedToToolbar;
     boolean isAffectedByMV2Deprecation;
     boolean didAcknowledgeMV2DeprecationNotice;
+    boolean canUploadAsAccountExtension;
   };
 
   dictionary ProfileInfo {

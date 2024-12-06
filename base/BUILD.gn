@@ -349,6 +349,7 @@ component("base") {
     "macros/uniquify.h",
     "memory/aligned_memory.cc",
     "memory/aligned_memory.h",
+    "memory/asan_interface.h",
     "memory/free_deleter.h",
     "memory/memory_pressure_listener.cc",
     "memory/memory_pressure_listener.h",
@@ -636,6 +637,8 @@ component("base") {
     "supports_user_data.h",
     "synchronization/atomic_flag.cc",
     "synchronization/atomic_flag.h",
+    "synchronization/cancelable_event.cc",
+    "synchronization/cancelable_event.h",
     "synchronization/condition_variable.h",
     "synchronization/lock.cc",
     "synchronization/lock.h",
@@ -892,6 +895,7 @@ component("base") {
     "types/optional_ref.h",
     "types/optional_util.h",
     "types/pass_key.h",
+    "types/same_as_any.h",
     "types/strong_alias.h",
     "types/supports_ostream_operator.h",
     "types/to_address.h",
@@ -1257,10 +1261,10 @@ component("base") {
     }
     if (current_cpu == "arm") {
       sources += [
-        "profiler/chrome_unwind_info_android.cc",
-        "profiler/chrome_unwind_info_android.h",
-        "profiler/chrome_unwinder_android.cc",
-        "profiler/chrome_unwinder_android.h",
+        "profiler/chrome_unwind_info_android_32.cc",
+        "profiler/chrome_unwind_info_android_32.h",
+        "profiler/chrome_unwinder_android_32.cc",
+        "profiler/chrome_unwinder_android_32.h",
       ]
     }
 
@@ -1660,6 +1664,13 @@ component("base") {
     if (is_posix && !is_ios) {
       sources += [ "process/process_posix.cc" ]
     }
+    if (!is_win && !is_chromeos && !is_android && !is_linux) {
+      sources += [ "synchronization/cancelable_event_default.cc" ]
+    }
+
+    if (is_linux || is_chromeos || is_android) {
+      sources += [ "synchronization/cancelable_event_posix.cc" ]
+    }
 
     if (use_blink) {
       sources += [
@@ -1780,6 +1791,7 @@ component("base") {
       "strings/string_util_win.h",
       "strings/sys_string_conversions_win.cc",
       "sync_socket_win.cc",
+      "synchronization/cancelable_event_win.cc",
       "synchronization/condition_variable_win.cc",
       "synchronization/lock_impl_win.cc",
       "synchronization/waitable_event_watcher_win.cc",
@@ -3414,6 +3426,7 @@ test("base_unittests") {
     "supports_user_data_unittest.cc",
     "sync_socket_unittest.cc",
     "synchronization/atomic_flag_unittest.cc",
+    "synchronization/cancelable_event_unittest.cc",
     "synchronization/condition_variable_unittest.cc",
     "synchronization/lock_unittest.cc",
     "synchronization/waitable_event_unittest.cc",
@@ -3539,12 +3552,14 @@ test("base_unittests") {
     "types/expected_unittest.cc",
     "types/fixed_array_unittest.cc",
     "types/id_type_unittest.cc",
+    "types/integral_constant_like_unittest.cc",
     "types/is_complete_unittest.cc",
     "types/is_instantiation_unittest.cc",
     "types/optional_ref_unittest.cc",
     "types/optional_unittest.cc",
     "types/optional_util_unittest.cc",
     "types/pass_key_unittest.cc",
+    "types/same_as_any_unittest.cc",
     "types/strong_alias_unittest.cc",
     "types/supports_ostream_operator_unittest.cc",
     "types/to_address_unittest.cc",
@@ -3582,6 +3597,8 @@ test("base_unittests") {
   if (use_safe_libcxx || use_safe_libstdcxx) {
     sources += [ "libcpp_hardening_test.cc" ]
   }
+
+  fuzztests = [ "JSONReaderTest.CanParseAnythingWithoutCrashing" ]
 
   defines = []
   frameworks = []
@@ -3826,8 +3843,8 @@ test("base_unittests") {
     }
     if (current_cpu == "arm") {
       sources += [
-        "profiler/chrome_unwind_info_android_unittest.cc",
-        "profiler/chrome_unwinder_android_unittest.cc",
+        "profiler/chrome_unwind_info_android_32_unittest.cc",
+        "profiler/chrome_unwinder_android_32_unittest.cc",
       ]
     }
     if (current_cpu == "arm64") {
@@ -4227,6 +4244,7 @@ if (enable_nocompile_tests) {
       "no_destructor_nocompile.nc",
       "observer_list_nocompile.nc",
       "run_loop_nocompile.nc",
+      "safe_numerics_nocompile.nc",
       "sequence_checker_nocompile.nc",
       "strings/cstring_view_nocompile.nc",
       "strings/stringprintf_nocompile.nc",
@@ -4368,7 +4386,6 @@ if (is_android) {
     ]
     deps = [
       ":base_java",
-      "//build/android:build_java",
       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
       "//third_party/androidx:androidx_annotation_annotation_experimental_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
@@ -4400,7 +4417,6 @@ if (is_android) {
     ]
 
     deps = [
-      "//build/android:build_java",
       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
       "//third_party/android_deps:com_google_errorprone_error_prone_annotations_java",
       "//third_party/androidx:androidx_annotation_annotation_experimental_java",
@@ -4539,7 +4555,6 @@ if (is_android) {
       ":callback_java",
       ":log_java",
       ":time_utils_java",
-      "//build/android:build_java",
       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
       "//third_party/android_deps:com_google_errorprone_error_prone_annotations_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
@@ -4575,7 +4590,6 @@ if (is_android) {
       ":log_java",
       ":tasks_java",
       ":time_utils_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
       "//third_party/jni_zero:jni_zero_java",
     ]
@@ -4630,7 +4644,6 @@ if (is_android) {
     ]
     deps = [
       "//base:tasks_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
     ]
   }
@@ -4652,7 +4665,6 @@ if (is_android) {
     deps = [
       ":lifetime_java",
       ":tasks_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
     ]
   }
@@ -4687,7 +4699,6 @@ if (is_android) {
   }
   android_library("time_utils_java") {
     sources = [ "android/java/src/org/chromium/base/TimeUtils.java" ]
-    deps = [ "//build/android:build_java" ]
   }
 
   generate_jni("callback_jni") {
@@ -4700,7 +4711,6 @@ if (is_android) {
       "android/java/src/org/chromium/base/CallbackUtils.java",
     ]
     deps = [
-      "//build/android:build_java",
       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
       "//third_party/android_deps:com_google_errorprone_error_prone_annotations_java",
       "//third_party/androidx:androidx_annotation_annotation_experimental_java",
@@ -4782,7 +4792,6 @@ if (is_android) {
       ":metrics_java",
       ":resetters_java",
       ":time_utils_java",
-      "//build/android:build_java",
       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
       "//third_party/jni_zero:jni_zero_java",
@@ -4793,11 +4802,7 @@ if (is_android) {
       "android/java/src/org/chromium/base/JavaUtils.java",
       "android/java/src/org/chromium/base/Log.java",
     ]
-    enable_nullaway = true
-    deps = [
-      "//build/android:build_java",
-      "//third_party/androidx:androidx_annotation_annotation_java",
-    ]
+    deps = [ "//third_party/androidx:androidx_annotation_annotation_java" ]
   }
 
   generate_jni("command_line_jni") {
@@ -4847,7 +4852,6 @@ if (is_android) {
   android_library("service_loader_java") {
     deps = [
       ":resetters_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
     ]
     sources = [ "android/java/src/org/chromium/base/ServiceLoaderUtil.java" ]
@@ -4855,7 +4859,6 @@ if (is_android) {
 
   android_library("resetters_java") {
     deps = [
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_experimental_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
     ]
@@ -4878,7 +4881,6 @@ if (is_android) {
     sources = [ "android/java/src/org/chromium/base/SysUtils.java" ]
     deps = [
       ":tasks_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
       "//third_party/jni_zero:jni_zero_java",
     ]
@@ -4914,7 +4916,6 @@ if (is_android) {
       ":sys_utils_java",
       ":tasks_java",
       ":time_utils_java",
-      "//build/android:build_java",
       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
       "//third_party/android_deps:com_google_errorprone_error_prone_annotations_java",
       "//third_party/androidx:androidx_annotation_annotation_experimental_java",
@@ -4926,7 +4927,6 @@ if (is_android) {
   android_library("base_shared_preferences_java") {
     deps = [
       ":base_java",
-      "//build/android:build_java",
       "//third_party/android_deps:guava_android_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
       "//third_party/jni_zero:jni_zero_java",
@@ -4949,7 +4949,6 @@ if (is_android) {
     deps = [
       ":base_java",
       ":base_shared_preferences_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
     ]
 
@@ -4974,7 +4973,6 @@ if (is_android) {
       ":base_java_test_support",
       ":base_java_test_support_uncommon",
       "//base/test:test_support_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
       "//third_party/androidx:androidx_test_monitor_java",
       "//third_party/androidx:androidx_test_rules_java",
@@ -5039,7 +5037,6 @@ if (is_android) {
 
     deps = [
       ":base_java",
-      "//build/android:build_java",
       "//third_party/androidx:androidx_annotation_annotation_java",
       "//third_party/jni_zero:jni_zero_java",
       "//third_party/junit:junit",
@@ -5052,7 +5049,6 @@ if (is_android) {
     deps = [
       ":base_cached_flags_java",
       ":base_java",
-      "//build/android:build_java",
       "//testing/android/instrumentation:test_runner_java",
       "//third_party/accessibility_test_framework:accessibility_core_java",
       "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
@@ -5219,7 +5215,6 @@ if (is_android) {
     deps = [
       ":base_java",
       ":base_java_test_support",
-      "//build/android:build_java",
       "//testing/android/junit:junit_test_support",
       "//third_party/androidx:androidx_test_core_java",
       "//third_party/androidx:androidx_test_monitor_java",
@@ -5348,10 +5343,7 @@ if (is_android) {
         [ "android/javatests/src/org/chromium/base/profiler/TestSupport.java" ]
     srcjar_deps = [ ":base_profiler_test_support_jni" ]
 
-    deps = [
-      "//build/android:build_java",
-      "//third_party/jni_zero:jni_zero_java",
-    ]
+    deps = [ "//third_party/jni_zero:jni_zero_java" ]
   }
 
   generate_jni("base_unittest_support_jni") {

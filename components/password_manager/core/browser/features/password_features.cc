@@ -76,7 +76,7 @@ BASE_FEATURE(kIOSProactivePasswordGenerationBottomSheet,
 
 BASE_FEATURE(kLocalStateEnterprisePasswordHashes,
              "LocalStateEnterprisePasswordHashes",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kPasswordFormGroupedAffiliations,
              "PasswordFormGroupedAffiliations",
@@ -148,10 +148,6 @@ BASE_FEATURE(kBiometricAuthIdentityCheck,
              "BiometricAuthIdentityCheck",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kClearLoginDatabaseForAllMigratedUPMUsers,
-             "ClearLoginDatabaseForAllMigratedUPMUsers",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kDropLoginDbRenameForUpmSyncingUsers,
              "DropLoginDbRenameForUpmSyncingUsers",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -175,7 +171,7 @@ BASE_FEATURE(kUsernameFirstFlowWithIntermediateValuesVoting,
 
 BASE_FEATURE(kUseAsyncOsCryptInLoginDatabase,
              "UseAsyncOsCryptInLoginDatabase",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kUseNewEncryptionMethod,
              "UseNewEncryptionMethod",

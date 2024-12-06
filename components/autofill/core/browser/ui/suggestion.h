@@ -276,6 +276,7 @@ struct Suggestion {
     kCardVerve,
     kCardVisa,
     kIban,
+    kBnpl,
     kAutofillPredictionImprovements,
   };
 
@@ -370,7 +371,7 @@ struct Suggestion {
         return absl::holds_alternative<ValueToFill>(payload) ||
                absl::holds_alternative<Guid>(payload) ||
                absl::holds_alternative<InstrumentId>(payload);
-      case SuggestionType::kFillPredictionImprovements:
+      case SuggestionType::kFillAutofillAi:
         return absl::holds_alternative<ValueToFill>(payload) ||
                absl::holds_alternative<PredictionImprovementsPayload>(payload);
       case SuggestionType::kCreditCardEntry:

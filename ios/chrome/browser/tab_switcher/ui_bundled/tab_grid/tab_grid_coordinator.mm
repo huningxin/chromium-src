@@ -20,6 +20,7 @@
 #import "components/search_engines/template_url_service.h"
 #import "components/strings/grit/components_strings.h"
 #import "components/supervised_user/core/browser/supervised_user_utils.h"
+#import "components/sync/service/sync_service.h"
 #import "ios/chrome/browser/bookmarks/model/bookmark_model_factory.h"
 #import "ios/chrome/browser/bookmarks/ui_bundled/home/bookmarks_coordinator.h"
 #import "ios/chrome/browser/bring_android_tabs/model/bring_android_tabs_to_ios_service.h"
@@ -81,6 +82,7 @@
 #import "ios/chrome/browser/shared/ui/util/util_swift.h"
 #import "ios/chrome/browser/sharing/ui_bundled/sharing_coordinator.h"
 #import "ios/chrome/browser/sharing/ui_bundled/sharing_params.h"
+#import "ios/chrome/browser/signin/model/authentication_service_factory.h"
 #import "ios/chrome/browser/signin/model/identity_manager_factory.h"
 #import "ios/chrome/browser/snackbar/ui_bundled/snackbar_coordinator.h"
 #import "ios/chrome/browser/sync/model/session_sync_service_factory.h"
@@ -125,6 +127,7 @@
 #import "ios/chrome/browser/tabs/model/inactive_tabs/features.h"
 #import "ios/chrome/browser/ui/authentication/history_sync/history_sync_coordinator.h"
 #import "ios/chrome/browser/ui/authentication/history_sync/history_sync_popup_coordinator.h"
+#import "ios/chrome/browser/ui/authentication/history_sync/history_sync_utils.h"
 #import "ios/chrome/browser/url_loading/model/url_loading_browser_agent.h"
 #import "ios/chrome/browser/url_loading/model/url_loading_params.h"
 #import "ios/chrome/grit/ios_strings.h"
@@ -219,6 +222,8 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
 
   // Holder for the current mode of the whole tab grid.
   TabGridModeHolder* _modeHolder;
+  raw_ptr<AuthenticationService> _authenticationService;
+  raw_ptr<syncer::SyncService> _syncService;
 }
 
 // Browser that contain tabs from the main pane (i.e. non-incognito).
@@ -610,6 +615,12 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
 
 #pragma mark - Private
 
+- (void)stopHistorySyncPopupCoordinator {
+  [_historySyncPopupCoordinator stop];
+  _historySyncPopupCoordinator.delegate = nil;
+  _historySyncPopupCoordinator = nil;
+}
+
 // Hides tab group views.
 - (void)hideTabGroupsViews {
   [_incognitoGridCoordinator hideTabGroup];
@@ -787,6 +798,8 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
                    forProtocol:@protocol(TabGridCommands)];
 
   ProfileIOS* profile = self.regularBrowser->GetProfile();
+  _authenticationService = AuthenticationServiceFactory::GetForProfile(profile);
+  _syncService = SyncServiceFactory::GetForProfile(profile);
   _mediator = [[TabGridMediator alloc]
        initWithIdentityManager:IdentityManagerFactory::GetForProfile(profile)
                    prefService:profile->GetPrefs()
@@ -1098,14 +1111,14 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
   [self.historyCoordinator stop];
   self.historyCoordinator = nil;
 
-  _historySyncPopupCoordinator.delegate = nil;
-  [_historySyncPopupCoordinator stop];
-  _historySyncPopupCoordinator = nil;
+  [self stopHistorySyncPopupCoordinator];
 
   [_bookmarksCoordinator stop];
   _bookmarksCoordinator = nil;
 
   [_mediator disconnect];
+  _syncService = nullptr;
+  _authenticationService = nullptr;
 }
 
 #pragma mark - TabPresentationDelegate
@@ -1339,22 +1352,27 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
   // Stop the previous coordinator since the user can tap on the promo button
   // to open a new History Sync Page while the dismiss animation of the previous
   // one is in progress.
-  _historySyncPopupCoordinator.delegate = nil;
-  [_historySyncPopupCoordinator stop];
-  _historySyncPopupCoordinator = nil;
+  [self stopHistorySyncPopupCoordinator];
   // Show the History Sync Opt-In screen. The coordinator will dismiss itself
   // if there is no signed-in account (eg. if sign-in unsuccessful) or if sync
   // is disabled by policies.
-  _historySyncPopupCoordinator = [[HistorySyncPopupCoordinator alloc]
-      initWithBaseViewController:_baseViewController
-                         browser:self.regularBrowser
-                   showUserEmail:!dedicatedSignInDone
-               signOutIfDeclined:dedicatedSignInDone
-                      isOptional:NO
-                     accessPoint:signin_metrics::AccessPoint::
-                                     ACCESS_POINT_RECENT_TABS];
-  _historySyncPopupCoordinator.delegate = self;
-  [_historySyncPopupCoordinator start];
+  if (history_sync::GetSkipReason(_syncService, _authenticationService,
+                                  self.regularBrowser->GetProfile()->GetPrefs(),
+                                  NO) !=
+      history_sync::HistorySyncSkipReason::kNone) {
+    [self.remoteTabsMediator refreshSessionsView];
+  } else {
+    _historySyncPopupCoordinator = [[HistorySyncPopupCoordinator alloc]
+        initWithBaseViewController:_baseViewController
+                           browser:self.regularBrowser
+                     showUserEmail:!dedicatedSignInDone
+                 signOutIfDeclined:dedicatedSignInDone
+                        isOptional:NO
+                       accessPoint:signin_metrics::AccessPoint::
+                                       ACCESS_POINT_RECENT_TABS];
+    _historySyncPopupCoordinator.delegate = self;
+    [_historySyncPopupCoordinator start];
+  }
 }
 
 #pragma mark - HistoryPresentationDelegate
@@ -1797,9 +1815,7 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
 
 - (void)historySyncPopupCoordinator:(HistorySyncPopupCoordinator*)coordinator
                 didFinishWithResult:(SigninCoordinatorResult)result {
-  _historySyncPopupCoordinator.delegate = nil;
-  [_historySyncPopupCoordinator stop];
-  _historySyncPopupCoordinator = nil;
+  [self stopHistorySyncPopupCoordinator];
   [self.remoteTabsMediator refreshSessionsView];
 }
 

@@ -13,7 +13,6 @@ import 'chrome://resources/cr_elements/cr_collapse/cr_collapse.js';
 import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
 import 'chrome://resources/cr_elements/cr_shared_style.css.js';
 import 'chrome://resources/cr_elements/cr_shared_vars.css.js';
-import 'chrome://resources/polymer/v3_0/iron-flex-layout/iron-flex-layout-classes.js';
 import 'chrome://resources/cr_elements/cr_icon/cr_icon.js';
 import '../settings_shared.css.js';
 import './safety_check_extensions_child.js';
@@ -27,7 +26,6 @@ import {WebUiListenerMixin} from 'chrome://resources/cr_elements/web_ui_listener
 import {flush, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 import {HatsBrowserProxyImpl, TrustSafetyInteraction} from '../hats_browser_proxy.js';
-import {loadTimeData} from '../i18n_setup.js';
 import type {MetricsBrowserProxy} from '../metrics_browser_proxy.js';
 import {MetricsBrowserProxyImpl, SafetyCheckInteractions} from '../metrics_browser_proxy.js';
 import {routes} from '../route.js';
@@ -70,15 +68,6 @@ export class SettingsSafetyCheckPageElement extends
       /** UI string to display for the parent status. */
       parentDisplayString_: String,
 
-      /** Boolean to show/hide entry point for unused site permissions. */
-      safetyCheckUnusedSitePermissionsEnabled_: {
-        type: Boolean,
-        value() {
-          return loadTimeData.getBoolean(
-              'safetyCheckUnusedSitePermissionsEnabled');
-        },
-      },
-
       /* List of notification permission sites. */
       notificationPermissionSites_: Array,
     };
@@ -86,7 +75,6 @@ export class SettingsSafetyCheckPageElement extends
 
   private parentStatus_: SafetyCheckParentStatus;
   private parentDisplayString_: string;
-  private safetyCheckUnusedSitePermissionsEnabled_: boolean;
   private safetyCheckNumberOfExtensionsThatNeedReview_: number;
   private notificationPermissionSites_: NotificationPermission[] = [];
   private unusedSitePermissions_: UnusedSitePermissions[] = [];
@@ -239,8 +227,7 @@ export class SettingsSafetyCheckPageElement extends
   }
 
   private shouldShowUnusedSitePermissions_(): boolean {
-    return this.safetyCheckUnusedSitePermissionsEnabled_ &&
-        this.unusedSitePermissions_.length !== 0;
+    return this.unusedSitePermissions_.length !== 0;
   }
 
   private shouldShowSafetyCheckExtensionsReview_(): boolean {

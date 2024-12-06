@@ -5,6 +5,10 @@
 #ifndef CHROME_BROWSER_UI_VIEWS_GLIC_GLIC_VIEW_H_
 #define CHROME_BROWSER_UI_VIEWS_GLIC_GLIC_VIEW_H_
 
+#include "chrome/browser/profiles/keep_alive/scoped_profile_keep_alive.h"
+#include "chrome/browser/ui/views/glic/glic_web_view.h"
+#include "components/keep_alive_registry/keep_alive_types.h"
+#include "components/keep_alive_registry/scoped_keep_alive.h"
 #include "ui/gfx/geometry/size.h"
 #include "ui/views/view.h"
 #include "ui/views/widget/unique_widget_ptr.h"
@@ -41,7 +45,7 @@ class GlicView : public views::View {
   // views::View
   void AddedToWidget() override;
 
-  void DragFromPoint(gfx::Vector2d mousePoint);
+  void DragFromPoint(gfx::Vector2d mouse_location);
 
   views::WebView* web_view() { return web_view_; }
 
@@ -50,7 +54,16 @@ class GlicView : public views::View {
   std::unique_ptr<WindowEventObserver> window_event_observer_;
   // True while RunMoveLoop() has been called on a widget.
   bool in_move_loop_ = false;
-  raw_ptr<views::WebView> web_view_;
+  raw_ptr<GlicWebView> web_view_;
+
+  // Ensures that the profile associated with this view isn't destroyed while
+  // it is visible, and nor is the browser process.
+  std::unique_ptr<ScopedProfileKeepAlive> profile_keep_alive_;
+  std::unique_ptr<ScopedKeepAlive> keep_alive_;
+
+  // If the mouse is in snapping distance of a browser's glic button, it snaps
+  // glic to the top right of the browser's glic button.
+  void SnapToBrowserIfInBounds(gfx::Vector2d mouse_location);
 };
 
 }  // namespace glic

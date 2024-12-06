@@ -315,6 +315,7 @@ SharedStorageWorkletHost::SharedStorageWorkletHost(
     const url::Origin& data_origin,
     const GURL& script_source_url,
     network::mojom::CredentialsMode credentials_mode,
+    blink::mojom::SharedStorageWorkletCreationMethod creation_method,
     const std::vector<blink::mojom::OriginTrialFeature>& origin_trial_features,
     mojo::PendingAssociatedReceiver<blink::mojom::SharedStorageWorkletHost>
         worklet_host,
@@ -333,6 +334,7 @@ SharedStorageWorkletHost::SharedStorageWorkletHost(
           storage_partition_->GetSharedStorageRuntimeManager()),
       browser_context_(
           document_service.render_frame_host().GetBrowserContext()),
+      creation_method_(creation_method),
       shared_storage_origin_(data_origin),
       shared_storage_site_(net::SchemefulSite(shared_storage_origin_)),
       main_frame_origin_(document_service.main_frame_origin()),
@@ -948,6 +950,27 @@ void SharedStorageWorkletHost::SharedStorageUpdate(
 
   shared_storage_runtime_manager_->lock_manager().SharedStorageUpdate(
       std::move(method_with_options), shared_storage_origin_,
+      AccessScope::kSharedStorageWorklet, main_frame_id, std::move(callback));
+}
+
+void SharedStorageWorkletHost::SharedStorageBatchUpdate(
+    std::vector<network::mojom::SharedStorageModifierMethodWithOptionsPtr>
+        methods_with_options,
+    const std::optional<std::string>& with_lock,
+    SharedStorageBatchUpdateCallback callback) {
+  std::string debug_message;
+  if (!IsSharedStorageAllowed(&debug_message)) {
+    std::move(callback).Run(GetSharedStorageErrorMessage(
+        debug_message, kSharedStorageDisabledMessage));
+    return;
+  }
+
+  FrameTreeNodeId main_frame_id = document_service_
+                                      ? document_service_->main_frame_id()
+                                      : FrameTreeNodeId();
+
+  shared_storage_runtime_manager_->lock_manager().SharedStorageBatchUpdate(
+      std::move(methods_with_options), with_lock, shared_storage_origin_,
       AccessScope::kSharedStorageWorklet, main_frame_id, std::move(callback));
 }
 
@@ -1612,8 +1635,7 @@ SharedStorageWorkletHost::MaybeConstructPrivateAggregationOperationDetails(
           private_aggregation_config->filtering_id_max_bytes);
 
   std::optional<base::TimeDelta> timeout;
-  if (base::FeatureList::IsEnabled(blink::features::kSharedStorageAPI) &&
-      PrivateAggregationManager::ShouldSendReportDeterministically(
+  if (PrivateAggregationManager::ShouldSendReportDeterministically(
           private_aggregation_config->context_id,
           private_aggregation_config->filtering_id_max_bytes)) {
     timeout = base::Seconds(5);

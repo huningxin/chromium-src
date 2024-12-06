@@ -83,6 +83,7 @@
 #include "third_party/blink/renderer/core/inspector/inspector_css_agent.h"
 #include "third_party/blink/renderer/core/inspector/inspector_highlight.h"
 #include "third_party/blink/renderer/core/inspector/inspector_history.h"
+#include "third_party/blink/renderer/core/inspector/protocol/dom.h"
 #include "third_party/blink/renderer/core/inspector/resolve_node.h"
 #include "third_party/blink/renderer/core/inspector/v8_inspector_string.h"
 #include "third_party/blink/renderer/core/layout/hit_test_location.h"
@@ -117,7 +118,7 @@ template <typename Functor>
 void ForEachSupportedPseudo(const Element* element, Functor& func) {
   for (PseudoId pseudo_id :
        {kPseudoIdCheckMark, kPseudoIdBefore, kPseudoIdAfter,
-        kPseudoIdSelectArrow, kPseudoIdMarker, kPseudoIdBackdrop}) {
+        kPseudoIdPickerIcon, kPseudoIdMarker, kPseudoIdBackdrop}) {
     if (!PseudoElement::IsWebExposed(pseudo_id, element))
       continue;
     if (PseudoElement* pseudo_element = element->GetPseudoElement(pseudo_id))
@@ -201,8 +202,8 @@ protocol::DOM::PseudoType InspectorDOMAgent::ProtocolPseudoElementType(
       return protocol::DOM::PseudoTypeEnum::Before;
     case kPseudoIdAfter:
       return protocol::DOM::PseudoTypeEnum::After;
-    case kPseudoIdSelectArrow:
-      return protocol::DOM::PseudoTypeEnum::SelectArrow;
+    case kPseudoIdPickerIcon:
+      return protocol::DOM::PseudoTypeEnum::PickerIcon;
     case kPseudoIdMarker:
       return protocol::DOM::PseudoTypeEnum::Marker;
     case kPseudoIdBackdrop:
@@ -274,6 +275,116 @@ protocol::DOM::PseudoType InspectorDOMAgent::ProtocolPseudoElementType(
     case kPseudoIdInvalid:
       NOTREACHED();
   }
+}
+
+PseudoId InspectorDOMAgent::ProtocolPseudoTypeToPseudoId(
+    protocol::DOM::PseudoType type) {
+  if (type == protocol::DOM::PseudoTypeEnum::FirstLine) {
+    return kPseudoIdFirstLine;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::FirstLetter) {
+    return kPseudoIdFirstLetter;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Checkmark) {
+    return kPseudoIdCheckMark;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Before) {
+    return kPseudoIdBefore;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::After) {
+    return kPseudoIdAfter;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Marker) {
+    return kPseudoIdMarker;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Backdrop) {
+    return kPseudoIdBackdrop;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Column) {
+    return kPseudoIdColumn;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Selection) {
+    return kPseudoIdSelection;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::SearchText) {
+    return kPseudoIdSearchText;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::TargetText) {
+    return kPseudoIdTargetText;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::SpellingError) {
+    return kPseudoIdSpellingError;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::GrammarError) {
+    return kPseudoIdGrammarError;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Highlight) {
+    return kPseudoIdHighlight;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::FirstLineInherited) {
+    return kPseudoIdFirstLineInherited;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollMarker) {
+    return kPseudoIdScrollMarker;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollMarkerGroup) {
+    return kPseudoIdScrollMarkerGroup;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollButton) {
+    return kPseudoIdScrollButton;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Scrollbar) {
+    return kPseudoIdScrollbar;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollbarThumb) {
+    return kPseudoIdScrollbarThumb;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollbarButton) {
+    return kPseudoIdScrollbarButton;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollbarTrack) {
+    return kPseudoIdScrollbarTrack;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollbarTrackPiece) {
+    return kPseudoIdScrollbarTrackPiece;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ScrollbarCorner) {
+    return kPseudoIdScrollbarCorner;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Resizer) {
+    return kPseudoIdResizer;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::InputListButton) {
+    return kPseudoIdInputListButton;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ViewTransition) {
+    return kPseudoIdViewTransition;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ViewTransitionGroup) {
+    return kPseudoIdViewTransitionGroup;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ViewTransitionImagePair) {
+    return kPseudoIdViewTransitionImagePair;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ViewTransitionOld) {
+    return kPseudoIdViewTransitionOld;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::ViewTransitionNew) {
+    return kPseudoIdViewTransitionNew;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Placeholder) {
+    return kPseudoIdPlaceholder;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::FileSelectorButton) {
+    return kPseudoIdFileSelectorButton;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::DetailsContent) {
+    return kPseudoIdDetailsContent;
+  }
+  if (type == protocol::DOM::PseudoTypeEnum::Picker) {
+    return kPseudoIdPickerSelect;
+  }
+  NOTREACHED();
 }
 
 InspectorDOMAgent::InspectorDOMAgent(

@@ -153,8 +153,7 @@ bool IsAppPinEditable(apps::AppType app_type,
       }
       return false;
     }
-    case apps::AppType::kPluginVm:
-    case apps::AppType::kBuiltIn: {
+    case apps::AppType::kPluginVm: {
       bool show_in_launcher = false;
       apps::AppServiceProxyFactory::GetForProfile(profile)
           ->AppRegistryCache()
@@ -169,18 +168,13 @@ bool IsAppPinEditable(apps::AppType app_type,
     case apps::AppType::kChromeApp:
     case apps::AppType::kWeb:
     case apps::AppType::kSystemWeb:
-    case apps::AppType::kStandaloneBrowserChromeApp:
       return true;
-    case apps::AppType::kStandaloneBrowser:
-      // Lacros behaves like the Chrome browser icon and cannot be unpinned.
-      return false;
     case apps::AppType::kUnknown:
       // Type kUnknown is used for "unregistered" Crostini apps, which do not
       // have a .desktop file and can only be closed, not pinned.
       return false;
     case apps::AppType::kRemote:
     case apps::AppType::kExtension:
-    case apps::AppType::kStandaloneBrowserExtension:
       NOTREACHED() << "Type " << (int)app_type
                    << " should not appear in shelf.";
     case apps::AppType::kBruschetta:

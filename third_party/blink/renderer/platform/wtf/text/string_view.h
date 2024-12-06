@@ -31,15 +31,15 @@ class AtomicString;
 class CodePointIterator;
 class String;
 
-enum UTF8ConversionMode {
+enum class Utf8ConversionMode : uint8_t {
   // Unpaired surrogates are encoded using the standard UTF-8 encoding scheme,
   // even though surrogate characters should not be present in a valid UTF-8
   // string.
-  kLenientUTF8Conversion,
+  kLenient,
   // Conversion terminates at the first unpaired surrogate, if any.
-  kStrictUTF8Conversion,
+  kStrict,
   // Unpaired surrogates are replaced with U+FFFD (REPLACEMENT CHARACTER).
-  kStrictUTF8ConversionReplacingUnpairedSurrogatesWithFFFD
+  kStrictReplacingErrors
 };
 
 // A string like object that wraps either an 8bit or 16bit byte sequence
@@ -59,16 +59,18 @@ class WTF_EXPORT StringView {
   // should rarely need to be used.
   class StackBackingStore {
    public:
-    // Returns a pointer to a buffer of size |length| that is valid for as long
-    // the StackBackingStore object is alive and Realloc() has not been called
+    // Returns a span of size |length| that is valid for as long the
+    // StackBackingStore object is alive and Realloc() has not been called
     // again.
     template <typename CharT>
-    CharT* Realloc(int length) {
+    base::span<CharT> Realloc(wtf_size_t length) {
       size_t size = length * sizeof(CharT);
       if (size > sizeof(stackbuf16_)) [[unlikely]] {
         heapbuf_.reset(reinterpret_cast<char*>(
             WTF::Partitions::BufferMalloc(size, "StackBackingStore")));
-        return reinterpret_cast<CharT*>(heapbuf_.get());
+        // SAFETY: `heapbuf_` is the result of BufferMalloc() for `length`.
+        return UNSAFE_BUFFERS(
+            base::span(reinterpret_cast<CharT*>(heapbuf_.get()), length));
       }
 
       // If the Realloc() shrinks the buffer size, |heapbuf_| will keep a copy
@@ -77,7 +79,9 @@ class WTF_EXPORT StringView {
       // another branch.
       static_assert(alignof(decltype(stackbuf16_)) % alignof(CharT) == 0,
                     "stack buffer must be sufficiently aligned");
-      return reinterpret_cast<CharT*>(&stackbuf16_[0]);
+      // SAFETY: `length` is smaller than the size of `stackbuf16_`.
+      return UNSAFE_BUFFERS(
+          base::span(reinterpret_cast<CharT*>(&stackbuf16_[0]), length));
     }
 
    public:
@@ -154,8 +158,6 @@ class WTF_EXPORT StringView {
       : StringView(reinterpret_cast<const LChar*>(chars)) {}
 
   // From a wide literal string or UChar buffer.
-  StringView(const UChar* chars, unsigned length)
-      : impl_(StringImpl::empty16_bit_), bytes_(chars), length_(length) {}
   explicit StringView(base::span<const UChar> chars)
       : impl_(StringImpl::empty16_bit_),
         bytes_(chars.data()),
@@ -177,7 +179,7 @@ class WTF_EXPORT StringView {
   }
 
   [[nodiscard]] std::string Utf8(
-      UTF8ConversionMode mode = kLenientUTF8Conversion) const;
+      Utf8ConversionMode mode = Utf8ConversionMode::kLenient) const;
 
   bool IsAtomic() const { return SharedImpl() && SharedImpl()->IsAtomic(); }
 

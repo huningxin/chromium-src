@@ -539,7 +539,7 @@ class CORE_EXPORT ChromeClient : public GarbageCollected<ChromeClient> {
   virtual void DidUpdateBrowserControls() const {}
 
   virtual void DidUpdateMaxSafeAreaInsets(
-      const gfx::Insets& max_safe_area_insets) const {}
+      const gfx::InsetsF& max_safe_area_insets) const {}
 
   virtual void RegisterPopupOpeningObserver(PopupOpeningObserver*) = 0;
   virtual void UnregisterPopupOpeningObserver(PopupOpeningObserver*) = 0;
@@ -564,7 +564,7 @@ class CORE_EXPORT ChromeClient : public GarbageCollected<ChromeClient> {
   // the frame to be presented, the `callback` will run with the time of the
   // failure.
   using ReportTimeCallback =
-      WTF::CrossThreadOnceFunction<void(const viz::FrameTimingDetails&)>;
+      base::OnceCallback<void(const viz::FrameTimingDetails&)>;
   virtual void NotifyPresentationTime(LocalFrame& frame,
                                       ReportTimeCallback callback) {}
 

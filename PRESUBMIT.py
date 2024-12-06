@@ -2281,7 +2281,6 @@ _GENERIC_PYDEPS_FILES = [
     'build/android/resource_sizes.pydeps',
     'build/android/test_runner.pydeps',
     'build/android/test_wrapper/logdog_wrapper.pydeps',
-    'build/lacros/lacros_resource_sizes.pydeps',
     'build/protoc_java.pydeps',
     'chrome/android/monochrome/scripts/monochrome_python_tests.pydeps',
     'chrome/test/chromedriver/log_replay/client_replay_unittest.pydeps',
@@ -3450,6 +3449,32 @@ def _ParseDeps(contents):
     return local_scope
 
 
+def _FindAllDepsFilesForSubpath(input_api, subpath):
+    ret = []
+    while subpath:
+        cur = input_api.os_path.join(input_api.change.RepositoryRoot(), subpath, 'DEPS')
+        if input_api.os_path.exists(cur):
+            ret.append(cur)
+        subpath = input_api.os_path.dirname(subpath)
+    return ret
+
+
+def _FindAddedDepsThatRequireReview(input_api, depended_on_paths):
+    """Filters to those whose DEPS set new_usages_require_review=True"""
+    ret = set()
+    cache = {}
+    for target_path in depended_on_paths:
+        for subpath in _FindAllDepsFilesForSubpath(input_api, target_path):
+            config = cache.get(subpath)
+            if config is None:
+                config = _ParseDeps(input_api.ReadFile(subpath))
+                cache[subpath] = config
+            if config.get('new_usages_require_review'):
+                ret.add(target_path)
+                break
+    return ret
+
+
 def _CalculateAddedDeps(os_path, old_contents, new_contents):
     """Helper method for CheckAddedDepsHaveTargetApprovals. Returns
     a set of DEPS entries that we should look up.
@@ -3599,7 +3624,9 @@ def CheckAddedDepsHaveTargetApprovals(input_api, output_api):
         return [output_api.PresubmitPromptWarning(
                 'Failed to retrieve owner override status - %s' % str(e))]
 
-    virtual_depended_on_files = set()
+    # A set of paths (that might not exist) that are being added as DEPS
+    # (via lines like "+foo/bar/baz").
+    depended_on_paths = set()
 
     # Consistently use / as path separator to simplify the writing of regex
     # expressions.
@@ -3610,12 +3637,14 @@ def CheckAddedDepsHaveTargetApprovals(input_api, output_api):
                                      file_filter=file_filter):
         filename = input_api.os_path.basename(f.LocalPath())
         if filename == 'DEPS':
-            virtual_depended_on_files.update(
+            depended_on_paths.update(
                 _CalculateAddedDeps(input_api.os_path,
                                     '\n'.join(f.OldContents()),
                                     '\n'.join(f.NewContents())))
 
-    if not virtual_depended_on_files:
+    # Requiring reviews is opt-in as of https://crbug.com/365797506
+    depended_on_paths = _FindAddedDepsThatRequireReview(input_api, depended_on_paths)
+    if not depended_on_paths:
         return []
 
     if input_api.is_committing:
@@ -3650,10 +3679,10 @@ def CheckAddedDepsHaveTargetApprovals(input_api, output_api):
     owner_email = owner_email or input_api.change.author_email
 
     approval_status = input_api.owners_client.GetFilesApprovalStatus(
-        virtual_depended_on_files, reviewers.union([owner_email]), [])
+        depended_on_paths, reviewers.union([owner_email]), [])
     missing_files = [
-        f for f in virtual_depended_on_files
-        if approval_status[f] != input_api.owners_client.APPROVED
+        p for p in depended_on_paths
+        if approval_status[p] != input_api.owners_client.APPROVED
     ]
 
     # We strip the /DEPS part that was added by
@@ -5288,7 +5317,9 @@ def CheckNoDeprecatedCss(input_api, output_api):
     file_inclusion_pattern = [r".+\.css$"]
     files_to_skip = (_EXCLUDED_PATHS + _TEST_CODE_EXCLUDED_PATHS +
                      input_api.DEFAULT_FILES_TO_SKIP +
-                     (r"^chrome/common/extensions/docs", r"^chrome/docs",
+                     (# Legacy CSS file using deprecated CSS.
+                      r"^chrome/browser/resources/chromeos/arc_support/cr_overlay.css$",
+                      r"^chrome/common/extensions/docs", r"^chrome/docs",
                       r"^native_client_sdk",
                       # The NTP team prefers reserving -webkit-line-clamp for
                       # ellipsis effect which can only be used with -webkit-box.
@@ -6290,7 +6321,9 @@ def CheckForIncludeGuards(input_api, output_api):
         return (file_with_path.endswith('.h')
                 and not file_with_path.endswith('_message_generator.h')
                 and not file_with_path.endswith('com_imported_mstscax.h')
-                and not file_with_path.startswith('base/allocator/partition_allocator')
+                and not file_with_path.startswith(
+                    input_api.os_path.join('base', 'allocator',
+                                           'partition_allocator'))
                 and (not file_with_path.startswith('third_party')
                      or file_with_path.startswith(
                          input_api.os_path.join('third_party', 'blink'))))

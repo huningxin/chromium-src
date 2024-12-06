@@ -248,11 +248,6 @@ SavedDeskBrowserBuilder& SavedDeskBrowserBuilder::SetUrls(
   return *this;
 }
 
-SavedDeskBrowserBuilder& SavedDeskBrowserBuilder::SetIsLacros(bool is_lacros) {
-  is_lacros_ = is_lacros;
-  return *this;
-}
-
 SavedDeskBrowserBuilder& SavedDeskBrowserBuilder::SetLacrosProfileId(
     uint64_t lacros_profile_id) {
   lacros_profile_id_ = lacros_profile_id;
@@ -271,8 +266,7 @@ SavedDeskBrowserBuilder& SavedDeskBrowserBuilder::AddTabGroupBuilder(
 }
 
 BuiltApp SavedDeskBrowserBuilder::Build() {
-  generic_builder_.SetAppId(is_lacros_ ? app_constants::kLacrosAppId
-                                       : app_constants::kChromeAppId);
+  generic_builder_.SetAppId(app_constants::kChromeAppId);
 
   BuiltApp generic_app = generic_builder_.Build();
   if (generic_app.status != BuiltApp::Status::kOk)

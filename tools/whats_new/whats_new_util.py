@@ -100,7 +100,9 @@ def UpdateWhatsNewPlist(feature_dict: dict[str, str],
       feature_dict: Data for the new What's New feature.
       feature_type: Newly added WhatsNewType for the new What's New feature.
   """
-    instruction_steps = feature_dict['Instructions'].splitlines()
+
+    # Format and clean up the instructions text field ID.
+    instruction_steps = StripWhitespacesAndEmptyLines(feature_dict['Instructions'])
     serialized_animation_texts = feature_dict['Animation texts'].splitlines()
     animation_text_dict = {}
     for animation_text_string in serialized_animation_texts:
@@ -290,7 +292,7 @@ def UploadScreenshots(feature_dict: dict[str, str],
     titles.append(feature_dict['Title'])
     titles.append(feature_dict['Subtitle'])
     feature_screenshot = feature_dict['Feature screenshot']
-    titles.extend(feature_dict['Instructions'].splitlines())
+    titles.extend(StripWhitespacesAndEmptyLines(feature_dict['Instructions']))
     animation_texts_string = feature_dict['Animation texts'].splitlines()
     titles.extend(json.loads(a)['value'] for a in animation_texts_string)
     screenshot_dir = os.path.join(
@@ -412,3 +414,71 @@ def RemoveAnimationAssetsForMilestone(milestone: str) -> None:
         file.seek(0)
         file.write(data)
         file.truncate()
+
+
+def LoadValidIconNames() -> tuple[set[str], set[str]]:
+    """Loads the valid icon names from the src code.
+
+      Returns:
+        Tuple of (valid custom icon names, valid default icon names) as sets.
+    """
+    valid_custom_icons = set()
+    valid_default_icons = set()
+
+    icon_name_regex = re.compile(r"@\"(.*)\";")
+
+    valid_icons_file = os.path.join(
+        BASE_DIR, '../ios/chrome/browser/shared/ui/symbols/symbol_names.mm')
+    found_default_icons = False
+    with open(valid_icons_file, 'r', encoding='utf-8', newline='') as file:
+        # The icons file starts with custom icons until reaching the comment
+        # "// Default symbol names."
+        for line in file:
+            if "// Default symbol names." in line:
+                found_default_icons = True
+                continue
+            match = icon_name_regex.search(line)
+            if not match:
+                continue
+
+            icon_name = match.group(1)
+            if found_default_icons:
+                valid_default_icons.add(icon_name)
+            else:
+                valid_custom_icons.add(icon_name)
+
+    return (valid_custom_icons, valid_default_icons)
+
+
+def ValidateWhatsNewData(feature_dict: dict[str, str]) -> str:
+    """Validates the provided data represents a valid What's New feature.
+
+      Args:
+        feature_dict: Data for the new What's New feature
+      Returns:
+        A string error message if the data is not valid, and an empty
+        string if the data is valid.
+    """
+    valid_custom_icons, valid_default_icons = LoadValidIconNames()
+
+    valid_icon_set = valid_custom_icons if feature_dict[
+        'Icon Type'] == 'Custom' else valid_default_icons
+
+    if feature_dict['Icon name'] not in valid_icon_set:
+        return (f'Invalid {feature_dict["Icon Type"]} '
+                f'icon name: {feature_dict["Icon name"]}')
+
+    return ""
+
+def StripWhitespacesAndEmptyLines(text: str) -> list[str]:
+    """Strips all whitespace and empty lines from text including whitespace
+    between words.
+
+    Args:
+        text: The raw string.
+
+    Returns:
+        A formatted string with no whitespace or empty lines.
+    """
+    lines = text.splitlines()
+    return ["".join(line.split()) for line in lines if line.strip()]

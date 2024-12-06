@@ -732,7 +732,8 @@ void FederatedAuthRequestImpl::RequestToken(
            idp_get_params_ptrs[0]->mode == blink::mojom::RpMode::kActive)
               ? RpMode::kActive
               : RpMode::kPassive,
-          /*use_other_account_result=*/std::nullopt);
+          /*use_other_account_result=*/std::nullopt,
+          /*verifying_dialog_result=*/std::nullopt);
 
       AddDevToolsIssue(
           blink::mojom::FederatedAuthRequestResult::kTooManyRequests);
@@ -742,8 +743,23 @@ void FederatedAuthRequestImpl::RequestToken(
       std::move(callback).Run(RequestTokenStatus::kErrorTooManyRequests,
                               std::nullopt, "", /*error=*/nullptr,
                               /*is_auto_selected=*/false);
-      // The old request is alive, so set the session ID to the old one.
-      fedcm_metrics_->SetSessionID(old_session_id);
+
+      // Since multiple `get` calls is not yet supported, if one IdP invokes the
+      // API while another request from different IdPs is in-flight, the new API
+      // call will be rejected. The two requests may be from different RFHs so
+      // we should calculate properly.
+      if (old_idp_order.empty()) {
+        fedcm_metrics_->SetSessionID(
+            pending_request->fedcm_metrics_->session_id());
+        fedcm_metrics_->RecordMultipleRequestsFromDifferentIdPs(
+            idp_order_ != pending_request->idp_order_);
+      } else {
+        // The old request is alive, so set the session ID to the old one.
+        fedcm_metrics_->SetSessionID(old_session_id);
+        fedcm_metrics_->RecordMultipleRequestsFromDifferentIdPs(idp_order_ !=
+                                                                old_idp_order);
+      }
+
       idp_order_ = std::move(old_idp_order);
       return;
     }
@@ -2238,6 +2254,8 @@ void FederatedAuthRequestImpl::OnAccountSelected(const GURL& idp_config_url,
   }
 
   CHECK(idp_info.data);
+
+  has_sent_token_request_ = true;
   network_manager_->SendTokenRequest(
       idp_info.endpoints.token, account_id_,
       ComputeUrlEncodedTokenPostData(
@@ -2323,6 +2341,13 @@ void FederatedAuthRequestImpl::OnDismissErrorDialog(
 
 void FederatedAuthRequestImpl::OnDialogDismissed(
     IdentityRequestDialogController::DismissReason dismiss_reason) {
+  if (has_sent_token_request_) {
+    verifying_dialog_result_ =
+        identity_selection_type_ == kExplicit
+            ? FedCmVerifyingDialogResult::kCancelExplicit
+            : FedCmVerifyingDialogResult::kCancelAutoReauthn;
+  }
+
   if (dialog_type_ == kContinueOnPopup) {
     fedcm_metrics_->RecordContinueOnPopupResult(
         FedCmContinueOnPopupResult::kWindowClosed);
@@ -2494,6 +2519,11 @@ void FederatedAuthRequestImpl::OnTokenResponseReceived(
     IdpNetworkRequestManager::FetchStatus status,
     IdpNetworkRequestManager::TokenResult result) {
   CHECK(result.token.empty() || !result.error);
+
+  verifying_dialog_result_ =
+      identity_selection_type_ == kExplicit
+          ? FedCmVerifyingDialogResult::kSuccessExplicit
+          : FedCmVerifyingDialogResult::kSuccessAutoReauthn;
 
   bool should_show_error_ui =
       result.error ||
@@ -2671,9 +2701,17 @@ void FederatedAuthRequestImpl::CompleteRequest(
           ComputeUseOtherAccountResult(result, selected_idp_config_url);
     }
 
+    if (!verifying_dialog_result_ && has_sent_token_request_) {
+      verifying_dialog_result_ =
+          identity_selection_type_ == kExplicit
+              ? FedCmVerifyingDialogResult::kDestroyExplicit
+              : FedCmVerifyingDialogResult::kDestroyAutoReauthn;
+    }
+
     fedcm_metrics_->RecordRequestTokenStatus(
         *token_status, mediation_requirement_, idp_order_, num_idps_mismatch,
-        selected_idp_config_url, rp_mode_, use_other_account_result);
+        selected_idp_config_url, rp_mode_, use_other_account_result,
+        verifying_dialog_result_);
   }
 
   if (result == FederatedAuthRequestResult::kSuccess) {

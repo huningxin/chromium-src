@@ -9,6 +9,7 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/test/scoped_feature_list.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "testing/gtest_mac.h"
 #include "ui/accessibility/accessibility_features.h"
 #include "ui/accessibility/ax_node.h"
 #include "ui/accessibility/ax_node_data.h"
@@ -347,6 +348,16 @@ class AXPlatformNodeCocoaTest
     EXPECT_EQ(unexpected_attributes, 0);
   }
 
+  void TestUIElements(NSArray* got_array,
+                      const std::vector<int32_t>& expected_ids) {
+    EXPECT_EQ([got_array count], expected_ids.size());
+    for (NSUInteger i = 0; i < [got_array count]; ++i) {
+      EXPECT_EQ([[got_array objectAtIndex:i] node]->GetUniqueId(),
+                [GetCocoaNode(expected_ids[i]) node]->GetUniqueId())
+          << "Mismatch at index " << i;
+    }
+  }
+
  private:
   base::test::ScopedFeatureList features_;
 };
@@ -443,6 +454,22 @@ TEST_P(AXPlatformNodeCocoaTestNewAPI,
   }
 }
 
+// accessibilityColumns on a table.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityColumns) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kColumn
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* table = GetCocoaNode(1);
+  AXPlatformNodeCocoa* column = GetCocoaNode(2);
+  NSArray* columns = [table accessibilityColumns];
+  EXPECT_EQ([columns count], 1UL);
+  EXPECT_EQ([[columns firstObject] node]->GetUniqueId(),
+            [column node]->GetUniqueId());
+}
+
 // accessibilityColumnIndexRange on a table cell.
 TEST_P(AXPlatformNodeCocoaTest, AccessibilityColumnIndexRange) {
   ui::TestAXTreeUpdate update(std::string(R"HTML(
@@ -458,6 +485,157 @@ TEST_P(AXPlatformNodeCocoaTest, AccessibilityColumnIndexRange) {
   EXPECT_EQ(range.length, 1UL);    // Only one column in this simple setup
 }
 
+// accessibilityRows on a tree.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowsOnTree) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTree
+    ++++2 kTreeItem
+    ++++++3 kGroup
+    ++++++++4 kTreeItem
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* tree = GetCocoaNode(1);
+  AXPlatformNodeCocoa* treeitem1 = GetCocoaNode(2);
+  AXPlatformNodeCocoa* treeitem2 = GetCocoaNode(4);
+  NSArray* rows = [tree accessibilityRows];
+  EXPECT_EQ([rows count], 2UL);
+  EXPECT_EQ([[rows objectAtIndex:0] node]->GetUniqueId(),
+            [treeitem1 node]->GetUniqueId());
+  EXPECT_EQ([[rows objectAtIndex:1] node]->GetUniqueId(),
+            [treeitem2 node]->GetUniqueId());
+}
+
+// accessibilityRows on a table.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowsOnTable) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+    ++++++3 kCell
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* table = GetCocoaNode(1);
+  AXPlatformNodeCocoa* row = GetCocoaNode(2);
+  NSArray* rows = [table accessibilityRows];
+  EXPECT_EQ([rows count], 1UL);
+  EXPECT_EQ([[rows firstObject] node]->GetUniqueId(),
+            [row node]->GetUniqueId());
+}
+
+// accessibilityRows on a column.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowsOnColumn) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kColumn intListAttribute=kIndirectChildIds,3
+    ++++3 kRow
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* column = GetCocoaNode(2);
+  AXPlatformNodeCocoa* row = GetCocoaNode(3);
+  NSArray* rows = [column accessibilityRows];
+  EXPECT_EQ([rows count], 1UL);
+  EXPECT_EQ([[rows firstObject] node]->GetUniqueId(),
+            [row node]->GetUniqueId());
+}
+
+// accessibilityRowHeaderUIElements on a text field.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowHeaderUIElementsOnTextField) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTextField
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* text_field = GetCocoaNode(1);
+  EXPECT_EQ([text_field accessibilityRowHeaderUIElements], nil);
+}
+
+// accessibilityRowHeaderUIElements on a table with no header rows.
+TEST_P(AXPlatformNodeCocoaTest,
+       AccessibilityRowHeaderUIElementsOnNoHeaderRowsTable) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+    ++++++3 kCell
+    ++++++4 kCell
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* table = GetCocoaNode(1);
+  EXPECT_EQ([table accessibilityRowHeaderUIElements], nil);
+}
+
+// accessibilityRowHeaderUIElements on a table.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowHeaderUIElementsOnTable) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+    ++++++3 kRowHeader
+    ++++++4 kCell
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* table = GetCocoaNode(1);
+  TestUIElements([table accessibilityRowHeaderUIElements], { 3 });
+}
+
+// accessibilityRowHeaderUIElements on a cell.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowHeaderUIElementsOnCell) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+    ++++++3 kRowHeader
+    ++++++4 kCell
+  )HTML"));
+  Init(update);
+
+  // Row headers on a cell.
+  AXPlatformNodeCocoa* cell = GetCocoaNode(4);
+  TestUIElements([cell accessibilityRowHeaderUIElements], { 3 });
+}
+
+// accessibilityRowHeaderUIElements on a table with two header rows in a row.
+TEST_P(AXPlatformNodeCocoaTest,
+       AccessibilityRowHeaderUIElementsOnMultipleHeaderRowsTable) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+    ++++++3 kRowHeader
+    ++++++4 kRowHeader
+    ++++++5 kCell
+    ++++6 kRow
+    ++++++7 kRowHeader
+    ++++++8 kRowHeader
+    ++++++9 kCell
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* table = GetCocoaNode(1);
+  TestUIElements([table accessibilityRowHeaderUIElements], { 3, 4, 7, 8 });
+}
+
+// accessibilityRowHeaderUIElements on a cell of a table with two header rows in
+// a row.
+TEST_P(AXPlatformNodeCocoaTest,
+       AccessibilityRowHeaderUIElementsOnMultipleHeaderRowsTableCell) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+    ++++++3 kRowHeader
+    ++++++4 kRowHeader
+    ++++++5 kCell
+    ++++6 kRow
+    ++++++7 kRowHeader
+    ++++++8 kRowHeader
+    ++++++9 kCell
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* cell = GetCocoaNode(5);
+  TestUIElements([cell accessibilityRowHeaderUIElements], { 3, 4 });
+}
+
 // accessibilityRowIndexRange on a table cell.
 TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowIndexRange) {
   ui::TestAXTreeUpdate update(std::string(R"HTML(
@@ -471,6 +649,21 @@ TEST_P(AXPlatformNodeCocoaTest, AccessibilityRowIndexRange) {
   NSRange range = [cell accessibilityRowIndexRange];
   EXPECT_EQ(range.location, 0UL);  // Row index should start at 0
   EXPECT_EQ(range.length, 1UL);    // Only one row in this simple setup
+}
+
+// accessibilityTabs.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityTabs) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTabList
+    ++++2 kTab
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* tab_list = GetCocoaNode(1);
+  TestUIElements([tab_list accessibilityTabs], { 2 });
+
+  AXPlatformNodeCocoa* tab = GetCocoaNode(2);
+  TestUIElements([tab accessibilityTabs], { 2 });
 }
 
 // accessibilityVisibleColumns on a table.
@@ -504,6 +697,22 @@ TEST_P(AXPlatformNodeCocoaTest, AccessibilityVisibleCells) {
   EXPECT_EQ([cells count], 1UL);
   EXPECT_EQ([[cells firstObject] node]->GetUniqueId(),
             [cell node]->GetUniqueId());
+}
+
+// accessibilityVisibleRows on a table.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityVisibleRows) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* table = GetCocoaNode(1);
+  AXPlatformNodeCocoa* row = GetCocoaNode(2);
+  NSArray* rows = [table accessibilityVisibleRows];
+  EXPECT_EQ([rows count], 1UL);
+  EXPECT_EQ([[rows firstObject] node]->GetUniqueId(),
+            [row node]->GetUniqueId());
 }
 
 // Non-header cells should not support accessibilitySortDirection, even if
@@ -796,6 +1005,65 @@ TEST_P(AXPlatformNodeCocoaTest, SupportsNewAccessibilityAPIMethod) {
   EXPECT_EQ([node internalRole], ax::mojom::Role::kHeading);
   EXPECT_TRUE(
       [node supportsNewAccessibilityAPIMethod:@"isAccessibilityFocused"]);
+}
+
+// `accessibilityPlaceholderValue` on a text field with the name-from not set.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityPlaceholderValueOnTextField) {
+  AXNodeData root = AXNodeData();
+  root.id = 1;
+  root.role = ax::mojom::Role::kTextField;
+  root.SetNameChecked("foo-name");
+  root.AddStringAttribute(ax::mojom::StringAttribute::kPlaceholder,
+                          "foo-placeholder");
+  Init(root);
+  AXPlatformNodeCocoa* node = GetCocoaNode(GetRoot());
+  EXPECT_NSEQ([node accessibilityLabel], @"foo-name");
+  EXPECT_NSEQ([node accessibilityPlaceholderValue], @"foo-placeholder");
+}
+
+// `accessibilityPlaceholderValue` on a text field with the name-from set to
+// placeholder.
+TEST_P(AXPlatformNodeCocoaTest,
+       AccessibilityPlaceholderValueOnTextFieldNameFromPlaceholder) {
+  AXNodeData root = AXNodeData();
+  root.id = 1;
+  root.role = ax::mojom::Role::kTextField;
+  root.SetNameChecked("foo-name");
+  root.AddStringAttribute(ax::mojom::StringAttribute::kPlaceholder,
+                          "foo-placeholder");
+  root.SetNameFrom(ax::mojom::NameFrom::kPlaceholder);
+  Init(root);
+  AXPlatformNodeCocoa* node = GetCocoaNode(GetRoot());
+  EXPECT_NSEQ([node accessibilityLabel], @"");
+  EXPECT_NSEQ([node accessibilityPlaceholderValue], @"foo-name");
+}
+
+// `accessibilityNumberOfCharacters` on a text field.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityNumberOfCharactersOnTextField) {
+  AXNodeData root = AXNodeData();
+  root.id = 1;
+  root.role = ax::mojom::Role::kTextField;
+  root.AddStringAttribute(ax::mojom::StringAttribute::kValue, "hello world");
+  Init(root);
+  AXPlatformNodeCocoa* node = GetCocoaNode(GetRoot());
+  EXPECT_EQ([node accessibilityNumberOfCharacters], 11);
+}
+
+// `accessibilitySelectedText` and `accessibilitySelectedTextRange` on a text
+// field.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilitySelectedTextAndRangeOnTextField) {
+  AXNodeData root = AXNodeData();
+  root.id = 1;
+  root.role = ax::mojom::Role::kTextField;
+  root.AddStringAttribute(ax::mojom::StringAttribute::kValue, "hello world");
+  root.AddIntAttribute(ax::mojom::IntAttribute::kTextSelStart, 0);
+  root.AddIntAttribute(ax::mojom::IntAttribute::kTextSelEnd, 5);
+  Init(root);
+  AXPlatformNodeCocoa* node = GetCocoaNode(GetRoot());
+  EXPECT_TRUE([[node accessibilitySelectedText] isEqualToString:@"hello"]);
+  NSRange selectedRange = [node accessibilitySelectedTextRange];
+  EXPECT_EQ(selectedRange.location, 0U);
+  EXPECT_EQ(selectedRange.length, 5U);
 }
 
 }  // namespace ui

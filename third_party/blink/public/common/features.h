@@ -44,9 +44,6 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(int,
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
     kAdInterestGroupAPIRestrictedPolicyByDefault);
 
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
-    kAlwaysAllowFledgeDeprecatedRenderURLReplacements);
-
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kLowerHighResolutionTimerThreshold);
 
 // Allows running DevTools main thread debugger even when a renderer process
@@ -424,6 +421,15 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(std::string,
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kEnforceNoopenerOnBlobURLNavigation);
 
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kEnableLazyLoadImageForInvisiblePage);
+enum class EnableLazyLoadImageForInvisiblePageType {
+  kAllInvisiblePage,
+  kPrerenderPage,
+};
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
+    EnableLazyLoadImageForInvisiblePageType,
+    kEnableLazyLoadImageForInvisiblePageTypeParam);
+
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kExcludeLowEntropyImagesFromLCP);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(double, kMinimumEntropyForLCP);
 
@@ -452,9 +458,7 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(bool,
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFencedFrames);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
-    kFencedFramesCrossOriginEventReportingUnlabeledTraffic);
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
-    kFencedFramesCrossOriginEventReportingAllTraffic);
+    kFencedFramesCrossOriginEventReporting);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
     kFencedFramesAutomaticBeaconCredentials);
@@ -555,17 +559,12 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
 // If kFledgeNumberBidderWorkletGroupByOriginContextsToKeep is enabled,
 // kFledgeNumberBidderWorkletGroupByOriginContextsToKeepValue sets the number of
 // previously-used group-by-origin contexts to keep in case they can be reused
-// in a bidder worklet. Defaulted to 1. A non-default value will only
-// be used if kCookieDeprecationFacilitatedTesting is not enabled or if
-// kFledgeNumberBidderWorkletContextsIncludeFacilitedTesting is enabled.
+// in a bidder worklet. Defaulted to 1.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
     kFledgeNumberBidderWorkletGroupByOriginContextsToKeep);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
     int,
     kFledgeNumberBidderWorkletGroupByOriginContextsToKeepValue);
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
-    bool,
-    kFledgeNumberBidderWorkletContextsIncludeFacilitedTesting);
 
 // Reuse a single V8 context to generate all bids in a bidder worklet.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFledgeAlwaysReuseBidderContext);
@@ -582,6 +581,13 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(int,
                                                kFledgeBidderContextsDivisor);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(int,
                                                kFledgeBidderContextsMultiplier);
+
+// Prepare seller contexts, including running top level scripts, before
+// we're ready to score a worklet's first ad.
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFledgePrepareSellerContextsInAdvance);
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
+    int,
+    kFledgeMaxSellerContextsPerThreadInAdvance);
 
 // Feature params for feature kFledgeRealTimeReporting.
 // Epsilon of FLEDGE real time reporting's Rappor noise algorithm.
@@ -1157,22 +1163,6 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
     bool,
     kLowPriorityAsyncScriptExecutionOptOutHighFetchPriorityHintParam);
-
-// If enabled, async scripts will be loaded with a lower fetch priority.
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kLowPriorityScriptLoading);
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
-    bool,
-    kLowPriorityScriptLoadingCrossSiteOnlyParam);
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
-    base::TimeDelta,
-    kLowPriorityScriptLoadingFeatureLimitParam);
-// Note: declared without BASE_DECLARE_FEATURE_PARAM because the production code
-// gets this value only once to construct static local instance.
-BLINK_COMMON_EXPORT extern const base::FeatureParam<std::string>
-    kLowPriorityScriptLoadingDenyListParam;
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE_PARAM(
-    bool,
-    kLowPriorityScriptLoadingMainFrameOnlyParam);
 
 // Keep strong references in the blink memory cache to maximize resource reuse.
 // See https://crbug.com/1409349.

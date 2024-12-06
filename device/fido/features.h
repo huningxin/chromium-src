@@ -112,6 +112,12 @@ BASE_DECLARE_FEATURE(kWebAuthniCloudKeychainPrf);
 COMPONENT_EXPORT(DEVICE_FIDO)
 BASE_DECLARE_FEATURE(kWebAuthnHybridLinking);
 
+// Enables publishing prelinking information on Android.
+#if BUILDFLAG(IS_ANDROID)
+COMPONENT_EXPORT(DEVICE_FIDO)
+BASE_DECLARE_FEATURE(kWebAuthnPublishPrelinkingInfo);
+#endif  // BUILDFLAG(IS_ANDROID)
+
 // Update the "last_used" timestamp in GPM passkeys when asserted.
 COMPONENT_EXPORT(DEVICE_FIDO)
 BASE_DECLARE_FEATURE(kWebAuthnUpdateLastUsed);
@@ -137,6 +143,11 @@ BASE_DECLARE_FEATURE(kDigitalCredentialsHybridLinking);
 // Enable passkey upgrade requests in Google Password Manager.
 COMPONENT_EXPORT(DEVICE_FIDO)
 BASE_DECLARE_FEATURE(kWebAuthnPasskeyUpgrade);
+
+// Stops Chrome from skipping the "Trust this computer" screen if the user
+// doesn't have phones.
+COMPONENT_EXPORT(DEVICE_FIDO)
+BASE_DECLARE_FEATURE(kWebAuthnNeverSkipTrustThisComputer);
 
 }  // namespace device
 

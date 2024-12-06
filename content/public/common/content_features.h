@@ -126,6 +126,10 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFedCmShowFilteredAccounts);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kFedCmUseOtherAccount);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kFedCmWithoutWellKnownEnforcement);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kFencedFramesEnforceFocus);
+#if BUILDFLAG(IS_ANDROID)
+CONTENT_EXPORT BASE_DECLARE_FEATURE(
+    kFocusRenderWidgetHostViewAndroidOnActionDown);
+#endif
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kForwardMemoryPressureToBlinkIsolates);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kWebIdentityDigitalCredentials);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kWebIdentityDigitalCredentialsCreation);
@@ -147,7 +151,6 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kIsolateOrigins);
 CONTENT_EXPORT extern const char kIsolateOriginsFieldTrialParamName[];
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kLazyInitializeMediaControls);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kLegacyTechReportEnableCookieIssueReports);
-CONTENT_EXPORT BASE_DECLARE_FEATURE(kLegacyWindowsDWriteFontFallback);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kLogJsConsoleMessages);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kLowerPAMemoryLimitForNonMainRenderers);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kMainThreadCompositingPriority);
@@ -241,6 +244,7 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFontDataService);
 enum class FontDataServiceTypefaceType {
   kDwrite,
   kInternal,
+  kControlWithoutSpareRenderer,
 };
 extern const base::FeatureParam<FontDataServiceTypefaceType>
     kFontDataServiceTypefaceType;
@@ -322,8 +326,6 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kSonomaAccessibilityActivationRefinements);
 #if defined(WEBRTC_USE_PIPEWIRE)
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kWebRtcPipeWireCapturer);
 #endif  // defined(WEBRTC_USE_PIPEWIRE)
-
-CONTENT_EXPORT BASE_DECLARE_FEATURE(kPreferredAudioOutputDevices);
 
 // Number of days to "store" IPH guardrails for navigation captured app launches
 // till they are cleared.

@@ -85,7 +85,7 @@ ci.builder(
             ],
             build_config = builder_config.build_config.DEBUG,
             target_bits = 64,
-            target_platform = builder_config.target_platform.WIN,
+            target_platform = builder_config.target_platform.LINUX,
         ),
         clusterfuzz_archive = builder_config.clusterfuzz_archive(
             archive_name_prefix = "asan",
@@ -1126,7 +1126,6 @@ ci.builder(
         "upload_directory": "asan",
     },
     siso_remote_jobs = siso.remote_jobs.HIGH_JOBS_FOR_CI,
-    siso_remote_linking = True,
 )
 
 ci.builder(

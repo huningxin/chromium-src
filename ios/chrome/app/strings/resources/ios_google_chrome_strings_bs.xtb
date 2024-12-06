@@ -11,7 +11,6 @@
 <translation id="1200396280085622191">Koristite Chrome svaki put kada dodirnete linkove u porukama i drugim aplikacijama.</translation>
 <translation id="1229222343402087523">Pretražite ${searchPhrase} u Chromeu</translation>
 <translation id="1237769345474105984">Iz Chromea</translation>
-<translation id="1240190568154816272">Savjeti za Chrome</translation>
 <translation id="124228879633599436">Chrome je zastario. Ažurirajte ga da ostanete sigurni.</translation>
 <translation id="1333745675627230582">Igrajte igru Dinosaur na Chromeu</translation>
 <translation id="1352919863522755794">Google upravitelj lozinki nije uspio provjeriti vaše lozinke. Predlažemo da provjerite internetsku vezu.</translation>
@@ -222,6 +221,7 @@ Da promijenite ovu postavku, <ph name="BEGIN_LINK" />izbrišite podatke Chromea 
 Za više postavki koje koriste podatke radi poboljšanja iskustva u Chromeu idite na <ph name="BEGIN_LINK" />Googleove usluge<ph name="END_LINK" />.</translation>
 <translation id="6922332667202044570">Brisanje podataka pregledanja u Chromeu.</translation>
 <translation id="6924922227983877439">Otvara linkove u Chromeu prema zadanim postavkama</translation>
+<translation id="6931601805528922498">Prijavom se vaš račun dodaje u Chrome kako biste pregledavali u vezi s poslom.</translation>
 <translation id="6975725306479268850">Odaberite Chrome za automatsko popunjavanje</translation>
 <translation id="7056826488869329999">Otvara i pokreće sigurnosnu provjeru u Chromeu.</translation>
 <translation id="7061455974939528301">Pritisnite i zadržite ikonu Chromea i kliknite na "Uredite početni ekran".</translation>

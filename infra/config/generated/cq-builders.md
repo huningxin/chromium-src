@@ -29,6 +29,8 @@ These builders must pass before a CL may land that affects files outside of
 
 * [android-cronet-arm-rel](https://ci.chromium.org/p/chromium/builders/try/android-cronet-arm-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-cronet-arm-rel""))
 
+* [android-desktop-x64-compile-rel](https://ci.chromium.org/p/chromium/builders/try/android-desktop-x64-compile-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-desktop-x64-compile-rel""))
+
 * [android-x64-rel](https://ci.chromium.org/p/chromium/builders/try/android-x64-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-x64-rel""))
 
 * [android-x86-rel](https://ci.chromium.org/p/chromium/builders/try/android-x86-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-x86-rel""))
@@ -101,6 +103,8 @@ builder.
 * [android-cast-arm-dbg](https://ci.chromium.org/p/chromium/builders/try/android-cast-arm-dbg) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-cast-arm-dbg""))
 
   Location filters:
+  * [`//build/android/.+`](https://cs.chromium.org/chromium/src/build/android/)
+  * [`//build/config/android/.+`](https://cs.chromium.org/chromium/src/build/config/android/)
   * [`//chromecast/.+`](https://cs.chromium.org/chromium/src/chromecast/)
   * [`//components/cast/.+`](https://cs.chromium.org/chromium/src/components/cast/)
   * [`//components/cast_receiver/.+`](https://cs.chromium.org/chromium/src/components/cast_receiver/)
@@ -111,6 +115,8 @@ builder.
 * [android-cast-arm-rel](https://ci.chromium.org/p/chromium/builders/try/android-cast-arm-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-cast-arm-rel""))
 
   Location filters:
+  * [`//build/android/.+`](https://cs.chromium.org/chromium/src/build/android/)
+  * [`//build/config/android/.+`](https://cs.chromium.org/chromium/src/build/config/android/)
   * [`//chromecast/.+`](https://cs.chromium.org/chromium/src/chromecast/)
   * [`//components/cast/.+`](https://cs.chromium.org/chromium/src/components/cast/)
   * [`//components/cast_receiver/.+`](https://cs.chromium.org/chromium/src/components/cast_receiver/)
@@ -121,6 +127,8 @@ builder.
 * [android-cast-arm64-dbg](https://ci.chromium.org/p/chromium/builders/try/android-cast-arm64-dbg) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-cast-arm64-dbg""))
 
   Location filters:
+  * [`//build/android/.+`](https://cs.chromium.org/chromium/src/build/android/)
+  * [`//build/config/android/.+`](https://cs.chromium.org/chromium/src/build/config/android/)
   * [`//chromecast/.+`](https://cs.chromium.org/chromium/src/chromecast/)
   * [`//components/cast/.+`](https://cs.chromium.org/chromium/src/components/cast/)
   * [`//components/cast_receiver/.+`](https://cs.chromium.org/chromium/src/components/cast_receiver/)
@@ -131,6 +139,8 @@ builder.
 * [android-cast-arm64-rel](https://ci.chromium.org/p/chromium/builders/try/android-cast-arm64-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-cast-arm64-rel""))
 
   Location filters:
+  * [`//build/android/.+`](https://cs.chromium.org/chromium/src/build/android/)
+  * [`//build/config/android/.+`](https://cs.chromium.org/chromium/src/build/config/android/)
   * [`//chromecast/.+`](https://cs.chromium.org/chromium/src/chromecast/)
   * [`//components/cast/.+`](https://cs.chromium.org/chromium/src/components/cast/)
   * [`//components/cast_receiver/.+`](https://cs.chromium.org/chromium/src/components/cast_receiver/)
@@ -765,14 +775,14 @@ by CQ. These are often used to test new configurations before they are added
 as required builders.
 
 ### chromium
-* [android-desktop-x64-compile-rel](https://ci.chromium.org/p/chromium/builders/try/android-desktop-x64-compile-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""android-desktop-x64-compile-rel""))
-  * Experiment percentage: 100.0
-
 * [chromeos-js-coverage-rel](https://ci.chromium.org/p/chromium/builders/try/chromeos-js-coverage-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""chromeos-js-coverage-rel""))
   * Experiment percentage: 50.0
 
   Location filters:
   * [`//.*\.(js|ts)`](https://cs.chromium.org/search?q=+file:.*\.(js|ts))
+
+* [compile-size](https://ci.chromium.org/p/chromium/builders/try/compile-size) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""compile-size""))
+  * Experiment percentage: 100.0
 
 * [dawn-android-arm64-deps-rel](https://ci.chromium.org/p/chromium/builders/try/dawn-android-arm64-deps-rel) ([definition](https://cs.chromium.org/search?q=+file:/try/.*\.star$+""dawn-android-arm64-deps-rel""))
   * Experiment percentage: 100.0

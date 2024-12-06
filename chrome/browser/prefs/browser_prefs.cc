@@ -281,7 +281,7 @@
 #include "chrome/browser/new_tab_page/modules/v2/most_relevant_tab_resumption/most_relevant_tab_resumption_page_handler.h"
 #include "chrome/browser/new_tab_page/promos/promo_service.h"
 #include "chrome/browser/policy/developer_tools_policy_handler.h"
-#include "chrome/browser/promos/promos_utils.h"
+#include "chrome/browser/promos/promos_utils.h"  // nogncheck crbug.com/1125897
 #include "chrome/browser/screen_ai/pref_names.h"
 #include "chrome/browser/search/background/ntp_custom_background_service.h"
 #include "chrome/browser/search_engine_choice/search_engine_choice_dialog_service.h"
@@ -553,41 +553,6 @@ namespace {
 
 // Please keep the list of deprecated prefs in chronological order. i.e. Add to
 // the bottom of the list, not here at the top.
-
-// Deprecated 10/2023.
-const char kSyncRequested[] = "sync.requested";
-
-// Deprecated 12/2023.
-#if BUILDFLAG(IS_ANDROID)
-const char kTemplatesRandomOrder[] = "content_creation.notes.random_order";
-#endif
-
-// Deprecated 12/2023.
-#if BUILDFLAG(IS_ANDROID)
-const char kDesktopSitePeripheralSettingEnabled[] =
-    "desktop_site.peripheral_setting";
-const char kDesktopSiteDisplaySettingEnabled[] = "desktop_site.display_setting";
-#endif
-
-// Deprecated 12/2023.
-constexpr char kDownloadDuplicateFilePromptEnabled[] =
-    "download_duplicate_file_prompt_enabled";
-
-// Deprecated 12/2023.
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-constexpr char kIsolatedWebAppsEnabled[] = "ash.isolated_web_apps_enabled";
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-
-// Deprecated 12/2023.
-const char kPrivacyBudgetReportedReidBlocks[] =
-    "privacy_budget.reported_reid_blocks";
-
-// Deprecated from profile prefs 12/2023.
-const char kModelQualityLoggingClientId[] =
-    "optimization_guide.model_quality_logging_client_id";
-
-// Deprecated 12/2023.
-const char kSync_ExplicitBrowserSignin[] = "sync.explicit_browser_signin";
 
 // Deprecated 01/2024.
 const char kPrivacySandboxPageViewed[] = "privacy_sandbox.page_viewed";
@@ -1116,10 +1081,10 @@ constexpr char kNoteTakingAppsLockScreenToastShown[] =
 constexpr char kRestoreLastLockScreenNote[] =
     "settings.restore_last_lock_screen_note";
 constexpr char kLockScreenDataPrefKey[] = "lockScreenDataItems";
-
-// Deprecated 11/2024
 inline constexpr char kSyncableVersionedWallpaperInfo[] =
     "syncable_versioned_wallpaper_info";
+constexpr char kLacrosProxyControllingExtension[] =
+    "ash.lacros_proxy_controlling_extension";
 #endif
 
 // Deprecated 11/2024
@@ -1178,17 +1143,15 @@ inline constexpr char kHatsPrivacyHubPostLaunchCycleEndTs[] =
     "hats_privacy_hub_postlaunch_end_timestamp";
 #endif
 
+// Deprecated 12/2024.
+inline constexpr char kDeleteTimePeriodV2[] =
+    "browser.clear_data.time_period_v2";
+inline constexpr char kDeleteTimePeriodV2Basic[] =
+    "browser.clear_data.time_period_v2_basic";
+
 // Register local state used only for migration (clearing or moving to a new
 // key).
 void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
-  // Deprecated 12/2023.
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  registry->RegisterBooleanPref(kIsolatedWebAppsEnabled, false);
-#endif
-
-  // Deprecated 12/2023.
-  registry->RegisterStringPref(kPrivacyBudgetReportedReidBlocks, std::string());
-
   // Deprecated 01/2024.
   registry->RegisterBooleanPref(kPPAPISharedImagesForVideoDecoderAllowed, true);
 
@@ -1301,26 +1264,6 @@ void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
 void RegisterProfilePrefsForMigration(
     user_prefs::PrefRegistrySyncable* registry) {
   chrome_browser_net::secure_dns::RegisterProbesSettingBackupPref(registry);
-  // Deprecated 10/2023.
-  registry->RegisterBooleanPref(kSyncRequested, false);
-
-  // Deprecated 12/2023.
-#if BUILDFLAG(IS_ANDROID)
-  registry->RegisterListPref(kTemplatesRandomOrder);
-#endif
-
-// Deprecated 12/2023.
-#if BUILDFLAG(IS_ANDROID)
-  registry->RegisterBooleanPref(kDesktopSitePeripheralSettingEnabled, false);
-  registry->RegisterBooleanPref(kDesktopSiteDisplaySettingEnabled, false);
-#endif
-
-  // Deprecated 12/2023.
-  registry->RegisterBooleanPref(kDownloadDuplicateFilePromptEnabled, true);
-
-  // Deprecated 12/2023.
-  registry->RegisterInt64Pref(kModelQualityLoggingClientId, true);
-  registry->RegisterBooleanPref(kSync_ExplicitBrowserSignin, false);
 
   // Deprecated 01/2024.
   registry->RegisterBooleanPref(kPrivacySandboxPageViewed, false);
@@ -1631,9 +1574,8 @@ void RegisterProfilePrefsForMigration(
                              base::Value::List());
   registry->RegisterDictionaryPref(kNoteTakingAppsLockScreenToastShown);
   registry->RegisterBooleanPref(kRestoreLastLockScreenNote, false);
-
-  // Deprecated 11/2024
   registry->RegisterDictionaryPref(kSyncableVersionedWallpaperInfo);
+  registry->RegisterDictionaryPref(kLacrosProxyControllingExtension);
 #endif
 
   // Deprecated 11/2024
@@ -1674,19 +1616,10 @@ void RegisterProfilePrefsForMigration(
   registry->RegisterBooleanPref(kHatsPrivacyHubPostLaunchIsSelected, false);
   registry->RegisterInt64Pref(kHatsPrivacyHubPostLaunchCycleEndTs, 0);
 #endif
-}
 
-void ClearSyncRequestedPrefAndMaybeMigrate(PrefService* profile_prefs) {
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  // On Ash specifically, if `kSyncRequested` was set to false explicitly, the
-  // value needs to be migrated to syncer::internal::kSyncDisabledViaDashboard.
-  if (profile_prefs->GetUserPrefValue(kSyncRequested) != nullptr &&
-      !profile_prefs->GetUserPrefValue(kSyncRequested)->GetBool()) {
-    profile_prefs->SetBoolean(
-        syncer::prefs::internal::kSyncDisabledViaDashboard, true);
-  }
-#endif
-  profile_prefs->ClearPref(kSyncRequested);
+  // Deprecated 12/2024.
+  registry->RegisterIntegerPref(kDeleteTimePeriodV2, -1);
+  registry->RegisterIntegerPref(kDeleteTimePeriodV2Basic, -1);
 }
 
 }  // namespace
@@ -2273,7 +2206,6 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   ash::ApkWebAppService::RegisterProfilePrefs(registry);
   ash::app_time::AppActivityRegistry::RegisterProfilePrefs(registry);
   ash::app_time::AppTimeController::RegisterProfilePrefs(registry);
-  ash::AshProxyMonitor::RegisterProfilePrefs(registry);
   ash::assistant::prefs::RegisterProfilePrefs(registry);
   ash::auth::AuthFactorConfig::RegisterPrefs(registry);
   ash::bluetooth::DebugLogsManager::RegisterPrefs(registry);
@@ -2497,14 +2429,6 @@ void MigrateObsoleteLocalStatePrefs(PrefService* local_state) {
   // BEGIN_MIGRATE_OBSOLETE_LOCAL_STATE_PREFS
   // Please don't delete the preceding line. It is used by PRESUBMIT.py.
 
-  // Added 12/2023.
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  local_state->ClearPref(kIsolatedWebAppsEnabled);
-#endif
-
-  // Added 12/2023.
-  local_state->ClearPref(kPrivacyBudgetReportedReidBlocks);
-
   // Added 01/2024.
   local_state->ClearPref(kPPAPISharedImagesForVideoDecoderAllowed);
 
@@ -2652,9 +2576,6 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   MigrateDefaultBrowserLastDeclinedPref(profile_prefs);
 #endif
 
-  // Added 10/2023.
-  ClearSyncRequestedPrefAndMaybeMigrate(profile_prefs);
-
 #if BUILDFLAG(IS_ANDROID)
   // Added 11/2023, but DO NOT REMOVE after the usual year!
   // TODO(crbug.com/40268177): The pref kPasswordsUseUPMLocalAndSeparateStores
@@ -2666,34 +2587,6 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   password_manager_android_util::SetUsesSplitStoresAndUPMForLocal(profile_prefs,
                                                                   profile_path);
 #endif
-
-#if BUILDFLAG(IS_ANDROID)
-  // Added 12/2023.
-  profile_prefs->ClearPref(kTemplatesRandomOrder);
-#endif
-
-#if BUILDFLAG(IS_ANDROID)
-  // Added 12/2023.
-  profile_prefs->ClearPref(kDesktopSitePeripheralSettingEnabled);
-  profile_prefs->ClearPref(kDesktopSiteDisplaySettingEnabled);
-#endif
-
-  // Added 12/2023.
-  profile_prefs->ClearPref(kDownloadDuplicateFilePromptEnabled);
-
-  // Added 12/2023.
-  profile_prefs->ClearPref(kModelQualityLoggingClientId);
-
-  // Added 12/2023.
-  // Moving the `kExplicitBrowserSignin` from sync/ to signin/.
-  // If the sync (old) pref still exists, copy it to signin (new),
-  // and clear the sync part of the pref.
-  if (profile_prefs->HasPrefPath(kSync_ExplicitBrowserSignin)) {
-    profile_prefs->SetBoolean(
-        prefs::kExplicitBrowserSignin,
-        profile_prefs->GetBoolean(kSync_ExplicitBrowserSignin));
-    profile_prefs->ClearPref(kSync_ExplicitBrowserSignin);
-  }
 
   // Added 01/2024.
   profile_prefs->ClearPref(kPrivacySandboxPageViewed);
@@ -3007,9 +2900,8 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   profile_prefs->ClearPref(kNoteTakingAppsLockScreenAllowlist);
   profile_prefs->ClearPref(kNoteTakingAppsLockScreenToastShown);
   profile_prefs->ClearPref(kRestoreLastLockScreenNote);
-
-  // Deprecated 11/2024
   profile_prefs->ClearPref(kSyncableVersionedWallpaperInfo);
+  profile_prefs->ClearPref(kLacrosProxyControllingExtension);
 #endif
 
   // Added 11/2024
@@ -3043,6 +2935,10 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   profile_prefs->ClearPref(kHatsPrivacyHubPostLaunchIsSelected);
   profile_prefs->ClearPref(kHatsPrivacyHubPostLaunchCycleEndTs);
 #endif
+
+  // Added 12/2024.
+  profile_prefs->ClearPref(kDeleteTimePeriodV2);
+  profile_prefs->ClearPref(kDeleteTimePeriodV2Basic);
 
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_PROFILE_PREFS

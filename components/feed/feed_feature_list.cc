@@ -101,7 +101,7 @@ BASE_FEATURE(kFeedSignedOutViewDemotion,
 
 BASE_FEATURE(kFeedDynamicColors,
              "FeedDynamicColors",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kFeedFollowUiUpdate,
              "FeedFollowUiUpdate",
@@ -121,6 +121,10 @@ BASE_FEATURE(kWebFeedKillSwitch,
 
 BASE_FEATURE(kFeedLowMemoryImprovement,
              "FeedLowMemoryImprovement",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kFeedRecyclerBinderUnmountOnDetach,
+             "FeedRecyclerBinderUnmountOnDetach",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 bool IsWebFeedEnabledForLocale(const std::string& country) {

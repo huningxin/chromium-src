@@ -262,6 +262,7 @@ Bluetooth түзмөктөрүн изилдөө үчүн Bluetooth'ду пайд
 <translation id="4510853178268397146">Бул кеңейтүү маалыматты кантип чогултуу жана колдонуу сыяктуу купуялыкты камсыз кылуу ыкмаларын жарыялаган эмес. Chromium аны өчүрүүнү сунуштайт.</translation>
 <translation id="452711251841752011">Chromium'га кош келиңиз; серепчиде жаңы терезе ачылды</translation>
 <translation id="4531137820806573936">Chromium'га айланаңызды картага түшүрүп, колго көз салууга уруксат керек</translation>
+<translation id="4534145890176164066">Chromium формаларды жакшыраак түшүнүп, сизден тезирээк автотолтура алат</translation>
 <translation id="4536805923587466102">Мурунтан эле башка Chromium профилинен <ph name="USER_EMAIL_ADDRESS" /> катары киргенсиз</translation>
 <translation id="4544142686420020088">Chromium жаңырган жок. Бир жерден ката кетти. <ph name="BEGIN_LINK" />Chrome'догу жаңыртуу маселелерин оңдоңуз.<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">Chromium серептөөнү жакшыртып, аракеттерди ылдам аткаруу үчүн бул өтмөктү жигерсиз кыла алат.</translation>
@@ -442,7 +443,6 @@ Bluetooth түзмөктөрүн изилдөө үчүн Bluetooth'ду пайд
 <translation id="6831043979455480757">Которуу</translation>
 <translation id="6847869444787758381">Chromium сырсөздөрүңүздү башка бирөөлөр билип алса сизге кабарлайт</translation>
 <translation id="684888714667046800">Интернетке туташуу мүмкүн болбой жатат. Эгер тармактык коргоону колдонсоңуз, <ph name="PRODUCT_EXE_NAME" /> уруксат берилгендердин тизмесинде болушу керек.</translation>
-<translation id="685279860330610299">Chromium маалыматтардын көбүрөөк түрлөрүн түшүнүп, формаларды тезирээк толтура алат. <ph name="BEGIN_LINK" />Chrome Автотолтуруу<ph name="END_LINK" /> жөнүндө кеңири маалымат алыңыз</translation>
 <translation id="6857782730669500492">Chromium - <ph name="PAGE_TITLE" /></translation>
 <translation id="6873893289264747459">Chromium "<ph name="EXTENSION_NAME" />" кеңейтүүсүндө кесепеттүү программанын болгонун аныктады</translation>
 <translation id="6896758677409633944">Көчүрүү</translation>
@@ -481,6 +481,7 @@ Chromium параметрлериңизди калыбына келтире ал
 <translation id="7349591376906416160">Тутумуңуздун администратору Chromium'ду <ph name="TARGET_URL_HOSTNAME" /> доменин <ph name="ALTERNATIVE_BROWSER_NAME" /> аркылуу ачууга конфигуациялады.</translation>
 <translation id="7355355292030546812">Файл жеке жана социалдык тармак аккаунттарыңызга, анын ичинде <ph name="USER_EMAIL" /> дарегине зыян келтириши мүмкүн болгондуктан, Chromium бул жүктөп алууну бөгөттөдү</translation>
 <translation id="7384121030444253939">Бул кеңейтүү колдоого алынбай калган. Chromium аны өчүрүүнү сунуштайт.</translation>
+<translation id="7389750180956889333">Chromium формаларды жакшыраак түшүнүп, сизден тезирээк автотолтура алат. <ph name="BEGIN_LINK" />Chrome Автотолтуруу<ph name="END_LINK" /> жөнүндө кеңири маалымат алыңыз</translation>
 <translation id="7398989605938454041">Chromium профилдери менен Chromium'дагы маалыматты өзүнчө сактай аласыз. Бул жумуш менен эс алууну бири-бири менен аралаштырбоого жардам берет.</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> – Chromium Иштеп чыгуучулар үчүн</translation>
 <translation id="7450541714075000668">Текст көчүрүлдү</translation>

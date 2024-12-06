@@ -683,6 +683,10 @@ bool HTMLSelectElement::CanSelectAll() const {
 
 LayoutObject* HTMLSelectElement::CreateLayoutObject(
     const ComputedStyle& style) {
+  if (style.IsVerticalWritingMode()) {
+    UseCounter::Count(GetDocument(), WebFeature::kVerticalFormControls);
+  }
+
   if (UsesMenuList()) {
     return MakeGarbageCollected<LayoutFlexibleBox>(this);
   }
@@ -910,6 +914,9 @@ void HTMLSelectElement::RecalcListItems() const {
         }
       } else if (IsA<HTMLOptionElement>(*current_html_element) ||
                  IsA<HTMLHRElement>(*current_html_element)) {
+        // Don't look for nested <option>s to match other option element
+        // traversals.
+        skip_children = true;
         list_items_.push_back(current_html_element);
       }
 
@@ -1665,9 +1672,10 @@ String HTMLSelectElement::ItemText(const Element& element) const {
   return item_string;
 }
 
-bool HTMLSelectElement::ItemIsDisplayNone(Element& element) const {
+bool HTMLSelectElement::ItemIsDisplayNone(Element& element,
+                                          bool ensure_style) const {
   if (auto* option = DynamicTo<HTMLOptionElement>(element))
-    return option->IsDisplayNone();
+    return option->IsDisplayNone(ensure_style);
   const ComputedStyle* style = ItemComputedStyle(element);
   return !style || style->Display() == EDisplay::kNone;
 }

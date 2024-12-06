@@ -22,7 +22,6 @@ class ThrobAnimation;
 
 namespace ui {
 class ColorProvider;
-class Layer;
 }  // namespace ui
 
 namespace ash {
@@ -37,12 +36,6 @@ class ASH_EXPORT CaptureRegionOverlayController {
   CaptureRegionOverlayController& operator=(
       const CaptureRegionOverlayController&) = delete;
   ~CaptureRegionOverlayController();
-
-  // Invalidates the area of `layer` needed to paint glow.
-  // `region_bounds_in_layer` specifies the bounds of the region in `layer`
-  // which will be surrounded by the glow.
-  static void SchedulePaintForGlow(ui::Layer* layer,
-                                   const gfx::Rect& region_bounds_in_layer);
 
   // Notifies the controller of text detected on the capture region. The
   // controller will track `detected_text`, e.g. to paint later if needed.
@@ -71,6 +64,10 @@ class ASH_EXPORT CaptureRegionOverlayController {
 
   // Removes the glow animation if it exists.
   void RemoveGlowAnimation();
+
+  // Returns true if there is currently a glow animation (which may be either
+  // animated or paused).
+  bool HasGlowAnimation() const;
 
   // Paints the current glow state onto `canvas`. `region_bounds_in_canvas`
   // specifies the coordinates of `canvas` to paint the glow around.

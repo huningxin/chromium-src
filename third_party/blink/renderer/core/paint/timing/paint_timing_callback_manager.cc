@@ -9,8 +9,6 @@
 #include "third_party/blink/renderer/core/page/chrome_client.h"
 #include "third_party/blink/renderer/core/page/page.h"
 #include "third_party/blink/renderer/core/paint/timing/paint_timing_detector.h"
-#include "third_party/blink/renderer/platform/wtf/cross_thread_copier_std.h"
-#include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
 
 namespace blink {
 
@@ -38,9 +36,9 @@ void PaintTimingCallbackManagerImpl::
     return;
   }
 
-  auto combined_callback = CrossThreadBindOnce(
-      &PaintTimingCallbackManagerImpl::ReportPaintTime,
-      WrapCrossThreadWeakPersistent(this), std::move(frame_callbacks_));
+  auto combined_callback =
+      WTF::BindOnce(&PaintTimingCallbackManagerImpl::ReportPaintTime,
+                    WrapWeakPersistent(this), std::move(frame_callbacks_));
   frame_callbacks_ =
       std::make_unique<PaintTimingCallbackManager::CallbackQueue>();
 

@@ -29,10 +29,6 @@
   return NO;
 }
 
-- (BOOL)isPanningSelectionUI {
-  return NO;
-}
-
 - (void)setQueryText:(NSString*)text clearSelection:(BOOL)clearSelection {
   _currentQueryText = text;
   [self sendNewResult];
@@ -79,6 +75,10 @@
 }
 
 - (void)disableFlyoutMenu:(BOOL)disable {
+  // NO-OP
+}
+
+- (void)setGuidanceRestHeight:(CGFloat)height {
   // NO-OP
 }
 

@@ -165,7 +165,7 @@ namespace settings_api = api::settings_private;
 
 PrefsUtil::PrefsUtil(Profile* profile) : profile_(profile) {}
 
-PrefsUtil::~PrefsUtil() {}
+PrefsUtil::~PrefsUtil() = default;
 
 const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
   static PrefsUtil::TypedPrefMap* s_allowlist = nullptr;
@@ -434,8 +434,6 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
   (*s_allowlist)[ash::prefs::kOrcaEnabled] = settings_api::PrefType::kBoolean;
   (*s_allowlist)[ash::prefs::kEmojiSuggestionEnabled] =
       settings_api::PrefType::kBoolean;
-  (*s_allowlist)[ash::prefs::kLacrosProxyControllingExtension] =
-      settings_api::PrefType::kDictionary;
   (*s_allowlist)[::prefs::kLanguageInputMethodSpecificSettings] =
       settings_api::PrefType::kDictionary;
   (*s_allowlist)[ash::prefs::kLastUsedImeShortcutReminderDismissed] =
@@ -524,10 +522,6 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
   (*s_allowlist)[browsing_data::prefs::kDeleteTimePeriod] =
       settings_api::PrefType::kNumber;
   (*s_allowlist)[browsing_data::prefs::kDeleteTimePeriodBasic] =
-      settings_api::PrefType::kNumber;
-  (*s_allowlist)[browsing_data::prefs::kDeleteTimePeriodV2] =
-      settings_api::PrefType::kNumber;
-  (*s_allowlist)[browsing_data::prefs::kDeleteTimePeriodV2Basic] =
       settings_api::PrefType::kNumber;
   (*s_allowlist)[browsing_data::prefs::kLastClearBrowsingDataTab] =
       settings_api::PrefType::kNumber;

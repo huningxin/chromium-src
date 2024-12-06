@@ -524,9 +524,6 @@ CanvasRenderingContext* HTMLCanvasElement::GetCanvasRenderingContextInternal(
   if (!context_)
     return nullptr;
 
-  if (IsWebGL() || IsWebGPU() || IsImageBitmapRenderingContext()) {
-    context_->SetFilterQuality(FilterQuality());
-  }
   context_->RecordUKMCanvasRenderingAPI();
   context_->RecordUMACanvasRenderingAPI();
   // Since the |context_| is created, free the transparent image,
@@ -663,6 +660,10 @@ void HTMLCanvasElement::DidDraw(const SkIRect& rect) {
   dirty_rect_.Union(gfx::Rect(gfx::SkIRectToRect(rect)));
 }
 
+void HTMLCanvasElement::InitializeLayerWithCSSProperties(cc::Layer* layer) {
+  layer->SetFilterQuality(filter_quality_);
+}
+
 void HTMLCanvasElement::PreFinalizeFrame() {
   RecordCanvasSizeToUMA();
 
@@ -711,9 +712,7 @@ void HTMLCanvasElement::DisableAcceleration(
   // Create and configure an unaccelerated Canvas2DLayerBridge.
   SetPreferred2DRasterMode(RasterModeHint::kPreferCPU);
 
-  if (canvas2d_bridge_) {
-    ReplaceExisting2dLayerBridge(std::move(new_provider_for_testing));
-  }
+  ReplaceExisting2dLayerBridge(std::move(new_provider_for_testing));
 
   // We must force a paint invalidation on the canvas even if it's
   // content did not change because it layer was destroyed.
@@ -955,18 +954,6 @@ bool HTMLCanvasElement::LowLatencyEnabled() const {
   return !!frame_dispatcher_;
 }
 
-void HTMLCanvasElement::SetFilterQuality(
-    cc::PaintFlags::FilterQuality filter_quality) {
-  CanvasResourceHost::SetFilterQuality(filter_quality);
-  if (IsOffscreenCanvasRegistered())
-    UpdateOffscreenCanvasFilterQuality(filter_quality);
-
-  if (context_ &&
-      (IsWebGL() || IsWebGPU() || IsImageBitmapRenderingContext())) {
-    context_->SetFilterQuality(filter_quality);
-  }
-}
-
 // In some instances we don't actually want to paint to the parent layer
 // We still might want to set filter quality and MarkFirstContentfulPaint though
 void HTMLCanvasElement::Paint(GraphicsContext& context,
@@ -1056,7 +1043,7 @@ void HTMLCanvasElement::PaintInternal(GraphicsContext& context,
       const std::optional<cc::PaintRecord>& last_recording =
           provider->LastRecording();
       if (last_recording.has_value() &&
-          FilterQuality() != cc::PaintFlags::FilterQuality::kNone) {
+          filter_quality_ != cc::PaintFlags::FilterQuality::kNone) {
         context.Canvas()->save();
         context.Canvas()->translate(r.X(), r.Y());
         context.Canvas()->scale(r.Width() / Size().width(),
@@ -1578,11 +1565,33 @@ bool HTMLCanvasElement::StyleChangeNeedsDidDraw(
 
 void HTMLCanvasElement::StyleDidChange(const ComputedStyle* old_style,
                                        const ComputedStyle& new_style) {
-  cc::PaintFlags::FilterQuality filter_quality =
-      cc::PaintFlags::FilterQuality::kLow;
-  if (new_style.ImageRendering() == EImageRendering::kPixelated)
-    filter_quality = cc::PaintFlags::FilterQuality::kNone;
-  SetFilterQuality(filter_quality);
+  const auto new_filter_quality =
+      (new_style.ImageRendering() == EImageRendering::kPixelated)
+          ? cc::PaintFlags::FilterQuality::kNone
+          : cc::PaintFlags::FilterQuality::kLow;
+  if (filter_quality_ != new_filter_quality) {
+    filter_quality_ = new_filter_quality;
+    // Set the property on the SurfaceLayer (if applicable).
+    if (surface_layer_bridge_) {
+      if (auto* surface_layer = surface_layer_bridge_->GetCcLayer()) {
+        surface_layer->SetFilterQuality(filter_quality_);
+      }
+    }
+    // Set the property on the TextureLayer for 2D canvas (which is owned via
+    // inheritance of the CanvasResourceHost interface, unlike the other types,
+    // which use composition).
+    if (auto* context_layer_2d = CcLayer()) {
+      context_layer_2d->SetFilterQuality(filter_quality_);
+    }
+    // Set the property on WebGL, WebGPU, or ImageBitmapRenderingContext.
+    if (context_ &&
+        (IsWebGL() || IsWebGPU() || IsImageBitmapRenderingContext())) {
+      if (auto* context_layer = context_->CcLayer()) {
+        context_layer->SetFilterQuality(filter_quality_);
+      }
+    }
+  }
+
   style_is_visible_ = new_style.Visibility() == EVisibility::kVisible;
   bool is_displayed = GetLayoutObject() && style_is_visible_;
   SetIsDisplayed(is_displayed);
@@ -1791,6 +1800,10 @@ void HTMLCanvasElement::OnWebLayerUpdated() {
 }
 
 void HTMLCanvasElement::RegisterContentsLayer(cc::Layer* layer) {
+  // This is called when a new SurfaceLayer (or sometimes SolidColorLayer) is
+  // attached to `surface_layer_bridge_`. Initialize the paint flags for this
+  // layer from the CSS properties of this element.
+  InitializeLayerWithCSSProperties(layer);
   SetNeedsCompositingUpdate();
 }
 
@@ -1882,20 +1895,16 @@ void HTMLCanvasElement::ReplaceExisting2dLayerBridge(
     return;
   }
 
-  scoped_refptr<StaticBitmapImage> image;
-  std::unique_ptr<Canvas2DLayerBridge> old_layer_bridge;
-  // TODO(crbug.com/40280152): Port this check away from checking
-  // `canvas2d_bridge_` directly as part of eliminating
-  // Canvas2DLayerBridge.
-  if (canvas2d_bridge_) {
-    image = context_->GetImage(FlushReason::kReplaceLayerBridge);
-    // image can be null if allocation failed in which case we should just
-    // abort the surface switch to retain the old surface which is still
-    // functional.
-    if (!image)
-      return;
-    old_layer_bridge = std::move(canvas2d_bridge_);
+  scoped_refptr<StaticBitmapImage> image =
+      context_->GetImage(FlushReason::kReplaceLayerBridge);
+  // image can be null if allocation failed in which case we should just
+  // abort the surface switch to retain the old surface which is still
+  // functional.
+  if (!image) {
+    return;
   }
+  std::unique_ptr<Canvas2DLayerBridge> old_layer_bridge =
+      std::move(canvas2d_bridge_);
   std::unique_ptr<MemoryManagedPaintRecorder> recorder =
       old_provider->ReleaseRecorder();
   ResetLayer();
@@ -1912,9 +1921,7 @@ void HTMLCanvasElement::ReplaceExisting2dLayerBridge(
       GetOrCreateCanvasResourceProviderFor2DContext(
           canvas2d_bridge_->GetHibernationHandler());
   if (!new_provider) {
-    if (old_layer_bridge) {
-      canvas2d_bridge_ = std::move(old_layer_bridge);
-    }
+    canvas2d_bridge_ = std::move(old_layer_bridge);
     return;
   }
 

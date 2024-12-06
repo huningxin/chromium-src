@@ -327,7 +327,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
             @NonNull OneshotSupplier<HubManager> hubManagerSupplier,
             @NonNull OneshotSupplier<ToolbarIntentMetadata> intentMetadataOneshotSupplier,
             @NonNull OneshotSupplier<LayoutStateProvider> layoutStateProviderOneshotSupplier,
-            @NonNull Supplier<Long> lastUserInteractionTimeSupplier,
             @NonNull BrowserControlsManager browserControlsManager,
             @NonNull ActivityWindowAndroid windowAndroid,
             @NonNull ActivityLifecycleDispatcher activityLifecycleDispatcher,
@@ -375,7 +374,6 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
                 incognitoTabSwitcherSupplier,
                 intentMetadataOneshotSupplier,
                 layoutStateProviderOneshotSupplier,
-                lastUserInteractionTimeSupplier,
                 browserControlsManager,
                 windowAndroid,
                 activityLifecycleDispatcher,
@@ -740,7 +738,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
                             mMultiInstanceManager,
                             mTabModelSelectorSupplier.get(),
                             mWindowAndroid,
-                            mLayoutStateProviderOneShotSupplier);
+                            mLayoutStateProviderOneShotSupplier,
+                            mAppHeaderCoordinator);
 
             mCompositorViewHolderSupplier.get().setOnDragListener(chromeTabbedOnDragListener);
 
@@ -1450,10 +1449,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
         }
         if (DefaultBrowserPromoUtils.getInstance()
                 .prepareLaunchPromoIfNeeded(
-                        mActivity,
-                        mWindowAndroid,
-                        TrackerFactory.getTrackerForProfile(profile),
-                        /* ignoreMaxCount= */ false)) {
+                        mActivity, mWindowAndroid, TrackerFactory.getTrackerForProfile(profile))) {
             return true;
         }
         return AppLanguagePromoDialog.maybeShowPrompt(

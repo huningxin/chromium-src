@@ -154,7 +154,9 @@ class VIZ_SERVICE_EXPORT GpuServiceImpl
       gpu::SyncPointManager* sync_point_manager = nullptr,
       gpu::SharedImageManager* shared_image_manager = nullptr,
       gpu::Scheduler* scheduler = nullptr,
-      base::WaitableEvent* shutdown_event = nullptr);
+      base::WaitableEvent* shutdown_event = nullptr,
+      const gpu::SharedContextState::GrContextOptionsProvider*
+          gr_context_options_provider = nullptr);
 #else
   void InitializeWithHost(
       mojo::PendingRemote<mojom::GpuHost> gpu_host,
@@ -250,6 +252,8 @@ class VIZ_SERVICE_EXPORT GpuServiceImpl
                            CopyGpuMemoryBufferCallback callback) override;
   void GetVideoMemoryUsageStats(
       GetVideoMemoryUsageStatsCallback callback) override;
+  // These methods can be called from the CrBrowserMain thread and the
+  // VizCompositorThread (with InputVizard) for PeakGpuMemory tracking.
   void StartPeakMemoryMonitor(uint32_t sequence_num) override;
   void GetPeakMemoryUsage(uint32_t sequence_num,
                           GetPeakMemoryUsageCallback callback) override;
@@ -553,8 +557,9 @@ class VIZ_SERVICE_EXPORT GpuServiceImpl
   // MemoryTracker are created on that thread. All requests made before
   // GpuServiceImpl::InitializeWithHost will be enqueued.
   void StartPeakMemoryMonitorOnMainThread(uint32_t sequence_num);
-  void GetPeakMemoryUsageOnMainThread(uint32_t sequence_num,
-                                      GetPeakMemoryUsageCallback callback);
+  virtual void GetPeakMemoryUsageOnMainThread(
+      uint32_t sequence_num,
+      GetPeakMemoryUsageCallback callback);  // virtual for testing.
 
   void WakeUpGpuOnMainThread();
 
@@ -661,6 +666,9 @@ class VIZ_SERVICE_EXPORT GpuServiceImpl
   // comes from external sources.
   std::unique_ptr<base::WaitableEvent> owned_shutdown_event_;
   raw_ptr<base::WaitableEvent> shutdown_event_ = nullptr;
+
+  raw_ptr<const gpu::SharedContextState::GrContextOptionsProvider>
+      gr_context_options_provider_ = nullptr;
 
   // Callback that safely exits GPU process.
   base::OnceCallback<void(ExitCode)> exit_callback_;

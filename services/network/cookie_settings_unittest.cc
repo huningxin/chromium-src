@@ -475,6 +475,49 @@ TEST_F(CookieSettingsTest, GetCookieSettingBlockThirdParty) {
             CONTENT_SETTING_BLOCK);
 }
 
+TEST_F(CookieSettingsTest, ForceEnableThirdPartyCookieMitigations) {
+  const GURL top_level_url(kDomainURL);
+  const GURL url(kUnrelatedURL);
+  CookieSettings settings;
+
+  // Override to force block third party cookies and force enable the
+  // mitigations
+  const net::CookieSettingOverrides overrides(
+      {net::CookieSettingOverride::kForceDisableThirdPartyCookies,
+       net::CookieSettingOverride::kForceEnableThirdPartyCookieMitigations});
+
+  {
+    base::HistogramTester histogram_tester;
+
+    // Verify third-party cookie access is blocked when adding the
+    // kForceDisableThirdPartyCookies override and before adding metadata grant
+    ASSERT_EQ(settings.GetCookieSetting(url, net::SiteForCookies(),
+                                        top_level_url, overrides, nullptr),
+              CONTENT_SETTING_BLOCK);
+    histogram_tester.ExpectUniqueSample(
+        kAllowedRequestsHistogram,
+        net::cookie_util::StorageAccessResult::ACCESS_BLOCKED,
+        /*expected_bucket_count=*/1);
+  }
+
+  base::HistogramTester histogram_tester;
+  // Add a mitigation setting (e.g., 3PCD metadata grant) to unblock third-party
+  // cookies.
+  network::tpcd::metadata::Manager manager;
+  manager.SetGrants(
+      {CreateSetting(url.host(), top_level_url.host(), CONTENT_SETTING_ALLOW)});
+  settings.set_tpcd_metadata_manager(&manager);
+
+  // Verify the mitigation unblocks cookies.
+  EXPECT_EQ(settings.GetCookieSetting(url, net::SiteForCookies(), top_level_url,
+                                      overrides, nullptr),
+            CONTENT_SETTING_ALLOW);
+  histogram_tester.ExpectUniqueSample(
+      kAllowedRequestsHistogram,
+      net::cookie_util::StorageAccessResult::ACCESS_ALLOWED_3PCD_METADATA_GRANT,
+      /*expected_bucket_count=*/1);
+}
+
 TEST_F(CookieSettingsTest, ShouldAlwaysAllowCookies) {
   CookieSettings settings;
   settings.set_secure_origin_cookies_allowed_schemes({kChromeScheme});
@@ -1617,13 +1660,17 @@ TEST_P(CookieSettingsTestP, AnnotateAndMoveUserBlockedCookies_CrossSiteEmbed) {
       {*MakeCanonicalSameSiteNoneCookie("excluded_other", kURL),
        // The ExclusionReason below is irrelevant, as long as there is
        // one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))},
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))},
       {*MakeCanonicalCookie("excluded_samesitelax", kURL),
        // The ExclusionReason below is irrelevant, as long as there is
        // one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))},
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))},
   };
   url::Origin origin = url::Origin::Create(GURL(kOtherURL));
 
@@ -1834,13 +1881,17 @@ TEST_P(CookieSettingsTestP,
       {*MakeCanonicalSameSiteNoneCookie("excluded_other", kURL),
        // The ExclusionReason below is irrelevant, as long as there is
        // one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))},
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))},
       {*MakeCanonicalCookie("excluded_samesitelax", kURL),
        // The ExclusionReason below is irrelevant, as long as there is
        // one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))},
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))},
   };
   url::Origin origin = url::Origin::Create(GURL(kURL));
 
@@ -1914,8 +1965,10 @@ TEST_P(CookieSettingsTestP,
   net::CookieAccessResultList excluded_cookies = {
       {*MakeCanonicalSameSiteNoneCookie("excluded_other", kDomainURL),
        // The ExclusionReason below is irrelevant, as long as there is one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))}};
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))}};
   url::Origin origin = url::Origin::Create(GURL(kDomainURL));
 
   const bool expected_any_allowed = IsStorageAccessGrantEligibleViaAPI() ||
@@ -2520,8 +2573,10 @@ TEST_P(CookieSettingsTpcdMetadataGrantsTest,
   net::CookieAccessResultList excluded_cookies = {
       {*MakeCanonicalSameSiteNoneCookie("excluded_other", kOtherURL),
        // The ExclusionReason below is irrelevant, as long as there is one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))}};
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))}};
 
   url::Origin origin = url::Origin::Create(GURL(kURL));
 
@@ -2770,8 +2825,10 @@ TEST_P(CookieSettingsTpcdTrialTest, AnnotateAndMoveUserBlockedCookies) {
   net::CookieAccessResultList excluded_cookies = {
       {*MakeCanonicalSameSiteNoneCookie("excluded_other", kOtherURL),
        // The ExclusionReason below is irrelevant, as long as there is one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))}};
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))}};
 
   url::Origin origin = url::Origin::Create(GURL(kURL));
 
@@ -3051,8 +3108,10 @@ TEST_P(CookieSettingsTopLevelTpcdTrialTest, AnnotateAndMoveUserBlockedCookies) {
   net::CookieAccessResultList excluded_cookies = {
       {*MakeCanonicalSameSiteNoneCookie("excluded_other", kOtherURL),
        // The ExclusionReason below is irrelevant, as long as there is one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))}};
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))}};
 
   url::Origin origin = url::Origin::Create(GURL(kURL));
 
@@ -3563,8 +3622,10 @@ TEST_P(CookieSettingsTopLevelTpcdOriginTrialTest,
   net::CookieAccessResultList excluded_cookies = {
       {*MakeCanonicalSameSiteNoneCookie("excluded_other", kOtherURL),
        // The `ExclusionReason` below is irrelevant, as long as there is one.
-       net::CookieAccessResult(net::CookieInclusionStatus(
-           net::CookieInclusionStatus::ExclusionReason::EXCLUDE_SECURE_ONLY))}};
+       net::CookieAccessResult(
+           net::CookieInclusionStatus::MakeFromReasonsForTesting(
+               /*exclusions=*/{net::CookieInclusionStatus::ExclusionReason::
+                                   EXCLUDE_SECURE_ONLY}))}};
 
   url::Origin origin = url::Origin::Create(GURL(kURL));
 

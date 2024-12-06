@@ -4,6 +4,7 @@
 
 #include "chrome/browser/ui/views/page_info/page_info_main_view.h"
 
+#include <memory>
 #include <optional>
 
 #include "base/feature_list.h"
@@ -26,6 +27,7 @@
 #include "chrome/browser/ui/views/page_info/page_info_security_content_view.h"
 #include "chrome/browser/ui/views/page_info/page_info_view_factory.h"
 #include "chrome/browser/ui/views/page_info/permission_toggle_row_view.h"
+#include "chrome/browser/ui/views/page_info/star_rating_view.h"
 #include "chrome/browser/vr/vr_tab_helper.h"
 #include "chrome/common/url_constants.h"
 #include "components/content_settings/core/common/cookie_blocking_3pcd_status.h"
@@ -73,6 +75,8 @@ int GetSeparatorPadding() {
 DEFINE_CLASS_ELEMENT_IDENTIFIER_VALUE(PageInfoMainView, kCookieButtonElementId);
 DEFINE_CLASS_ELEMENT_IDENTIFIER_VALUE(PageInfoMainView, kMainLayoutElementId);
 DEFINE_CLASS_ELEMENT_IDENTIFIER_VALUE(PageInfoMainView, kPermissionsElementId);
+DEFINE_CLASS_ELEMENT_IDENTIFIER_VALUE(PageInfoMainView,
+                                      kMerchantTrustElementId);
 
 PageInfoMainView::ContainerView::ContainerView() {
   auto box_layout = std::make_unique<views::BoxLayout>(
@@ -168,7 +172,7 @@ PageInfoMainView::PageInfoMainView(
 
   // TODO(crbug.com/381400291): Rename |allow_about_this_site| to
   // |allow_extended_site_info| and check it for merchant trust too.
-  if (base::FeatureList::IsEnabled(page_info::kMerchantTrust)) {
+  if (page_info::IsMerchantTrustFeatureEnabled()) {
     merchant_trust_section_ =
         extended_site_info_section_->AddChildView(CreateContainerView());
   }
@@ -199,13 +203,10 @@ void PageInfoMainView::SetCookieInfo(const CookiesNewInfo& cookie_info) {
                               kCookieButtonElementId);
   cookie_button_->SetTooltipText(
       l10n_util::GetStringUTF16(IDS_PAGE_INFO_COOKIES_TOOLTIP));
-  cookie_button_->title()->SetTextStyle(views::style::STYLE_BODY_3_MEDIUM);
-  cookie_button_->title()->SetEnabledColorId(kColorPageInfoForeground);
-  if (cookie_button_->subtitle()) {
-    cookie_button_->subtitle()->SetTextStyle(views::style::STYLE_BODY_4);
-    cookie_button_->subtitle()->SetEnabledColorId(
-        kColorPageInfoSubtitleForeground);
-  }
+  cookie_button_->SetTitleTextStyleAndColor(views::style::STYLE_BODY_3_MEDIUM,
+                                            kColorPageInfoForeground);
+  cookie_button_->SetSubtitleTextStyleAndColor(
+      views::style::STYLE_BODY_4, kColorPageInfoSubtitleForeground);
 }
 
 void PageInfoMainView::SetPermissionInfo(
@@ -385,8 +386,8 @@ void PageInfoMainView::SetIdentityInfo(const IdentityInfo& identity_info) {
             VIEW_ID_PAGE_INFO_LINK_OR_BUTTON_SECURITY_INFORMATION);
     connection_button_->SetTooltipText(
         l10n_util::GetStringUTF16(IDS_PAGE_INFO_SECURITY_SUBPAGE_BUTTON));
-    connection_button_->title()->SetTextStyle(
-        views::style::STYLE_BODY_3_MEDIUM);
+    connection_button_->SetTitleTextStyleAndColor(
+        views::style::STYLE_BODY_3_MEDIUM, kColorPageInfoForeground);
 
     // Show "About this site" and "Merchant trust" sections only if connection
     // is secure, because security information has higher priority.
@@ -637,12 +638,10 @@ std::unique_ptr<views::View> PageInfoMainView::CreateAboutThisSiteButton(
   about_this_site_button->SetSubtitleMultiline(false);
   about_this_site_button->SetTooltipText(
       l10n_util::GetStringUTF16(IDS_PAGE_INFO_ABOUT_THIS_PAGE_TOOLTIP));
-  about_this_site_button->title()->SetTextStyle(
-      views::style::STYLE_BODY_3_MEDIUM);
-  about_this_site_button->title()->SetEnabledColorId(kColorPageInfoForeground);
-  about_this_site_button->subtitle()->SetTextStyle(views::style::STYLE_BODY_4);
-  about_this_site_button->subtitle()->SetEnabledColorId(
-      kColorPageInfoSubtitleForeground);
+  about_this_site_button->SetTitleTextStyleAndColor(
+      views::style::STYLE_BODY_3_MEDIUM, kColorPageInfoForeground);
+  about_this_site_button->SetSubtitleTextStyleAndColor(
+      views::style::STYLE_BODY_4, kColorPageInfoSubtitleForeground);
 
   return about_this_site_button;
 }
@@ -659,16 +658,10 @@ std::unique_ptr<views::View> PageInfoMainView::CreateAdPersonalizationButton() {
   ads_personalization_button->SetTooltipText(
       l10n_util::GetStringUTF16(IDS_PAGE_INFO_AD_PRIVACY_TOOLTIP));
 
-  ads_personalization_button->title()->SetTextStyle(
-      views::style::STYLE_BODY_3_MEDIUM);
-  ads_personalization_button->title()->SetEnabledColorId(
-      kColorPageInfoForeground);
-  if (ads_personalization_button->subtitle()) {
-    ads_personalization_button->subtitle()->SetTextStyle(
-        views::style::STYLE_BODY_4);
-    ads_personalization_button->subtitle()->SetEnabledColorId(
-        kColorPageInfoSubtitleForeground);
-  }
+  ads_personalization_button->SetTitleTextStyleAndColor(
+      views::style::STYLE_BODY_3_MEDIUM, kColorPageInfoForeground);
+  ads_personalization_button->SetSubtitleTextStyleAndColor(
+      views::style::STYLE_BODY_4, kColorPageInfoSubtitleForeground);
 
   return ads_personalization_button;
 }
@@ -681,8 +674,14 @@ std::unique_ptr<views::View> PageInfoMainView::CreateMerchantTrustButton() {
       PageInfoViewFactory::GetMerchantTrustIcon(),
       l10n_util::GetStringUTF16(IDS_PAGE_INFO_MERCHANT_TRUST_HEADER),
       std::u16string(), PageInfoViewFactory::GetOpenSubpageIcon());
-  merchant_trust_button->title()->SetEnabledColorId(kColorPageInfoForeground);
-  // TODO(crbug.com/381215331): Add custom subtitle with a star rating.
+  merchant_trust_button->SetTitleTextStyleAndColor(
+      views::style::STYLE_BODY_3_MEDIUM, kColorPageInfoForeground);
+  merchant_trust_button->SetProperty(views::kElementIdentifierKey,
+                                     kMerchantTrustElementId);
+  // TODO(crbug.com/381215331): Fetch the data from the service.
+  auto* star_rating_view = merchant_trust_button->AddCustomSubtitle(
+      std::make_unique<StarRatingView>());
+  star_rating_view->SetRating(3.5);
   return merchant_trust_button;
 }
 

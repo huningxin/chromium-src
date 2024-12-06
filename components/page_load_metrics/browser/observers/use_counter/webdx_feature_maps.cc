@@ -272,6 +272,13 @@ UseCounterMetricsRecorder::GetWebFeatureToWebDXFeatureMap() {
            WebDXFeature::kLongAnimationFrames},
           {WebFeature::kVisibilityStateObserver,
            WebDXFeature::kPageVisibilityState},
+          {WebFeature::kFedCm, WebDXFeature::kFedcm},
+          {WebFeature::kWebOTP, WebDXFeature::kWebOtp},
+          {WebFeature::kPreservesPitch, WebDXFeature::kPreservesPitch},
+          {WebFeature::kV8HTMLMediaElement_Remote_AttributeGetter,
+           WebDXFeature::kRemotePlayback},
+          {WebFeature::kVerticalFormControls,
+           WebDXFeature::kVerticalFormControls},
       }};
 
   return *kMap;

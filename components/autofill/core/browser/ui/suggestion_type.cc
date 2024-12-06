@@ -14,6 +14,8 @@ std::string_view SuggestionTypeToStringView(SuggestionType type) {
       return "kAutocompleteEntry";
     case SuggestionType::kAddressEntry:
       return "kAddressEntry";
+    case SuggestionType::kAddressEntryOnTyping:
+      return "kAddressEntryOnTyping";
     case SuggestionType::kAddressFieldByFieldFilling:
       return "kAddressFieldByFieldFilling";
     case SuggestionType::kManageAddress:
@@ -106,18 +108,18 @@ std::string_view SuggestionTypeToStringView(SuggestionType type) {
       return "kDevtoolsTestAddressByCountry";
     case SuggestionType::kDevtoolsTestAddressEntry:
       return "kDevtoolsTestAddressEntry";
-    case SuggestionType::kRetrievePredictionImprovements:
-      return "kRetrievePredictionImprovements";
-    case SuggestionType::kPredictionImprovementsLoadingState:
-      return "kPredictionImprovementsLoadingState";
-    case SuggestionType::kFillPredictionImprovements:
-      return "kFillPredictionImprovements";
-    case SuggestionType::kPredictionImprovementsFeedback:
-      return "kPredictionImprovementsFeedback";
-    case SuggestionType::kPredictionImprovementsError:
-      return "kPredictionImprovementsError";
-    case SuggestionType::kEditPredictionImprovementsInformation:
-      return "kEditPredictionImprovementsInformation";
+    case SuggestionType::kRetrieveAutofillAi:
+      return "kRetrieveAutofillAi";
+    case SuggestionType::kAutofillAiLoadingState:
+      return "kAutofillAiLoadingState";
+    case SuggestionType::kFillAutofillAi:
+      return "kFillAutofillAi";
+    case SuggestionType::kAutofillAiFeedback:
+      return "kAutofillAiFeedback";
+    case SuggestionType::kAutofillAiError:
+      return "kAutofillAiError";
+    case SuggestionType::kEditAutofillAiData:
+      return "kEditAutofillAiData";
   }
   NOTREACHED();
 }

@@ -4,6 +4,7 @@
 
 #include "third_party/blink/renderer/platform/graphics/gpu/webgpu_swap_buffer_provider.h"
 
+#include "base/feature_list.h"
 #include "base/logging.h"
 #include "build/build_config.h"
 #include "gpu/GLES2/gl2extchromium.h"
@@ -11,6 +12,7 @@
 #include "gpu/command_buffer/client/raster_interface.h"
 #include "gpu/command_buffer/client/shared_image_interface.h"
 #include "gpu/command_buffer/client/webgpu_interface.h"
+#include "gpu/command_buffer/common/shared_image_capabilities.h"
 #include "gpu/command_buffer/common/shared_image_usage.h"
 
 namespace blink {
@@ -73,16 +75,6 @@ gfx::Size WebGPUSwapBufferProvider::Size() const {
 cc::Layer* WebGPUSwapBufferProvider::CcLayer() {
   DCHECK(!neutered_);
   return layer_.get();
-}
-
-void WebGPUSwapBufferProvider::SetFilterQuality(
-    cc::PaintFlags::FilterQuality filter_quality) {
-  if (filter_quality != filter_quality_) {
-    filter_quality_ = filter_quality;
-    if (layer_) {
-      layer_->SetFilterQuality(filter_quality_);
-    }
-  }
 }
 
 void WebGPUSwapBufferProvider::ReleaseWGPUTextureAccessIfNeeded() {
@@ -231,8 +223,10 @@ scoped_refptr<WebGPUMailboxTexture> WebGPUSwapBufferProvider::GetNewTexture(
     // Create a layer that will be used by the canvas and will ask for a
     // SharedImage each frame.
     layer_ = cc::TextureLayer::CreateForMailbox(this);
+    if (client_) {
+      client_->InitializeLayer(layer_.get());
+    }
     layer_->SetIsDrawable(true);
-    layer_->SetFilterQuality(filter_quality_);
 
     // TODO(cwallez@chromium.org): These flags aren't taken into account when
     // the layer is promoted to an overlay. Make sure we have fallback /
@@ -297,13 +291,12 @@ bool WebGPUSwapBufferProvider::PrepareTransferableResource(
   ReleaseWGPUTextureAccessIfNeeded();
 
   // Populate the output resource.
-  uint32_t texture_target =
-      current_swap_buffer_->GetSharedImage()->GetTextureTarget();
-
   *out_resource = viz::TransferableResource::MakeGpu(
-      current_swap_buffer_->GetSharedImage(), texture_target,
+      current_swap_buffer_->GetSharedImage(),
+      current_swap_buffer_->GetSharedImage()->GetTextureTarget(),
       current_swap_buffer_->GetSyncToken(),
-      current_swap_buffer_->GetSharedImage()->size(), Format(),
+      current_swap_buffer_->GetSharedImage()->size(),
+      current_swap_buffer_->GetSharedImage()->format(),
       current_swap_buffer_->GetSharedImage()->usage().Has(
           gpu::SHARED_IMAGE_USAGE_SCANOUT),
       viz::TransferableResource::ResourceSource::kWebGPUSwapBuffer);
@@ -383,6 +376,13 @@ WebGPUSwapBufferProvider::SwapBuffer::SwapBuffer(
 
 WebGPUSwapBufferProvider::SwapBuffer::~SwapBuffer() = default;
 
+#if BUILDFLAG(IS_CHROMEOS)
+// This feature is only used as a possible killswitch.
+BASE_FEATURE(kWebGPUSwapBufferProviderAllowScanout,
+             "WebGPUSwapBufferProviderAllowScanout",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+#endif
+
 gpu::SharedImageUsageSet
 WebGPUSwapBufferProvider::GetSharedImageUsagesForDisplay() {
 #if BUILDFLAG(IS_MAC)
@@ -391,6 +391,20 @@ WebGPUSwapBufferProvider::GetSharedImageUsagesForDisplay() {
   // when creating a SharedImage forces that SharedImage to be backed by an
   // IOSurface.
   return gpu::SHARED_IMAGE_USAGE_DISPLAY_READ | gpu::SHARED_IMAGE_USAGE_SCANOUT;
+#elif BUILDFLAG(IS_CHROMEOS)
+  gpu::SharedImageUsageSet usage = gpu::SHARED_IMAGE_USAGE_DISPLAY_READ;
+  static bool is_scanout_allowed =
+      base::FeatureList::IsEnabled(kWebGPUSwapBufferProviderAllowScanout);
+
+  if (is_scanout_allowed && GetContextProviderWeakPtr() &&
+      GetContextProviderWeakPtr()
+          ->ContextProvider()
+          .SharedImageInterface()
+          ->GetCapabilities()
+          .supports_scanout_shared_images) {
+    usage |= gpu::SHARED_IMAGE_USAGE_SCANOUT;
+  }
+  return usage;
 #else
   // On other platforms we cannot assume and do not require that a SharedImage
   // created with WebGPU usage be backed by a native buffer.

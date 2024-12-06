@@ -1496,7 +1496,6 @@ void TabDragController::Attach(TabDragContext* attached_context,
   if (controller)
     attached_context_->OwnDragController(std::move(controller));
 
-  SetTabDraggingInfo();
   attached_context_tabs_closed_tracker_ =
       std::make_unique<DraggedTabsClosedTracker>(
           attached_context_->GetTabStripModel(), this);
@@ -1557,7 +1556,6 @@ std::unique_ptr<TabDragController> TabDragController::Detach(
     }
   }
 
-  ClearTabDraggingInfo();
   attached_context_->DraggedTabsDetached();
   attached_context_ = nullptr;
   attached_views_.clear();
@@ -1846,10 +1844,6 @@ void TabDragController::EndDragImpl(EndDragType type) {
     if (previous_state != DragState::kNotStarted)
       RevertDrag();
   }  // else case the only tab we were dragging was deleted. Nothing to do.
-
-  // Clear tab dragging info after the complete/revert as CompleteDrag() may
-  // need to use some of the properties.
-  ClearTabDraggingInfo();
 
   // Clear out drag data so we don't attempt to do anything with it.
   drag_data_.clear();
@@ -2189,10 +2183,59 @@ void TabDragController::BringWindowUnderPointToFront(
     return;
   }
 
+  if (!native_window) {
+    return;
+  }
+
   // Only bring browser windows to front - only windows with a
   // TabDragContext can be tab drag targets.
-  if (!CanAttachTo(native_window))
+  if (!CanAttachTo(native_window)) {
     return;
+  }
+
+  views::Widget* widget_window =
+      views::Widget::GetWidgetForNativeWindow(native_window);
+  if (!widget_window) {
+    return;
+  }
+
+#if BUILDFLAG(IS_CHROMEOS)
+  // TODO(varkha): The code below ensures that the phantom drag widget
+  // is shown on top of browser windows. The code should be moved to ash/
+  // and the phantom should be able to assert its top-most state on its own.
+  // One strategy would be for DragWindowController to
+  // be able to observe stacking changes to the phantom drag widget's
+  // siblings in order to keep it on top. One way is to implement a
+  // notification that is sent to a window parent's observers when a
+  // stacking order is changed among the children of that same parent.
+  // Note that OnWindowStackingChanged is sent only to the child that is the
+  // argument of one of the Window::StackChildX calls and not to all its
+  // siblings affected by the stacking change.
+  aura::Window* browser_window = widget_window->GetNativeView();
+  // Find a topmost non-popup window and stack the recipient browser above
+  // it in order to avoid stacking the browser window on top of the phantom
+  // drag widget created by DragWindowController in a second display.
+  for (aura::Window* window :
+       base::Reversed(browser_window->parent()->children())) {
+    // If the iteration reached the recipient browser window then it is
+    // already topmost and it is safe to return with no stacking change.
+    if (window == browser_window) {
+      return;
+    }
+    if (window->GetType() != aura::client::WINDOW_TYPE_POPUP) {
+      widget_window->StackAbove(window);
+      break;
+    }
+  }
+#else
+  widget_window->StackAtTop();
+#endif
+
+  // The previous call made the window appear on top of the dragged window,
+  // move the dragged window to the front.
+  if (current_state_ == DragState::kDraggingWindow) {
+    attached_context_->GetWidget()->StackAtTop();
+  }
 }
 
 bool TabDragController::IsDraggingTab(content::WebContents* contents) const {
@@ -2537,39 +2580,6 @@ TabDragController::Liveness TabDragController::GetLocalProcessWindow(
   base::WeakPtr<TabDragController> ref(weak_factory_.GetWeakPtr());
   *window = window_finder_->GetLocalProcessWindowAtPoint(screen_point, exclude);
   return ref ? Liveness::ALIVE : Liveness::DELETED;
-}
-
-void TabDragController::SetTabDraggingInfo() {
-#if BUILDFLAG(IS_CHROMEOS)
-  TabDragContext* dragged_context =
-      attached_context_ ? attached_context_ : source_context_;
-  DCHECK(dragged_context->IsDragSessionActive() &&
-         current_state_ != DragState::kStopped);
-
-  aura::Window* dragged_window =
-      GetWindowForTabDraggingProperties(dragged_context);
-  dragged_window->SetProperty(ash::kIsDraggingTabsKey, true);
-#endif
-}
-
-void TabDragController::ClearTabDraggingInfo() {
-#if BUILDFLAG(IS_CHROMEOS)
-  TabDragContext* dragged_context =
-      attached_context_ ? attached_context_ : source_context_;
-  DCHECK(!dragged_context->IsDragSessionActive() ||
-         current_state_ == DragState::kStopped);
-  // Do not clear the dragging info properties for a to-be-destroyed window.
-  // They will be cleared later in Window's destructor. It's intentional as
-  // ash::SplitViewController::TabDraggedWindowObserver listens to both
-  // OnWindowDestroying() event and the window properties change event, and uses
-  // the two events to decide what to do next.
-  if (dragged_context->GetTabStripModel()->empty())
-    return;
-
-  aura::Window* dragged_window =
-      GetWindowForTabDraggingProperties(dragged_context);
-  dragged_window->ClearProperty(ash::kIsDraggingTabsKey);
-#endif
 }
 
 std::optional<tab_groups::TabGroupId>

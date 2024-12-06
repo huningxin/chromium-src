@@ -128,14 +128,9 @@ std::u16string GetProfileSuggestionMainText(const AutofillProfile& profile,
 
 // Returns the minimum number of fields that should be returned by
 // `AutofillProfile::CreateInferredLabels()`, based on the type of the
-// triggering field and on the filling granularity.
-int GetNumberOfMinimalFieldsToShow(FieldType trigger_field_type,
-                                   SuggestionType suggestion_type) {
-  if (GroupTypeOfFieldType(trigger_field_type) == FieldTypeGroup::kPhone &&
-      base::FeatureList::IsEnabled(
-          features::kAutofillGranularFillingAvailable) &&
-      features::kAutofillGranularFillingAvailableWithImprovedLabelsParam
-          .Get()) {
+// triggering field.
+int GetNumberOfMinimalFieldsToShow(FieldType trigger_field_type) {
+  if (GroupTypeOfFieldType(trigger_field_type) == FieldTypeGroup::kPhone) {
     // Phone fields are a special case. For them we want both the
     // `FULL_NAME` and `ADDRESS_HOME_LINE1` to be present.
     return 2;
@@ -151,7 +146,6 @@ std::vector<std::u16string> GetProfileSuggestionLabels(
     const std::vector<AutofillProfile>& profiles,
     const FieldTypeSet& field_types,
     FieldType trigger_field_type,
-    SuggestionType suggestion_type,
     const std::string& app_locale) {
   // Generate disambiguating labels based on the list of matches.
   std::vector<std::u16string> differentiating_labels;
@@ -161,15 +155,14 @@ std::vector<std::u16string> GetProfileSuggestionLabels(
                          -> raw_ptr<const AutofillProfile, VectorExperimental> {
                        return &profile;
                      });
-  if (features::kAutofillGranularFillingAvailableWithImprovedLabelsParam
-          .Get() &&
-      base::FeatureList::IsEnabled(
-          features::kAutofillGranularFillingAvailable)) {
+  if (base::FeatureList::IsEnabled(features::kAutofillImprovedLabels) &&
+      !features::kAutofillImprovedLabelsParamOnlyWithMainTextChangesParam
+           .Get()) {
     AutofillProfile::CreateInferredLabels(
         profile_ptrs, /*suggested_fields=*/std::nullopt, trigger_field_type,
         {trigger_field_type},
-        GetNumberOfMinimalFieldsToShow(trigger_field_type, suggestion_type),
-        app_locale, &differentiating_labels,
+        GetNumberOfMinimalFieldsToShow(trigger_field_type), app_locale,
+        &differentiating_labels,
         /*use_improved_labels_order=*/true);
   } else {
     AutofillProfile::CreateInferredLabels(
@@ -181,14 +174,12 @@ std::vector<std::u16string> GetProfileSuggestionLabels(
 }
 
 // For each profile in `profiles`, returns a vector of `Suggestion::labels` to
-// be applied. Takes into account the `suggestion_type` and the
-// `trigger_field_type` to add specific granular filling labels. Optionally adds
-// a differentiating label if the Suggestion::main_text + granular filling label
-// is not unique.
+// be applied. Takes into account the `trigger_field_type` to add specific
+// labels. Optionally adds a differentiating label if the Suggestion::main_text
+// +  label is not unique.
 std::vector<std::vector<Suggestion::Text>> CreateSuggestionLabels(
     const std::vector<AutofillProfile>& profiles,
     const FieldTypeSet& field_types,
-    SuggestionType suggestion_type,
     FieldType trigger_field_type,
     const std::string& app_locale) {
   // Suggestions for filling only one field (field-by-field filling) should not
@@ -199,7 +190,7 @@ std::vector<std::vector<Suggestion::Text>> CreateSuggestionLabels(
   }
   const std::vector<std::u16string> suggestions_differentiating_labels =
       GetProfileSuggestionLabels(profiles, field_types, trigger_field_type,
-                                 suggestion_type, app_locale);
+                                 app_locale);
   return base::ToVector(
       suggestions_differentiating_labels, [](const std::u16string& label) {
         return std::vector<Suggestion::Text>{Suggestion::Text(label)};
@@ -531,7 +522,7 @@ std::vector<Suggestion> CreateSuggestionsFromProfiles(
 
   std::vector<Suggestion> suggestions;
   std::vector<std::vector<Suggestion::Text>> labels = CreateSuggestionLabels(
-      profiles, field_types, suggestion_type, trigger_field_type, app_locale);
+      profiles, field_types, trigger_field_type, app_locale);
   // This will be used to check if suggestions should be supported with icons.
   // TODO(crbug.com/40285811): Consider simplifying this to be any address
   // field.
@@ -545,17 +536,14 @@ std::vector<Suggestion> CreateSuggestionsFromProfiles(
       }) > 1;
   FieldTypeGroup trigger_field_type_group =
       GroupTypeOfFieldType(trigger_field_type);
-  // If `features::kAutofillGranularFillingAvailableWithImprovedLabelsParam` of
-  // the `kAutofillGranularFillingAvailable` feature is enabled, name fields
-  // should have `NAME_FULL` as main text, unless in field by field filling
-  // mode.
+  // If `features::kAutofillImprovedLabels` is enabled, name fields should have
+  // `NAME_FULL` as main text, unless in field by field filling mode.
   FieldType main_text_field_type =
       GroupTypeOfFieldType(trigger_field_type) == FieldTypeGroup::kName &&
               suggestion_type != SuggestionType::kAddressFieldByFieldFilling &&
-              base::FeatureList::IsEnabled(
-                  features::kAutofillGranularFillingAvailable) &&
-              features::kAutofillGranularFillingAvailableWithImprovedLabelsParam
-                  .Get()
+              base::FeatureList::IsEnabled(features::kAutofillImprovedLabels) &&
+              !features::kAutofillImprovedLabelsParamWithoutMainTextChangesParam
+                   .Get()
           ? NAME_FULL
           : trigger_field_type;
   for (size_t i = 0; i < profiles.size(); ++i) {
@@ -605,6 +593,100 @@ std::vector<Suggestion> CreateSuggestionsFromProfiles(
 }
 
 }  // namespace
+
+std::vector<Suggestion> GetSuggestionsOnTypingForProfile(
+    const AddressDataManager& address_data_manager,
+    const std::u16string& field_contents) {
+  // Get the profiles to suggest, which are already sorted by relevance.
+  std::vector<const AutofillProfile*> profiles =
+      address_data_manager.GetProfilesToSuggest();
+  if (profiles.empty()) {
+    return {};
+  }
+  const AutofillProfile& profile = *profiles[0];
+
+  // The minimum number of characters a user needs to type to maybe see a
+  // suggestion.
+  static constexpr size_t kMinNumberCharactersToMatch = 3;
+  // Field types that are made of numbers will use
+  // `kMinNumberCharactersToMatchForNumberTypes`. The hypothesis is that when
+  // two digts of a number are matching, it is likely that the user wants to use
+  // profile data. For example, a user whose name is Bruno Mars, where 2
+  // matching characters is used, could be matched with: Brazil, Brief, Break
+  // etc. On the other hand, assuming their phone number is 563 245 123, there
+  // are fewer scenarios where they would type 56 and finish with something
+  // different than their phone number.
+  static constexpr size_t kMinNumberCharactersToMatchForNumberTypes = 2;
+  // This defines the maximum number of characters typed until suggestions are
+  // no longer displayed.
+  static constexpr size_t kMaxNumberCharactersToMatch = 10;
+  // Field types we are interested in showing suggestions for.
+  // TODO(crbug.com/381994105): Add a finch parameter to easily experiment with
+  // adding and removing field types.
+  static constexpr FieldTypeSet kTypes = {NAME_FIRST,
+                                          NAME_FULL,
+                                          NAME_LAST,
+                                          COMPANY_NAME,
+                                          ADDRESS_HOME_LINE1,
+                                          ADDRESS_HOME_STREET_ADDRESS,
+                                          ADDRESS_HOME_CITY,
+                                          ADDRESS_HOME_STATE,
+                                          ADDRESS_HOME_COUNTRY,
+                                          ADDRESS_HOME_STREET_NAME,
+                                          EMAIL_ADDRESS,
+                                          PHONE_HOME_WHOLE_NUMBER,
+                                          PHONE_HOME_CITY_AND_NUMBER,
+                                          ADDRESS_HOME_ZIP};
+  static constexpr FieldTypeSet kNumberTypes = {
+      PHONE_HOME_CITY_AND_NUMBER, PHONE_HOME_WHOLE_NUMBER, ADDRESS_HOME_ZIP};
+
+  std::vector<Suggestion> suggestions;
+  std::set<std::u16string> suggestions_text;
+  for (FieldType type : kTypes) {
+    const size_t effective_num_characters_to_match =
+        kNumberTypes.contains(type) ? kMinNumberCharactersToMatchForNumberTypes
+                                    : kMinNumberCharactersToMatch;
+
+    const std::u16string normalized_field_contents =
+        NormalizeForComparisonForType(field_contents, type);
+    if (normalized_field_contents.size() < effective_num_characters_to_match) {
+      // Sometimes normalizing the string makes it shorter because of trimming
+      // spaces.
+      continue;
+    }
+
+    if (normalized_field_contents.size() > kMaxNumberCharactersToMatch) {
+      continue;
+    }
+
+    std::u16string suggestion_text =
+        profile.GetInfo(type, address_data_manager.app_locale());
+    const std::u16string profile_data =
+        NormalizeForComparisonForType(suggestion_text, type);
+
+    if (profile_data.empty()) {
+      continue;
+    }
+
+    if (!IsValidAddressSuggestionForFieldContents(
+            profile_data, normalized_field_contents, type)) {
+      continue;
+    }
+
+    // Do not allow duplicated suggestions, for example if
+    // `ADDRESS_HOME_LINE1` and
+    // `ADDRESS_HOME_STREET_ADDRESS` hold the same data.
+    if (!suggestions_text.contains(suggestion_text)) {
+      suggestions.emplace_back(SuggestionType::kAddressEntryOnTyping);
+      suggestions.back().main_text = Suggestion::Text(suggestion_text);
+      suggestions.back().field_by_field_filling_type_used = type;
+      suggestions.back().payload =
+          Suggestion::AutofillProfilePayload(Suggestion::Guid(profile.guid()));
+      suggestions_text.insert(suggestion_text);
+    }
+  }
+  return suggestions;
+}
 
 std::vector<Suggestion> GetSuggestionsForProfiles(
     const AutofillClient& client,

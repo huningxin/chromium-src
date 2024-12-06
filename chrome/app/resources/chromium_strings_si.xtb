@@ -261,6 +261,7 @@
 <translation id="4510853178268397146">මෙම දිගුව මෙය දත්ත රැස් කර භාවිත කරන ආකාරය වැනි පෞද්ගලිකත්ව පුරුදු ප්‍රකාශන කර නැත. Chromium ඔබ එය ඉවත් කිරීම නිර්දේශ කරයි.</translation>
 <translation id="452711251841752011">Chromium වෙත සාදරයෙන් පිළිගනිමු; නව බ්‍රවුසර කවුළුවක් විවෘත කරන ලදි</translation>
 <translation id="4531137820806573936">ඔබේ වටපිටාව සිතියම් කිරීමට සහ ඔබේ අත් හඹා යාමට Chromium හට අවසරය අවශ්‍ය ය</translation>
+<translation id="4534145890176164066">Chromium විසින් පෝරම වඩා හොඳින් වටහා ගන්නා අතර ඔබ වෙනුවෙන් ඒවා ඉක්මනින් ස්වයංව පුරවා දීමට හැක</translation>
 <translation id="4536805923587466102">ඔබ දැනටමත් තව Chromium පැතිඩකක් තුළ <ph name="USER_EMAIL_ADDRESS" /> ලෙස පුරනය වී ඇත</translation>
 <translation id="4544142686420020088">Chromium යාවත්කාලීන නොවිය, යම් දෙයක් වැරදිණි. <ph name="BEGIN_LINK" />Chromium යාවත්කාලීන ගැටලු සහ අසමත් වූ යාවත්කාලීන නිරාකරණ කරන්න.<ph name="END_LINK" /></translation>
 <translation id="4545268686623374213">ඔබේ බ්‍රවුස් කිරීමේ අත්දැකීම වැඩි දියුණු කිරීමට සහ දේවල් වේගවත් කර ගැනීමට Chromium හට මෙම පටිත්ත අක්‍රිය කළ හැක.</translation>
@@ -441,7 +442,6 @@
 <translation id="6831043979455480757">පරිවර්තනය කරන්න</translation>
 <translation id="6847869444787758381">Chromium ඔබට ඔබේ මුරපද කිසි විටෙක හෝ අවදානමට ලක් වී තිබේද යන්න දන්වයි</translation>
 <translation id="684888714667046800">අන්තර්ජාලය වෙත සම්බන්ධ වීමට නොහැකි වේ. ඔබ ෆයර් වෝලයක් භාවිතා කරන්නේ නම්, <ph name="PRODUCT_EXE_NAME" /> ඉඩ දුන් ලැයිස්තුවේ ඇති බව සහතික කර ගන්න.</translation>
-<translation id="685279860330610299">Chromium හට තවත් තොරතුරු වර්ග තේරුම් ගැනීමට සහ ඔබේ පෝරම ඉක්මනින් ස්වයංක්‍රීයව පිරවිය හැක. <ph name="BEGIN_LINK" />Chrome ස්වයං පිරවීම<ph name="END_LINK" /> ගැන තව දැන ගන්න</translation>
 <translation id="6857782730669500492">Chromium - <ph name="PAGE_TITLE" /></translation>
 <translation id="6873893289264747459">Chromium "<ph name="EXTENSION_NAME" />" හි අනිෂ්ට මෘදුකාංග අඩංගු බව සොයා ගෙන ඇත</translation>
 <translation id="6896758677409633944">පිටපත්</translation>
@@ -480,6 +480,7 @@ Chromium හට ඔබගේ සැකසුම් ප්‍රතිසාධ�
 <translation id="7349591376906416160">ඔබේ පද්ධති පරිපාලකයා <ph name="TARGET_URL_HOSTNAME" /> වෙත ප්‍රවේශ වීමට <ph name="ALTERNATIVE_BROWSER_NAME" /> විවෘත කිරීමට Chromium වින්‍යාස කර ඇත.</translation>
 <translation id="7355355292030546812">ගොනුව <ph name="USER_EMAIL" /> ඇතුළුව ඔබේ පුද්ගලික සහ සමාජ ජාල ගිණුම් වලට හානි කළ හැකි නිසා Chromium මෙම බාගැනීම අවහිර කර ඇත</translation>
 <translation id="7384121030444253939">මෙම දිගුව තවදුරටත් සහාය නොදක්වයි. ඒ වෙනුවට එය ඉවත් කරන ලෙස Chromium නිර්දේශ කරයි.</translation>
+<translation id="7389750180956889333">Chromium විසින් පෝරම වඩා හොඳින් වටහා ගන්නා අතර ඔබ වෙනුවෙන් ඒවා ඉක්මනින් ස්වයංව පුරවා දීමට හැක. <ph name="BEGIN_LINK" />Chrome ස්වයං පිරවීම<ph name="END_LINK" /> ගැන තව දැන ගන්න</translation>
 <translation id="7398989605938454041">Chromium පැතිකඩවල් සමඟ ඔබට ඔබගේ සියලු Chromium දේවල් වෙන් කළ හැකිය. මෙය වැඩ සහ විනෝදය වෙන් කිරීම පහසු කරයි.</translation>
 <translation id="7449453770951226939"><ph name="PAGE_TITLE" /> - Chromium Dev</translation>
 <translation id="7450541714075000668">පෙළ පිටපත් කරන ලදී</translation>

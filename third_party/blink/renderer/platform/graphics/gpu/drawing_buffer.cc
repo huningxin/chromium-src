@@ -162,7 +162,6 @@ scoped_refptr<DrawingBuffer> DrawingBuffer::Create(
     PreserveDrawingBuffer preserve,
     WebGLVersion webgl_version,
     ChromiumImageUsage chromium_image_usage,
-    cc::PaintFlags::FilterQuality filter_quality,
     PredefinedColorSpace color_space,
     gl::GpuPreference gpu_preference) {
   if (g_should_fail_drawing_buffer_creation_for_testing) {
@@ -221,7 +220,7 @@ scoped_refptr<DrawingBuffer> DrawingBuffer::Create(
           discard_framebuffer_supported, texture_storage_enabled,
           want_alpha_channel, premultiplied_alpha, preserve, webgl_version,
           want_depth_buffer, want_stencil_buffer, chromium_image_usage,
-          filter_quality, color_space, gpu_preference));
+          color_space, gpu_preference));
   if (!drawing_buffer->Initialize(size, multisample_supported)) {
     drawing_buffer->BeginDestruction();
     return scoped_refptr<DrawingBuffer>();
@@ -245,7 +244,6 @@ DrawingBuffer::DrawingBuffer(
     bool want_depth,
     bool want_stencil,
     ChromiumImageUsage chromium_image_usage,
-    cc::PaintFlags::FilterQuality filter_quality,
     PredefinedColorSpace color_space,
     gl::GpuPreference gpu_preference)
     : client_(client),
@@ -268,7 +266,6 @@ DrawingBuffer::DrawingBuffer(
       want_depth_(want_depth),
       want_stencil_(want_stencil),
       color_space_(PredefinedColorSpaceToGfxColorSpace(color_space)),
-      filter_quality_(filter_quality),
       chromium_image_usage_(chromium_image_usage),
       opengl_flip_y_extension_(
           ContextProvider()->GetCapabilities().mesa_framebuffer_flip_y),
@@ -354,16 +351,6 @@ void DrawingBuffer::SetIsInHiddenPage(bool hidden) {
 
 void DrawingBuffer::SetHdrMetadata(const gfx::HDRMetadata& hdr_metadata) {
   hdr_metadata_ = hdr_metadata;
-}
-
-void DrawingBuffer::SetFilterQuality(
-    cc::PaintFlags::FilterQuality filter_quality) {
-  if (filter_quality_ != filter_quality) {
-    filter_quality_ = filter_quality;
-    if (layer_) {
-      layer_->SetFilterQuality(filter_quality);
-    }
-  }
 }
 
 bool DrawingBuffer::RequiresAlphaChannelToBePreserved() {
@@ -660,11 +647,14 @@ bool DrawingBuffer::FinishPrepareTransferableResourceGpu(
     *out_resource = viz::TransferableResource::MakeGpu(
         color_buffer_for_mailbox->shared_image,
         color_buffer_for_mailbox->shared_image->GetTextureTarget(),
-        color_buffer_for_mailbox->produce_sync_token, size_,
-        color_buffer_for_mailbox->format,
-        color_buffer_for_mailbox->is_overlay_candidate,
+        color_buffer_for_mailbox->produce_sync_token,
+        color_buffer_for_mailbox->shared_image->size(),
+        color_buffer_for_mailbox->shared_image->format(),
+        color_buffer_for_mailbox->shared_image->usage().Has(
+            gpu::SHARED_IMAGE_USAGE_SCANOUT),
         viz::TransferableResource::ResourceSource::kDrawingBuffer);
-    out_resource->color_space = color_buffer_for_mailbox->color_space;
+    out_resource->color_space =
+        color_buffer_for_mailbox->shared_image->color_space();
     out_resource->hdr_metadata = hdr_metadata_;
     out_resource->origin =
         color_buffer_for_mailbox->shared_image->surface_origin();
@@ -723,7 +713,8 @@ void DrawingBuffer::MailboxReleasedGpu(scoped_refptr<ColorBuffer> color_buffer,
   // Creation of image backed mailboxes is very expensive, so be less
   // aggressive about pruning them. Pruning is done in FIFO order.
   size_t cache_limit = kDefaultColorBufferCacheLimit;
-  if (color_buffer->is_overlay_candidate) {
+  if (color_buffer->shared_image->usage().Has(
+          gpu::SHARED_IMAGE_USAGE_SCANOUT)) {
     cache_limit = 4;
   }
   while (recycled_color_buffer_queue_.size() >= cache_limit)
@@ -792,13 +783,10 @@ scoped_refptr<StaticBitmapImage> DrawingBuffer::TransferToStaticBitmapImage() {
   // TODO(xidachen): Create a small pool of recycled textures from
   // ImageBitmapRenderingContext's transferFromImageBitmap, and try to use them
   // in DrawingBuffer.
-  const bool is_origin_top_left =
-      client_si->surface_origin() == kTopLeft_GrSurfaceOrigin;
   return AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
       std::move(client_si), sk_image_sync_token,
       /* shared_image_texture_id = */ 0, sk_image_info,
       transferable_resource.texture_target(),
-      /*is_origin_top_left=*/is_origin_top_left,
       context_provider_->GetWeakPtr(), base::PlatformThread::CurrentRef(),
       ThreadScheduler::Current()->CleanupTaskRunner(),
       std::move(release_callback),
@@ -831,10 +819,12 @@ scoped_refptr<CanvasResource> DrawingBuffer::ExportLowLatencyCanvasResource(
 
   resource.set_mailbox(color_buffer->shared_image->mailbox());
   resource.set_texture_target(color_buffer->shared_image->GetTextureTarget());
-  resource.size = color_buffer->size;
-  resource.format = color_buffer->format;
-  resource.is_overlay_candidate = color_buffer->is_overlay_candidate;
-  resource.color_space = color_buffer->color_space;
+  resource.size = color_buffer->shared_image->size();
+  resource.format = color_buffer->shared_image->format();
+  resource.is_overlay_candidate =
+      color_buffer->shared_image->usage().Has(gpu::SHARED_IMAGE_USAGE_SCANOUT);
+  resource.color_space = color_buffer->shared_image->color_space();
+  resource.origin = color_buffer->shared_image->surface_origin();
   resource.hdr_metadata = hdr_metadata_;
   resource.resource_source =
       viz::TransferableResource::ResourceSource::kDrawingBuffer;
@@ -849,8 +839,9 @@ scoped_refptr<CanvasResource> DrawingBuffer::ExportLowLatencyCanvasResource(
   }
 
   return ExternalCanvasResource::Create(
-      color_buffer->shared_image, resource, viz::ReleaseCallback(),
-      context_provider_->GetWeakPtr(), resource_provider, filter_quality_);
+      color_buffer->shared_image, resource, resource.is_overlay_candidate,
+      viz::ReleaseCallback(), context_provider_->GetWeakPtr(),
+      resource_provider);
 }
 
 scoped_refptr<CanvasResource> DrawingBuffer::ExportCanvasResource() {
@@ -874,9 +865,9 @@ scoped_refptr<CanvasResource> DrawingBuffer::ExportCanvasResource() {
   //   returns true
   CHECK(client_si);
   return ExternalCanvasResource::Create(
-      client_si, out_resource, std::move(out_release_callback),
-      context_provider_->GetWeakPtr(), /*resource_provider=*/nullptr,
-      filter_quality_);
+      client_si, out_resource, out_resource.is_overlay_candidate,
+      std::move(out_release_callback), context_provider_->GetWeakPtr(),
+      /*resource_provider=*/nullptr);
 }
 
 DrawingBuffer::ColorBuffer::ColorBuffer(
@@ -885,7 +876,6 @@ DrawingBuffer::ColorBuffer::ColorBuffer(
     const gfx::ColorSpace& color_space,
     viz::SharedImageFormat format,
     SkAlphaType alpha_type,
-    bool is_overlay_candidate,
     scoped_refptr<gpu::ClientSharedImage> shared_image,
     std::unique_ptr<gpu::SharedImageTexture> shared_image_texture)
     : owning_thread_ref(base::PlatformThread::CurrentRef()),
@@ -894,7 +884,6 @@ DrawingBuffer::ColorBuffer::ColorBuffer(
       color_space(color_space),
       format(format),
       alpha_type(alpha_type),
-      is_overlay_candidate(is_overlay_candidate),
       shared_image(std::move(shared_image)),
       shared_image_texture_(std::move(shared_image_texture)) {
   CHECK(this->shared_image);
@@ -1165,8 +1154,6 @@ bool DrawingBuffer::CopyToPlatformTexture(gpu::gles2::GLES2Interface* dst_gl,
       [&](scoped_refptr<gpu::ClientSharedImage> src_shared_image,
           const gpu::SyncToken& produce_sync_token, SkAlphaType src_alpha_type,
           const gfx::Size&) -> std::optional<gpu::SyncToken> {
-    dst_gl->WaitSyncTokenCHROMIUM(produce_sync_token.GetConstData());
-
     GLboolean unpack_premultiply_alpha_needed = GL_FALSE;
     GLboolean unpack_unpremultiply_alpha_needed = GL_FALSE;
     if (src_alpha_type == kPremul_SkAlphaType && !premultiply_alpha) {
@@ -1254,6 +1241,9 @@ bool DrawingBuffer::CopyToVideoFrame(
 cc::Layer* DrawingBuffer::CcLayer() {
   if (!layer_) {
     layer_ = cc::TextureLayer::CreateForMailbox(this);
+    if (client_) {
+      client_->DrawingBufferClientInitializeLayer(layer_.get());
+    }
 
     layer_->SetIsDrawable(true);
     layer_->SetHitTestable(true);
@@ -1269,7 +1259,6 @@ cc::Layer* DrawingBuffer::CcLayer() {
       layer_->SetPremultipliedAlpha(requested_alpha_type_ !=
                                     kUnpremul_SkAlphaType);
     }
-    layer_->SetFilterQuality(filter_quality_);
   }
 
   return layer_.get();
@@ -2111,20 +2100,18 @@ scoped_refptr<DrawingBuffer::ColorBuffer> DrawingBuffer::CreateColorBuffer(
         front_buffer_shared_image->CreateGLTexture(gl_);
     front_color_buffer_ = base::MakeRefCounted<ColorBuffer>(
         weak_factory_.GetWeakPtr(), size, color_space_, color_buffer_format_,
-        back_buffer_alpha_type,
-        /*is_overlay_candidate=*/true, std::move(front_buffer_shared_image),
+        back_buffer_alpha_type, std::move(front_buffer_shared_image),
         std::move(si_texture));
   }
 
   // Import the backbuffer of swap chain or allocated SharedImage into GL.
   std::unique_ptr<gpu::SharedImageTexture> si_texture =
       back_buffer_shared_image->CreateGLTexture(gl_);
-  const bool is_overlay_candidate = created_mappable_si || using_swap_chain_;
   scoped_refptr<DrawingBuffer::ColorBuffer> color_buffer =
       base::MakeRefCounted<ColorBuffer>(
           weak_factory_.GetWeakPtr(), size, color_space_, color_buffer_format_,
-          back_buffer_alpha_type, is_overlay_candidate,
-          std::move(back_buffer_shared_image), std::move(si_texture));
+          back_buffer_alpha_type, std::move(back_buffer_shared_image),
+          std::move(si_texture));
   color_buffer->BeginAccess(gpu::SyncToken(), /*readonly=*/false);
   gl_->BindTexture(texture_target, color_buffer->texture_id());
 

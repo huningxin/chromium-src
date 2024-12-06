@@ -155,26 +155,6 @@ class ASH_EXPORT CaptureModeSession
   // `current_root_` is different`.
   void RefreshBarWidgetBounds();
 
-  // Invalidates all pointers previously returned from `GetImageSearchToken()`.
-  // This should be called whenever any parameters relating to the capture
-  // (type, source, bounds - excluding window) change:
-  //
-  // - when `controller_->SetUserCaptureRegion()` is called
-  //   (`UpdateCaptureRegion()` and `ClampCaptureRegionToRootWindowSize()`)
-  // - when `is_drag_in_progress_` is modified (`OnLocatedEventPressed()` and
-  //   `EndSelection()`). Note that this does not directly affect parameters
-  //   relating to the capture (`CaptureModeController::GetCaptureParams()`).
-  // - when the source changes (`OnCaptureSourceChanged()`)
-  // - when the type changes (`OnCaptureTypeChanged()`). Note that this does not
-  //   directly affect parameters relating to the capture
-  //   (`CaptureModeController::GetCaptureParams()`).
-  // - when `current_root_` changes (indirectly from `MaybeChangeRoot()`, as it
-  //   calls `UpdateCaptureRegion()`)
-  // - when the session starts (indirectly from `InitInternal()`, as it calls
-  //   `ClampCaptureRegionToRootWindowSize()`)
-  // - when `is_shutting_down_` is set (`ShutdownInternal()`)
-  void InvalidateImageSearchTokens();
-
   // BaseCaptureModeSession:
   views::Widget* GetCaptureModeBarWidget() override;
   aura::Window* GetSelectedWindow() const override;
@@ -507,6 +487,14 @@ class ASH_EXPORT CaptureModeSession
 
   // Schedules a repaint of the glow area surrounding the capture region.
   void RefreshGlowRegion();
+
+  // Invalidates the current image search, so that results from any ongoing
+  // search will be discarded. This will invalidate all pointers previously
+  // returned from `GetImageSearchToken()` and remove related loading
+  // animations if needed.
+  // `InvalidateImageSearch()` should be called whenever any parameters related
+  // to the image search (e.g. capture type, source, bounds) change.
+  void InvalidateImageSearch();
 
   // BaseCaptureModeSession:
   void InitInternal() override;

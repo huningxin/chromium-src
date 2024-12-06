@@ -11,7 +11,6 @@
 <translation id="1200396280085622191">每次点按消息和其他应用中的链接时，都使用 Chrome 打开。</translation>
 <translation id="1229222343402087523">在 Chrome 中搜索 ${searchPhrase}</translation>
 <translation id="1237769345474105984">来自 Chrome</translation>
-<translation id="1240190568154816272">Chrome 技巧</translation>
 <translation id="124228879633599436">您的 Chrome 版本过旧。请更新以确保安全。</translation>
 <translation id="1333745675627230582">玩 Chrome 恐龙游戏</translation>
 <translation id="1352919863522755794">Google 密码管理工具无法检查您的密码。请尝试检查您的互联网连接。</translation>
@@ -60,7 +59,7 @@
 <translation id="2342919707875585281">Chrome 会将您的位置信息分享给您允许的网站。</translation>
 <translation id="2347208864470321755">启用此功能后，Chrome 将使用 Google 翻译对其他语言的网页进行翻译。<ph name="BEGIN_LINK" />了解详情<ph name="END_LINK" /></translation>
 <translation id="2423077901494354337">您现在可以在设备上充分利用 Chrome 了。</translation>
-<translation id="2427791862912929107">Chrome 的某些功能可帮助您管理您的互联网数据和网页加载速度。
+<translation id="2427791862912929107">Chrome 的某些功能可帮助您管理互联网数据和网页加载速度。
 <ph name="BEGIN_LINK" />了解详情<ph name="END_LINK" /></translation>
 <translation id="2444854139071078915">若要在其他应用中轻松获取您已保存的密码，请使用 Chrome 的自动填充功能</translation>
 <translation id="2464852008153767546">{THRESHOLD,plural, =1{当 Chrome 闲置 {THRESHOLD} 分钟后，就会发生这种情况。清除的数据可能包括历史记录和自动填充数据。}other{当 Chrome 闲置 {THRESHOLD} 分钟后，就会发生这种情况。清除的数据可能包括历史记录和自动填充数据。}}</translation>
@@ -107,7 +106,7 @@
 <translation id="3522659714780527202">要查看您在其他设备上用 Chrome 打开的标签页，请开启同步功能</translation>
 <translation id="364480321352456989">您的 Chrome 版本过旧。</translation>
 <translation id="3646736009628185125">您的家庭成员目前无法接收密码。请让他们更新 Chrome 并同步其密码。<ph name="BEGIN_LINK" />了解详情<ph name="END_LINK" /></translation>
-<translation id="3655656110921623717">这意味着 Chrome 每次都会对移动网站发出请求。</translation>
+<translation id="3655656110921623717">在此模式下，Chrome 每次都会对移动版网站发出请求。</translation>
 <translation id="3740397331642243698">在 Google Chrome 中以无痕模式打开输入的网址。</translation>
 <translation id="3741995255368156336">打开 Chrome 阅读清单。</translation>
 <translation id="3808570423967020928">从主屏幕上的程序坞更快速地访问 Chrome。</translation>
@@ -301,7 +300,7 @@
 <translation id="8673726683583791503">使用 Google 智能镜头购物</translation>
 <translation id="8727043961453758442">充分利用 Chrome</translation>
 <translation id="8765470054473112089">当您在地址栏或搜索框中输入内容时，Chrome 会将您输入的内容发送给默认搜索引擎，以便为您提供更好的建议。在无痕模式下，此设置处于关闭状态。</translation>
-<translation id="8772179140489533211">显示意在引导用户登录 Chrome 的提示。</translation>
+<translation id="8772179140489533211">显示让用户登录 Chrome 的提示。</translation>
 <translation id="8788269841521769222">您不需要记住此密码。系统会将它保存到 <ph name="EMAIL" /> 的 Google 密码管理工具中</translation>
 <translation id="880967149107462122">前往 Chrome 设置</translation>
 <translation id="8842132678697187091">您可以在此处打开 Google 智能镜头。</translation>

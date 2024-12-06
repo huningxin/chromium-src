@@ -322,7 +322,7 @@
 #include "content/browser/renderer_host/render_view_host_delegate_view.h"
 #endif
 
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
 #include "base/command_line.h"
 #include "content/public/browser/ax_inspect_factory.h"
 #include "ui/accessibility/accessibility_switches.h"
@@ -1038,14 +1038,11 @@ bool ValidateUnfencedTopNavigation(
   render_frame_host->GetSiteInstance()->GetProcess()->FilterURL(
       /*empty_allowed=*/false, &url);
 
-  // It should only be possible to send this IPC with this flag from an
-  // opaque-ads fenced frame. Opaque-ads fenced frames should always
-  // have the sandbox flag `allow-top-navigation-by-user-activation`.
-  if ((render_frame_host->frame_tree_node()->GetDeprecatedFencedFrameMode() !=
-       blink::FencedFrame::DeprecatedFencedFrameMode::kOpaqueAds) ||
+  if (!render_frame_host->IsNestedWithinFencedFrame() ||
       render_frame_host->IsSandboxed(
           network::mojom::WebSandboxFlags::kTopNavigationByUserActivation)) {
-    // If we get the IPC elsewhere, assume the renderer is compromised.
+    // If either of these conditions are true, then assume a compromised
+    // renderer.
     bad_message::ReceivedBadMessage(
         initiator_process_id,
         bad_message::RFHI_UNFENCED_TOP_IPC_OUTSIDE_FENCED_FRAME);
@@ -1448,27 +1445,11 @@ WindowProxyUserActivationState GetWindowProxyUserActivationState(
 class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
                                   public ServiceWorkerContextObserver {
  public:
-  explicit DiscardedRFHProcessHelper(RenderProcessHost* host) : host_(host) {
-    if (host_->IsInitializedAndNotDead() && !host_->IsDeletingSoon()) {
-      service_worker_context_observation_.Observe(
-          host_->GetStoragePartition()->GetServiceWorkerContext());
-    }
-  }
+  explicit DiscardedRFHProcessHelper(RenderProcessHost* host) : host_(host) {}
   DiscardedRFHProcessHelper(const DiscardedRFHProcessHelper&) = delete;
   DiscardedRFHProcessHelper& operator=(const DiscardedRFHProcessHelper&) =
       delete;
   ~DiscardedRFHProcessHelper() override = default;
-
-  // ServiceWorkerContextObserver:
-  void OnVersionStoppedRunning(int64_t version_id) override {
-    // Service workers may outlive the documents of their discarded rfh if
-    // executing pre-existing tasks. Attempt a shutdown if any associated worker
-    // has stopped to clear away the process if possible.
-    ShutdownForDiscardIfPossible();
-  }
-  void OnDestruct(ServiceWorkerContext* context) override {
-    service_worker_context_observation_.Reset();
-  }
 
   static DiscardedRFHProcessHelper* GetForRenderProcessHost(
       RenderProcessHost* host) {
@@ -1488,7 +1469,7 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
     shutdown_attempt_timer_.Stop();
     retries_ = 0;
     shutdown_attempt_timer_.Start(
-        FROM_HERE, /*delay=*/base::TimeDelta(),
+        FROM_HERE, /*delay=*/kUnloadTimeout,
         base::BindRepeating(&DiscardedRFHProcessHelper::ShutdownIfPossible,
                             base::Unretained(this)));
   }
@@ -1498,8 +1479,6 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
   // discarded frames remain.
   void ShutdownIfPossible() {
     if (!host_->IsInitializedAndNotDead() || host_->IsDeletingSoon()) {
-      shutdown_attempt_timer_.Stop();
-      retries_ = 0;
       return;
     }
 
@@ -1507,7 +1486,7 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
     // continue until a maximum delay of kKeepAliveHandleFactoryTimeout is
     // reached.
     constexpr base::TimeDelta kProcessShutdownRetryDelay =
-        base::Milliseconds(5000);
+        base::Milliseconds(500);
 
     // Attempt a fast shutdown if only discarded frames remain in the process. A
     // render process may host both speculative and non-speculative frames,
@@ -1535,7 +1514,8 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
          RenderProcessHostImpl::kKeepAliveHandleFactoryTimeout) &&
         !host_->FastShutdownIfPossible(
             /*page_count=*/discarded_widgets.size(),
-            /*skip_unload_handlers=*/true)) {
+            /*skip_unload_handlers=*/true,
+            /*ignore_workers=*/true)) {
       retries_++;
       shutdown_attempt_timer_.Start(
           FROM_HERE, kProcessShutdownRetryDelay,
@@ -1552,9 +1532,6 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
 
   // Owns this.
   const raw_ptr<RenderProcessHost> host_;
-
-  base::ScopedObservation<ServiceWorkerContext, ServiceWorkerContextObserver>
-      service_worker_context_observation_{this};
 };
 
 }  // namespace
@@ -2691,37 +2668,39 @@ bool RenderFrameHostImpl::IsUntrustedNetworkDisabled() const {
 
 void RenderFrameHostImpl::ForEachRenderFrameHostWithAction(
     base::FunctionRef<FrameIterationAction(RenderFrameHost*)> on_frame) {
-  ForEachRenderFrameHostWithAction(
+  ForEachRenderFrameHostImplWithAction(
       [on_frame](RenderFrameHostImpl* rfh) { return on_frame(rfh); });
 }
 
 void RenderFrameHostImpl::ForEachRenderFrameHost(
     base::FunctionRef<void(RenderFrameHost*)> on_frame) {
-  ForEachRenderFrameHost(
+  ForEachRenderFrameHostImpl(
       [on_frame](RenderFrameHostImpl* rfh) { on_frame(rfh); });
 }
 
-void RenderFrameHostImpl::ForEachRenderFrameHostWithAction(
+void RenderFrameHostImpl::ForEachRenderFrameHostImplWithAction(
     base::FunctionRef<FrameIterationAction(RenderFrameHostImpl*)> on_frame) {
   ForEachRenderFrameHostImpl(on_frame, /*include_speculative=*/false);
 }
 
-void RenderFrameHostImpl::ForEachRenderFrameHost(
+void RenderFrameHostImpl::ForEachRenderFrameHostImpl(
     base::FunctionRef<void(RenderFrameHostImpl*)> on_frame) {
-  ForEachRenderFrameHostWithAction([on_frame](RenderFrameHostImpl* rfh) {
+  ForEachRenderFrameHostImplWithAction([on_frame](RenderFrameHostImpl* rfh) {
     on_frame(rfh);
     return FrameIterationAction::kContinue;
   });
 }
 
-void RenderFrameHostImpl::ForEachRenderFrameHostIncludingSpeculativeWithAction(
-    base::FunctionRef<FrameIterationAction(RenderFrameHostImpl*)> on_frame) {
+void RenderFrameHostImpl::
+    ForEachRenderFrameHostImplIncludingSpeculativeWithAction(
+        base::FunctionRef<FrameIterationAction(RenderFrameHostImpl*)>
+            on_frame) {
   ForEachRenderFrameHostImpl(on_frame, /*include_speculative=*/true);
 }
 
-void RenderFrameHostImpl::ForEachRenderFrameHostIncludingSpeculative(
+void RenderFrameHostImpl::ForEachRenderFrameHostImplIncludingSpeculative(
     base::FunctionRef<void(RenderFrameHostImpl*)> on_frame) {
-  ForEachRenderFrameHostIncludingSpeculativeWithAction(
+  ForEachRenderFrameHostImplIncludingSpeculativeWithAction(
       [on_frame](RenderFrameHostImpl* rfh) {
         on_frame(rfh);
         return FrameIterationAction::kContinue;
@@ -2758,7 +2737,7 @@ void RenderFrameHostImpl::ForEachRenderFrameHostImpl(
   // only if |this| is current in its FrameTree.
   // TODO(crbug.com/40203236): Avoid having a RenderFrameHost access its
   // FrameTreeNode's speculative RenderFrameHost by moving
-  // ForEachRenderFrameHostIncludingSpeculative from RenderFrameHostImpl or
+  // ForEachRenderFrameHostImplIncludingSpeculative from RenderFrameHostImpl or
   // possibly removing it entirely.
   if (include_speculative && frame_tree_node()->current_frame_host() == this) {
     RenderFrameHostImpl* speculative_frame_host =
@@ -5624,7 +5603,7 @@ void RenderFrameHostImpl::DidCommitPageActivation(
   //
   // Note that due to PrerenderCommitDeferringCondition, the main frame should
   // have no ongoing NavigationRequest at all, so it is not checked here.
-  ForEachRenderFrameHost([](RenderFrameHostImpl* rfh) {
+  ForEachRenderFrameHostImpl([](RenderFrameHostImpl* rfh) {
     // Interested only in subframes.
     if (rfh->is_main_frame())
       return;
@@ -7937,7 +7916,7 @@ void RenderFrameHostImpl::SendAccessibilityEventsToManager(
     UnrecoverableAccessibilityError();
   }
 
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
   // Don't exercise the accessibility tree when we either had an
   // accessibility failure or if we are not allowed to fire events
   if (!accessibility_error && browser_accessibility_manager_->CanFireEvents()) {
@@ -7947,7 +7926,7 @@ void RenderFrameHostImpl::SendAccessibilityEventsToManager(
 }
 
 void RenderFrameHostImpl::ExerciseAccessibilityForTest() {
-#if defined(AX_FAIL_FAST_BUILD)
+#if AX_FAIL_FAST_BUILD()
   // When running a debugging/sanitizer build with
   // --force-renderer-accessibility, exercise the properties for every node, to
   // ensure no crashes or assertions are triggered. This helpfully runs for all
@@ -9809,25 +9788,10 @@ bool RenderFrameHostImpl::IsFencedFrameReportingFromRendererAllowed(
 
   if (cross_origin_exposed &&
       !base::FeatureList::IsEnabled(
-          blink::features::
-              kFencedFramesCrossOriginEventReportingUnlabeledTraffic) &&
-      !base::FeatureList::IsEnabled(
-          blink::features::kFencedFramesCrossOriginEventReportingAllTraffic)) {
+          blink::features::kFencedFramesCrossOriginEventReporting)) {
     mojo::ReportBadMessage(
         "Request to send cross-origin reporting beacons received while feature "
         "not enabled.");
-    return false;
-  }
-
-  if (cross_origin_exposed &&
-      !base::FeatureList::IsEnabled(
-          blink::features::kFencedFramesCrossOriginEventReportingAllTraffic) &&
-      base::FeatureList::IsEnabled(
-          features::kCookieDeprecationFacilitatedTesting)) {
-    AddMessageToConsole(
-        blink::mojom::ConsoleMessageLevel::kError,
-        "Cross-origin reporting beacons are not supported with Mode A/B "
-        "Chrome-facilitated testing traffic.");
     return false;
   }
 
@@ -11051,7 +11015,7 @@ bool RenderFrameHostImpl::CheckOrDispatchBeforeUnloadForSubtree(
   bool found_beforeunload = false;
   bool run_beforeunload_for_legacy = false;
 
-  ForEachRenderFrameHostWithAction(
+  ForEachRenderFrameHostImplWithAction(
       [this, subframes_only, send_ipc, is_reload, &found_beforeunload,
        &run_beforeunload_for_legacy](
           RenderFrameHostImpl* rfh) -> FrameIterationAction {
@@ -11406,8 +11370,9 @@ bool RenderFrameHostImpl::is_initial_empty_document() const {
 uint32_t RenderFrameHostImpl::FindSuddenTerminationHandlers(bool same_origin) {
   uint32_t navigation_termination = 0;
   // Search this frame and subframes for sudden termination disablers
-  ForEachRenderFrameHostWithAction([this, same_origin, &navigation_termination](
-                                       RenderFrameHost* rfh) {
+  ForEachRenderFrameHostImplWithAction([this, same_origin,
+                                        &navigation_termination](
+                                           RenderFrameHostImpl* rfh) {
     if (same_origin &&
         GetLastCommittedOrigin() != rfh->GetLastCommittedOrigin()) {
       return FrameIterationAction::kSkipChildren;
@@ -13839,13 +13804,14 @@ service_manager::InterfaceProvider* RenderFrameHostImpl::GetJavaInterfaces() {
 
 void RenderFrameHostImpl::ForEachImmediateLocalRoot(
     base::FunctionRef<void(RenderFrameHostImpl*)> func_ref) {
-  ForEachRenderFrameHostWithAction([func_ref, this](RenderFrameHostImpl* rfh) {
-    if (rfh->is_local_root() && rfh != this) {
-      func_ref(rfh);
-      return FrameIterationAction::kSkipChildren;
-    }
-    return FrameIterationAction::kContinue;
-  });
+  ForEachRenderFrameHostImplWithAction(
+      [func_ref, this](RenderFrameHostImpl* rfh) {
+        if (rfh->is_local_root() && rfh != this) {
+          func_ref(rfh);
+          return FrameIterationAction::kSkipChildren;
+        }
+        return FrameIterationAction::kContinue;
+      });
 }
 
 void RenderFrameHostImpl::SetVisibilityForChildViews(bool visible) {

@@ -2,11 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-// TODO(crbug.com/40285824): Remove this and convert code to safer constructs.
-#pragma allow_unsafe_buffers
-#endif
-
 #include "chrome/browser/ui/webui/settings/settings_ui.h"
 
 #include <stddef.h>
@@ -72,7 +67,6 @@
 #include "chrome/browser/ui/webui/settings/profile_info_handler.h"
 #include "chrome/browser/ui/webui/settings/protocol_handlers_handler.h"
 #include "chrome/browser/ui/webui/settings/reset_settings_handler.h"
-#include "chrome/browser/ui/webui/settings/safety_check_handler.h"
 #include "chrome/browser/ui/webui/settings/safety_hub_handler.h"
 #include "chrome/browser/ui/webui/settings/search_engines_handler.h"
 #include "chrome/browser/ui/webui/settings/settings_clear_browsing_data_handler.h"
@@ -248,7 +242,6 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
   AddSettingsPageUIHandler(std::make_unique<BrowserLifetimeHandler>());
   AddSettingsPageUIHandler(
       std::make_unique<ClearBrowsingDataHandler>(web_ui, profile));
-  AddSettingsPageUIHandler(std::make_unique<SafetyCheckHandler>());
   AddSettingsPageUIHandler(std::make_unique<SafetyHubHandler>(profile));
   AddSettingsPageUIHandler(std::make_unique<DownloadsHandler>(profile));
   AddSettingsPageUIHandler(std::make_unique<ExtensionControlHandler>());
@@ -358,10 +351,6 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
       (!chrome::ShouldDisplayManagedUi(profile) && !profile->IsChild());
   html_source->AddBoolean("showPrivacyGuide", show_privacy_guide);
 
-  html_source->AddBoolean(
-      "enableCbdTimeframeRequired",
-      base::FeatureList::IsEnabled(features::kCbdTimeframeRequired));
-
   html_source->AddBoolean("enableHandTrackingContentSetting",
 #if BUILDFLAG(ENABLE_VR)
                           device::features::IsHandTrackingEnabled());
@@ -470,13 +459,21 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
   // Add the metrics handler to write uma stats.
   web_ui->AddMessageHandler(std::make_unique<MetricsHandler>());
 
-  webui::SetupWebUIDataSource(
-      html_source, base::make_span(kSettingsResources, kSettingsResourcesSize),
-      IDR_SETTINGS_SETTINGS_HTML);
+  webui::SetupWebUIDataSource(html_source, kSettingsResources,
+                              IDR_SETTINGS_SETTINGS_HTML);
+  // Add chrome://webui-test for cr-lottie test.
+  html_source->OverrideContentSecurityPolicy(
+      network::mojom::CSPDirectiveName::ConnectSrc,
+      "connect-src chrome://webui-test chrome://resources chrome://theme "
+      "'self';");
+  // Add TrustedTypes policy for cr-lottie.
+  html_source->OverrideContentSecurityPolicy(
+      network::mojom::CSPDirectiveName::TrustedTypes,
+      base::StrCat({webui::kDefaultTrustedTypesPolicies,
+                    " lottie-worker-script-loader;"}));
 
 #if !BUILDFLAG(OPTIMIZE_WEBUI)
-  html_source->AddResourcePaths(
-      base::make_span(kSettingsSharedResources, kSettingsSharedResourcesSize));
+  html_source->AddResourcePaths(kSettingsSharedResources);
 #endif
 
   AddLocalizedStrings(html_source, profile, web_ui->GetWebContents());
@@ -503,11 +500,6 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
       "privateStateTokensEnabled",
       base::FeatureList::IsEnabled(network::features::kPrivateStateTokens) ||
           base::FeatureList::IsEnabled(network::features::kFledgePst));
-
-  html_source->AddBoolean(
-      "safetyCheckUnusedSitePermissionsEnabled",
-      base::FeatureList::IsEnabled(
-          content_settings::features::kSafetyCheckUnusedSitePermissions));
 
   html_source->AddBoolean(
       "safetyHubAbusiveNotificationRevocationEnabled",

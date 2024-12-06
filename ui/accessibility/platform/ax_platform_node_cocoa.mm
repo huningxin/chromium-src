@@ -273,6 +273,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 
   dispatch_once(&onceToken, ^{
     dict = @{
+      @"accessibilityColumns" : NSAccessibilityColumnsAttribute,
       @"accessibilityColumnCount" : NSAccessibilityColumnCountAttribute,
       @"accessibilityColumnIndexRange" :
           NSAccessibilityColumnIndexRangeAttribute,
@@ -282,10 +283,14 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
       @"accessibilityHeader" : NSAccessibilityHeaderAttribute,
       @"accessibilityIndex" : NSAccessibilityIndexAttribute,
       @"accessibilityRowCount" : NSAccessibilityRowCountAttribute,
+      @"accessibilityRowHeaderUIElements" :
+          NSAccessibilityRowHeaderUIElementsAttribute,
       @"accessibilityRowIndexRange" : NSAccessibilityRowIndexRangeAttribute,
       @"accessibilitySortDirection" : NSAccessibilitySortDirectionAttribute,
+      @"accessibilityTabs" : NSAccessibilityTabsAttribute,
       @"accessibilityVisibleColumns" : NSAccessibilityVisibleColumnsAttribute,
       @"accessibilityVisibleCells" : NSAccessibilityVisibleCellsAttribute,
+      @"accessibilityVisibleRows" : NSAccessibilityVisibleRowsAttribute,
       @"isAccessibilityDisclosed" : NSAccessibilityDisclosingAttribute,
       @"isAccessibilityExpanded" : NSAccessibilityExpandedAttribute,
       @"isAccessibilityFocused" : NSAccessibilityFocusedAttribute,
@@ -509,6 +514,19 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   }
 
   return true;
+}
+
+- (void)getTreeItemDescendantNodeIds:(std::vector<int32_t>*)treeItemIds {
+  for (auto childDelegateIterator = [self nodeDelegate]->ChildrenBegin();
+       *childDelegateIterator != *[self nodeDelegate]->ChildrenEnd();
+       ++(*childDelegateIterator)) {
+    ui::AXPlatformNodeDelegate* childDelegate = childDelegateIterator->get();
+    if (childDelegate->GetRole() == ax::mojom::Role::kTreeItem) {
+      treeItemIds->push_back(childDelegate->GetId());
+    }
+    gfx::NativeViewAccessible child = childDelegate->GetNativeViewAccessible();
+    [child getTreeItemDescendantNodeIds:treeItemIds];
+  }
 }
 
 + (NSString*)nativeRoleFromAXRole:(ax::mojom::Role)role {
@@ -2091,7 +2109,15 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 // Misc attributes.
 
 - (NSString*)AXPlaceholderValue {
-  return [self accessibilityPlaceholderValue];
+  if (![self instanceActive]) {
+    return nil;
+  }
+
+  if (_node->GetNameFrom() == ax::mojom::NameFrom::kPlaceholder) {
+    return [self getName];
+  }
+
+  return [self getStringAttribute:ax::mojom::StringAttribute::kPlaceholder];
 }
 
 - (NSString*)AXMenuItemMarkChar {
@@ -2127,12 +2153,15 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 
 // Text-specific attributes.
 
+// LINT.IfChange
 - (NSString*)AXSelectedText {
   NSRange selectedTextRange;
   [[self AXSelectedTextRange] getValue:&selectedTextRange];
   return [[self getAXValueAsString] substringWithRange:selectedTextRange];
 }
+// LINT.ThenChange(accessibilitySelectedText)
 
+// LINT.IfChange
 - (NSValue*)AXSelectedTextRange {
   int start = 0, end = 0;
   if (_node->IsAtomicTextField() &&
@@ -2146,10 +2175,13 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 
   return [NSValue valueWithRange:NSMakeRange(0, 0)];
 }
+// LINT.ThenChange(accessibilitySelectedTextRange)
 
+// LINT.IfChange
 - (NSNumber*)AXNumberOfCharacters {
   return @([[self getAXValueAsString] length]);
 }
+// LINT.ThenChange(accessibilityNumberOfCharacters)
 
 - (NSValue*)AXVisibleCharacterRange {
   return [NSValue valueWithRange:{0, [[self getAXValueAsString] length]}];
@@ -2721,11 +2753,128 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return -1;
 }
 
+// LINT.IfChange(accessibilityRowHeaderUIElements)
+- (NSArray*)accessibilityRowHeaderUIElements {
+  if (![self instanceActive]) {
+    return nil;
+  }
+
+  ax::mojom::Role role = [self internalRole];
+  bool isCellOrTableHeader = ui::IsCellOrTableHeader(role);
+  bool isTableLike = ui::IsTableLike(role);
+  if (!isTableLike && !isCellOrTableHeader) {
+    return nil;
+  }
+
+  ui::AXPlatformNodeDelegate* delegate = [self nodeDelegate];
+  gfx::NativeViewAccessible table = delegate->GetTableAncestor();
+  if (!table) {
+    return nil;
+  }
+
+  ui::AXPlatformNode* tableNode =
+      ui::AXPlatformNode::FromNativeViewAccessible(table);
+  if (!tableNode) {
+    return nil;
+  }
+
+  ui::AXPlatformNodeDelegate* tableDelegate = tableNode->GetDelegate();
+  if (!tableDelegate) {
+    return nil;
+  }
+
+  // A table with no row headers.
+  if (isTableLike && !tableDelegate->GetTableRowCount().has_value()) {
+    return nil;
+  }
+
+  NSMutableArray* rowHeaders = [[NSMutableArray alloc] init];
+
+  if (isTableLike) {
+    // Return the table's row headers.
+    std::set<int32_t> headerIds;
+
+    int numberOfRows = tableDelegate->GetTableRowCount().value();
+
+    // Rows can have more than one row header cell. Also, we apparently need
+    // to guard against duplicate row header ids. Storing in a set dedups.
+    for (int i = 0; i < numberOfRows; i++) {
+      std::vector<int32_t> rowHeaderIds = tableDelegate->GetRowHeaderNodeIds(i);
+      for (int32_t rowHeaderId : rowHeaderIds) {
+        headerIds.insert(rowHeaderId);
+      }
+    }
+
+    for (int32_t headerId : headerIds) {
+      ui::AXPlatformNode* cellNode = tableDelegate->GetFromNodeID(headerId);
+      if (cellNode) {
+        [rowHeaders addObject:cellNode->GetNativeViewAccessible()];
+      }
+    }
+  } else {
+    // Otherwise this is a cell, return the row headers for this cell.
+    for (int32_t nodeId : delegate->GetRowHeaderNodeIds()) {
+      ui::AXPlatformNode* cellNode = delegate->GetFromNodeID(nodeId);
+      if (cellNode) {
+        [rowHeaders addObject:cellNode->GetNativeViewAccessible()];
+      }
+    }
+  }
+
+  return [rowHeaders count] ? rowHeaders : nil;
+}
+// LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityRowHeaderUIElements)
+
+// LINT.IfChange(accessibilityColumns)
+- (NSArray*)accessibilityColumns {
+  if (![self instanceActive]) {
+    return nil;
+  }
+
+  NSMutableArray* columns = [[NSMutableArray alloc] init];
+  for (AXPlatformNodeCocoa* child in [self accessibilityChildren]) {
+    if ([[child accessibilityRole] isEqualToString:NSAccessibilityColumnRole]) {
+      [columns addObject:child];
+    }
+  }
+  return columns;
+}
+// LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityColumns)
+
 - (NSArray*)accessibilityRows {
-  // TODO(accessibility) accessibilityRows is defined in
-  // browser_accessibility_cocoa.mm eventually that function definition should
-  // be moved here.
-  return nil;
+  if (![self instanceActive]) {
+    return nil;
+  }
+
+  ui::AXPlatformNodeDelegate* delegate = [self nodeDelegate];
+  if (!delegate) {
+    return nil;
+  }
+
+  NSMutableArray* rows = [[NSMutableArray alloc] init];
+
+  ax::mojom::Role role = [self internalRole];
+
+  std::vector<int32_t> nodeIds;
+  if (role == ax::mojom::Role::kTree) {
+    [self getTreeItemDescendantNodeIds:&nodeIds];
+  } else if (ui::IsTableLike(role)) {
+    nodeIds = delegate->GetRowNodeIds();
+  } else if (role == ax::mojom::Role::kColumn) {
+    // Rows attribute for a column is the list of all the elements in that
+    // column at each row.
+    nodeIds = delegate->GetIntListAttribute(
+        ax::mojom::IntListAttribute::kIndirectChildIds);
+  }
+
+  for (int32_t nodeId : nodeIds) {
+    ui::AXPlatformNode* rowNode = delegate->GetFromNodeID(nodeId);
+    if (rowNode) {
+      [rows addObject:rowNode->GetNativeViewAccessible()];
+    }
+  }
+
+  return rows;
 }
 
 - (NSAccessibilitySortDirection)accessibilitySortDirection {
@@ -2817,12 +2966,15 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return [[self AXInsertionPointLineNumber] integerValue];
 }
 
+// LINT.IfChange
 - (NSInteger)accessibilityNumberOfCharacters {
-  if (!_node)
+  if (![self instanceActive]) {
     return 0;
+  }
 
-  return [[self AXNumberOfCharacters] integerValue];
+  return [[self getAXValueAsString] length];
 }
+// LINT.ThenChange(AXNumberOfCharacters)
 
 - (NSString*)accessibilityPlaceholderValue {
   if (![self instanceActive])
@@ -2834,12 +2986,16 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return [self getStringAttribute:ax::mojom::StringAttribute::kPlaceholder];
 }
 
+// LINT.IfChange
 - (NSString*)accessibilitySelectedText {
-  if (!_node)
+  if (![self instanceActive]) {
     return nil;
+  }
 
-  return [self AXSelectedText];
+  NSRange selectedTextRange = [self accessibilitySelectedTextRange];
+  return [[self getAXValueAsString] substringWithRange:selectedTextRange];
 }
+// LINT.ThenChange(AXSelectedText)
 
 - (void)setAccessibilitySelectedText:(NSString*)text {
   if (!_node) {
@@ -2853,14 +3009,24 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   _node->GetDelegate()->AccessibilityPerformAction(data);
 }
 
+// LINT.IfChange
 - (NSRange)accessibilitySelectedTextRange {
-  if (!_node)
+  if (![self instanceActive]) {
     return NSMakeRange(0, 0);
+  }
 
-  NSRange r;
-  [[self AXSelectedTextRange] getValue:&r];
-  return r;
+  int start = 0, end = 0;
+  if (_node->IsAtomicTextField() &&
+      _node->GetIntAttribute(ax::mojom::IntAttribute::kTextSelStart, &start) &&
+      _node->GetIntAttribute(ax::mojom::IntAttribute::kTextSelEnd, &end)) {
+    // NSRange cannot represent the direction the text was selected in.
+    return NSMakeRange(static_cast<NSUInteger>(std::min(start, end)),
+                       static_cast<NSUInteger>(abs(end - start)));
+  }
+
+  return NSMakeRange(0, 0);
 }
+// LINT.ThenChange(AXSelectedTextRange)
 
 - (void)setAccessibilitySelectedTextRange:(NSRange)range {
   if (!_node) {
@@ -2962,6 +3128,27 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return [NSURL URLWithString:(base::SysUTF8ToNSString(url))];
 }
 
+// LINT.IfChange(accessibilityTabs)
+- (id)accessibilityTabs {
+  if (![self instanceActive]) {
+    return nil;
+  }
+
+  NSMutableArray* tabSubtree = [[NSMutableArray alloc] init];
+  if ([self internalRole] == ax::mojom::Role::kTab) {
+    [tabSubtree addObject:self];
+  }
+
+  for (AXPlatformNodeCocoa* child in [self accessibilityChildren]) {
+    NSArray* tabChildren = [child accessibilityTabs];
+    if ([tabChildren count] > 0) {
+      [tabSubtree addObjectsFromArray:tabChildren];
+    }
+  }
+  return tabSubtree;
+}
+// LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityTabs)
+
 // NSAccessibility: configuring linkage elements.
 - (id)accessibilityTitleUIElement {
   if (![self instanceActive])
@@ -3033,6 +3220,12 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return cells;
 }
 // LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityVisibleCells)
+
+// LINT.IfChange(accessibilityVisibleRows)
+- (NSArray*)accessibilityVisibleRows {
+  return [self accessibilityRows];
+}
+// LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityVisibleRows)
 
 //
 // End of NSAccessibility protocol.

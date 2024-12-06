@@ -33,10 +33,6 @@ BASE_FEATURE(kUseConsentLevelSigninForLegacyAccountEmailPref,
 BASE_FEATURE(kCctSignInPrompt,
              "CctSignInPrompt",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-BASE_FEATURE(kPutParcelableSigninConfigInExtra,
-             "PutParcelableSigninConfigInExtra",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 #endif
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT)
@@ -222,16 +218,6 @@ BASE_FEATURE(kProfilesReordering,
 BASE_FEATURE(kOutlineSilhouetteIcon,
              "OutlineSilhouetteIcon",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
-BASE_FEATURE(kForceSigninFlowInProfilePicker,
-             "ForceSigninFlowInProfilePicker",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-extern const base::FeatureParam<bool>
-    kForceSigninReauthInProfilePickerUseAddSession{
-        &kForceSigninFlowInProfilePicker, /*name=*/"reauth_use_add_session",
-        /*default_value=*/false};
-#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
 #if BUILDFLAG(IS_ANDROID)
 BASE_FEATURE(kIgnoreMirrorHeadersInBackgoundTabs,

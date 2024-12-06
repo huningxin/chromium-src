@@ -25,6 +25,7 @@
 #include "net/base/network_anonymization_key.h"
 #include "net/base/network_change_notifier.h"
 #include "net/base/proxy_chain.h"
+#include "net/base/request_priority.h"
 #include "net/base/session_usage.h"
 #include "net/http/alternative_service.h"
 #include "net/http/http_network_session.h"
@@ -131,23 +132,25 @@ std::unique_ptr<HttpStreamRequest> HttpStreamPool::RequestStream(
     bool enable_alternative_services,
     const NetLogWithSource& net_log) {
   auto controller = std::make_unique<JobController>(
-      this, std::move(request_info), enable_ip_based_pooling,
-      enable_alternative_services);
+      this, std::move(request_info), priority, allowed_bad_certs,
+      enable_ip_based_pooling, enable_alternative_services);
   JobController* controller_raw_ptr = controller.get();
   // Put `controller` into `job_controllers_` before calling RequestStream() to
   // make sure `job_controllers_` always contains `controller` when
   // OnJobControllerComplete() is called.
   job_controllers_.emplace(std::move(controller));
 
-  return controller_raw_ptr->RequestStream(delegate, priority,
-                                           allowed_bad_certs, net_log);
+  return controller_raw_ptr->RequestStream(delegate, net_log);
 }
 
 int HttpStreamPool::Preconnect(HttpStreamPoolRequestInfo request_info,
                                size_t num_streams,
                                CompletionOnceCallback callback) {
+  std::vector<SSLConfig::CertAndStatus> allowed_bad_certs;
   auto controller = std::make_unique<JobController>(
-      this, std::move(request_info), /*enable_ip_based_pooling=*/true,
+      this, std::move(request_info), /*priority=*/RequestPriority::IDLE,
+      std::move(allowed_bad_certs),
+      /*enable_ip_based_pooling=*/true,
       /*enable_alternative_services=*/true);
   JobController* controller_raw_ptr = controller.get();
   // SAFETY: Using base::Unretained() is safe because `this` will own
@@ -195,14 +198,17 @@ void HttpStreamPool::DecrementTotalConnectingStreamCount(size_t amount) {
 void HttpStreamPool::OnIPAddressChanged() {
   CHECK(cleanup_on_ip_address_change_);
   for (const auto& group : groups_) {
-    group.second->FlushWithError(ERR_NETWORK_CHANGED, kIpAddressChanged);
+    group.second->FlushWithError(ERR_NETWORK_CHANGED,
+                                 StreamCloseReason::kIpAddressChanged,
+                                 kIpAddressChanged);
   }
 }
 
 void HttpStreamPool::OnSSLConfigChanged(
     SSLClientContext::SSLConfigChangeType change_type) {
   for (const auto& group : groups_) {
-    group.second->Refresh(kSslConfigChanged);
+    group.second->Refresh(kSslConfigChanged,
+                          StreamCloseReason::kSslConfigChanged);
   }
   ProcessPendingRequestsInGroups();
 }
@@ -213,7 +219,8 @@ void HttpStreamPool::OnSSLConfigForServersChanged(
     if (GURL::SchemeIsCryptographic(group.first.destination().scheme()) &&
         servers.contains(
             HostPortPair::FromSchemeHostPort(group.first.destination()))) {
-      group.second->Refresh(kSslConfigChanged);
+      group.second->Refresh(kSslConfigChanged,
+                            StreamCloseReason::kSslConfigChanged);
     }
   }
   ProcessPendingRequestsInGroups();
@@ -233,9 +240,11 @@ void HttpStreamPool::OnJobControllerComplete(JobController* job_controller) {
 
 void HttpStreamPool::FlushWithError(
     int error,
+    StreamCloseReason attempt_cancel_reason,
     std::string_view net_log_close_reason_utf8) {
   for (auto& group : groups_) {
-    group.second->FlushWithError(error, net_log_close_reason_utf8);
+    group.second->FlushWithError(error, attempt_cancel_reason,
+                                 net_log_close_reason_utf8);
   }
 }
 

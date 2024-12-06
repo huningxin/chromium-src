@@ -140,9 +140,13 @@ void ExpectPingRequest(
       {request::GetUpdaterUserAgentMatcher(version),
        request::GetContentMatcher({base::StringPrintf(
            R"(.*"appid":"%s".*"errorcode":%d,"eventresult":%d,"eventtype":%d,)"
-           R"("extracode1":%d,.*)",
+           R"(%s.*)",
            app_id.c_str(), ping_params.error_code, ping_params.result,
-           ping_params.event_type, ping_params.extra_code1)})},
+           ping_params.event_type,
+           ping_params.extra_code1 ? base::StringPrintf(R"("extracode1":%d,)",
+                                                        ping_params.extra_code1)
+                                         .c_str()
+                                   : "")})},
       base::StringPrintf(")]}'\n"
                          R"({"response":{)"
                          R"(  "protocol":"3.1",)"
@@ -4396,13 +4400,21 @@ TEST_F(IntegrationTest, OfflineInstallOemMode) {
   ASSERT_NO_FATAL_FAILURE(Uninstall());
 }
 
-TEST_F(IntegrationTest, ExpectErrorUIWhenGetSetupLockFails) {
+TEST_F(IntegrationTest, ExpectPingAndErrorUIWhenGetSetupLockFails) {
   ScopedServer test_update_server(test_commands_);
   const std::string kAppId("googletest");
   const base::Version v1("1");
   ASSERT_NO_FATAL_FAILURE(ExpectInstallSequence(
       &test_update_server, kAppId, "", UpdateService::Priority::kForeground,
       base::Version({0, 0, 0, 0}), v1));
+
+  const update_client::UpdateClient::PingParams ping_params{
+      .event_type = update_client::protocol_request::kEventInstall,
+      .result = 1,
+      .error_code = kErrorFailedToLockSetupMutex,
+  };
+  ASSERT_NO_FATAL_FAILURE(
+      ExpectPingRequest(&test_update_server, kUpdaterAppId, ping_params));
 
   // The test runs the installer twice. One installer succeeds, and the other
   // installer times out on the setup lock.
@@ -4843,11 +4855,24 @@ INSTANTIATE_TEST_SUITE_P(
             },
 
             // Silent install with a launch command, InstallerResult::kSuccess,
-            // will
-            // not run `more.com` since silent install.
+            // will not run `more.com` since silent install.
             {
                 false,
                 "INSTALLER_RESULT=0 "
+                "REGISTER_LAUNCH_COMMAND=more.com",
+                UpdateService::ErrorCategory::kNone,
+                0,
+                {},
+                "more.com",
+                {},
+            },
+
+            // Silent install with a launch command, InstallerResult::kExitCode
+            // with a zero exit code, will not run `more.com` since silent
+            // install.
+            {
+                false,
+                "INSTALLER_RESULT=4 "
                 "REGISTER_LAUNCH_COMMAND=more.com",
                 UpdateService::ErrorCategory::kNone,
                 0,
@@ -4892,6 +4917,20 @@ INSTANTIATE_TEST_SUITE_P(
             {
                 true,
                 "INSTALLER_RESULT=0 "
+                "REGISTER_LAUNCH_COMMAND=more.com",
+                UpdateService::ErrorCategory::kNone,
+                0,
+                {},
+                "more.com",
+                {},
+            },
+
+            // Interactive install via the command line with a launch command,
+            // InstallerResult::kExitCode with a zero exit code, will run
+            // `more.com` since success exit code and interactive install.
+            {
+                true,
+                "INSTALLER_RESULT=4 "
                 "REGISTER_LAUNCH_COMMAND=more.com",
                 UpdateService::ErrorCategory::kNone,
                 0,
@@ -5112,6 +5151,13 @@ TEST_P(IntegrationInstallerResultsTest, TestCases) {
 
 TEST_P(IntegrationInstallerResultsTest, OnDemandTestCases) {
   if (GetTestCase().interactive_install) {
+    GTEST_SKIP();
+  }
+
+  // TODO(crbug.com/382059245): remove this `if` once the older versions are
+  // updated to a version that supports a success `kExitCode`.
+  if (base::StartsWith(GetTestCase().command_line_args, "INSTALLER_RESULT=4") &&
+      (GetSetup().version != base::Version(kUpdaterVersion))) {
     GTEST_SKIP();
   }
 

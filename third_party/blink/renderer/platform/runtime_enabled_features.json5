@@ -354,6 +354,15 @@
       status: "experimental",
     },
     {
+      name: "AllowSameSiteNoneCookiesInSandbox",
+      base_feature: "none",
+
+      // No status because this blink runtime feature doesn't work by itself.
+      // It's controlled by the corresponding Chromium feature,
+      // net::features::kAllowSameSiteNoneCookiesInSandbox, which needs to be
+      // enabled to make the whole feature work.
+    },
+    {
       name: "AllowURNsInIframes",
       base_feature: "none",
     },
@@ -365,7 +374,7 @@
     {
       // https://chromestatus.com/feature/5083257285378048
       name: "AnimationProgressAPI",
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "AnimationWorklet",
@@ -596,11 +605,6 @@
       status: "stable",
     },
     {
-      // crbug.com/371615505
-      name: "BreakIteratorHyphenMinus",
-      status: "stable",
-    },
-    {
       name: "BrowserVerifiedUserActivationKeyboard",
       base_feature: "none",
       public: true,
@@ -765,6 +769,8 @@
       name: "CheckVisibilityExtraProperties",
       status: "stable",
     },
+    // crbug.com/40851596: Send click to the capture pointer target instead of
+    // the common ancestor of pointerdown and pointerup targets.
     {
       name: "ClickToCapturedPointer",
       status: "experimental",
@@ -936,6 +942,7 @@
       // and can be used in all properties.
       // https://drafts.csswg.org/css-values-4/#attr-notation
       name: "CSSAdvancedAttrFunction",
+      status: "test",
     },
     {
       // Let the visual position of the default anchor affect IMCB for
@@ -1109,7 +1116,7 @@
     },
     {
       name: "CSSNestedPseudoElements",
-      status: "stable",
+      status: "experimental",
     },
     {
       name: "CSSPaintAPIArguments",
@@ -1212,7 +1219,7 @@
     },
     {
       name: "CSSScrollableContainerQueries",
-      status: "experimental",
+      status: "stable",
     },
     {
       // https://drafts.csswg.org/css-scroll-snap-2/#scrollsnapchange
@@ -1262,7 +1269,7 @@
     },
     {
       name: "CSSSnapContainerQueries",
-      status: "experimental",
+      status: "stable",
     },
     {
       // Explainer: https://drafts.csswg.org/css-values/#round-func
@@ -1271,7 +1278,7 @@
     },
     {
       name: "CSSStickyContainerQueries",
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "CSSSupportsAtRuleFunction",
@@ -1654,6 +1661,10 @@
       status: {"Android": "", "default": "stable"},
     },
     {
+      name: "ElementInnerTextHandleFirstLineStyle",
+      status: "stable",
+    },
+    {
       name: "EnforceAnonymityExposure",
       status: "stable",
     },
@@ -1709,7 +1720,7 @@
     },
     {
       name: "ExposeCoarsenedRenderTime",
-      status: "test",
+      status: "stable",
     },
     {
       name: "ExposeRenderTimeNonTaoDelayedImage",
@@ -2084,7 +2095,7 @@
     },
     {
       name: "FontationsFontBackend",
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "FontationsForSelectedFormats",
@@ -2319,7 +2330,8 @@
     },
     {
       name: "IdentityDigest",
-      status: "experimental"
+      status: "experimental",
+      implied_by: ["SignatureBasedIntegrity"]
     },
     {
       name: "ImplicitRootScroller",
@@ -2339,6 +2351,12 @@
     {
       name: "ImportMapIntegrity",
       status: "stable"
+    },
+    // This ensures that table tag is included in extended selection.
+    // https://crbug.com/40833812
+    {
+      name: "IncludeTableTagInExtendedSelection",
+      status: "stable",
     },
     {
       name: "IncomingCallNotifications",
@@ -2543,11 +2561,6 @@
       public: true,
       status: "stable",
     },
-    {
-      name: "LegacyWindowsDWriteFontFallback",
-      // Enabled by features::kLegacyWindowsDWriteFontFallback;
-      base_feature: "none",
-    },
      {
       name: "LimitThirdPartyCookies",
       origin_trial_feature_name: "LimitThirdPartyCookies",
@@ -2568,12 +2581,6 @@
       status: "test",
       // Enabled by features::kLockedMode.
       public: true,
-    },
-    {
-      // Enables long aniamtion frames as a performance API (the
-      // "long-animation-frame" timeline entry)
-      name: "LongAnimationFrameTiming",
-      status: "stable"
     },
     {
       // Long press on a link selects the link text instead of bringing up
@@ -2776,8 +2783,9 @@
       // Fix HandleMouseFocus and FrameSelection to use FlatTree parent so
       // correct fallback element receives focus.
       // See https://crbug.com/41420461
+      // This feature was shipped in M133, so this flag can be removed in M135.
       name: "MouseFocusFlatTreeParent",
-      status: "experimental",
+      status: "stable",
     },
     // Move the selection to the last position in the list item. See
     // https://crbug.com/331841851
@@ -3289,6 +3297,10 @@
       settable_from_internals: true,
     },
     {
+      name: "PreferredAudioOutputDevices",
+      status: "test",
+    },
+    {
       name: "PrefersReducedData",
       status: "experimental",
     },
@@ -3548,10 +3560,6 @@
       public: true,
       status: "experimental",
       base_feature: "none",
-    },
-    {
-      name: "ReuseShapeResultsByFonts",
-      status: "stable",
     },
     {
       // New behavior when line breaker rewinds floats. crbug.com/1499290
@@ -3914,9 +3922,7 @@
     },
     {
       name: "SignatureBasedIntegrity",
-      origin_trial_feature_name: "SignatureBasedIntegrity",
       status: "experimental",
-      base_feature: "none",
     },
     {
       name: "SiteInitiatedMirroring",
@@ -4217,10 +4223,8 @@
       status: "experimental",
     },
     {
-      // Support for the timeline-scope property.
-      //
-      // https://drafts.csswg.org/scroll-animations-1/#timeline-scope
-      name: "TimelineScope",
+      // crbug.com/379254069
+      name: "TextTransformAndSecurityFix",
       status: "stable",
     },
     {
@@ -4627,11 +4631,18 @@
       origin_trial_os: ["android"],
       origin_trial_allows_third_party: true,
     },
+    // Enables providing a URL to retrieve a WebAuthn challenge.
+    // https://chromestatus.com/feature/5109012922892288
+    {
+      name: "WebAuthenticationChallengeUrl",
+      status: "experimental",
+    },
     // Enables the PublicKeyCredential.getClientCapabilities() static method.
     // https://w3c.github.io/webauthn/#sctn-getClientCapabilities
+    // Enabled by default on M133. Remove flag on or after M136.
     {
       name: "WebAuthenticationClientCapabilities",
-      status: "experimental",
+      status: "stable",
     },
     // https://w3c.github.io/webauthn/#dom-clientcapability-conditionalcreate
     {
@@ -4717,6 +4728,10 @@
     },
     {
       name: "WebCryptoCurve25519",
+      status: "stable",
+    },
+    {
+      name: "WebCryptoEd25519",
       status: "experimental",
     },
     {
@@ -4786,11 +4801,6 @@
     {
       name: "WebHID",
       status: {"Android": "", "default": "stable"},
-    },
-    {
-      name: "WebHIDOnDedicatedWorkers",
-      status: "stable",
-      depends_on: ["WebHID"],
     },
     {
       // It is only enabled in extension environment for now.

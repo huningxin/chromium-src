@@ -8,6 +8,7 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
+#include "chrome/browser/ui/views/tabs/tab_search_button.h"
 #include "chrome/common/chrome_features.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "content/public/test/browser_test.h"
@@ -41,4 +42,32 @@ IN_PROC_BROWSER_TEST_F(TabStripComboButtonBrowserTest, BuildsComboButton) {
   EXPECT_NE(nullptr, tab_strip_combo_button());
   EXPECT_NE(nullptr, tab_strip_combo_button()->new_tab_button());
   EXPECT_NE(nullptr, tab_strip_combo_button()->tab_search_container());
+}
+
+IN_PROC_BROWSER_TEST_F(TabStripComboButtonBrowserTest, SeparatorVisibility) {
+  EXPECT_TRUE(tab_strip_combo_button()->separator()->IsDrawn());
+
+  tab_strip_combo_button()->new_tab_button()->SetState(
+      views::Button::STATE_HOVERED);
+
+  EXPECT_FALSE(tab_strip_combo_button()->separator()->IsDrawn());
+
+  tab_strip_combo_button()->new_tab_button()->SetState(
+      views::Button::STATE_NORMAL);
+
+  EXPECT_TRUE(tab_strip_combo_button()->separator()->IsDrawn());
+
+  tab_strip_combo_button()
+      ->tab_search_container()
+      ->tab_search_button()
+      ->SetState(views::Button::STATE_HOVERED);
+
+  EXPECT_FALSE(tab_strip_combo_button()->separator()->IsDrawn());
+
+  tab_strip_combo_button()
+      ->tab_search_container()
+      ->tab_search_button()
+      ->SetState(views::Button::STATE_NORMAL);
+
+  EXPECT_TRUE(tab_strip_combo_button()->separator()->IsDrawn());
 }

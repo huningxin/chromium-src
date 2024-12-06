@@ -5,7 +5,6 @@ On success, you will see a series of "PASS" messages, followed by "TEST COMPLETE
 [INTERFACES]
 interface AI
     attribute @@toStringTag
-    getter languageDetector
     getter languageModel
     getter rewriter
     getter summarizer
@@ -17,21 +16,6 @@ interface AICreateMonitor : EventTarget
     getter ondownloadprogress
     method constructor
     setter ondownloadprogress
-interface AILanguageDetector
-    attribute @@toStringTag
-    method constructor
-    method destroy
-    method detect
-interface AILanguageDetectorCapabilities
-    attribute @@toStringTag
-    getter available
-    method constructor
-    method languageAvailable
-interface AILanguageDetectorFactory
-    attribute @@toStringTag
-    method capabilities
-    method constructor
-    method create
 interface AILanguageModel : EventTarget
     attribute @@toStringTag
     getter maxTokens
@@ -101,8 +85,14 @@ interface AITranslator
     method constructor
     method destroy
     method translate
+interface AITranslatorCapabilities
+    attribute @@toStringTag
+    getter available
+    method constructor
+    method languagePairAvailable
 interface AITranslatorFactory
     attribute @@toStringTag
+    method capabilities
     method constructor
     method create
 interface AIWriter
@@ -5691,10 +5681,6 @@ interface KeyframeEffect : AnimationEffect
     setter composite
     setter pseudoElement
     setter target
-interface LanguageDetector
-    attribute @@toStringTag
-    method constructor
-    method detect
 interface LanguageTranslator
     attribute @@toStringTag
     method constructor
@@ -6067,6 +6053,7 @@ interface MediaDevices : EventTarget
     method getUserMedia
     method selectAudioOutput
     method setCaptureHandleConfig
+    method setPreferredSinkId
     setter ondevicechange
 interface MediaElementAudioSourceNode : AudioNode
     attribute @@toStringTag
@@ -7237,6 +7224,8 @@ interface PerformanceLongAnimationFrameTiming : PerformanceEntry
     attribute @@toStringTag
     getter blockingDuration
     getter firstUIEventTimestamp
+    getter paintTime
+    getter presentationTime
     getter renderStart
     getter scripts
     getter styleAndLayoutStart
@@ -10054,10 +10043,8 @@ interface TransitionEvent : Event
     method constructor
 interface Translation
     attribute @@toStringTag
-    method canDetect
     method canTranslate
     method constructor
-    method createDetector
     method createTranslator
 interface TreeWalker
     attribute @@toStringTag

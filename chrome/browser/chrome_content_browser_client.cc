@@ -49,7 +49,7 @@
 #include "build/chromeos_buildflags.h"
 #include "build/config/chromebox_for_meetings/buildflags.h"  // PLATFORM_CFM
 #include "chrome/browser/after_startup_task_utils.h"
-#include "chrome/browser/ai/ai_manager_keyed_service_factory.h"
+#include "chrome/browser/ai/ai_manager.h"
 #include "chrome/browser/app_mode/app_mode_utils.h"
 #include "chrome/browser/bluetooth/chrome_bluetooth_delegate.h"
 #include "chrome/browser/bluetooth/chrome_bluetooth_delegate_impl_client.h"
@@ -201,6 +201,7 @@
 #include "chrome/browser/vr/vr_tab_helper.h"
 #include "chrome/browser/web_applications/isolated_web_apps/isolated_web_app_url_info.h"
 #include "chrome/browser/webapps/web_app_offline.h"
+#include "chrome/browser/webauthn/chrome_web_authentication_delegate.h"
 #include "chrome/browser/webauthn/webauthn_pref_names.h"
 #include "chrome/common/buildflags.h"
 #include "chrome/common/channel_info.h"
@@ -841,6 +842,8 @@ using web_apps::ChromeContentBrowserClientIsolatedWebAppsPart;
 #endif
 
 namespace {
+
+const char kAIManagerUserDataKey[] = "ai_manager";
 
 BASE_FEATURE(kSkipPagehideInCommitForDSENavigation,
              "SkipPagehideInCommitForDSENavigation",
@@ -6542,11 +6545,10 @@ void AddChromeSchemeFactories(
   // InstantService might be null for some irregular profiles, e.g. the System
   // Profile.
   if (instant_service && instant_service->IsInstantProcess(render_process_id)) {
-    factories->emplace(
-        chrome::kChromeSearchScheme,
-        content::CreateWebUIURLLoaderFactory(
-            frame_host, chrome::kChromeSearchScheme,
-            /*allowed_webui_hosts=*/base::flat_set<std::string>()));
+    factories->emplace(chrome::kChromeSearchScheme,
+                       content::CreateWebUIURLLoaderFactory(
+                           frame_host, chrome::kChromeSearchScheme,
+                           /*allowed_hosts=*/base::flat_set<std::string>()));
   }
 
   extensions::ExtensionWebContentsObserver* web_observer =
@@ -7294,16 +7296,6 @@ bool ChromeContentBrowserClient::HandleWebUI(
   }
 #endif
 
-#if BUILDFLAG(IS_WIN)
-  // TODO(crbug.com/40647483): Remove when issue is resolved.
-  if (url->SchemeIs(content::kChromeUIScheme) &&
-      url->host() == chrome::kChromeUIWelcomeWin10Host) {
-    *url =
-        ReplaceURLHostAndPath(*url, chrome::kChromeUIWelcomeHost, url->path());
-    return true;
-  }
-#endif  // BUILDFLAG(IS_WIN)
-
   if (!ChromeWebUIControllerFactory::GetInstance()->UseWebUIForURL(
           browser_context, *url) &&
       !content::WebUIConfigMap::GetInstance().GetConfig(browser_context,
@@ -7362,16 +7354,6 @@ bool ChromeContentBrowserClient::ShowPaymentHandlerWindow(
 bool ChromeContentBrowserClient::HandleWebUIReverse(
     GURL* url,
     content::BrowserContext* browser_context) {
-#if BUILDFLAG(IS_WIN)
-  // TODO(crbug.com/40647483): Remove when issue is resolved.
-  // No need to actually reverse-rewrite the URL, but return true to update the
-  // displayed URL when rewriting chrome://welcome-win10 to chrome://welcome.
-  if (url->SchemeIs(content::kChromeUIScheme) &&
-      url->host() == chrome::kChromeUIWelcomeHost) {
-    return true;
-  }
-#endif  // BUILDFLAG(IS_WIN)
-
 #if BUILDFLAG(CHROME_ROOT_STORE_CERT_MANAGEMENT_UI)
   // No need to actually reverse-rewrite the URL, but return true to update the
   // displayed URL when rewriting chrome://settings/certificates to
@@ -8748,9 +8730,14 @@ void ChromeContentBrowserClient::BindAIManager(
     content::BrowserContext* browser_context,
     base::SupportsUserData* context_user_data,
     mojo::PendingReceiver<blink::mojom::AIManager> receiver) {
-  auto* ai_manager =
-      AIManagerKeyedServiceFactory::GetAIManagerKeyedService(browser_context);
-  ai_manager->AddReceiver(std::move(receiver), *context_user_data);
+  if (!context_user_data->GetUserData(kAIManagerUserDataKey)) {
+    context_user_data->SetUserData(
+        kAIManagerUserDataKey, std::make_unique<AIManager>(browser_context));
+  }
+
+  AIManager* ai_manager = static_cast<AIManager*>(
+      context_user_data->GetUserData(kAIManagerUserDataKey));
+  ai_manager->AddReceiver(std::move(receiver));
 }
 
 #if !BUILDFLAG(IS_ANDROID)

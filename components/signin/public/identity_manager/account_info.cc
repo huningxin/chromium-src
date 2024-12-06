@@ -6,8 +6,10 @@
 
 #include "build/build_config.h"
 #include "components/signin/public/base/signin_metrics.h"
+#include "components/signin/public/identity_manager/signin_constants.h"
 #include "components/signin/public/identity_manager/tribool.h"
 #include "google_apis/gaia/gaia_auth_util.h"
+#include "google_apis/gaia/gaia_id.h"
 
 #if BUILDFLAG(IS_ANDROID)
 #include "base/android/jni_string.h"
@@ -17,6 +19,8 @@
 #include "ui/gfx/android/java_bitmap.h"
 #include "ui/gfx/image/image_skia.h"
 #endif
+
+using signin::constants::kNoHostedDomainFound;
 
 namespace {
 
@@ -48,6 +52,17 @@ bool UpdateField(T* field, T new_value, T default_value) {
   return true;
 }
 
+// Updates |field| with |new_value| if non-empty. Returns whether |field| was
+// changed.
+bool UpdateField(GaiaId* field, const GaiaId& new_value) {
+  if (*field == new_value || new_value.empty()) {
+    return false;
+  }
+
+  *field = new_value;
+  return true;
+}
+
 // Updates |field| with |new_value| if true. Returns whether |field| was
 // changed.
 bool UpdateField(bool* field, bool new_value) {
@@ -62,9 +77,6 @@ bool UpdateField(signin::Tribool* field, signin::Tribool new_value) {
 }
 
 }  // namespace
-
-// This must be a string which can never be a valid domain.
-const char kNoHostedDomainFound[] = "NO_HOSTED_DOMAIN";
 
 // This must be a string which can never be a valid picture URL.
 const char kNoPictureURLFound[] = "NO_PICTURE_URL";
@@ -118,7 +130,7 @@ bool AccountInfo::UpdateWith(const AccountInfo& other) {
   }
 
   bool modified = false;
-  modified |= UpdateField(&gaia, other.gaia, nullptr);
+  modified |= UpdateField(&gaia, other.gaia);
   modified |= UpdateField(&email, other.email, nullptr);
   modified |= UpdateField(&full_name, other.full_name, nullptr);
   modified |= UpdateField(&given_name, other.given_name, nullptr);

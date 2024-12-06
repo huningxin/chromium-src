@@ -538,9 +538,7 @@ bool ui::IsNSRange(id value) {
       {NSAccessibilityLinkedUIElementsAttribute, @"linkedUIElements"},
       {NSAccessibilityMaxValueAttribute, @"maxValue"},
       {NSAccessibilityMinValueAttribute, @"minValue"},
-      {NSAccessibilityNumberOfCharactersAttribute, @"numberOfCharacters"},
       {NSAccessibilityOrientationAttribute, @"orientation"},
-      {NSAccessibilityParentAttribute, @"parent"},
       {NSAccessibilityPositionAttribute, @"position"},
       {NSAccessibilityRoleAttribute, @"role"},
       {NSAccessibilityRowHeaderUIElementsAttribute, @"rowHeaders"},
@@ -550,8 +548,6 @@ bool ui::IsNSRange(id value) {
       // NSAccessibilityServesAsTitleForUIElementsAttribute
       {NSAccessibilityStartTextMarkerAttribute, @"startTextMarker"},
       {NSAccessibilitySelectedChildrenAttribute, @"selectedChildren"},
-      {NSAccessibilitySelectedTextAttribute, @"selectedText"},
-      {NSAccessibilitySelectedTextRangeAttribute, @"selectedTextRange"},
       {NSAccessibilitySelectedTextMarkerRangeAttribute,
        @"selectedTextMarkerRange"},
       {NSAccessibilitySortDirectionAttribute, @"sortDirection"},
@@ -665,6 +661,7 @@ bool ui::IsNSRange(id value) {
   return nil;
 }
 
+// LINT.IfChange(accessibilityColumns)
 - (NSArray*)columns {
   if (![self instanceActive])
     return nil;
@@ -675,6 +672,7 @@ bool ui::IsNSRange(id value) {
   }
   return ret;
 }
+// LINT.ThenChange(ui/accessibility/platform/ax_platform_node_cocoa.mm:accessibilityColumns)
 
 - (BrowserAccessibility*)containingTable {
   BrowserAccessibility* table = _owner;
@@ -968,19 +966,34 @@ bool ui::IsNSRange(id value) {
   return @"";
 }
 
+// LINT.IfChange
+- (NSInteger)accessibilityNumberOfCharacters {
+  // TODO(crbug.com/363275809): Why do we limit support to text fields here, but
+  // not in `AXPlatformNodeCocoa`?
+  if (![self instanceActive] || !_owner->IsTextField()) {
+    return 0;
+  }
+
+  return static_cast<int>(_owner->GetValueForControl().size());
+}
+// LINT.ThenChange(AXNumberOfCharacters)
+
+// LINT.IfChange
 - (NSNumber*)AXNumberOfCharacters {
-  return [self numberOfCharacters];
-}
-
-- (NSNumber*)numberOfCharacters {
-  if ([self instanceActive] && _owner->IsTextField())
-    return @(static_cast<int>(_owner->GetValueForControl().size()));
-  return nil;
-}
-
-- (id)parent {
-  if (![self instanceActive])
+  // TODO(crbug.com/363275809): Why do we limit support to text fields here, but
+  // not in `AXPlatformNodeCocoa`?
+  if (![self instanceActive] || !_owner->IsTextField()) {
     return nil;
+  }
+
+  return @(static_cast<int>(_owner->GetValueForControl().size()));
+}
+// LINT.ThenChange(accessibilityNumberOfCharacters)
+
+- (id)accessibilityParent {
+  if (![self instanceActive]) {
+    return nil;
+  }
   if (_owner->PlatformGetParent()) {
     id unignored_parent = NSAccessibilityUnignoredAncestor(
         _owner->PlatformGetParent()->GetNativeViewAccessible());
@@ -1132,6 +1145,7 @@ bool ui::IsNSRange(id value) {
   return cocoa_role;
 }
 
+// LINT.IfChange(accessibilityRowHeaderUIElements)
 - (NSArray*)rowHeaders {
   if (![self instanceActive]) {
     return nil;
@@ -1188,6 +1202,7 @@ bool ui::IsNSRange(id value) {
 
   return [rowHeaders count] ? rowHeaders : nil;
 }
+// LINT.ThenChange(ui/accessibility/platform/ax_platform_node_cocoa.mm:accessibilityRowHeaderUIElements)
 
 - (NSValue*)rowIndexRange {
   // Note: keep in sync with accessibilityRowIndexRange.
@@ -1199,31 +1214,6 @@ bool ui::IsNSRange(id value) {
   if (row && rowspan)
     return [NSValue valueWithRange:NSMakeRange(*row, *rowspan)];
   return nil;
-}
-
-- (NSArray*)accessibilityRows {
-  if (![self instanceActive])
-    return nil;
-  NSMutableArray* ret = [[NSMutableArray alloc] init];
-
-  std::vector<int32_t> node_id_list;
-  if (_owner->GetRole() == ax::mojom::Role::kTree)
-    [self getTreeItemDescendantNodeIds:&node_id_list];
-  else if (ui::IsTableLike(_owner->GetRole()))
-    node_id_list = _owner->node()->GetTableRowNodeIds();
-  // Rows attribute for a column is the list of all the elements in that column
-  // at each row.
-  else if ([self internalRole] == ax::mojom::Role::kColumn)
-    node_id_list = _owner->GetIntListAttribute(
-        ax::mojom::IntListAttribute::kIndirectChildIds);
-
-  for (int32_t node_id : node_id_list) {
-    BrowserAccessibility* rowElement = _owner->manager()->GetFromID(node_id);
-    if (rowElement)
-      [ret addObject:rowElement->GetNativeViewAccessible()];
-  }
-
-  return ret;
 }
 
 - (NSArray*)selectedChildren {
@@ -1276,11 +1266,26 @@ bool ui::IsNSRange(id value) {
   return ret;
 }
 
-- (NSString*)AXSelectedText {
-  return [self selectedText];
-}
+// LINT.IfChange
+- (NSString*)accessibilitySelectedText {
+  if (![self instanceActive]) {
+    return nil;
+  }
 
-- (NSString*)selectedText {
+  if (!_owner->HasVisibleCaretOrSelection()) {
+    return nil;
+  }
+
+  const AXRange range = GetSelectedRange(*_owner);
+  if (range.IsNull()) {
+    return nil;
+  }
+  return base::SysUTF16ToNSString(range.GetText());
+}
+// LINT.ThenChange(AXSelectedText)
+
+// LINT.IfChange
+- (NSString*)AXSelectedText {
   if (![self instanceActive])
     return nil;
   if (!_owner->HasVisibleCaretOrSelection())
@@ -1291,16 +1296,43 @@ bool ui::IsNSRange(id value) {
     return nil;
   return base::SysUTF16ToNSString(range.GetText());
 }
+// LINT.ThenChange(accessibilitySelectedText)
 
-- (NSValue*)AXSelectedTextRange {
-  return [self selectedTextRange];
+// LINT.IfChange
+- (NSRange)accessibilitySelectedTextRange {
+  if (![self instanceActive]) {
+    return NSMakeRange(0, 0);
+  }
+
+  if (!_owner->HasVisibleCaretOrSelection()) {
+    return NSMakeRange(0, 0);
+  }
+
+  const AXRange range = GetSelectedRange(*_owner).AsForwardRange();
+  if (range.IsNull()) {
+    return NSMakeRange(0, 0);
+  }
+
+  // "ax::mojom::MoveDirection" is only relevant on platforms that use object
+  // replacement characters in the accessibility tree. Mac is not one of them.
+  const AXPosition startPosition = range.anchor()->LowestCommonAncestorPosition(
+      *_owner->CreateTextPositionAt(0), ax::mojom::MoveDirection::kForward);
+  DCHECK(!startPosition->IsNullPosition())
+      << "Calling HasVisibleCaretOrSelection() should have ensured that there "
+         "is a valid selection anchor inside the current object.";
+  int selectionStart = startPosition->AsTextPosition()->text_offset();
+  DCHECK_GE(selectionStart, 0);
+  int selectionLength = range.GetText().length();
+  return NSMakeRange(selectionStart, selectionLength);
 }
+// LINT.ThenChange(AXSelectedTextRange)
 
 // Returns range of text under the current object that is selected.
 //
 // Example, caret at offset 5:
 // NSRange:  “pos=5 len=0”
-- (NSValue*)selectedTextRange {
+// LINT.IfChange
+- (NSValue*)AXSelectedTextRange {
   if (![self instanceActive])
     return nil;
   if (!_owner->HasVisibleCaretOrSelection())
@@ -1322,6 +1354,7 @@ bool ui::IsNSRange(id value) {
   int selLength = range.GetText().length();
   return [NSValue valueWithRange:NSMakeRange(selStart, selLength)];
 }
+// LINT.ThenChange(accessibilitySelectedTextRange)
 
 - (void)setAccessibilitySelectedTextRange:(NSRange)range {
   if (![self instanceActive])
@@ -1411,6 +1444,7 @@ bool ui::IsNSRange(id value) {
 }
 
 // Returns all tabs in this subtree.
+// LINT.IfChange(accessibilityTabs)
 - (NSArray*)tabs {
   if (![self instanceActive])
     return nil;
@@ -1427,6 +1461,7 @@ bool ui::IsNSRange(id value) {
 
   return tabSubtree;
 }
+// LINT.ThenChange(ui/accessibility/platform/ax_platform_node_cocoa.mm:accessibilityTabs)
 
 - (id)AXValue {
   return [self value];
@@ -1579,11 +1614,13 @@ bool ui::IsNSRange(id value) {
 }
 // LINT.ThenChange(ui/accessibility/platform/ax_platform_node_cocoa.mm:accessibilityVisibleColumns)
 
+// LINT.IfChange(accessibilityVisibleRows)
 - (NSArray*)visibleRows {
   if (![self instanceActive])
     return nil;
   return [self accessibilityRows];
 }
+// LINT.ThenChange(ui/accessibility/platform/ax_platform_node_cocoa.mm:accessibilityVisibleRows)
 
 - (id)window {
   if (![self instanceActive])
@@ -1606,18 +1643,6 @@ bool ui::IsNSRange(id value) {
     return nil;
   }
   return root_manager->GetWindow();  // Can be null for inactive tabs.
-}
-
-- (void)getTreeItemDescendantNodeIds:(std::vector<int32_t>*)tree_item_ids {
-  for (auto it = _owner->PlatformChildrenBegin();
-       it != _owner->PlatformChildrenEnd(); ++it) {
-    const BrowserAccessibilityCocoa* child = it->GetNativeViewAccessible();
-
-    if ([child internalRole] == ax::mojom::Role::kTreeItem) {
-      tree_item_ids->push_back([child hash]);
-    }
-    [child getTreeItemDescendantNodeIds:tree_item_ids];
-  }
 }
 
 - (NSString*)methodNameForAttribute:(NSString*)attribute {

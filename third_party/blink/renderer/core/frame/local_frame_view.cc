@@ -2347,7 +2347,13 @@ void LocalFrameView::UpdateLifecyclePhasesInternal(
       ScriptForbiddenScope::AllowUserAgentScript allow_script;
       base::AutoReset<DocumentLifecycle::LifecycleState> saved_target_state(
           &target_state_, DocumentLifecycle::kUninitialized);
-      needs_to_repeat_lifecycle = RunResizeObserverSteps(target_state);
+
+      ForAllNonThrottledLocalFrameViews(
+          [&needs_to_repeat_lifecycle,
+           &target_state](LocalFrameView& frame_view) {
+            bool result = frame_view.RunResizeObserverSteps(target_state);
+            needs_to_repeat_lifecycle = needs_to_repeat_lifecycle || result;
+          });
     }
     // Only run the rest of the steps here if resize observer is done.
     if (needs_to_repeat_lifecycle)
@@ -2361,21 +2367,9 @@ void LocalFrameView::UpdateLifecyclePhasesInternal(
       break;
   }
 
-  // Updating the rendering time here, after view transition operations, as per
-  // spec. Note that "pre-paint" has already occurred, because it's needed for
-  // view transitions and resize observers.
-  base::TimeTicks rendering_update_end_time = base::TimeTicks::Now();
-
-  // https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering
-  // 20. For each doc of docs, record rendering time for doc..
-  if (FrameWidget* widget = frame_->GetWidgetForLocalRoot()) {
-    widget->RecordRenderingUpdateEndTime(rendering_update_end_time);
-  }
-
   // 21. For each doc of docs, mark paint timing for doc.
   ForAllNonThrottledLocalFrameViews([&](LocalFrameView& frame_view) {
-    PaintTiming::From(*frame_view.frame_->GetDocument())
-        .SetRenderingUpdateEndTime(rendering_update_end_time);
+    PaintTiming::From(*frame_view.frame_->GetDocument()).MarkPaintTiming();
   });
 
   // This must be after all other updates for position-visibility.
@@ -2473,12 +2467,7 @@ bool LocalFrameView::RunResizeObserverSteps(
   bool re_run_lifecycles =
       engine.UpdateLastSuccessfulPositionFallbacksAndAnchorScrollShift();
 
-  ForAllNonThrottledLocalFrameViews(
-      [&re_run_lifecycles](LocalFrameView& frame_view) {
-        bool result = frame_view.NotifyResizeObservers();
-        re_run_lifecycles = re_run_lifecycles || result;
-      });
-  return re_run_lifecycles;
+  return NotifyResizeObservers() || re_run_lifecycles;
 }
 
 void LocalFrameView::ClearResizeObserverLimit() {

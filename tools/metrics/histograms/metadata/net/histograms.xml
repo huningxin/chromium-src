@@ -2388,6 +2388,31 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Net.HttpStreamPool.StreamAttemptCancelReason"
+    enum="StreamCloseReason" expires_after="2025-02-27">
+  <owner>bashi@chromium.org</owner>
+  <owner>blink-network-stack@google.com</owner>
+  <summary>
+    The reason why a stream attempt is canceled. Recorded when a stream attempt
+    is destroyed after being canceled.
+  </summary>
+</histogram>
+
+<histogram name="Net.HttpStreamPool.StreamAttemptTime.{Result}" units="ms"
+    expires_after="2025-02-27">
+  <owner>bashi@chromium.org</owner>
+  <owner>blink-network-stack@google.com</owner>
+  <summary>
+    Time from when a stream attempt is created to when the attempt is completed.
+    Recorded for each stream attempt upon destruction of the attempt.
+  </summary>
+  <token key="Result">
+    <variant name="Canceled" summary="Attempt canceled"/>
+    <variant name="Failure" summary="Attempt failed"/>
+    <variant name="Success" summary="Attempt succeeded"/>
+  </token>
+</histogram>
+
 <histogram name="Net.HttpTimeToFirstByte" units="ms" expires_after="never">
 <!-- expires-never: Core network stack health metric -->
 
@@ -3129,7 +3154,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Net.QuicSession.AcceptChFrameReceivedViaAlps"
-    enum="AcceptChEntries" expires_after="2025-03-30">
+    enum="AcceptChEntries" expires_after="2025-06-01">
   <owner>bnc@chromium.org</owner>
   <owner>src/net/OWNERS</owner>
   <summary>
@@ -4167,7 +4192,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Net.QuicSession.PacketRetransmitsPerMille" units="permille"
-    expires_after="2025-03-30">
+    expires_after="2025-06-01">
   <owner>dschinazi@chromium.org</owner>
   <owner>src/net/quic/OWNERS</owner>
   <summary>

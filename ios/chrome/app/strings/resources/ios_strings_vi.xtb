@@ -104,9 +104,9 @@
 <translation id="1436671784520050284">Tiếp tục thiết lập</translation>
 <translation id="143681031165817424">Địa chỉ chỉ được lưu trên thiết bị này</translation>
 <translation id="1445276840641906250">Mọi thẻ trong một trình duyệt</translation>
-<translation id="1450170672351507823">Chế độ Bảo vệ thông thường đang bật. Để tăng cường khả năng bảo mật, hãy sử dụng chế độ Bảo vệ nâng cao.</translation>
+<translation id="1450170672351507823">Chế độ Bảo vệ tiêu chuẩn đang bật. Để tăng cường khả năng bảo mật, hãy sử dụng chế độ Bảo vệ nâng cao.</translation>
 <translation id="1455660774629812862">Không ẩn</translation>
-<translation id="1460751212339734034">Tiết kiệm thời gian và công sức nhập</translation>
+<translation id="1460751212339734034">Tiết kiệm thời gian, tối giản thao tác</translation>
 <translation id="1466035273550360103">Không có thẻ nào mở</translation>
 <translation id="1469381646033328562">Tài khoản của bạn do cha mẹ bạn quản lý.
 <ph name="BEGIN_LINK" />Tìm hiểu thêm<ph name="END_LINK" /></translation>
@@ -157,7 +157,6 @@
 <translation id="1652051421944182562">Bật thông báo của tính năng Kiểm tra an toàn…</translation>
 <translation id="1652333207707886577">Tuỳ chỉnh trình đơn của bạn</translation>
 <translation id="1653274177966208838">{TIME,plural, =0{Thời gian còn lại: {TIME} giây}=1{Thời gian còn lại: {TIME} giây}other{Thời gian còn lại: {TIME} giây}}</translation>
-<translation id="1653432787084483144">{count,plural, =1{Có {count} mật khẩu đã lưu xuất hiện phía trên bàn phím.}other{Có {count} mật khẩu đã lưu xuất hiện phía trên bàn phím.}}</translation>
 <translation id="1654232554734641711">Đã cho phép truy cập Micrô</translation>
 <translation id="16554782717487656">Phát hiện đơn vị</translation>
 <translation id="1657011748321897393">Không thể chia sẻ do bạn không kết nối với mạng.</translation>
@@ -246,7 +245,6 @@
 <translation id="2044394949148788042">Mở lưới thẻ</translation>
 <translation id="20485545164632846">mục mới</translation>
 <translation id="2049727122989709386"><ph name="COUNT" /> tài khoản sử dụng cùng một mật khẩu</translation>
-<translation id="2050196510205866090">{count,plural, =1{Có {count} phương thức thanh toán đã lưu xuất hiện phía trên bàn phím.}other{Có {count} phương thức thanh toán đã lưu phía trên bàn phím.}}</translation>
 <translation id="2059166748188874810">Thành phố tự trị</translation>
 <translation id="20638360198452347">Bộ chọn loại đơn vị</translation>
 <translation id="2067852168641682340">Luôn lưu vào tài khoản này</translation>
@@ -329,7 +327,6 @@ Các trang web không thể dùng cookie để giám sát hoạt động duyệt
 <translation id="2390457533592708044">Ẩn "<ph name="MODULE_NAME" />"</translation>
 <translation id="2403129868389095715">Không thể giao gói hàng của bạn</translation>
 <translation id="2410754283952462441">Chọn một tài khoản</translation>
-<translation id="2411749908844615428">{count,plural, =1{Có {count} địa chỉ đã lưu xuất hiện phía trên bàn phím.}other{Có {count} địa chỉ đã lưu xuất hiện phía trên bàn phím.}}</translation>
 <translation id="2424805048070062787">Tiếp tục duyệt xem thẻ này</translation>
 <translation id="2426805022920575512">Chọn một tài khoản khác</translation>
 <translation id="243275146591958220">Hủy quá trình tải xuống</translation>
@@ -757,7 +754,6 @@ Bạn đang dùng công cụ tìm kiếm <ph name="DSE_NAME" />. Để xoá nh�
 <translation id="4525629404718770519">Hiện bản xem trước đường liên kết</translation>
 <translation id="452750746583162491">Xem lại các dữ liệu đã đồng bộ hóa của bạn</translation>
 <translation id="4532845899244822526">Chọn thư mục</translation>
-<translation id="4539187448429948815">{count,plural, =1{Có {count} đề xuất tự động hoàn thành đã lưu phía trên bàn phím.}other{Có {count} đề xuất tự động hoàn thành đã lưu phía trên bàn phím.}}</translation>
 <translation id="4547181496285029457">Quay lại thẻ truy cập gần đây</translation>
 <translation id="4552042254369397518">Đang sao chép…</translation>
 <translation id="4564893319561643483">Ẩn "<ph name="TITLE" />"</translation>
@@ -770,6 +766,7 @@ Bạn đang dùng công cụ tìm kiếm <ph name="DSE_NAME" />. Để xoá nh�
 <translation id="4597892826846980979">Nhận thông báo về thẻ</translation>
 <translation id="4601095002996233687">Quét kỹ càng để tìm nội dung tải xuống đáng ngờ.</translation>
 <translation id="4606247758155004938">Trình duyệt này do tổ chức của bạn quản lý.</translation>
+<translation id="4607887340472970274">Theo dõi giá</translation>
 <translation id="4611811151908969241">Ẩn tuỳ chọn Ngừng theo dõi <ph name="DOMAIN_NAME" /></translation>
 <translation id="461440297010471931">Tìm kiếm bằng Google</translation>
 <translation id="4619564267100705184">Xác minh danh tính của bạn</translation>
@@ -1170,7 +1167,7 @@ Bạn đang dùng công cụ tìm kiếm <ph name="DSE_NAME" />. Để xoá nh�
 <translation id="6339793034470834130">Để sử dụng Trình kiểm tra web, hãy kết nối với Safari trên máy tính bằng cáp và truy cập iPhone từ trình đơn Phát triển. Bạn có thể bật trình đơn phát triển trong mục Nâng cao của phần cài đặt Safari trên máy tính.</translation>
 <translation id="6340285871011301182">Không thể dịch một phần.</translation>
 <translation id="6340526405444716530">Cá nhân hóa</translation>
-<translation id="6342069812937806050">Vừa mới</translation>
+<translation id="6342069812937806050">Vừa xong</translation>
 <translation id="6347953390226388422">{count,plural, =1{Địa chỉ này sẽ bị xoá khỏi Tài khoản Google của bạn (<ph name="USER_EMAIL" />) và thiết bị này.}other{Các địa chỉ này sẽ bị xoá khỏi Tài khoản Google của bạn (<ph name="USER_EMAIL" />) và thiết bị này.}}</translation>
 <translation id="634878792104344809">Đồng bộ hóa mật khẩu, danh sách trang web đã truy cập và nhiều nội dung khác trên mọi thiết bị của bạn</translation>
 <translation id="6351147166808964033">Vào trình chuyển đổi thẻ</translation>
@@ -1274,7 +1271,6 @@ Các trang web không thể dùng cookie để giám sát hoạt động duyệt
 <translation id="6710079714193676716">Do tổ chức của bạn quản lý. Bạn có thể không dùng được một số tính năng. <ph name="BEGIN_LINK" />Tìm hiểu thêm<ph name="END_LINK" /></translation>
 <translation id="671310123089116995">Chuyển đến Nguồn cấp dữ liệu</translation>
 <translation id="6713676799463473249">Đã sửa đổi vào <ph name="LAST_MODIFICATION_DATE" /></translation>
-<translation id="6717862474255265991">Theo dõi giá</translation>
 <translation id="6722623263381062480">Đã nhận thẻ</translation>
 <translation id="6723740634201835758">Trong Tài khoản Google của bạn</translation>
 <translation id="672735642903863329">Sử dụng dấu trang, mật khẩu và nhiều nội dung khác trên mọi thiết bị của bạn.</translation>
@@ -1440,7 +1436,6 @@ Các trang web không thể dùng cookie để giám sát hoạt động duyệt
 <translation id="75362970626182391">Nhóm thẻ mới</translation>
 <translation id="7537586195939242955">Rất tiếc, không thể cài đặt Pass (Vé xem) của bạn vào Passbook (Ví điện tử) lúc này.</translation>
 <translation id="754655535278952384">Đã kiểm tra <ph name="TIME" /></translation>
-<translation id="755255281989213264">Tuỳ chỉnh trình đơn</translation>
 <translation id="7553234618121028547">Để tắt, hãy mở phần <ph name="BEGIN_LINK" />Cài đặt<ph name="END_LINK" /> rồi chuyển đến phần Tuỳ chọn mật khẩu.</translation>
 <translation id="7557508262441527045">Đã đăng xuất</translation>
 <translation id="7561196759112975576">Luôn luôn</translation>

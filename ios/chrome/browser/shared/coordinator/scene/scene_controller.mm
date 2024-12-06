@@ -799,6 +799,11 @@ void OnListFamilyMembersResponse(
 
 #pragma mark - private
 
+- (void)stopSigninCoordinator {
+  [self.signinCoordinator stop];
+  self.signinCoordinator = nil;
+}
+
 // Creates, if needed, and presents saved passwords settings. Assumes all modal
 // dialods are dismissed and `baseViewController` is available to present.
 - (void)showSavedPasswordsSettingsAfterModalDismissFromViewController:
@@ -1274,15 +1279,19 @@ void OnListFamilyMembersResponse(
 // domain of the foreground tab and the tab count. Assumes the scene is
 // visible. Will return nil if there are no tabs.
 - (NSString*)displayTitleForAppSwitcher {
-  DCHECK(self.currentInterface.browser);
-  web::WebState* webState =
-      self.currentInterface.browser->GetWebStateList()->GetActiveWebState();
+  Browser* browser = self.currentInterface.browser;
+  DCHECK(browser);
+
+  if (browser->GetProfile()->IsOffTheRecord()) {
+    return nil;
+  }
+  web::WebState* webState = browser->GetWebStateList()->GetActiveWebState();
   if (!webState) {
     return nil;
   }
 
   // At this point there is at least one tab.
-  int numberOfTabs = self.currentInterface.browser->GetWebStateList()->count();
+  int numberOfTabs = browser->GetWebStateList()->count();
   DCHECK(numberOfTabs > 0);
   GURL url = webState->GetVisibleURL();
   std::u16string urlText = url_formatter::FormatUrl(
@@ -1760,22 +1769,27 @@ using UserFeedbackDataCallback =
   _sceneURLLoadingService->LoadUrlInNewTab(params);
 }
 
-// TODO(crbug.com/41352590) : Do not pass `baseViewController` through
-// dispatcher.
-- (void)showSignin:(ShowSigninCommand*)command
-    baseViewController:(UIViewController*)baseViewController {
+// Returns `YES` if a signin coordinator can be opened by the scene controller.
+// Otherwise, execute the completion with `SigninCoordinatorUINotAvailable`.
+// Fails if another signin coordinator is already opened.
+- (BOOL)canPresentSigninCoordinatorOrCompletion:
+            (SigninCoordinatorCompletionCallback)completion
+                             baseViewController:
+                                 (UIViewController*)baseViewController
+                           skipIfUINotAvailable:(BOOL)skipIfUINotAvailable
+                                    accessPoint:(signin_metrics::AccessPoint)
+                                                    accessPoint {
   // Calling this method when there is a signinCoordinator alive is incorrect
   // as there should not be 2 signinCoordinators alive at the same time (note
   // that allocating the second one will dealloc the first and this crashes in
   // various ways).
-  if (command.skipIfUINotAvaible &&
-      (baseViewController.presentedViewController ||
-       ![self isTabAvailableToPresentViewController])) {
+  if (skipIfUINotAvailable && (baseViewController.presentedViewController ||
+                               ![self isTabAvailableToPresentViewController])) {
     // Make sure the UI is available to present the sign-in view.
-    if (command.completion) {
-      command.completion(SigninCoordinatorUINotAvailable, nil);
+    if (completion) {
+      completion(SigninCoordinatorUINotAvailable, nil);
     }
-    return;
+    return NO;
   }
   if (self.signinCoordinator) {
     // As of M121, the CHECK bellow is known to fire in various cases. The goal
@@ -1783,7 +1797,7 @@ using UserFeedbackDataCallback =
     // for which of the access points they are triggered.
     base::UmaHistogramEnumeration(
         "Signin.ShowSigninCoordinatorWhenAlreadyPresent.NewAccessPoint",
-        command.accessPoint, signin_metrics::AccessPoint::ACCESS_POINT_MAX);
+        accessPoint, signin_metrics::AccessPoint::ACCESS_POINT_MAX);
     base::UmaHistogramEnumeration(
         "Signin.ShowSigninCoordinatorWhenAlreadyPresent.OldAccessPoint",
         self.signinCoordinator.accessPoint,
@@ -1802,6 +1816,20 @@ using UserFeedbackDataCallback =
   DCHECK(!self.signinCoordinator)
       << "self.signinCoordinator: "
       << base::SysNSStringToUTF8([self.signinCoordinator description]);
+  return YES;
+}
+
+// TODO(crbug.com/41352590) : Do not pass `baseViewController` through
+// dispatcher.
+- (void)showSignin:(ShowSigninCommand*)command
+    baseViewController:(UIViewController*)baseViewController {
+  if (![self
+          canPresentSigninCoordinatorOrCompletion:command.completion
+                               baseViewController:baseViewController
+                             skipIfUINotAvailable:command.skipIfUINotAvailable
+                                      accessPoint:command.accessPoint]) {
+    return;
+  }
   Browser* mainBrowser = self.mainInterface.browser;
 
   switch (command.operation) {
@@ -1869,7 +1897,11 @@ using UserFeedbackDataCallback =
 }
 
 - (void)showAccountMenuWithAnchorView:(UIView*)anchorView
+                 skipIfUINotAvailable:(BOOL)skipIfUINotAvailable
                            completion:(void (^)())completion {
+  if (skipIfUINotAvailable && ![self isTabAvailableToPresentViewController]) {
+    return;
+  }
   DCHECK(!self.signinCoordinator)
       << "self.signinCoordinator: "
       << base::SysNSStringToUTF8([self.signinCoordinator description]);
@@ -3108,6 +3140,11 @@ using UserFeedbackDataCallback =
   // they are not visible.
   ios::provider::HideModalViewStack();
 
+  // Dismiss all snackbars.
+  id<SnackbarCommands> snackbarHandler = HandlerForProtocol(
+      self.mainInterface.browser->GetCommandDispatcher(), SnackbarCommands);
+  [snackbarHandler dismissAllSnackbars];
+
   // Exit fullscreen mode for web page when we re-enter app through external
   // intents.
   web::WebState* webState =
@@ -3617,12 +3654,11 @@ using UserFeedbackDataCallback =
       if (completion) {
         completion(SigninCoordinatorResultDisabled, nil);
       }
-      [self.signinCoordinator stop];
+      [self stopSigninCoordinator];
       id<PolicyChangeCommands> handler = HandlerForProtocol(
           self.signinCoordinator.browser->GetCommandDispatcher(),
           PolicyChangeCommands);
       [handler showForceSignedOutPrompt];
-      self.signinCoordinator = nil;
       return;
     }
     case AuthenticationService::ServiceStatus::SigninForcedByPolicy:
@@ -3659,8 +3695,7 @@ using UserFeedbackDataCallback =
           return;
         }
         __typeof(self) strongSelf = weakSelf;
-        [strongSelf.signinCoordinator stop];
-        strongSelf.signinCoordinator = nil;
+        [strongSelf stopSigninCoordinator];
         uiBlocker.reset();
 
         if (completion) {

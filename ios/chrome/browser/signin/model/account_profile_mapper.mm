@@ -8,8 +8,6 @@
 #import "base/functional/bind.h"
 #import "base/functional/callback.h"
 #import "base/strings/sys_string_conversions.h"
-#import "base/uuid.h"
-#import "ios/chrome/browser/profile/model/constants.h"
 #import "ios/chrome/browser/shared/model/profile/profile_attributes_ios.h"
 #import "ios/chrome/browser/shared/model/profile/profile_attributes_storage_ios.h"
 #import "ios/chrome/browser/shared/model/profile/profile_ios.h"
@@ -19,6 +17,10 @@
 #import "ios/chrome/browser/signin/model/system_identity_manager_observer.h"
 
 namespace {
+
+// Name of the personal profile for tests.
+constexpr char kPersonalProfileNameForTesting[] =
+    "bf09f5cf-94cc-4336-9cc2-26a5e1b8c358";
 
 using ProfileNameToGaiaIds =
     std::map<std::string, std::set<std::string, std::less<>>, std::less<>>;
@@ -31,9 +33,7 @@ ProfileNameToGaiaIds GetMappingFromProfileAttributes(
 
   if (!AreSeparateProfilesForManagedAccountsEnabled()) {
     system_identity_manager->IterateOverIdentities(base::BindRepeating(
-        [](std::map<std::string, std::set<std::string, std::less<>>,
-                    std::less<>>& result,
-           id<SystemIdentity> identity) {
+        [](ProfileNameToGaiaIds& result, id<SystemIdentity> identity) {
           // Note: In this case (with the feature flag disabled), the profile
           // name in the mapping isn't used - every identity is considered
           // assigned to every profile.
@@ -115,6 +115,7 @@ void DetachGaiaIdFromProfile(
 // propagates other SystemIdentityManagerObserver events out.
 class AccountProfileMapper::Assigner : public SystemIdentityManagerObserver {
  public:
+  using IdentitiesOnDeviceChangedCallback = base::RepeatingCallback<void()>;
   using MappingUpdatedCallback =
       base::RepeatingCallback<void(const ProfileNameToGaiaIds& old_mapping,
                                    const ProfileNameToGaiaIds& new_mapping)>;
@@ -133,6 +134,7 @@ class AccountProfileMapper::Assigner : public SystemIdentityManagerObserver {
   Assigner(
       SystemIdentityManager* system_identity_manager,
       ProfileManagerIOS* profile_manager,
+      IdentitiesOnDeviceChangedCallback identitites_on_device_changed_cb,
       MappingUpdatedCallback mapping_updated_cb,
       IdentityUpdatedCallback identity_updated_cb,
       IdentityRefreshTokenUpdatedCallback identity_refresh_token_updated_cb,
@@ -162,9 +164,6 @@ class AccountProfileMapper::Assigner : public SystemIdentityManagerObserver {
   // ProfileAttributesStorageIOS.
   std::string GetPersonalProfileName();
 
-  // Creates a random, not-yet-used name for a new profile.
-  std::string FindUnusedProfileName() const;
-
   // Callback for SystemIdentityManager::IterateOverIdentities(). Checks the
   // mapping of `identity` to a profile, and attaches (or re-attaches) it as
   // necessary. Note that the attaching may happen asynchronously, if the hosted
@@ -193,6 +192,7 @@ class AccountProfileMapper::Assigner : public SystemIdentityManagerObserver {
 
   raw_ptr<ProfileManagerIOS> profile_manager_;
 
+  IdentitiesOnDeviceChangedCallback identitites_on_device_changed_cb_;
   MappingUpdatedCallback mapping_updated_cb_;
   IdentityUpdatedCallback identity_updated_cb_;
   IdentityRefreshTokenUpdatedCallback identity_refresh_token_updated_cb_;
@@ -215,6 +215,7 @@ class AccountProfileMapper::Assigner : public SystemIdentityManagerObserver {
 AccountProfileMapper::Assigner::Assigner(
     SystemIdentityManager* system_identity_manager,
     ProfileManagerIOS* profile_manager,
+    IdentitiesOnDeviceChangedCallback identitites_on_device_changed_cb,
     MappingUpdatedCallback mapping_updated_cb,
     IdentityUpdatedCallback identity_updated_cb,
     IdentityRefreshTokenUpdatedCallback identity_refresh_token_updated_cb,
@@ -222,6 +223,7 @@ AccountProfileMapper::Assigner::Assigner(
         identity_access_token_refresh_failed_cb)
     : system_identity_manager_(system_identity_manager),
       profile_manager_(profile_manager),
+      identitites_on_device_changed_cb_(identitites_on_device_changed_cb),
       mapping_updated_cb_(mapping_updated_cb),
       identity_updated_cb_(identity_updated_cb),
       identity_refresh_token_updated_cb_(identity_refresh_token_updated_cb),
@@ -275,22 +277,28 @@ void AccountProfileMapper::Assigner::MakePersonalProfileManagedWithGaiaID(
   for (const std::string& gaia_id : personal_gaia_ids) {
     DetachGaiaIdFromProfile(storage, previous_personal_profile_name, gaia_id);
   }
-  // Delete the old managed profile.
+  // Delete the old managed profile (if it exists).
   if (abandoned_managed_profile_name) {
-    // The old managed profile mustn't be loaded, since it's going to be deleted
-    // and there's no good way to unload it.
+    // The old managed profile should still be "new", i.e. not actually created
+    // on disk, so that no actual user data gets deleted here.
+    CHECK(storage
+              ->GetAttributesForProfileWithName(*abandoned_managed_profile_name)
+              .IsNewProfile());
+    // Also, the old managed profile mustn't be loaded, since it's going to be
+    // deleted and there's no good way to unload it.
     CHECK(
         !profile_manager_->GetProfileWithName(*abandoned_managed_profile_name));
-    // TODO(crbug.com/331783685): Also mark the profile for deletion from disk,
-    // once an API for that exists (though in practice, the abandoned profile
-    // shouldn't exist on disk yet anyway).
+
+    // Since the profile doesn't exist on disk, just removing the entry in the
+    // attributes storage is sufficient.
     storage->RemoveProfile(*abandoned_managed_profile_name);
   }
 
   // Register a new personal profile.
-  const std::string new_personal_profile_name = FindUnusedProfileName();
-  storage->AddProfile(new_personal_profile_name);
+  const std::string new_personal_profile_name =
+      profile_manager_->ReserveNewProfileName();
   storage->SetPersonalProfileName(new_personal_profile_name);
+
   // ..and re-interpret the previous personal profile as a managed profile.
   const std::string& new_managed_profile_name = previous_personal_profile_name;
 
@@ -305,6 +313,10 @@ void AccountProfileMapper::Assigner::MakePersonalProfileManagedWithGaiaID(
 }
 
 void AccountProfileMapper::Assigner::OnIdentityListChanged() {
+  // Send notification about on-device identities first, before sending
+  // per-profile ones.
+  identitites_on_device_changed_cb_.Run();
+
   // Assign identities to profiles, if they're not assigned yet.
   std::set<std::string> processed_gaia_ids;
   system_identity_manager_->IterateOverIdentities(base::BindRepeating(
@@ -390,19 +402,9 @@ std::string AccountProfileMapper::Assigner::GetPersonalProfileName() {
   ProfileAttributesStorageIOS* attributes = GetProfileAttributesStorage();
   if (!attributes) {
     CHECK_IS_TEST();
-    return kIOSChromeInitialProfile;
+    return std::string(kPersonalProfileNameForTesting);
   }
   return attributes->GetPersonalProfileName();
-}
-
-std::string AccountProfileMapper::Assigner::FindUnusedProfileName() const {
-  CHECK(profile_manager_);
-  std::string profile_name;
-  do {
-    profile_name = base::Uuid::GenerateRandomV4().AsLowercaseString();
-  } while (profile_manager_->HasProfileWithName(profile_name) ||
-           !profile_manager_->CanCreateProfileWithName(profile_name));
-  return profile_name;
 }
 
 SystemIdentityManager::IteratorResult
@@ -474,8 +476,8 @@ void AccountProfileMapper::Assigner::AssignIdentityToProfile(
   std::string new_profile_name;
   if (is_managed_account && profile_manager_) {
     // Managed account, assign to a new dedicated profile.
-    new_profile_name = FindUnusedProfileName();
-    GetProfileAttributesStorage()->AddProfile(new_profile_name);
+    new_profile_name = profile_manager_->ReserveNewProfileName();
+    DCHECK(!new_profile_name.empty());
   } else {
     // Consumer account, assign to the personal profile.
     new_profile_name = GetPersonalProfileName();
@@ -511,6 +513,8 @@ AccountProfileMapper::AccountProfileMapper(
 
   assigner_ = std::make_unique<Assigner>(
       system_identity_manager_, profile_manager_,
+      base::BindRepeating(&AccountProfileMapper::IdentitiesOnDeviceChanged,
+                          base::Unretained(this)),
       base::BindRepeating(&AccountProfileMapper::MappingUpdated,
                           base::Unretained(this)),
       base::BindRepeating(&AccountProfileMapper::IdentityUpdated,
@@ -580,6 +584,15 @@ void AccountProfileMapper::IterateOverAllIdentitiesOnDevice(
 void AccountProfileMapper::MakePersonalProfileManagedWithGaiaID(
     std::string_view gaia_id) {
   assigner_->MakePersonalProfileManagedWithGaiaID(gaia_id);
+}
+
+void AccountProfileMapper::IdentitiesOnDeviceChanged() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  for (const auto& [name, observer_list] : observer_lists_per_profile_name_) {
+    for (Observer& observer : observer_list) {
+      observer.OnIdentitiesOnDeviceChanged();
+    }
+  }
 }
 
 void AccountProfileMapper::IdentityUpdated(id<SystemIdentity> identity) {

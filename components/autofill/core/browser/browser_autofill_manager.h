@@ -385,8 +385,7 @@ class BrowserAutofillManager : public AutofillManager {
 
   // Method containing logic to be run in `OnFormSubmittedImpl()` after any
   // import attempts of the submitted form occurred.
-  void OnFormSubmittedAfterImport(const FormData& form,
-                                  std::unique_ptr<FormStructure> submitted_form,
+  void OnFormSubmittedAfterImport(std::unique_ptr<FormStructure> submitted_form,
                                   mojom::SubmissionSource source,
                                   base::TimeTicks form_submitted_timestamp);
 
@@ -545,6 +544,7 @@ class BrowserAutofillManager : public AutofillManager {
       PasswordFormClassification::Type password_form_type,
       const FormData& form,
       const FormFieldData& field,
+      bool should_offer_single_field_form_fill,
       OnGenerateSuggestionsCallback callback,
       std::vector<std::vector<Suggestion>> suggestion_lists);
 
@@ -614,7 +614,6 @@ class BrowserAutofillManager : public AutofillManager {
   // Appends TriggerFillFieldLogEvent and FillFieldLogEvents to the relevant
   // fields in the form_structure if there was a filling operation.
   void AppendFillLogEvents(
-      mojom::ActionPersistence action_persistence,
       const FormData& form,
       FormStructure& form_structure,
       AutofillField& trigger_autofill_field,
@@ -645,7 +644,7 @@ class BrowserAutofillManager : public AutofillManager {
       AutofillField& trigger_autofill_field,
       base::span<const FormFieldData*> safe_filled_fields,
       base::span<const AutofillField*> safe_filled_autofill_fields,
-      const AutofillProfile* filled_profile,
+      const AutofillProfile& filled_profile,
       AutofillTriggerSource trigger_source,
       bool is_refill);
 
@@ -654,7 +653,7 @@ class BrowserAutofillManager : public AutofillManager {
   void MaybeShowPlusAddressEmailOverrideNotification(
       base::span<const AutofillField*> safe_filled_autofill_fields,
       base::span<const FormFieldData*> safe_filled_fields,
-      const AutofillProfile* filled_profile,
+      const AutofillProfile& filled_profile,
       const FormStructure& form_structure);
 
   // Delegates to perform external processing (display, selection) on

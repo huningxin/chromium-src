@@ -140,7 +140,6 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
      * @param bookmarkModelSupplier Supplier of the bookmark bridge for the current profile.
      * @param tabBookmarkerSupplier Supplier of {@link TabBookmarker} for bookmarking a given tab.
      * @param tabModelSelectorSupplier Supplies the {@link TabModelSelector}.
-     * @param lastUserInteractionTimeSupplier Supplier of the last user interaction time.
      * @param browserControlsManager Manages the browser controls.
      * @param windowAndroid The current {@link WindowAndroid}.
      * @param activityLifecycleDispatcher Allows observation of the activity lifecycle.
@@ -180,7 +179,6 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
             @NonNull ObservableSupplier<BookmarkModel> bookmarkModelSupplier,
             @NonNull ObservableSupplier<TabBookmarker> tabBookmarkerSupplier,
             @NonNull ObservableSupplier<TabModelSelector> tabModelSelectorSupplier,
-            @NonNull Supplier<Long> lastUserInteractionTimeSupplier,
             @NonNull BrowserControlsManager browserControlsManager,
             @NonNull ActivityWindowAndroid windowAndroid,
             @NonNull ActivityLifecycleDispatcher activityLifecycleDispatcher,
@@ -223,7 +221,6 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
                 new OneshotSupplierImpl<>(),
                 new OneshotSupplierImpl<>(),
                 new OneshotSupplierImpl<>(),
-                lastUserInteractionTimeSupplier,
                 browserControlsManager,
                 windowAndroid,
                 activityLifecycleDispatcher,
@@ -662,7 +659,7 @@ public class BaseCustomTabRootUiCoordinator extends RootUiCoordinator {
         // Currently edge to edge only supports CCT media viewer.
         return EdgeToEdgeControllerFactory.isSupportedConfiguration(mActivity)
                 && EdgeToEdgeUtils.isDrawKeyNativePageToEdgeEnabled()
-                && !EdgeToEdgeUtils.DISABLE_CCT_MEDIA_VIEWER_E2E.getValue()
+                && !ChromeFeatureList.sDrawKeyNativeEdgeToEdgeDisableCctMediaViewerE2e.getValue()
                 && mIntentDataProvider.get() != null
                 && mIntentDataProvider.get().shouldEnableEmbeddedMediaExperience();
     }

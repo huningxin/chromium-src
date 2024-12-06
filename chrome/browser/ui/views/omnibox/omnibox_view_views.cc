@@ -263,6 +263,7 @@ void OmniboxViewViews::Init() {
   ash::input_method::InputMethodManager::Get()->AddCandidateWindowObserver(
       this);
 #endif
+  UpdateAccessibleTextSelection();
 }
 
 void OmniboxViewViews::SaveStateToTab(content::WebContents* tab) {
@@ -278,14 +279,15 @@ void OmniboxViewViews::SaveStateToTab(content::WebContents* tab) {
 
   // NOTE: GetStateForTabSwitch() may affect GetSelectedRange(), so order is
   // important.
-  OmniboxEditModel::State state = model()->GetStateForTabSwitch();
+  const OmniboxEditModel::State state = model()->GetStateForTabSwitch();
   tab->SetUserData(
       OmniboxState::kKey,
       std::make_unique<OmniboxState>(state, GetRenderText()->GetAllSelections(),
                                      saved_selection_for_focus_change_));
+  UpdateAccessibleTextSelection();
 }
 
-void OmniboxViewViews::OnTabChanged(content::WebContents* web_contents) {
+void OmniboxViewViews::OnTabChanged(const content::WebContents* web_contents) {
   const OmniboxState* state = static_cast<OmniboxState*>(
       web_contents->GetUserData(&OmniboxState::kKey));
   model()->RestoreState(state ? &state->model_state : nullptr);
@@ -343,12 +345,12 @@ bool OmniboxViewViews::GetSelectionAtEnd() const {
 void OmniboxViewViews::EmphasizeURLComponents() {
   // If the current contents is a URL, turn on special URL rendering mode in
   // RenderText.
-  bool text_is_url = model()->CurrentTextIsURL();
+  const bool text_is_url = model()->CurrentTextIsURL();
   GetRenderText()->SetDirectionalityMode(
       text_is_url ? gfx::DIRECTIONALITY_AS_URL : gfx::DIRECTIONALITY_FROM_TEXT);
   SetStyle(gfx::TEXT_STYLE_STRIKE, false);
 
-  std::u16string text = GetText();
+  const std::u16string text = GetText();
   UpdateTextStyle(text, text_is_url,
                   controller()->client()->GetSchemeClassifier());
 }
@@ -377,6 +379,7 @@ void OmniboxViewViews::SetUserText(const std::u16string& text,
                                    bool update_popup) {
   saved_selection_for_focus_change_.clear();
   OmniboxView::SetUserText(text, update_popup);
+  UpdateAccessibleTextSelection();
 }
 
 void OmniboxViewViews::SetAdditionalText(
@@ -418,6 +421,7 @@ void OmniboxViewViews::SelectAll(bool reversed) {
 void OmniboxViewViews::RevertAll() {
   saved_selection_for_focus_change_.clear();
   OmniboxView::RevertAll();
+  UpdateAccessibleTextSelection();
 }
 
 void OmniboxViewViews::SetFocus(bool is_user_initiated) {
@@ -488,9 +492,9 @@ int OmniboxViewViews::GetTextWidth() const {
 }
 
 int OmniboxViewViews::GetUnelidedTextWidth() const {
-  auto elide_behavior = GetRenderText()->elide_behavior();
+  const auto elide_behavior = GetRenderText()->elide_behavior();
   GetRenderText()->SetElideBehavior(gfx::NO_ELIDE);
-  auto width = GetTextWidth();
+  const auto width = GetTextWidth();
   GetRenderText()->SetElideBehavior(elide_behavior);
   return width;
 }
@@ -500,7 +504,7 @@ bool OmniboxViewViews::IsImeComposing() const {
 }
 
 gfx::Size OmniboxViewViews::GetMinimumSize() const {
-  const int kMinCharacters = 20;
+  constexpr int kMinCharacters = 20;
   return gfx::Size(
       GetFontList().GetExpectedTextWidth(kMinCharacters) + GetInsets().width(),
       GetPreferredSize().height());
@@ -509,7 +513,7 @@ gfx::Size OmniboxViewViews::GetMinimumSize() const {
 void OmniboxViewViews::OnPaint(gfx::Canvas* canvas) {
   if (latency_histogram_state_ == CHAR_TYPED) {
     DCHECK(!insert_char_time_.is_null());
-    auto now = base::TimeTicks::Now();
+    const auto now = base::TimeTicks::Now();
     UMA_HISTOGRAM_TIMES("Omnibox.CharTypedToRepaintLatency.ToPaint",
                         now - insert_char_time_);
     latency_histogram_state_ = ON_PAINT_CALLED;
@@ -675,8 +679,8 @@ void OmniboxViewViews::SetTextAndSelectedRanges(
   // the cursor are visible. If possible given the prior guarantee, also
   // guarantees |kPadTrailing| chars of the text following the cursor are
   // visible.
-  static const size_t kPadTrailing = 30;
-  static const size_t kPadLeading = 10;
+  static constexpr size_t kPadTrailing = 30;
+  static constexpr size_t kPadLeading = 10;
 
   // We use SetTextWithoutCaretBoundsChangeNotification() in order to avoid
   // triggering accessibility events multiple times.
@@ -700,11 +704,29 @@ void OmniboxViewViews::SetSelectedRanges(
   SetSelectedRange(ranges[0]);
   for (size_t i = 1; i < ranges.size(); i++)
     AddSecondarySelectedRange(ranges[i]);
+  UpdateAccessibleTextSelection();
 }
 
 std::u16string OmniboxViewViews::GetSelectedText() const {
   // TODO(oshima): Support IME.
   return views::Textfield::GetSelectedText();
+}
+
+void OmniboxViewViews::UpdateAccessibleTextSelection() {
+  std::u16string::size_type entry_start;
+  std::u16string::size_type entry_end;
+
+  if (!saved_selection_for_focus_change_.empty()) {
+    entry_start = saved_selection_for_focus_change_[0].start();
+    entry_end = saved_selection_for_focus_change_[0].end();
+  } else {
+    GetSelectionBounds(&entry_start, &entry_end);
+  }
+
+  GetViewAccessibility().SetTextSelStart(
+      entry_start + friendly_suggestion_text_prefix_length_);
+  GetViewAccessibility().SetTextSelEnd(entry_end +
+                                       friendly_suggestion_text_prefix_length_);
 }
 
 void OmniboxViewViews::OnOmniboxPaste() {
@@ -727,6 +749,7 @@ void OmniboxViewViews::OnOmniboxPaste() {
   state_before_change_.text.clear();
   InsertOrReplaceText(text);
   OnAfterPossibleChange(true);
+  UpdateAccessibleTextSelection();
 }
 
 bool OmniboxViewViews::HandleEarlyTabActions(const ui::KeyEvent& event) {
@@ -803,6 +826,7 @@ void OmniboxViewViews::OnTemporaryTextMaybeChanged(
 
   SetWindowTextAndCaretPos(display_text, display_text.length(), false,
                            notify_text_changed);
+  UpdateAccessibleTextSelection();
 }
 
 void OmniboxViewViews::OnInlineAutocompleteTextMaybeChanged(
@@ -849,6 +873,7 @@ void OmniboxViewViews::ClearAccessibilityLabel() {
   friendly_suggestion_text_.clear();
   friendly_suggestion_text_prefix_length_ = 0;
 
+  UpdateAccessibleTextSelection();
   UpdateAccessibleValue();
 }
 
@@ -902,8 +927,8 @@ bool OmniboxViewViews::UnapplySteadyStateElisions(UnelisionGesture gesture) {
   GetSelectionBounds(&start, &end);
 
   // Try to unelide. Early exit if there's no unelisions to perform.
-  std::u16string original_text = GetText();
-  std::u16string original_selected_text = GetSelectedText();
+  const std::u16string original_text = GetText();
+  const std::u16string original_selected_text = GetSelectedText();
   if (!model()->Unelide())
     return false;
 
@@ -926,7 +951,7 @@ bool OmniboxViewViews::UnapplySteadyStateElisions(UnelisionGesture gesture) {
   if (offset != std::u16string::npos) {
     AutocompleteMatch match;
     model()->ClassifyString(original_selected_text, &match, nullptr);
-    bool selection_classifes_as_search =
+    const bool selection_classifes_as_search =
         AutocompleteMatch::IsSearchType(match.type);
     if (start != end && gesture == UnelisionGesture::MOUSE_RELEASE &&
         !selection_classifes_as_search) {
@@ -1021,7 +1046,7 @@ bool OmniboxViewViews::IsImeShowingPopup() const {
 #if BUILDFLAG(IS_CHROMEOS)
   return ime_candidate_window_open_;
 #else
-  return GetInputMethod() ? GetInputMethod()->IsCandidatePopupOpen() : false;
+  return GetInputMethod() && GetInputMethod()->IsCandidatePopupOpen();
 #endif
 }
 
@@ -1092,7 +1117,7 @@ std::u16string OmniboxViewViews::GetLabelForCommandId(int command_id) const {
   // a better way to do this.
   const float kMaxSelectionPixelWidth =
       GetStringWidthF(selection_text, Textfield::GetFontList());
-  std::u16string url = url_formatter::ElideUrl(
+  const std::u16string url = url_formatter::ElideUrl(
       match.destination_url, Textfield::GetFontList(), kMaxSelectionPixelWidth);
 
   return l10n_util::GetStringFUTF16(IDS_PASTE_AND_GO, url);
@@ -1127,6 +1152,7 @@ bool OmniboxViewViews::OnMousePressed(const ui::MouseEvent& event) {
     // that happens for things like dragging, which are cases where having
     // invalidated this saved selection is still OK.
     saved_selection_for_focus_change_.clear();
+    UpdateAccessibleTextSelection();
   }
 
   // Show on-focus suggestions if either:
@@ -1135,7 +1161,7 @@ bool OmniboxViewViews::OnMousePressed(const ui::MouseEvent& event) {
   if (event.IsOnlyLeftMouseButton() && (!HasFocus() || GetText().empty()))
     model()->StartZeroSuggestRequest();
 
-  bool handled = views::Textfield::OnMousePressed(event);
+  const bool handled = views::Textfield::OnMousePressed(event);
 
   // Reset next double click length
   if (event.GetClickCount() == 1)
@@ -1157,9 +1183,10 @@ bool OmniboxViewViews::OnMousePressed(const ui::MouseEvent& event) {
       // URL. See https://crbug.com/1084406.
       if (IsSelectAll()) {
         SelectWordAt(event.location());
-        std::u16string shown_url = GetText();
-        std::u16string full_url = controller()->client()->GetFormattedFullURL();
-        size_t offset = full_url.find(shown_url);
+        const std::u16string shown_url = GetText();
+        const std::u16string full_url =
+            controller()->client()->GetFormattedFullURL();
+        const size_t offset = full_url.find(shown_url);
         if (offset != std::u16string::npos) {
           next_double_click_selection_len_ = GetSelectedText().length();
           next_double_click_selection_offset_ =
@@ -1194,7 +1221,7 @@ bool OmniboxViewViews::OnMouseDragged(const ui::MouseEvent& event) {
   if (HasTextBeingDragged())
     CloseOmniboxPopup();
 
-  bool handled = views::Textfield::OnMouseDragged(event);
+  const bool handled = views::Textfield::OnMouseDragged(event);
 
   if (HasSelection() || ExceededDragThreshold(event.root_location() -
                                               GetLastClickRootLocation())) {
@@ -1237,6 +1264,7 @@ void OmniboxViewViews::OnGestureEvent(ui::GestureEvent* event) {
     // If we're trying to select all on tap, invalidate any saved selection lest
     // restoring it fights with the "select all" action.
     saved_selection_for_focus_change_.clear();
+    UpdateAccessibleTextSelection();
   }
 
   // Show on-focus suggestions if either:
@@ -1278,26 +1306,6 @@ bool OmniboxViewViews::SkipDefaultKeyEventProcessing(
   return Textfield::SkipDefaultKeyEventProcessing(event);
 }
 
-void OmniboxViewViews::GetAccessibleNodeData(ui::AXNodeData* node_data) {
-  Textfield::GetAccessibleNodeData(node_data);
-  std::u16string::size_type entry_start;
-  std::u16string::size_type entry_end;
-  // Selection information is saved separately when focus is moved off the
-  // current window - use that when there is no focus and it's valid.
-  if (!saved_selection_for_focus_change_.empty()) {
-    entry_start = saved_selection_for_focus_change_[0].start();
-    entry_end = saved_selection_for_focus_change_[0].end();
-  } else {
-    GetSelectionBounds(&entry_start, &entry_end);
-  }
-  node_data->AddIntAttribute(
-      ax::mojom::IntAttribute::kTextSelStart,
-      entry_start + friendly_suggestion_text_prefix_length_);
-  node_data->AddIntAttribute(
-      ax::mojom::IntAttribute::kTextSelEnd,
-      entry_end + friendly_suggestion_text_prefix_length_);
-}
-
 bool OmniboxViewViews::HandleAccessibleAction(
     const ui::AXActionData& action_data) {
   if (GetReadOnly())
@@ -1314,6 +1322,7 @@ bool OmniboxViewViews::HandleAccessibleAction(
     }
     InsertOrReplaceText(base::UTF8ToUTF16(action_data.value));
     TextChanged();
+    UpdateAccessibleTextSelection();
     return true;
   } else if (action_data.action == ax::mojom::Action::kSetSelection) {
     // Adjust for friendly text inserted at the start of the url.
@@ -1347,6 +1356,7 @@ void OmniboxViewViews::OnFocus() {
   if (!saved_selection_for_focus_change_.empty()) {
     SetSelectedRanges(saved_selection_for_focus_change_);
     saved_selection_for_focus_change_.clear();
+    UpdateAccessibleTextSelection();
   }
 
   GetRenderText()->SetElideBehavior(gfx::NO_ELIDE);
@@ -1765,7 +1775,7 @@ void OmniboxViewViews::OnAfterUserAction(views::Textfield* sender) {
 }
 
 void OmniboxViewViews::OnAfterCutOrCopy(ui::ClipboardBuffer clipboard_buffer) {
-  ui::Clipboard* cb = ui::Clipboard::GetForCurrentThread();
+  const ui::Clipboard* cb = ui::Clipboard::GetForCurrentThread();
   std::u16string selected_text;
   ui::DataTransferEndpoint data_dst = ui::DataTransferEndpoint(
       ui::EndpointType::kDefault, {.notify_if_restricted = false});
@@ -1849,7 +1859,7 @@ views::View::DropCallback OmniboxViewViews::CreateDropCallback(
 void OmniboxViewViews::UpdateContextMenu(ui::SimpleMenuModel* menu_contents) {
   MaybeAddSendTabToSelfItem(menu_contents);
 
-  std::optional<size_t> paste_position =
+  const std::optional<size_t> paste_position =
       menu_contents->GetIndexOfCommandId(Textfield::kPaste);
   DCHECK(paste_position.has_value());
   menu_contents->InsertItemWithStringIdAt(paste_position.value() + 1,
@@ -1956,7 +1966,7 @@ void OmniboxViewViews::PerformDrop(
           data.GetURLAndTitle(ui::FilenameToURLPolicy::CONVERT_FILENAMES);
       url_result.has_value()) {
     text = StripJavascriptSchemas(base::UTF8ToUTF16(url_result->url.spec()));
-  } else if (std::optional<std::u16string> text_result = data.GetString();
+  } else if (const std::optional<std::u16string> text_result = data.GetString();
              text_result.has_value()) {
     text = StripJavascriptSchemas(base::CollapseWhitespace(*text_result, true));
   } else {

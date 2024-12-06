@@ -169,7 +169,7 @@ class Adjuster : public ReportBodyAdjuster {
       *payload_str =
           base::Base64Encode(EncryptAggregatableReportPayloadWithHpke(
               decrypted_payload, hpke_key_->GetPublicKey().key,
-              base::as_bytes(base::make_span(authenticated_info_str))));
+              base::as_byte_span(authenticated_info_str)));
     }
 
     *shared_info = std::move(adjusted_shared_info);
@@ -445,10 +445,6 @@ RunAttributionInteropSimulation(
     enabled_features.emplace_back(
         network::features::kAttributionReportingCrossAppWeb);
     scoped_api_state.emplace(AttributionOsLevelManager::ApiState::kEnabled);
-  }
-  if (run.config.needs_aggregatable_debug) {
-    enabled_features.emplace_back(attribution_reporting::features::
-                                      kAttributionAggregatableDebugReporting);
   }
 
   if (run.config.needs_attribution_scopes) {

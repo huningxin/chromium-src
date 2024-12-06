@@ -11,7 +11,7 @@
 
 namespace autofill {
 
-// LINT.IfChange
+// LINT.IfChange(FillingProductToString)
 std::string FillingProductToString(FillingProduct filling_product) {
   switch (filling_product) {
     case FillingProduct::kNone:
@@ -39,14 +39,12 @@ std::string FillingProductToString(FillingProduct filling_product) {
   };
   NOTREACHED();
 }
-// LINT.ThenChange(
-//   //tools/metrics/histograms/metadata/autofill/histograms.xml:Autofill.FillingProduct,
-//   //tools/metrics/histograms/metadata/autofill/histograms.xml:Autofill.FillingProduct.Condensed
-// )
+// LINT.ThenChange(//tools/metrics/histograms/metadata/autofill/histograms.xml:Autofill.FillingProduct)
 
 FillingProduct GetFillingProductFromSuggestionType(SuggestionType type) {
   switch (type) {
     case SuggestionType::kAddressEntry:
+    case SuggestionType::kAddressEntryOnTyping:
     case SuggestionType::kAddressFieldByFieldFilling:
     case SuggestionType::kDevtoolsTestAddresses:
     case SuggestionType::kDevtoolsTestAddressByCountry:
@@ -95,7 +93,7 @@ FillingProduct GetFillingProductFromSuggestionType(SuggestionType type) {
     case SuggestionType::kManagePlusAddress:
     case SuggestionType::kPlusAddressError:
       return FillingProduct::kPlusAddresses;
-    case SuggestionType::kPredictionImprovementsFeedback:
+    case SuggestionType::kAutofillAiFeedback:
       return FillingProduct::kPredictionImprovements;
     case SuggestionType::kSeePromoCodeDetails:
     case SuggestionType::kTitle:
@@ -105,11 +103,11 @@ FillingProduct GetFillingProductFromSuggestionType(SuggestionType type) {
     case SuggestionType::kMixedFormMessage:
     case SuggestionType::kInsecureContextPaymentDisabledMessage:
       return FillingProduct::kNone;
-    case SuggestionType::kRetrievePredictionImprovements:
-    case SuggestionType::kPredictionImprovementsLoadingState:
-    case SuggestionType::kFillPredictionImprovements:
-    case SuggestionType::kPredictionImprovementsError:
-    case SuggestionType::kEditPredictionImprovementsInformation:
+    case SuggestionType::kRetrieveAutofillAi:
+    case SuggestionType::kAutofillAiLoadingState:
+    case SuggestionType::kFillAutofillAi:
+    case SuggestionType::kAutofillAiError:
+    case SuggestionType::kEditAutofillAiData:
       return FillingProduct::kPredictionImprovements;
   }
   NOTREACHED();

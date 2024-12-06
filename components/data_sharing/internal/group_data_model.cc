@@ -16,6 +16,7 @@
 #include "components/data_sharing/public/group_data.h"
 #include "components/data_sharing/public/protocol/data_sharing_sdk.pb.h"
 #include "components/sync/protocol/collaboration_group_specifics.pb.h"
+#include "google_apis/gaia/gaia_id.h"
 
 namespace data_sharing {
 
@@ -88,7 +89,7 @@ std::set<GroupData> GroupDataModel::GetAllGroups() const {
 std::optional<GroupMemberPartialData>
 GroupDataModel::GetPossiblyRemovedGroupMember(
     const GroupId& group_id,
-    const std::string& member_gaia_id) const {
+    const GaiaId& member_gaia_id) const {
   if (!IsModelLoaded()) {
     return std::nullopt;
   }
@@ -226,14 +227,19 @@ void GroupDataModel::FetchGroupsFromSDK(
   std::map<GroupId, VersionToken> group_versions;
   data_sharing_pb::ReadGroupsParams params;
   for (const GroupId& group_id : added_or_updated_groups) {
-    // TODO(crbug.com/301390275): pass `consistency_token`.
-    params.add_group_ids(group_id.value());
-
     auto collaboration_group_specifics_opt =
         collaboration_group_sync_bridge_->GetSpecifics(group_id);
     CHECK(collaboration_group_specifics_opt.has_value());
     group_versions[group_id] =
         ComputeVersionToken(*collaboration_group_specifics_opt);
+
+    // TODO(crbug.com/301390275): pass `consistency_token`.
+    params.add_group_ids(group_id.value());
+    data_sharing_pb::ReadGroupsParams::GroupParams* group_params =
+        params.add_group_params();
+    group_params->set_group_id(group_id.value());
+    group_params->set_consistency_token(
+        collaboration_group_specifics_opt->consistency_token());
   }
 
   sdk_delegate_.ReadGroups(
@@ -297,22 +303,22 @@ void GroupDataModel::OnGroupsFetchedFromSDK(
 void GroupDataModel::NotifyObserversAboutChangedMembers(
     const GroupData& old_group_data,
     const GroupData& new_group_data) {
-  std::vector<std::string> old_members_gaia_ids;
+  std::vector<GaiaId> old_members_gaia_ids;
   for (const auto& member : old_group_data.members) {
     old_members_gaia_ids.push_back(member.gaia_id);
   }
-  std::vector<std::string> new_members_gaia_ids;
+  std::vector<GaiaId> new_members_gaia_ids;
   for (const auto& member : new_group_data.members) {
     new_members_gaia_ids.push_back(member.gaia_id);
   }
 
-  std::vector<std::string> added_members_gaia_ids;
+  std::vector<GaiaId> added_members_gaia_ids;
   base::ranges::set_difference(
       new_members_gaia_ids.begin(), new_members_gaia_ids.end(),
       old_members_gaia_ids.begin(), old_members_gaia_ids.end(),
       std::back_inserter(added_members_gaia_ids));
 
-  std::vector<std::string> removed_members_gaia_ids;
+  std::vector<GaiaId> removed_members_gaia_ids;
   base::ranges::set_difference(
       old_members_gaia_ids.begin(), old_members_gaia_ids.end(),
       new_members_gaia_ids.begin(), new_members_gaia_ids.end(),
@@ -343,7 +349,7 @@ void GroupDataModel::MaybeRecordGroupEvent(
     const GroupId& group_id,
     GroupEvent::EventType event_type,
     base::Time event_time,
-    std::optional<std::string> affected_member_gaia_id) {
+    std::optional<GaiaId> affected_member_gaia_id) {
   if (group_events_since_startup_.size() >= kMaxRecordedGroupEvents) {
     // Prevent unbounded growth of the `group_events_since_startup_`. Normally,
     // this should never happen.

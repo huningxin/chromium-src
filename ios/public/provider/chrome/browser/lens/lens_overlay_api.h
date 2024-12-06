@@ -48,9 +48,6 @@ class GURL;
 // Defines the interface for interacting with a Chrome Lens Overlay.
 @protocol ChromeLensOverlay
 
-// Whether the user is currently panning the selection UI.
-@property(nonatomic, readonly) BOOL isPanningSelectionUI;
-
 // Sets the delegate for `ChromeLensOverlay`.
 - (void)setLensOverlayDelegate:(id<ChromeLensOverlayDelegate>)delegate;
 
@@ -85,6 +82,9 @@ class GURL;
 
 // Disables flyout menus from displaying.
 - (void)disableFlyoutMenu:(BOOL)disable;
+
+// Sets the rest height of the guidance view.
+- (void)setGuidanceRestHeight:(CGFloat)height;
 
 @end
 

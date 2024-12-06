@@ -265,13 +265,6 @@ First-Party Set 中的所有网站都必须是采用 HTTPS 协议的可注册网
 <translation id="117080706484659953">允许在 <ph name="MAC_OS_NAME" /> 上检测政策范围</translation>
 <translation id="1171106901454883937">启用设备版本信息报告功能</translation>
 <translation id="1173493742686115032">允许在所有网页上使用 <ph name="SEARCH_SIDE_PANEL_FEATURE_NAME" /></translation>
-<translation id="1177567780207290133">通过设置此政策，您可以控制 SafeSites 网址滤除机制，此机制使用 Google Safe Search API 来判断是否将网址归类为色情内容。
-
-      如果此政策设为：
-
-      *“不滤除提供成人内容的网站”或未设置 - 系统将不会滤除这类网站
-
-      *“滤除提供成人内容的顶级网站”- 系统将会滤除色情网站</translation>
 <translation id="1177624681620856105"> 此政策用于控制在出现外部协议启动确认提示时是否显示“始终打开”复选框。
 
       如果您将此政策设为 true 或不设置此政策，当系统显示外部协议确认提示时，用户可选择“始终打开”，以跳过系统未来会在此网站中显示的所有针对该协议的确认提示。
@@ -4072,6 +4065,15 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="4027608872760987929">启用默认搜索服务提供商</translation>
 <translation id="4030152268425532846">禁止取消自动登录</translation>
 <translation id="4043796890723386527">禁止用户在 <ph name="LACROS_NAME" /> 浏览器中创建和使用次级个人资料以及使用访客模式</translation>
+<translation id="4047633048700722778">通过设置此政策，您可以控制 SafeSites 网址滤除机制，此机制使用 Google Safe Search API 来判断是否将网址归类为色情内容。
+
+如果此政策设为：
+
+*“不滤除提供成人内容的网站”或未设置 - 系统将不会滤除这类网站
+
+*“滤除提供成人内容的网站”- 系统将会滤除色情网站
+
+此政策同时适用于用户导航到的网址和 iframe。<ph name="URL_ALLOWLIST_POLICY_NAME" /> 政策优先于此政策，可用于替换 Google Safe Search API 的判定结果。</translation>
 <translation id="4051723201852944592">启用窗口遮挡</translation>
 <translation id="4052529125939620019">在浏览器启动时加载 CryptoToken 组件扩展程序</translation>
 <translation id="4053157306171963473">停用设备活动时长报告功能</translation>
@@ -7738,7 +7740,6 @@ Microsoft SharePoint 卡片需要额外的管理员配置。如需详细了解�
       75 版以前的版本不支持使用且会跳过以英文逗号分隔的多个扩展程序 ID。此政策的其余部分仍适用。
 
       注意：此政策还会影响要使用 <ph name="EXTENSION_INSTALL_FORCELIST_POLICY_NAME" /> 强制安装的扩展程序和应用。</translation>
-<translation id="6731757988219967594">滤除提供成人内容的顶级网站（但不滤除嵌入式 iframe）</translation>
 <translation id="6733851879899284032">
       用于指定 SharedArrayBuffers 可否用在未进行跨域隔离的情境中。出于网络兼容性方面的原因，从 <ph name="PRODUCT_NAME" /> 91 (2021-05-25) 开始，<ph name="PRODUCT_NAME" /> 会要求网站在使用 SharedArrayBuffers 时进行跨域隔离。如需了解更多详情，请访问 https://developer.chrome.com/blog/enabling-shared-array-buffer/。
 
@@ -8396,6 +8397,15 @@ Microsoft SharePoint 卡片需要额外的管理员配置。如需详细了解�
       系统会自动忽略这些政策，除非安装了 Chrome 远程桌面主机。</translation>
 <translation id="7202925763179776247">允许下载限制</translation>
 <translation id="7203243973351251622">录音机（自 130 版起受支持）</translation>
+<translation id="7205989349935313324">通过智能镜头叠加功能，用户可与当前网页的屏幕截图（叠加在实际 Web 内容上）进行互动，以发起 Google 搜索。此外，用户还可以根据当前网页的上下文发起 Google 搜索。为了提供符合上下文的答案，智能镜头叠加功能会将网页内容发送给 Google，以便系统根据用户所处网页的上下文回答用户的查询。
+
+此功能不受用户设置控制，通常面向所有将 Google 设为默认搜索引擎的用户提供，除非此政策已将其停用。
+
+0 表示为用户启用此功能，并向 Google 发送相关数据来帮助训练或改进 AI 模型。相关数据可能包括提示、输入、输出和来源资料，具体取决于相应功能。工作人员可能会仅出于改进 AI 模型的目的而审核这些数据。除非下文另有说明，否则默认值是 0。
+
+1 表示为用户启用此功能，但不向 Google 发送数据来训练或改进 AI 模型。对于受 <ph name="GOOGLE_ADMIN_CONSOLE_PRODUCT_NAME" />管理的企业用户和受 <ph name="GOOGLE_WORKSPACE_PRODUCT_NAME" /> 管理的教育版账号，默认值是 1。
+
+2 表示停用此功能。</translation>
 <translation id="7207095846245296855">强制启用 Google 安全搜索功能</translation>
 <translation id="7211368186050418507">一律不自动检测时区</translation>
 <translation id="721617466745658461">允许用户选择 <ph name="LACROS_NAME" /> 浏览器二进制文件</translation>
@@ -9548,6 +9558,7 @@ Microsoft SharePoint 卡片需要额外的管理员配置。如需详细了解�
       如果此政策已停用或未设置，系统将不会发送任何数据包。</translation>
 <translation id="8168359201203671567">键盘背光颜色：彩虹色</translation>
 <translation id="8169452762291746260">停用设备运行状况监测</translation>
+<translation id="8170359860920320269">滤除提供成人内容的网站</translation>
 <translation id="8171262216089271568">为登录屏幕启用大号光标</translation>
 <translation id="8171924760436219650">将在登录屏幕上使用的鼠标主按钮切换成右键</translation>
 <translation id="81724933026241365">允许用户使用关机图标或实体电源按钮关闭设备</translation>

@@ -13,12 +13,10 @@
 #include "base/containers/span.h"
 #include "base/feature_list.h"
 #include "base/ranges/algorithm.h"
-#include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/task_environment.h"
 #include "base/time/time.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/autofill/core/browser/autofill_field.h"
 #include "components/autofill/core/browser/autofill_form_test_utils.h"
 #include "components/autofill/core/browser/autofill_test_utils.h"
@@ -85,10 +83,8 @@ class MockAutofillClient : public TestAutofillClient {
   ~MockAutofillClient() override = default;
 
   MOCK_METHOD(void,
-              DidFillOrPreviewForm,
-              (mojom::ActionPersistence action_persistence,
-               AutofillTriggerSource trigger_source,
-               bool is_refill),
+              DidFillForm,
+              (AutofillTriggerSource trigger_source, bool is_refill),
               (override));
 };
 
@@ -168,12 +164,16 @@ class FormFillerTest : public testing::Test {
                                            /*removed_forms=*/{});
   }
 
+  FormFiller& form_filler() {
+    return test_api(*browser_autofill_manager_).form_filler();
+  }
+
   FormStructure* GetFormStructure(const FormData& form) {
     return browser_autofill_manager_->FindCachedFormById(form.global_id());
   }
 
-  const AutofillField* GetAutofillField(const FormData& form,
-                                        const FormFieldData& field) {
+  AutofillField* GetAutofillField(const FormData& form,
+                                  const FormFieldData& field) {
     return browser_autofill_manager_->GetAutofillField(form, field);
   }
 
@@ -192,22 +192,16 @@ class FormFillerTest : public testing::Test {
       global_ids.push_back(field.global_id());
     }
     // After the call, `filled_fields` will only contain the fields that were
-    // autofilled in this call of FillOrPreviewFooForm (% fields not filled due
+    // autofilled in this call of FillOrPreviewForm (% fields not filled due
     // to the iframe security policy).
     EXPECT_CALL(autofill_driver_, ApplyFormAction)
         .WillOnce(
             DoAll(SaveArgElementsTo<2>(&filled_fields), Return(global_ids)));
-    if (const AutofillProfile** profile =
-            absl::get_if<const AutofillProfile*>(&profile_or_credit_card)) {
-      browser_autofill_manager_->FillOrPreviewProfileForm(
-          mojom::ActionPersistence::kFill, form, trigger_field.global_id(),
-          **profile, trigger_source);
-    } else {
-      browser_autofill_manager_->FillOrPreviewCreditCardForm(
-          mojom::ActionPersistence::kFill, form, trigger_field.global_id(),
-          *absl::get<const CreditCard*>(profile_or_credit_card),
-          trigger_source);
-    }
+    form_filler().FillOrPreviewForm(
+        mojom::ActionPersistence::kFill, form, profile_or_credit_card,
+        GetFormStructure(form), GetAutofillField(form, trigger_field),
+        trigger_source,
+        /*is_refill=*/false);
     // Copy the filled data into the form.
     for (FormFieldData& field : test_api(form).fields()) {
       if (auto it = base::ranges::find(filled_fields, field.global_id(),
@@ -220,16 +214,17 @@ class FormFillerTest : public testing::Test {
   }
 
   std::vector<FormFieldData> PreviewVirtualCardDataAndGetResults(
-      const FormData& input_form,
-      const FieldGlobalId& input_field_id,
+      const FormData& form,
+      const FormFieldData& field,
       const CreditCard& virtual_card) {
     std::vector<FormFieldData> filled_fields;
     EXPECT_CALL(autofill_driver_, ApplyFormAction)
         .WillOnce((DoAll(SaveArgElementsTo<2>(&filled_fields),
                          Return(std::vector<FieldGlobalId>{}))));
-    browser_autofill_manager_->FillOrPreviewCreditCardForm(
-        mojom::ActionPersistence::kPreview, input_form, input_field_id,
-        virtual_card, AutofillTriggerSource::kPopup);
+    form_filler().FillOrPreviewForm(
+        mojom::ActionPersistence::kPreview, form, &virtual_card,
+        GetFormStructure(form), GetAutofillField(form, field),
+        AutofillTriggerSource::kPopup, /*is_refill=*/false);
     return filled_fields;
   }
 
@@ -250,7 +245,6 @@ class FormFillerTest : public testing::Test {
   test::AutofillUnitTestEnvironment autofill_test_environment_;
   NiceMock<MockAutofillClient> autofill_client_;
   NiceMock<MockAutofillDriver> autofill_driver_{&autofill_client_};
-  // TODO(crbug.com/41490871): Replace with FormFiller.
   std::unique_ptr<TestBrowserAutofillManager> browser_autofill_manager_;
 };
 
@@ -299,9 +293,12 @@ TEST_F(FormFillerTest, DoNotFillIfFormChanged) {
   test_api(form).Remove(-1);
 
   EXPECT_CALL(autofill_driver_, ApplyFormAction).Times(0);
-  browser_autofill_manager_->FillOrPreviewProfileForm(
-      mojom::ActionPersistence::kFill, form, form.fields().front().global_id(),
-      test::GetFullProfile(), AutofillTriggerSource::kPopup);
+  AutofillProfile profile = test::GetFullProfile();
+  form_filler().FillOrPreviewForm(mojom::ActionPersistence::kFill, form,
+                                  &profile, GetFormStructure(form),
+                                  GetAutofillField(form, form.fields().front()),
+                                  AutofillTriggerSource::kPopup,
+                                  /*is_refill=*/false);
 }
 
 TEST_F(FormFillerTest, SkipFillIfFieldIsMeaningfullyPreFilled) {
@@ -402,9 +399,12 @@ TEST_F(FormFillerTest, UndoSavesFormFillingData) {
       .Times(2)
       .WillRepeatedly(Return(safe_fields));
 
-  browser_autofill_manager_->FillOrPreviewProfileForm(
-      mojom::ActionPersistence::kFill, form, form.fields().front().global_id(),
-      test::GetFullProfile(), AutofillTriggerSource::kPopup);
+  AutofillProfile profile = test::GetFullProfile();
+  form_filler().FillOrPreviewForm(mojom::ActionPersistence::kFill, form,
+                                  &profile, GetFormStructure(form),
+                                  GetAutofillField(form, form.fields().front()),
+                                  AutofillTriggerSource::kPopup,
+                                  /*is_refill=*/false);
   // Undo early returns if it has no filling history for the trigger field,
   // which is initially empty, therefore calling the driver is proof that data
   // was successfully stored.
@@ -434,7 +434,7 @@ TEST_F(FormFillerTest, UndoResetsCachedAutofillState) {
 
   AutofillField filled_autofill_field(form.fields().front());
   test_api(form).field(0).set_is_autofilled(false);
-  test_api(test_api(*browser_autofill_manager_).form_filler())
+  test_api(form_filler())
       .AddFormFillEntry(
           std::to_array<const FormFieldData*>({&form.fields().front()}),
           std::to_array<const AutofillField*>({&filled_autofill_field}),
@@ -451,12 +451,12 @@ TEST_F(FormFillerTest, UndoResetsCachedAutofillState) {
   EXPECT_FALSE(autofill_field->is_autofilled());
 }
 
-TEST_F(FormFillerTest, FillOrPreviewDataModelFormCallsDidFillOrPreviewForm) {
+TEST_F(FormFillerTest, FillOrPreviewFormCallsDidFillForm) {
   FormData form = test::CreateTestAddressFormData();
   FormsSeen({form});
 
   AutofillProfile profile = test::GetFullProfile();
-  EXPECT_CALL(autofill_client_, DidFillOrPreviewForm);
+  EXPECT_CALL(autofill_client_, DidFillForm);
   FillAutofillFormData(form, form.fields().front(), &profile);
 }
 
@@ -827,8 +827,7 @@ TEST_F(FormFillerTest, PreviewCreditCardForm_VirtualCard) {
 
   CreditCard virtual_card = test::GetVirtualCard();
   std::vector<FormFieldData> filled_fields =
-      PreviewVirtualCardDataAndGetResults(form, form.fields()[1].global_id(),
-                                          virtual_card);
+      PreviewVirtualCardDataAndGetResults(form, form.fields()[1], virtual_card);
 
   std::u16string expected_cardholder_name = u"Lorem Ipsum";
   // Virtual card number using obfuscated dots only: Virtual card Mastercard
@@ -1391,7 +1390,6 @@ TEST_F(FormFillerTest, FormWithHiddenOrPresentationalFields) {
       FormFieldData::RoleAttribute::kPresentation);
   FormsSeen({form});
 
-  base::HistogramTester histogram_tester;
   AutofillProfile profile = test::GetFullProfile();
   std::vector<FormFieldData> filled_fields =
       FillAutofillFormData(form, form.fields()[0], &profile).fields();

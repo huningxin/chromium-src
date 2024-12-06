@@ -57,7 +57,6 @@
 #import "ios/chrome/browser/passwords/model/password_checkup_utils.h"
 #import "ios/chrome/browser/photos/model/photos_service.h"
 #import "ios/chrome/browser/photos/model/photos_service_factory.h"
-#import "ios/chrome/browser/profile/model/constants.h"
 #import "ios/chrome/browser/push_notification/model/push_notification_client_id.h"
 #import "ios/chrome/browser/push_notification/model/push_notification_settings_util.h"
 #import "ios/chrome/browser/search_engines/model/search_engine_observer_bridge.h"
@@ -1594,6 +1593,12 @@ struct EnhancedSafeBrowsingActivePromoData
 
 #pragma mark - Private methods
 
+- (void)handleIdentityUpdated:(id<SystemIdentity>)identity {
+  if ([_identity isEqual:identity]) {
+    [self reloadAccountCell];
+  }
+}
+
 // Returns true if sync is disabled by policy.
 - (bool)isSyncDisabledByPolicy {
   return SyncServiceFactory::GetForProfile(_profile)->HasDisableReason(
@@ -2350,9 +2355,11 @@ struct EnhancedSafeBrowsingActivePromoData
 #pragma mark - ChromeAccountManagerServiceObserver
 
 - (void)identityUpdated:(id<SystemIdentity>)identity {
-  if ([_identity isEqual:identity]) {
-    [self reloadAccountCell];
+  if (AreSeparateProfilesForManagedAccountsEnabled()) {
+    // Listening to `onExtendedAccountInfoUpdated` instead.
+    return;
   }
+  [self handleIdentityUpdated:identity];
 }
 
 - (void)onChromeAccountManagerServiceShutdown:
@@ -2591,6 +2598,16 @@ struct EnhancedSafeBrowsingActivePromoData
 - (void)onPrimaryAccountChanged:
     (const signin::PrimaryAccountChangeEvent&)event {
   [self signinStateDidChange];
+}
+
+- (void)onExtendedAccountInfoUpdated:(const AccountInfo&)info {
+  if (!AreSeparateProfilesForManagedAccountsEnabled()) {
+    // Listening to `identityUpdated` instead.
+    return;
+  }
+  id<SystemIdentity> identity =
+      _accountManagerService->GetIdentityOnDeviceWithGaiaID(info.gaia);
+  [self handleIdentityUpdated:identity];
 }
 
 #pragma mark - UIAdaptivePresentationControllerDelegate

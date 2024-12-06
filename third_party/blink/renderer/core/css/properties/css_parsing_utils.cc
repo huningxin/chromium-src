@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "third_party/blink/renderer/core/css/counter_style_map.h"
-#include "third_party/blink/renderer/core/css/css_attr_value_tainting.h"
 #include "third_party/blink/renderer/core/css/css_axis_value.h"
 #include "third_party/blink/renderer/core/css/css_basic_shape_values.h"
 #include "third_party/blink/renderer/core/css/css_border_image.h"
@@ -368,7 +367,7 @@ CSSValue* ConsumeSteps(CSSParserTokenStream& stream,
 
     guard.Release();
     result = MakeGarbageCollected<cssvalue::CSSStepsTimingFunctionValue>(
-        steps->GetIntValue(), position);
+        steps, position);
   }
   stream.ConsumeWhitespace();
   return result;
@@ -1279,7 +1278,7 @@ CSSPrimitiveValue* ConsumeNumberOrPercent(
           ConsumePercent(stream, context, value_stream)) {
     if (value->IsNumericLiteralValue()) {
       return CSSNumericLiteralValue::Create(
-          value->GetDoubleValue() / 100.0,
+          To<CSSNumericLiteralValue>(value)->ClampedDoubleValue() / 100.0,
           CSSPrimitiveValue::UnitType::kNumber);
     } else {
       // Just return it directly; when the caller calls ComputeNumber(),
@@ -1354,7 +1353,7 @@ bool IsNonZeroUserUnitsValue(const CSSPrimitiveValue* value) {
   if (const auto* numeric_literal = DynamicTo<CSSNumericLiteralValue>(value)) {
     return numeric_literal->GetType() ==
                CSSPrimitiveValue::UnitType::kUserUnits &&
-           value->GetDoubleValue() != 0;
+           numeric_literal->ClampedDoubleValue() != 0;
   }
   const auto& math_value = To<CSSMathFunctionValue>(*value);
   return math_value.Category() == kCalcNumber && math_value.DoubleValue() != 0;
@@ -1692,7 +1691,7 @@ CSSParserToken ConsumeUrlAsToken(CSSParserTokenStream& stream,
     return CSSParserToken(kEOFToken);
   }
   wtf_size_t value_end_offset = stream.LookAheadOffset();
-  if (IsAttrTainted(stream, value_start_offset, value_end_offset)) {
+  if (stream.IsAttrTainted(value_start_offset, value_end_offset)) {
     return CSSParserToken(kEOFToken);
   }
   return IsFetchRestricted(token.Value(), context)
@@ -3379,7 +3378,7 @@ CSSValue* ConsumeImage(
     String uri_string = ConsumeStringAsString(stream);
     if (!uri_string.IsNull()) {
       wtf_size_t value_end_offset = stream.LookAheadOffset();
-      if (IsAttrTainted(stream, value_start_offset, value_end_offset)) {
+      if (stream.IsAttrTainted(value_start_offset, value_end_offset)) {
         // https://drafts.csswg.org/css-values-5/#attr-security
         // “Additionally, attr() is not allowed to be used in any <url> value,
         // whether directly or indirectly. Doing so makes the property it’s used
@@ -6005,21 +6004,17 @@ bool ConsumeGridTrackRepeatFunction(CSSParserTokenStream& stream,
   is_auto_repeat = IdentMatches<CSSValueID::kAutoFill, CSSValueID::kAutoFit>(
       stream.Peek().Id());
   CSSValueList* repeated_values;
-  // The number of repetitions for <auto-repeat> is not important at parsing
-  // level because it will be computed later, let's set it to 1.
-  wtf_size_t repetitions = 1;
+  CSSPrimitiveValue* repetition = nullptr;
 
   if (is_auto_repeat) {
     repeated_values = MakeGarbageCollected<cssvalue::CSSGridAutoRepeatValue>(
         stream.ConsumeIncludingWhitespace().Id());
   } else {
     // TODO(rob.buis): a consumeIntegerRaw would be more efficient here.
-    CSSPrimitiveValue* repetition = ConsumePositiveInteger(stream, context);
+    repetition = ConsumePositiveInteger(stream, context);
     if (!repetition) {
       return false;
     }
-    repetitions =
-        ClampTo<wtf_size_t>(repetition->GetDoubleValue(), 0, kGridMaxTracks);
     repeated_values = CSSValueList::CreateSpaceSeparated();
   }
 
@@ -6065,12 +6060,12 @@ bool ConsumeGridTrackRepeatFunction(CSSParserTokenStream& stream,
   } else {
     // We clamp the repetitions to a multiple of the repeat() track list's size,
     // while staying below the max grid size.
-    repetitions =
-        std::min(repetitions, kGridMaxTracks / (is_subgrid_track_list
-                                                    ? number_of_line_name_sets
-                                                    : number_of_tracks));
+    wtf_size_t extra_clamp =
+        kGridMaxTracks /
+        (is_subgrid_track_list ? number_of_line_name_sets : number_of_tracks);
     auto* integer_repeated_values =
-        MakeGarbageCollected<cssvalue::CSSGridIntegerRepeatValue>(repetitions);
+        MakeGarbageCollected<cssvalue::CSSGridIntegerRepeatValue>(repetition,
+                                                                  extra_clamp);
     for (wtf_size_t i = 0; i < repeated_values->length(); ++i) {
       integer_repeated_values->Append(repeated_values->Item(i));
     }
@@ -6194,17 +6189,20 @@ CSSValue* ConsumeGridLine(CSSParserTokenStream& stream,
   if (span_value && !numeric_value && !grid_line_name) {
     return nullptr;  // "span" keyword alone is invalid.
   }
-  if (span_value && numeric_value && numeric_value->GetIntValue() < 0) {
+  if (span_value && numeric_value &&
+      numeric_value->GetValueIfKnown().has_value() &&
+      *numeric_value->GetValueIfKnown() < 0) {
     return nullptr;  // Negative numbers are not allowed for span.
   }
-  if (numeric_value && numeric_value->GetIntValue() == 0) {
+  if (numeric_value && numeric_value->GetValueIfKnown() == 0) {
     return nullptr;  // An <integer> value of zero makes the declaration
                      // invalid.
   }
 
-  if (numeric_value) {
+  if (numeric_value && numeric_value->GetValueIfKnown().has_value()) {
     numeric_value = CSSNumericLiteralValue::Create(
-        ClampTo(numeric_value->GetIntValue(), -kGridMaxTracks, kGridMaxTracks),
+        ClampTo(*numeric_value->GetValueIfKnown(), -kGridMaxTracks,
+                kGridMaxTracks),
         CSSPrimitiveValue::UnitType::kInteger);
   }
 
@@ -6213,8 +6211,8 @@ CSSValue* ConsumeGridLine(CSSParserTokenStream& stream,
     values->Append(*span_value);
   }
   // If span is present, omit `1` if there's a trailing identifier.
-  if (numeric_value &&
-      (!span_value || !grid_line_name || numeric_value->GetIntValue() != 1)) {
+  if (numeric_value && (!span_value || !grid_line_name ||
+                        !(numeric_value->GetValueIfKnown() == 1))) {
     values->Append(*numeric_value);
   }
   if (grid_line_name) {

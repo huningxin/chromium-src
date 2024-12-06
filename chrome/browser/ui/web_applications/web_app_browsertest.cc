@@ -1067,12 +1067,7 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, MenuOptionsOutsideInstalledPwaScope) {
       https_server()->GetURL("/banners/no_manifest_test_page.html"));
 
   EXPECT_EQ(GetAppMenuCommandState(IDC_CREATE_SHORTCUT, new_browser), kEnabled);
-  AppMenuCommandState install_pwa_state =
-      base::FeatureList::IsEnabled(features::kWebAppUniversalInstall)
-          ? kEnabled
-          : kNotPresent;
-  EXPECT_EQ(GetAppMenuCommandState(IDC_INSTALL_PWA, new_browser),
-            install_pwa_state);
+  EXPECT_EQ(GetAppMenuCommandState(IDC_INSTALL_PWA, new_browser), kEnabled);
   EXPECT_EQ(GetAppMenuCommandState(IDC_OPEN_IN_PWA_WINDOW, new_browser),
             kNotPresent);
 }
@@ -1280,12 +1275,7 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, NoOpenInAppForBrowserTabPwa) {
   // Even though the app doesn't meet promotability criteria (manifest has
   // display:browser), the installation option should still show up as `Install
   // Page as App`.
-  AppMenuCommandState install_pwa_state =
-      base::FeatureList::IsEnabled(features::kWebAppUniversalInstall)
-          ? kEnabled
-          : kNotPresent;
-  EXPECT_EQ(GetAppMenuCommandState(IDC_INSTALL_PWA, browser()),
-            install_pwa_state);
+  EXPECT_EQ(GetAppMenuCommandState(IDC_INSTALL_PWA, browser()), kEnabled);
   EXPECT_EQ(GetAppMenuCommandState(IDC_OPEN_IN_PWA_WINDOW, browser()),
             kNotPresent);
 }
@@ -1642,10 +1632,8 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, WebAppCreateAndDeleteShortcut) {
   run_loop_install.Run();
   app_loaded_observer.Wait();
 
-  EXPECT_TRUE(provider->registrar_unsafe().IsInstallState(
-      app_id, {proto::InstallState::SUGGESTED_FROM_ANOTHER_DEVICE,
-               proto::InstallState::INSTALLED_WITHOUT_OS_INTEGRATION,
-               proto::InstallState::INSTALLED_WITH_OS_INTEGRATION}));
+  EXPECT_EQ(proto::InstallState::INSTALLED_WITH_OS_INTEGRATION,
+            provider->registrar_unsafe().GetInstallState(app_id));
   EXPECT_EQ(provider->registrar_unsafe().GetAppShortName(app_id),
             GetInstallableAppName());
 
@@ -1691,10 +1679,8 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, RunOnOsLoginMetrics) {
   auto* provider = WebAppProvider::GetForTest(profile());
   const webapps::AppId& app_id = InstallPWA(pwa_url);
 
-  ASSERT_TRUE(provider->registrar_unsafe().IsInstallState(
-      app_id, {proto::InstallState::SUGGESTED_FROM_ANOTHER_DEVICE,
-               proto::InstallState::INSTALLED_WITHOUT_OS_INTEGRATION,
-               proto::InstallState::INSTALLED_WITH_OS_INTEGRATION}));
+  ASSERT_EQ(proto::InstallState::INSTALLED_WITH_OS_INTEGRATION,
+            provider->registrar_unsafe().GetInstallState(app_id));
 
   base::HistogramTester tester;
   base::RunLoop run_loop;
@@ -1774,10 +1760,7 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTestUpdateShortcutResult, UpdateShortcut) {
   EXPECT_EQ(shortcut_info->title, u"test_app_2");
 
   test::UninstallAllWebApps(profile());
-  EXPECT_FALSE(provider->registrar_unsafe().IsInstallState(
-      app_id, {proto::InstallState::SUGGESTED_FROM_ANOTHER_DEVICE,
-               proto::InstallState::INSTALLED_WITHOUT_OS_INTEGRATION,
-               proto::InstallState::INSTALLED_WITH_OS_INTEGRATION}));
+  EXPECT_TRUE(provider->registrar_unsafe().IsNotInRegistrar(app_id));
 }
 
 // Tests that reparenting a display: browser app tab results in a minimal-ui
@@ -1957,21 +1940,12 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, InScopeHttpUrlsDisplayAppTitle) {
   EXPECT_EQ(app_title, app_browser->GetWindowTitleForCurrentTab(false));
 }
 
-class WebAppBrowserTest_HideOrigin : public WebAppBrowserTest {
- public:
-  WebAppBrowserTest_HideOrigin() = default;
-
- private:
-  base::test::ScopedFeatureList scoped_feature_list_{
-      features::kHideWebAppOriginText};
-};
-
-// WebApps should not have origin text with this feature on.
-IN_PROC_BROWSER_TEST_F(WebAppBrowserTest_HideOrigin, OriginTextRemoved) {
+// WebApps should have origin text.
+IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, OriginTextRemoved) {
   const GURL app_url = GetInstallableAppURL();
   const webapps::AppId app_id = InstallPWA(app_url);
   Browser* const app_browser = LaunchWebAppBrowserAndWait(app_id);
-  EXPECT_FALSE(app_browser->app_controller()->HasTitlebarAppOriginText());
+  EXPECT_TRUE(app_browser->app_controller()->HasTitlebarAppOriginText());
 }
 
 // Check that a subframe on a regular web page can navigate to a URL that
@@ -2093,25 +2067,13 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, WebAppInternalsPage) {
   NavigateViaLinkClickToURLAndWait(
       browser(), https_server()->GetURL("/banners/no_manifest_test_page.html"));
 
-  if (base::FeatureList::IsEnabled(features::kWebAppUniversalInstall)) {
-    // Install as DIY App.
-    SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/true);
-    WebAppTestInstallObserver observer(profile());
-    observer.BeginListening();
-    CHECK(chrome::ExecuteCommand(browser(), IDC_INSTALL_PWA));
-    observer.Wait();
-    SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/false);
-  } else {
-    // Install using Create Shortcut flow until universal install is globally
-    // enabled by default.
-    SetAutoAcceptWebAppDialogForTesting(/*auto_accept=*/true,
-                                        /*auto_open_in_window=*/false);
-    WebAppTestInstallObserver observer(profile());
-    observer.BeginListening();
-    CHECK(chrome::ExecuteCommand(browser(), IDC_CREATE_SHORTCUT));
-    observer.Wait();
-    SetAutoAcceptWebAppDialogForTesting(false, false);
-  }
+  // Install as DIY App.
+  SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/true);
+  WebAppTestInstallObserver observer(profile());
+  observer.BeginListening();
+  CHECK(chrome::ExecuteCommand(browser(), IDC_INSTALL_PWA));
+  observer.Wait();
+  SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/false);
 
   // Loads with two apps.
   NavigateViaLinkClickToURLAndWait(browser(),
@@ -2124,34 +2086,17 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, BrowserDisplayNotInstallable) {
       "manifest_test_page.html?manifest=manifest_display_browser.json");
   NavigateAndAwaitInstallabilityCheck(browser(), url);
 
-  bool universal_install_enabled =
-      base::FeatureList::IsEnabled(features::kWebAppUniversalInstall);
+  EXPECT_EQ(GetAppMenuCommandState(IDC_INSTALL_PWA, browser()), kEnabled);
 
-  AppMenuCommandState install_state =
-      universal_install_enabled ? kEnabled : kNotPresent;
-  EXPECT_EQ(GetAppMenuCommandState(IDC_INSTALL_PWA, browser()), install_state);
+  // Install as DIY App.
+  SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/true);
+  WebAppTestInstallObserver observer(profile());
+  observer.BeginListening();
+  CHECK(chrome::ExecuteCommand(browser(), IDC_INSTALL_PWA));
+  observer.Wait();
+  SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/false);
 
-  if (universal_install_enabled) {
-    // Install as DIY App.
-    SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/true);
-    WebAppTestInstallObserver observer(profile());
-    observer.BeginListening();
-    CHECK(chrome::ExecuteCommand(browser(), IDC_INSTALL_PWA));
-    observer.Wait();
-    SetAutoAcceptDiyAppsInstallDialogForTesting(/*auto_accept=*/false);
-  } else {
-    // Install using Create Shortcut flow until universal install is globally
-    // enabled by default.
-    SetAutoAcceptWebAppDialogForTesting(/*auto_accept=*/true,
-                                        /*auto_open_in_window=*/false);
-    WebAppTestInstallObserver observer(profile());
-    observer.BeginListening();
-    CHECK(chrome::ExecuteCommand(browser(), IDC_CREATE_SHORTCUT));
-    observer.Wait();
-    SetAutoAcceptWebAppDialogForTesting(false, false);
-  }
-
-  // Navigate to this site again and install should not show up if universal
+  // Navigate to this site again and install should not show up since universal
   // install is enabled.
   Browser* new_browser = NavigateInNewWindowAndAwaitInstallabilityCheck(url);
   EXPECT_EQ(GetAppMenuCommandState(IDC_INSTALL_PWA, new_browser), kNotPresent);
@@ -2434,10 +2379,8 @@ IN_PROC_BROWSER_TEST_F(WebAppBrowserTest, PRE_UninstallIncompleteUninstall) {
   const webapps::AppId app_id = test::InstallPwaForCurrentUrl(browser());
   run_loop_install.Run();
 
-  EXPECT_TRUE(provider->registrar_unsafe().IsInstallState(
-      app_id, {proto::InstallState::SUGGESTED_FROM_ANOTHER_DEVICE,
-               proto::InstallState::INSTALLED_WITHOUT_OS_INTEGRATION,
-               proto::InstallState::INSTALLED_WITH_OS_INTEGRATION}));
+  EXPECT_EQ(proto::InstallState::INSTALLED_WITH_OS_INTEGRATION,
+            provider->registrar_unsafe().GetInstallState(app_id));
   EXPECT_EQ(provider->registrar_unsafe().GetAppShortName(app_id),
             GetInstallableAppName());
   // This does NOT uninstall the web app, it just flags it for uninstall on

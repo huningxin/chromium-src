@@ -1543,16 +1543,20 @@ class InterestGroupAuction::BuyerHelper
 
     // Request processes for all bidder worklets.
     for (auto& bid_state : bid_states_) {
+      bid_state->BeginTracing();
+      TRACE_EVENT_NESTABLE_ASYNC_BEGIN0("fledge", "bidder_worklet_generate_bid",
+                                        *bid_state->trace_id);
       auto worklet_key = auction_->BidderWorkletKey(*bid_state);
       auction_->auction_metrics_recorder_->ReportBidderWorkletKey(worklet_key);
       auction_->auction_worklet_manager_->RequestWorkletByKey(
           worklet_key, auction_->devtools_auction_id_,
+          /*process_assigned_callback=*/base::OnceClosure(),
           base::BindOnce(&BuyerHelper::OnBidderWorkletReceived,
                          base::Unretained(this), bid_state.get()),
           base::BindOnce(&BuyerHelper::OnBidderWorkletGenerateBidFatalError,
                          base::Unretained(this), bid_state.get()),
           bid_state->worklet_handle, number_of_bidder_threads,
-          auction_->auction_metrics_recorder_);
+          auction_->auction_metrics_recorder_, bid_state->trace_id);
     }
   }
 
@@ -2178,10 +2182,6 @@ class InterestGroupAuction::BuyerHelper
     const blink::InterestGroup& interest_group =
         bid_state->bidder->interest_group;
 
-    bid_state->BeginTracing();
-    TRACE_EVENT_NESTABLE_ASYNC_BEGIN0("fledge", "bidder_worklet_generate_bid",
-                                      *bid_state->trace_id);
-
     mojo::PendingAssociatedRemote<auction_worklet::mojom::GenerateBidClient>
         pending_remote;
     bid_state->generate_bid_client_receiver_id =
@@ -2531,9 +2531,7 @@ class InterestGroupAuction::BuyerHelper
     }
 
     if (base::FeatureList::IsEnabled(
-            blink::features::kFledgeRealTimeReporting) &&
-        !base::FeatureList::IsEnabled(
-            features::kCookieDeprecationFacilitatedTesting)) {
+            blink::features::kFledgeRealTimeReporting)) {
       if (!base::ranges::all_of(real_time_contributions,
                                 HasValidRealTimeBucket)) {
         mojo_bids.clear();
@@ -3188,10 +3186,10 @@ void InterestGroupAuction::StartLoadInterestGroupsPhase(
 void InterestGroupAuction::StartBiddingAndScoringPhase(
     std::optional<DebugReportLockoutAndCooldowns>
         debug_report_lockout_and_cooldowns,
-    base::OnceClosure on_seller_receiver_callback,
+    base::OnceClosure on_seller_process_assigned_callback,
     AuctionPhaseCompletionCallback bidding_and_scoring_phase_callback) {
   DCHECK(bidding_and_scoring_phase_callback);
-  DCHECK(!on_seller_receiver_callback_);
+  DCHECK(!on_seller_process_assigned_callback_);
   DCHECK(!load_interest_groups_phase_callback_);
   DCHECK(!bidding_and_scoring_phase_callback_);
   DCHECK(!final_auction_result_);
@@ -3209,7 +3207,8 @@ void InterestGroupAuction::StartBiddingAndScoringPhase(
     debug_report_lockout_and_cooldowns_ = *debug_report_lockout_and_cooldowns;
   }
 
-  on_seller_receiver_callback_ = std::move(on_seller_receiver_callback);
+  on_seller_process_assigned_callback_ =
+      std::move(on_seller_process_assigned_callback);
   bidding_and_scoring_phase_callback_ =
       std::move(bidding_and_scoring_phase_callback);
 
@@ -3403,7 +3402,7 @@ bool InterestGroupAuction::HandleServerResponseImpl(
   const std::string& plaintext_response = maybe_response->GetPlaintextData();
   std::optional<base::span<const uint8_t>> compressed_response =
       ExtractCompressedBiddingAndAuctionResponse(
-          base::as_bytes(base::make_span(plaintext_response)));
+          base::as_byte_span(plaintext_response));
   if (!compressed_response) {
     saved_response_.emplace();
     base::UmaHistogramEnumeration(
@@ -5000,6 +4999,8 @@ void InterestGroupAuction::RequestSellerWorklet() {
       devtools_auction_id_, *config_->decision_logic_url,
       config_->trusted_scoring_signals_url, config_->seller_experiment_group_id,
       config_->non_shared_params.trusted_scoring_signals_coordinator,
+      base::BindOnce(&InterestGroupAuction::OnSellerProcessAssigned,
+                     base::Unretained(this)),
       base::BindOnce(&InterestGroupAuction::OnSellerWorkletReceived,
                      base::Unretained(this)),
       base::BindOnce(&InterestGroupAuction::OnSellerWorkletFatalError,
@@ -5007,16 +5008,21 @@ void InterestGroupAuction::RequestSellerWorklet() {
       seller_worklet_handle_, auction_metrics_recorder_);
 }
 
+void InterestGroupAuction::OnSellerProcessAssigned() {
+  DCHECK_EQ(bidding_and_scoring_phase_state_, PhaseState::kDuring);
+  if (on_seller_process_assigned_callback_) {
+    std::move(on_seller_process_assigned_callback_).Run();
+  }
+}
+
 void InterestGroupAuction::OnSellerWorkletReceived() {
   DCHECK(!seller_worklet_received_);
+  // This should have been invoked already, if non-null.
+  DCHECK(!on_seller_process_assigned_callback_);
   DCHECK_EQ(bidding_and_scoring_phase_state_, PhaseState::kDuring);
 
   TRACE_EVENT_NESTABLE_ASYNC_END0("fledge", "request_seller_worklet",
                                   *trace_id_);
-
-  if (on_seller_receiver_callback_) {
-    std::move(on_seller_receiver_callback_).Run();
-  }
 
   seller_worklet_received_ = true;
 
@@ -5703,9 +5709,7 @@ void InterestGroupAuction::OnScoreAdComplete(
     }
 
     if (base::FeatureList::IsEnabled(
-            blink::features::kFledgeRealTimeReporting) &&
-        !base::FeatureList::IsEnabled(
-            features::kCookieDeprecationFacilitatedTesting)) {
+            blink::features::kFledgeRealTimeReporting)) {
       // Only keep real time reporting contributions when the seller is
       // opted-in.
       if (config_->non_shared_params.seller_real_time_reporting_type
@@ -5958,11 +5962,11 @@ void InterestGroupAuction::OnBiddingAndScoringComplete(
     seller_worklet_handle_.reset();
   }
 
-  // If the seller loaded callback hasn't been invoked yet, call it now. This
-  // is needed in the case the phase ended without receiving the seller
-  // worklet (e.g., in the case no bidder worklet bids).
-  if (on_seller_receiver_callback_) {
-    std::move(on_seller_receiver_callback_).Run();
+  // If the seller worklet received callback hasn't been invoked yet, call it
+  // now. This is needed in the case the phase ended without receiving the
+  // seller worklet (e.g., in the case no bidder worklet bids).
+  if (on_seller_process_assigned_callback_) {
+    std::move(on_seller_process_assigned_callback_).Run();
   }
 
   bool success = auction_result == AuctionResult::kSuccess;
@@ -6402,6 +6406,16 @@ void InterestGroupAuction::CreateBidFromServerResponse() {
       kanon_modified_bid_params,
       non_kanon_modified_bid_params;
 
+  // Enable k-anon support if Chrome is in k-anonymity enforcement mode for B&A
+  // and the server also supports k-anonymity.
+  bool server_supports_kanon =
+      saved_response_->k_anon_join_candidate.has_value() ||
+      saved_response_->k_anon_ghost_winner.has_value();
+  bool enable_kanon =
+      server_supports_kanon &&
+      kanon_mode_ == auction_worklet::mojom::KAnonymityBidMode::kEnforce &&
+      base::FeatureList::IsEnabled(features::kEnableBandAKAnonEnforcement);
+
   if (parent_) {
     // Component auction.
     if (!blink::VerifyAdCurrencyCode(config_->non_shared_params.seller_currency,
@@ -6428,8 +6442,7 @@ void InterestGroupAuction::CreateBidFromServerResponse() {
           saved_response_->ad_metadata.value_or("null");
     }
 
-    if (kanon_mode_ == auction_worklet::mojom::KAnonymityBidMode::kEnforce &&
-        base::FeatureList::IsEnabled(features::kEnableBandAKAnonEnforcement)) {
+    if (enable_kanon) {
       non_kanon_modified_bid_params =
           auction_worklet::mojom::ComponentAuctionModifiedBidParams::New();
       if (saved_response_->k_anon_ghost_winner &&
@@ -6461,8 +6474,7 @@ void InterestGroupAuction::CreateBidFromServerResponse() {
     }
   }
 
-  if (kanon_mode_ == auction_worklet::mojom::KAnonymityBidMode::kEnforce &&
-      base::FeatureList::IsEnabled(features::kEnableBandAKAnonEnforcement)) {
+  if (enable_kanon) {
     if (saved_response_->ad_render_url.is_valid()) {
       kanon_bid = CreatePrimaryBidFromServerResponse(
           auction_worklet::mojom::BidRole::kEnforcedKAnon);

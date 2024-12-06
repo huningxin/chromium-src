@@ -149,6 +149,7 @@ public class AccountSelectionJUnitTestBase {
     Account mCarlAccount;
     Account mNewUserAccount;
     Account mNoOneAccount;
+    Account mFilteredOutAccount;
 
     IdentityCredentialTokenError mTokenError;
     IdentityCredentialTokenError mTokenErrorEmptyUrl;
@@ -159,6 +160,8 @@ public class AccountSelectionJUnitTestBase {
     View mContentView;
     IdentityProviderMetadata mIdpMetadata;
     IdentityProviderData mIdpData;
+    IdentityProviderMetadata mIdpMetadataWithUseDifferentAccount;
+    IdentityProviderData mIdpDataWithUseDifferentAccount;
     List<Account> mNewAccountsSingleReturningAccount;
     List<Account> mNewAccountsSingleNewAccount;
     List<Account> mNewAccountsMultipleAccounts;
@@ -194,7 +197,8 @@ public class AccountSelectionJUnitTestBase {
                         mTestProfilePicUrl,
                         /* pictureBitmap= */ null,
                         /* isSignIn= */ true,
-                        /* isBrowserTrustedSignIn= */ true);
+                        /* isBrowserTrustedSignIn= */ true,
+                        /* isFilteredOut= */ false);
         mBobAccount =
                 new Account(
                         "Bob",
@@ -204,7 +208,8 @@ public class AccountSelectionJUnitTestBase {
                         mTestProfilePicUrl,
                         /* pictureBitmap= */ null,
                         /* isSignIn= */ true,
-                        /* isBrowserTrustedSignIn= */ true);
+                        /* isBrowserTrustedSignIn= */ true,
+                        /* isFilteredOut= */ false);
         mCarlAccount =
                 new Account(
                         "Carl",
@@ -214,7 +219,8 @@ public class AccountSelectionJUnitTestBase {
                         mTestProfilePicUrl,
                         /* pictureBitmap= */ null,
                         /* isSignIn= */ true,
-                        /* isBrowserTrustedSignIn= */ true);
+                        /* isBrowserTrustedSignIn= */ true,
+                        /* isFilteredOut= */ false);
         mNewUserAccount =
                 new Account(
                         "602214076",
@@ -224,7 +230,8 @@ public class AccountSelectionJUnitTestBase {
                         mTestProfilePicUrl,
                         /* pictureBitmap= */ null,
                         /* isSignIn= */ false,
-                        /* isBrowserTrustedSignIn= */ false);
+                        /* isBrowserTrustedSignIn= */ false,
+                        /* isFilteredOut= */ false);
         mNoOneAccount =
                 new Account(
                         "",
@@ -234,7 +241,19 @@ public class AccountSelectionJUnitTestBase {
                         mTestProfilePicUrl,
                         /* pictureBitmap= */ null,
                         /* isSignIn= */ true,
-                        /* isBrowserTrustedSignIn= */ true);
+                        /* isBrowserTrustedSignIn= */ true,
+                        /* isFilteredOut= */ false);
+        mFilteredOutAccount =
+                new Account(
+                        "ID123",
+                        "nicolas@example.com",
+                        "Nicolas Pena",
+                        "Nicolas",
+                        mTestProfilePicUrl,
+                        /* pictureBitmap= */ null,
+                        /* isSignIn= */ true,
+                        /* isBrowserTrustedSignIn= */ true,
+                        /* isFilteredOut= */ true);
 
         mTokenError = new IdentityCredentialTokenError(TEST_ERROR_CODE, mTestErrorUrl);
         mTokenErrorEmptyUrl = new IdentityCredentialTokenError(TEST_ERROR_CODE, mTestEmptyErrorUrl);
@@ -246,12 +265,32 @@ public class AccountSelectionJUnitTestBase {
                         "https://icon-url.example",
                         mTestConfigUrl,
                         mTestLoginUrl,
-                        /* supportsAddAccount= */ false);
+                        /* showUseDifferentAccountButton= */ false);
 
         mIdpData =
                 new IdentityProviderData(
                         mTestEtldPlusOne2,
                         mIdpMetadata,
+                        new ClientIdMetadata(
+                                mTestUrlTermsOfService,
+                                mTestUrlPrivacyPolicy,
+                                mTestRpBrandIconUrl.getSpec()),
+                        RpContext.SIGN_IN,
+                        DEFAULT_DISCLOSURE_FIELDS,
+                        /* has_login_status_mismatch= */ false);
+
+        mIdpMetadataWithUseDifferentAccount =
+                new IdentityProviderMetadata(
+                        Color.BLUE,
+                        Color.GREEN,
+                        "https://icon-url.example",
+                        mTestConfigUrl,
+                        mTestLoginUrl,
+                        /* showUseDifferentAccountButton= */ true);
+        mIdpDataWithUseDifferentAccount =
+                new IdentityProviderData(
+                        mTestEtldPlusOne2,
+                        mIdpMetadataWithUseDifferentAccount,
                         new ClientIdMetadata(
                                 mTestUrlTermsOfService,
                                 mTestUrlPrivacyPolicy,

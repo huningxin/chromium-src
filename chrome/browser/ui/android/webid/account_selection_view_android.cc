@@ -52,7 +52,8 @@ ScopedJavaLocalRef<jobject> ConvertToJavaAccount(
       ConvertUTF8ToJavaString(env, account->given_name),
       url::GURLAndroid::FromNativeGURL(env, account->picture), decoded_picture,
       account->login_state == Account::LoginState::kSignIn,
-      account->browser_trusted_login_state == Account::LoginState::kSignIn);
+      account->browser_trusted_login_state == Account::LoginState::kSignIn,
+      account->is_filtered_out);
 }
 
 ScopedJavaLocalRef<jobject> ConvertToJavaIdentityProviderMetadata(
@@ -67,7 +68,9 @@ ScopedJavaLocalRef<jobject> ConvertToJavaIdentityProviderMetadata(
       java_brand_icon_url,
       url::GURLAndroid::FromNativeGURL(env, metadata.config_url),
       url::GURLAndroid::FromNativeGURL(env, metadata.idp_login_url),
-      metadata.supports_add_account);
+      // The UI code only cares about whether it should show the add account
+      // button so consider both options in the same boolean.
+      metadata.supports_add_account || metadata.has_filtered_out_account);
 }
 
 ScopedJavaLocalRef<jobject> ConvertToJavaIdentityCredentialTokenError(

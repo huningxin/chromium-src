@@ -198,7 +198,8 @@ public class ArchivedTabsDialogCoordinator implements SnackbarManager.SnackbarMa
                             .unarchiveAndRestoreTabs(
                                     mRegularTabCreator,
                                     Arrays.asList(tab),
-                                    /* updateTimestamp= */ true);
+                                    /* updateTimestamp= */ true,
+                                    /* areTabsBeingOpened= */ true);
 
                     hide(
                             ANIM_DURATION_MS,
@@ -381,11 +382,11 @@ public class ArchivedTabsDialogCoordinator implements SnackbarManager.SnackbarMa
     /** Hides the dialog. */
     public void destroy() {
         if (mTabListEditorCoordinator != null) {
-            if (mTabListEditorCoordinator.getController().isVisible()) {
-                hide(/* animationDuration= */ 0, this::tearDownTabListEditorCoordinator);
-            } else {
-                tearDownTabListEditorCoordinator();
-            }
+            mRootView.removeView(mDialogView);
+            mTabListEditorCoordinator.removeTabListItemSizeChangedObserver(
+                    mTabListItemSizeChangedObserver);
+            mTabListEditorCoordinator.getController().hide();
+            tearDownTabListEditorCoordinator();
         }
 
         if (mEdgeToEdgePadAdjuster != null) {
@@ -679,7 +680,11 @@ public class ArchivedTabsDialogCoordinator implements SnackbarManager.SnackbarMa
     private void restoreArchivedTabs(List<Tab> tabs) {
         mArchivedTabModelOrchestrator
                 .getTabArchiver()
-                .unarchiveAndRestoreTabs(mRegularTabCreator, tabs, /* updateTimestamp= */ true);
+                .unarchiveAndRestoreTabs(
+                        mRegularTabCreator,
+                        tabs,
+                        /* updateTimestamp= */ true,
+                        /* areTabsBeingOpened= */ false);
     }
 
     private void onIphReviewClicked() {

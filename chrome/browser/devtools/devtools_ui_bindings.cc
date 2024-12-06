@@ -1571,6 +1571,8 @@ void DevToolsUIBindings::GetHostConfig(DispatchCallback callback) {
                         availability.blocked_by_enterprise_policy);
   aida_availability.Set("blockedByGeo", availability.blocked_by_geo);
   aida_availability.Set("disallowLogging", availability.disallow_logging);
+  aida_availability.Set("enterprisePolicyValue",
+                        static_cast<int>(availability.enterprise_policy_value));
   response_dict.Set("aidaAvailability", std::move(aida_availability));
 
   base::Value::Dict console_insights_dict;
@@ -1744,8 +1746,7 @@ void DevToolsUIBindings::DispatchProtocolMessageFromDevToolsFrontend(
   if (!agent_host_) {
     return;
   }
-  agent_host_->DispatchProtocolMessage(
-      this, base::as_bytes(base::make_span(message)));
+  agent_host_->DispatchProtocolMessage(this, base::as_byte_span(message));
 }
 
 void DevToolsUIBindings::RecordCountHistogram(const std::string& name,

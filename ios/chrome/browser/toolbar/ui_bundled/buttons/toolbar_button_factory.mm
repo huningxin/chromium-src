@@ -29,6 +29,10 @@ namespace {
 // The size of the symbol image.
 const CGFloat kSymbolToolbarPointSize = 24;
 
+// The padding to be added to the bottom of the system share icon to balance
+// the white space on top.
+const CGFloat kShareIconBalancingHeightPadding = 1;
+
 }  // namespace
 
 @implementation ToolbarButtonFactory
@@ -56,6 +60,8 @@ const CGFloat kSymbolToolbarPointSize = 24;
 
   [self configureButton:backButton width:kAdaptiveToolbarButtonWidth];
   backButton.accessibilityLabel = l10n_util::GetNSString(IDS_ACCNAME_BACK);
+  backButton.accessibilityHint =
+      l10n_util::GetNSString(IDS_IOS_TOOLBAR_ACCESSIBILITY_HINT_BACK);
   [backButton addTarget:self.actionHandler
                  action:@selector(backAction)
        forControlEvents:UIControlEventTouchUpInside];
@@ -79,6 +85,8 @@ const CGFloat kSymbolToolbarPointSize = 24;
       self.visibilityConfiguration.forwardButtonVisibility;
   forwardButton.accessibilityLabel =
       l10n_util::GetNSString(IDS_ACCNAME_FORWARD);
+  forwardButton.accessibilityHint =
+      l10n_util::GetNSString(IDS_IOS_TOOLBAR_ACCESSIBILITY_HINT_FORWARD);
   [forwardButton addTarget:self.actionHandler
                     action:@selector(forwardAction)
           forControlEvents:UIControlEventTouchUpInside];
@@ -100,6 +108,8 @@ const CGFloat kSymbolToolbarPointSize = 24;
   ToolbarTabGridButton* tabGridButton = [[ToolbarTabGridButton alloc]
       initWithTabGroupStateImageLoader:imageBlock];
 
+  tabGridButton.accessibilityHint =
+      l10n_util::GetNSString(IDS_IOS_TOOLBAR_ACCESSIBILITY_HINT_TAB_GRID);
   [self configureButton:tabGridButton width:kAdaptiveToolbarButtonWidth];
   [tabGridButton addTarget:self.actionHandler
                     action:@selector(tabGridTouchDown)
@@ -145,7 +155,20 @@ const CGFloat kSymbolToolbarPointSize = 24;
 
 - (ToolbarButton*)shareButton {
   auto loadImageBlock = ^UIImage* {
-    return DefaultSymbolWithPointSize(kShareSymbol, kSymbolToolbarPointSize);
+    UIImage* image =
+        DefaultSymbolWithPointSize(kShareSymbol, kSymbolToolbarPointSize);
+
+    // The system share image has uneven vertical padding. Add a small bottom
+    // padding to balance it.
+    UIGraphicsBeginImageContextWithOptions(
+        CGSizeMake(image.size.width,
+                   image.size.height + kShareIconBalancingHeightPadding),
+        NO, 0.0);
+    [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
+    UIImage* newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+
+    return newImage;
   };
 
   ToolbarButton* shareButton =
@@ -238,8 +261,9 @@ const CGFloat kSymbolToolbarPointSize = 24;
 
   newTabButton.accessibilityLabel = [self.toolbarConfiguration
       accessibilityLabelForOpenNewTabButtonInGroup:NO];
-
   newTabButton.accessibilityIdentifier = kToolbarNewTabButtonIdentifier;
+  newTabButton.accessibilityHint =
+      l10n_util::GetNSString(IDS_IOS_TOOLBAR_ACCESSIBILITY_HINT_NEW_TAB);
 
   newTabButton.visibilityMask =
       self.visibilityConfiguration.newTabButtonVisibility;

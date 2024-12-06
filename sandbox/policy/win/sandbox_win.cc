@@ -338,9 +338,6 @@ std::wstring GetAppContainerProfileName(const std::string& appcontainer_id,
     case Sandbox::kXrCompositing:
       sandbox_base_name = std::string("cr.sb.xr");
       break;
-    case Sandbox::kGpu:
-      sandbox_base_name = std::string("cr.sb.gpu");
-      break;
     case Sandbox::kMediaFoundationCdm:
       sandbox_base_name = std::string("cr.sb.cdm");
       break;
@@ -382,8 +379,7 @@ void AddCapabilitiesFromString(AppContainer* container,
 ResultCode SetupAppContainerProfile(AppContainer* container,
                                     const base::CommandLine& command_line,
                                     Sandbox sandbox_type) {
-  if (sandbox_type != Sandbox::kGpu &&
-      sandbox_type != Sandbox::kXrCompositing &&
+  if (sandbox_type != Sandbox::kXrCompositing &&
       sandbox_type != Sandbox::kMediaFoundationCdm &&
       sandbox_type != Sandbox::kNetwork &&
       sandbox_type != Sandbox::kOnDeviceModelExecution &&
@@ -396,16 +392,6 @@ ResultCode SetupAppContainerProfile(AppContainer* container,
 
   container->AddCapability(kLpacChromeInstallFiles);
   container->AddCapability(kRegistryRead);
-
-  if (sandbox_type == Sandbox::kGpu) {
-    container->AddImpersonationCapability(kChromeInstallFiles);
-    container->AddCapability(kLpacPnpNotifications);
-    AddCapabilitiesFromString(
-        container,
-        command_line.GetSwitchValueNative(switches::kAddGpuAppContainerCaps));
-    container->SetEnableLowPrivilegeAppContainer(
-        base::FeatureList::IsEnabled(features::kGpuLPAC));
-  }
 
   if (sandbox_type == Sandbox::kXrCompositing) {
     container->AddCapability(kChromeInstallFiles);
@@ -795,9 +781,6 @@ bool SandboxWin::IsAppContainerEnabledForSandbox(
   if (sandbox_type == Sandbox::kMediaFoundationCdm)
     return true;
 
-  if (sandbox_type == Sandbox::kGpu)
-    return base::FeatureList::IsEnabled(features::kGpuAppContainer);
-
   if (sandbox_type == Sandbox::kNetwork) {
     return true;
   }
@@ -1102,16 +1085,15 @@ std::string SandboxWin::GetSandboxTagForDelegate(
 // static
 std::optional<size_t> SandboxWin::GetJobMemoryLimit(Sandbox sandbox_type) {
 #if defined(ARCH_CPU_64_BITS)
+  constexpr uint64_t GB = 1024 * 1024 * 1024;
   size_t memory_limit = static_cast<size_t>(kDataSizeLimit);
 
-  if (sandbox_type == Sandbox::kGpu || sandbox_type == Sandbox::kRenderer ||
+  if (sandbox_type == Sandbox::kGpu ||
       sandbox_type == Sandbox::kOnDeviceModelExecution) {
-    constexpr uint64_t GB = 1024 * 1024 * 1024;
-    // Allow the GPU/RENDERER process's sandbox to access more physical memory
-    // if it's available on the system.
+    // Allow the GPU process's sandbox to access more physical memory if it's
+    // available on the system.
     //
-    // Renderer processes are allowed to access 16 GB; the GPU process, up
-    // to 64 GB.
+    // GPU processes are allowed to access up to 64 GB.
     uint64_t physical_memory = base::SysInfo::AmountOfPhysicalMemory();
     if (sandbox_type == Sandbox::kGpu && physical_memory > 64 * GB) {
       memory_limit = 64 * GB;
@@ -1122,12 +1104,13 @@ std::optional<size_t> SandboxWin::GetJobMemoryLimit(Sandbox sandbox_type) {
     } else {
       memory_limit = 8 * GB;
     }
-
-    if (sandbox_type == Sandbox::kRenderer) {
-      // Set limit to 1Tb.
-      memory_limit = 1024 * GB;
-    }
   }
+
+  if (sandbox_type == Sandbox::kRenderer) {
+    // Allow up to 1 TB for the renderer.
+    memory_limit = 1024 * GB;
+  }
+
   return memory_limit;
 #else
   return std::nullopt;

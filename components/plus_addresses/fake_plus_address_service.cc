@@ -103,6 +103,10 @@ void FakePlusAddressService::DidFillPlusAddress() {
   did_fill_plus_address_suggestion_ = true;
 }
 
+size_t FakePlusAddressService::GetPlusAddressesCount() {
+  return plus_profiles_.size();
+}
+
 void FakePlusAddressService::OnClickedRefreshInlineSuggestion(
     const url::Origin& last_committed_primary_main_frame_origin,
     base::span<const autofill::Suggestion> current_suggestions,
@@ -122,7 +126,6 @@ void FakePlusAddressService::OnAcceptedInlineSuggestion(
     const url::Origin& primary_main_frame_origin,
     base::span<const autofill::Suggestion> current_suggestions,
     size_t current_suggestion_index,
-    bool is_manual_fallback,
     UpdateSuggestionsCallback update_suggestions_callback,
     HideSuggestionsCallback hide_suggestions_callback,
     PlusAddressCallback fill_field_callback,
@@ -214,7 +217,6 @@ void FakePlusAddressService::ReservePlusAddress(
 void FakePlusAddressService::ConfirmPlusAddress(
     const url::Origin& origin,
     const PlusAddress& plus_address,
-    bool is_manual_fallback,
     PlusAddressRequestCallback on_completed) {
   if (should_fail_to_confirm_) {
     std::move(on_completed)
@@ -309,9 +311,6 @@ void FakePlusAddressService::SavePlusProfile(const PlusProfile& profile) {
 bool FakePlusAddressService::IsEnabled() const {
   return true;
 }
-
-void FakePlusAddressService::TriggerUserPerceptionSurvey(
-    hats::SurveyType survey_type) {}
 
 void FakePlusAddressService::ClearState() {
   is_confirmed_ = false;
