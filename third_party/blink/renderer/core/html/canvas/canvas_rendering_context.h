@@ -178,7 +178,16 @@ class CORE_EXPORT CanvasRenderingContext
     return nullptr;
   }
 
-  virtual SkColorInfo CanvasRenderingContextSkColorInfo() const;
+  virtual SkColorInfo CanvasRenderingContextSkColorInfo() const = 0;
+  SkAlphaType GetAlphaType() const {
+    return CanvasRenderingContextSkColorInfo().alphaType();
+  }
+  SkColorType GetSkColorType() const {
+    return CanvasRenderingContextSkColorInfo().colorType();
+  }
+  sk_sp<SkColorSpace> GetSkColorSpace() const {
+    return CanvasRenderingContextSkColorInfo().refColorSpace();
+  }
 
   virtual scoped_refptr<StaticBitmapImage> GetImage(FlushReason) = 0;
   virtual bool IsComposited() const = 0;

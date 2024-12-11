@@ -383,8 +383,17 @@ static void ParseImageCandidatesFromSrcsetAttribute(
 
 static unsigned SelectionLogic(Vector<ImageCandidate*>& image_candidates,
                                float device_scale_factor) {
-  unsigned i = 0;
+  if (RuntimeEnabledFeatures::SrcsetSelectionMatchesImageSetEnabled()) {
+    unsigned i = 0;
+    for (; i < image_candidates.size() - 1; ++i) {
+      if (image_candidates[i]->Density() >= device_scale_factor) {
+        return i;
+      }
+    }
+    return i;
+  }
 
+  unsigned i = 0;
   for (; i < image_candidates.size() - 1; ++i) {
     unsigned next = i + 1;
     float next_density;
@@ -399,8 +408,9 @@ static unsigned SelectionLogic(Vector<ImageCandidate*>& image_candidates,
     geometric_mean = sqrt(current_density * next_density);
     if (((device_scale_factor <= 1.0) &&
          (device_scale_factor > current_density)) ||
-        (device_scale_factor >= geometric_mean))
+        (device_scale_factor >= geometric_mean)) {
       return next;
+    }
     break;
   }
   return i;
@@ -419,7 +429,12 @@ static unsigned AvoidDownloadIfHigherDensityResourceIsInCache(
         url,
         document->Fetcher()->GetCacheIdentifier(url,
                                                 /*skip_service_worker=*/false));
-    if ((resource && resource->IsLoaded()) || url.ProtocolIsData()) {
+    if (resource && resource->IsLoaded()) {
+      UseCounter::Count(document,
+                        WebFeature::kSrcSetUsedHigherDensityImageFromCache);
+      return i;
+    }
+    if (url.ProtocolIsData()) {
       return i;
     }
   }
@@ -432,19 +447,9 @@ static ImageCandidate PickBestImageCandidate(
     Vector<ImageCandidate>& image_candidates,
     Document* document = nullptr) {
   const float kDefaultDensityValue = 1.0;
-  // The srcset image source selection mechanism is user-agent specific:
-  // https://html.spec.whatwg.org/multipage/images.html#selecting-an-image-source
-  //
-  // Setting max density value based on https://github.com/whatwg/html/pull/5901
-  const float kMaxDensity = 2.2;
   bool ignore_src = false;
   if (image_candidates.empty())
     return ImageCandidate();
-
-  if (RuntimeEnabledFeatures::SrcsetMaxDensityEnabled() &&
-      device_scale_factor > kMaxDensity) {
-    device_scale_factor = kMaxDensity;
-  }
 
   // http://picture.responsiveimages.org/#normalize-source-densities
   for (ImageCandidate& image : image_candidates) {

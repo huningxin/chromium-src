@@ -206,6 +206,12 @@ public final class ProductionSupportedFlagList {
         Flag.baseFeature(
                 NetFeatures.OPTIMIZE_PARSING_DATA_URLS, "Enables optimizing parsing data: URLs."),
         Flag.baseFeature(
+                NetFeatures.SIMDUTF_BASE64_SUPPORT,
+                "Use the simdutf library to base64 decode data: URLs."),
+        Flag.baseFeature(
+                NetFeatures.FURTHER_OPTIMIZE_PARSING_DATA_URLS,
+                "Further optimize parsing data: URLs."),
+        Flag.baseFeature(
                 AwFeatures.WEBVIEW_EXTRA_HEADERS_SAME_ORIGIN_ONLY,
                 "Only allow extra headers added via loadUrl() to be sent to the same origin "
                         + "as the original request."),
@@ -700,9 +706,6 @@ public final class ProductionSupportedFlagList {
                         + "targeting a cross-origin iframe which has moved within its "
                         + "embedding page recently."),
         Flag.baseFeature(
-                ContentFeatures.SERVICE_WORKER_STATIC_ROUTER,
-                "Enables Service Worker static routing API."),
-        Flag.baseFeature(
                 ContentFeatures.BACK_FORWARD_CACHE_MEDIA_SESSION_SERVICE,
                 "Enables media session usage when bfcache is enabled"),
         Flag.baseFeature(
@@ -739,6 +742,7 @@ public final class ProductionSupportedFlagList {
         Flag.baseFeature("UseRustJsonParser"),
         Flag.baseFeature("V8BaselineBatchCompilation"),
         Flag.baseFeature("V8ConcurrentSparkplug"),
+        Flag.baseFeature("V8Flag_minor_gc_task_with_lower_priority"),
         Flag.baseFeature("V8FlushCodeBasedOnTabVisibility"),
         Flag.baseFeature("V8FlushCodeBasedOnTime"),
         Flag.baseFeature("V8MemoryReducer"),

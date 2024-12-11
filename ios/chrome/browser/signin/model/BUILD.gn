@@ -60,7 +60,6 @@ source_set("model") {
     "//base",
     "//components/browser_sync",
     "//components/content_settings/core/browser",
-    "//components/content_settings/core/browser:cookie_settings",
     "//components/image_fetcher/core",
     "//components/image_fetcher/ios",
     "//components/keyed_service/ios",
@@ -132,7 +131,6 @@ source_set("authentication_service") {
     ":system_identity_util",
     "//base",
     "//components/browser_sync",
-    "//components/keyed_service/core",
     "//components/pref_registry",
     "//components/prefs",
     "//components/signin/ios/browser:features",
@@ -297,6 +295,7 @@ source_set("fake_system_identity_manager") {
     "//components/signin/public/identity_manager",
     "//components/signin/public/identity_manager:test_support",
     "//google_apis",
+    "//ios/chrome/browser/ui/authentication/signin:interruptible_chrome_coordinator",
     "//ios/public/provider/chrome/browser/signin:signin_error_api",
   ]
   frameworks = [ "Foundation.framework" ]
@@ -355,7 +354,6 @@ source_set("trusted_vault") {
   ]
   deps = [
     "//base",
-    "//components/keyed_service/core",
     "//components/trusted_vault",
     "//ios/public/provider/chrome/browser/signin:signin_sso_api",
   ]
@@ -406,7 +404,6 @@ source_set("test_support") {
     ":trusted_vault",
     "//base",
     "//components/image_fetcher/core:test_support",
-    "//components/keyed_service/core",
     "//components/signin/public/base:test_support",
     "//components/signin/public/identity_manager:test_support",
     "//ios/chrome/browser/shared/model/profile",

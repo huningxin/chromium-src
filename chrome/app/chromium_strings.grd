@@ -355,6 +355,9 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
       <message name="IDS_TASK_MANAGER_SEARCH_ACCESSIBILITY_NAME" desc="The accessibility description for the Search bar in the Task Manager window" translateable="false">
         Look up the name of any tab title or extension to highlight it in the process table.
       </message>
+      <message name="IDS_TASK_MANAGER_CLEAR_SEARCH_BUTTON_ACCESSIBILITY_NAME" desc="The accessibility name for the clear button accompanying the task manager search bar input.">
+        Clear search
+      </message>
       <message name="IDS_TASK_MANAGER_KILL_ACCESSIBILITY_NAME" desc="The accessibility description for the End Process button in the Task Manager window" translateable="false">
         Ends the highlighted process.
       </message>
@@ -1210,6 +1213,9 @@ Permissions you've already given to websites and apps may apply to this account.
         <message name="IDS_AUTOFILL_SIGNIN_PROMO_SUBTITLE_PASSWORD" desc="This is the body text of a confirmation message and means that the password was only saved locally to the user's device (not in their Google Account). It appears when the user is not signed in to Chromium and is after the 'Password saved to this device' string. If the user wants to save this data to their Google Account, they can click the 'Sign in to Chromium' button at the bottom of this message. The tone should be motivating.">
           To get your passwords and more on all your devices, sign in to Chromium. This password will be saved in your Google Account after you sign in.
         </message>
+        <message name="IDS_AUTOFILL_SIGNIN_PROMO_SUBTITLE_ADDRESS" desc="This is the body text of a confirmation message and means that the address was only saved locally to the user's device (not in their Google Account). It appears when the user is not signed in to Chromium and is after the 'Address saved to this device' string. If the user wants to save this data to their Google Account, they can click the 'Sign in to Chromium' button at the bottom of this message. The tone should be motivating.">
+          To get your addresses and more on all your devices, sign in to Chromium. This address will be saved in your Google Account after you sign in.
+        </message>
       </if>
 
       <if expr="not chromeos_ash and not is_android">
@@ -1241,6 +1247,9 @@ Permissions you've already given to websites and apps may apply to this account.
       <!-- Profile Menu -->
       <message name="IDS_PROFILE_MENU_SIGNIN_PROMO_BUTTON" desc="Text for the button in the sign-in promo in the profile menu when the used is signed out.">
         Sign in to Chromium
+      </message>
+      <message name="IDS_PROFILE_MENU_BROWSER_MANAGED_HEADER" desc="Disclaimer indicating that Chromium is managed">
+        Chromium is managed
       </message>
       <if expr="not use_titlecase">
         <message name="IDS_PROFILE_MENU_SIGN_OUT_WHEN_SIGNIN_PENDING" desc="The text label of the Sign out of Chromium button in the Profile Menu when the user is in sign in pending state.">

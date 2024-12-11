@@ -57,11 +57,27 @@
 #include "third_party/blink/renderer/core/page/page.h"
 #include "third_party/blink/renderer/platform/network/network_utils.h"
 #include "third_party/blink/renderer/platform/weborigin/security_origin.h"
+#include "third_party/blink/renderer/platform/wtf/hash_functions.h"
 #include "ui/gfx/geometry/rect.h"
 
 namespace blink {
 
 namespace {
+
+struct FingerprintSourceData {
+  STACK_ALLOCATED();
+
+ public:
+  unsigned parent_hash_ = 0;
+  unsigned qualified_name_hash_ = 0;
+  // Style specific selection of signals
+  unsigned packed_style_properties_ = 0;
+  unsigned column_ = 0;
+  float width_ = 0;
+};
+// Ensures efficient hashing using StringHasher.
+static_assert(!(sizeof(FingerprintSourceData) % sizeof(UChar)),
+              "sizeof(FingerprintSourceData) must be a multiple of UChar");
 
 inline int GetLayoutInlineSize(const Document& document,
                                const LocalFrameView& main_frame_view) {
@@ -860,7 +876,8 @@ TextAutosizer::Fingerprint TextAutosizer::ComputeFingerprint(
 
     // TODO(kojii): The width can be computed from style only when it's fixed.
     // consider for adding: writing mode, padding.
-    data.width_ = width.IsFixed() ? width.GetFloatValue() : .0f;
+    data.width_ =
+        width.IsFixed() ? WTF::NormalizeSign(width.GetFloatValue()) : 0.0f;
   }
 
   // Use nodeIndex as a rough approximation of column number

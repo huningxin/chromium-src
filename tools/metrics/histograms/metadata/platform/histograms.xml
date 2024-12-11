@@ -687,7 +687,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.DlcService.InstallResult"
-    enum="DlcService.InstallResult" expires_after="2025-04-06">
+    enum="DlcService.InstallResult" expires_after="2025-06-08">
   <owner>kimjae@chromium.org</owner>
   <owner>chromeos-core-services@google.com</owner>
   <summary>
@@ -962,7 +962,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.FlexPartitionSize.{Partition}" units="MiB"
-    expires_after="2025-03-30">
+    expires_after="2025-06-08">
   <owner>nicholasbishop@google.com</owner>
   <owner>chromeos-flex-eng@google.com</owner>
   <summary>
@@ -1626,7 +1626,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram name="Platform.Missive.DataLossErrorReason"
     enum="DataLossErrorReason" expires_after="2025-06-01">
-  <owner>jrhilke@google.com</owner>
+  <owner>lbaraz@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
   <summary>
     Recorded once each time reporting::error::DATA_LOSS is returned in
@@ -1638,7 +1638,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram name="Platform.Missive.DeleteEmptyMultigenerationQueueDirectories"
     enum="Boolean" expires_after="2025-04-06">
-  <owner>jrhilke@chromium.org</owner>
+  <owner>lbaraz@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
   <summary>
     Recorded when the Missive daemon attempts to delete empty multigeneration
@@ -1651,8 +1651,8 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Missive.KeyDeliveryResult"
-    enum="EnterpriseCloudReportingStatusCode" expires_after="2025-03-30">
-  <owner>jrhilke@chromium.org</owner>
+    enum="EnterpriseCloudReportingStatusCode" expires_after="2025-06-08">
+  <owner>lbaraz@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
   <summary>
     Recorded when missive recieves a response to its request for an encryption
@@ -1661,7 +1661,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Missive.MemoryUsage" units="0.1MiB"
-    expires_after="2025-04-06">
+    expires_after="2025-06-08">
   <owner>lbaraz@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
   <summary>
@@ -1725,7 +1725,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram name="Platform.Missive.UnavailableErrorReason"
     enum="UnavailableErrorReason" expires_after="2025-06-01">
-  <owner>jrhilke@google.com</owner>
+  <owner>lbaraz@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
   <summary>
     Recorded once each time reporting::error::UNAVAILABLE is returned in
@@ -1810,7 +1810,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Modemfwd.ModemRecoveryState"
-    enum="ModemfwdModemRecoveryState" expires_after="2025-03-30">
+    enum="ModemfwdModemRecoveryState" expires_after="2025-06-08">
   <owner>ujjwalpande@google.com</owner>
   <owner>cros-device-enablement@google.com</owner>
   <summary>Report state of modem recovery operation.</summary>

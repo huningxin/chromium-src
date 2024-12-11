@@ -1107,7 +1107,7 @@
       "wpt_internal/webstorage/storage-cross-origin-redirect-session.sub.https.html",
       "wpt_internal/webstorage/storage-same-origin-redirect-local.sub.https.html",
       "wpt_internal/webstorage/storage-same-origin-redirect-session.sub.https.html",
-      "external/wpt/FileAPI/BlobURL/cross-partition.tentative.https.html",
+      "external/wpt/FileAPI/BlobURL/cross-partition.https.html",
       "external/wpt/storage/partitioned-estimate-usage-details-caches.tentative.https.sub.html",
       "external/wpt/storage/partitioned-estimate-usage-details-indexeddb.tentative.https.sub.html",
       "external/wpt/storage/partitioned-estimate-usage-details-service-workers.tentative.https.sub.html",
@@ -1139,8 +1139,8 @@
     "prefix": "block-cross-partition-blob-url-fetching",
     "platforms": ["Linux"],
     "bases": [
-      "external/wpt/FileAPI/BlobURL/cross-partition.tentative.https.html",
-      "external/wpt/FileAPI/BlobURL/cross-partition-worker-creation.tentative.https.html"],
+      "external/wpt/FileAPI/BlobURL/cross-partition.https.html",
+      "external/wpt/FileAPI/BlobURL/cross-partition-worker-creation.https.html"],
     "args": ["--enable-features=BlockCrossPartitionBlobUrlFetching"],
     "expires": "Feb 4, 2025",
     "owners": ["janiceliu@chromium.org"]
@@ -1150,7 +1150,7 @@
     "prefix": "enforce-noopener-on-blob-url-navigation",
     "platforms": ["Linux"],
     "bases": [
-      "external/wpt/FileAPI/BlobURL/cross-partition-navigation.tentative.https.html"],
+      "external/wpt/FileAPI/BlobURL/cross-partition-navigation.https.html"],
     "args": ["--enable-features=EnforceNoopenerOnBlobURLNavigation"],
     "expires": "Feb 4, 2025",
     "owners": ["janiceliu@chromium.org"]
@@ -3429,30 +3429,6 @@
     "args": ["--enable-features=InputClosesSelect,SelectParserRelaxation"],
     "expires": "Feb 1, 2025",
     "owners": ["jarhar@chromium.org", "dom-dev@google.com"]
-  },
-  "css-custom-state-deprecated-syntax-enabled is the configuration that is",
-  "currently shipping to stable.",
-  {
-    "prefix": "css-custom-state-only-deprecated-syntax",
-    "platforms": ["Linux", "Mac", "Win"],
-    "args": ["--enable-features=CSSCustomStateDeprecatedSyntax",
-             "--disable-features=CSSCustomStateNewSyntax"],
-    "expires": "Dec 1, 2024",
-    "owners": ["jarhar@chromium.org", "dom-dev@google.com"],
-    "bases": [
-      "external/wpt/custom-elements/state"
-    ]
-  },
-  {
-    "prefix": "css-custom-state-only-new-syntax",
-    "platforms": ["Linux", "Mac", "Win"],
-    "args": ["--disable-features=CSSCustomStateDeprecatedSyntax",
-             "--enable-features=CSSCustomStateNewSyntax"],
-    "expires": "Dec 1, 2024",
-    "owners": ["jarhar@chromium.org", "dom-dev@google.com"],
-    "bases": [
-      "external/wpt/custom-elements/state"
-    ]
   },
   {
     "prefix": "prefers-default-scrollbar-styles",

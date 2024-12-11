@@ -507,9 +507,6 @@ const char kEnableArcVmDlc[] = "enable-arcvm-dlc";
 // Enables ARCVM realtime VCPU feature.
 const char kEnableArcVmRtVcpu[] = "enable-arcvm-rt-vcpu";
 
-// Adds ash-browser back to launcher, even if in LacrosOnly mode.
-const char kEnableAshDebugBrowser[] = "enable-ash-debug-browser";
-
 // Used to override `kDisableBirchWeatherApiForTesting` for specific tast tests.
 const char kEnableBirchWeatherApiForTestingOverride[] =
     "enable-birch-weather-api-for-testing-override";
@@ -791,28 +788,6 @@ const char kKioskSplashScreenMinTimeSeconds[] =
 
 // When this flag is set, the lacros-availability policy is ignored.
 const char kLacrosAvailabilityIgnore[] = "lacros-availability-ignore";
-
-// If this switch is set, then ash-chrome will pass additional arguments when
-// launching lacros-chrome. The string '####' is used as a delimiter. Example:
-// --lacros-chrome-additional-args="--foo=5####--bar=/tmp/dir name". Will
-// result in two arguments passed to lacros-chrome:
-//   --foo=5
-//   --bar=/tmp/dir name
-const char kLacrosChromeAdditionalArgs[] = "lacros-chrome-additional-args";
-
-// If this switch is set, then ash-chrome will read from the provided path
-// and pass additional arguments when launching lacros-chrome. Each non-empty
-// line in the file will be treated as an argument. Example file contents:
-//   --foo=5
-//   --bar=/tmp/dir name
-const char kLacrosChromeAdditionalArgsFile[] =
-    "lacros-chrome-additional-args-file";
-
-// Additional environment variables set for lacros-chrome. The string '####' is
-// used as a delimiter. For example:
-// --lacros-chrome-additional-env=WAYLAND_DEBUG=client####FOO=bar
-// will enable Wayland protocol logging and set FOO=bar.
-const char kLacrosChromeAdditionalEnv[] = "lacros-chrome-additional-env";
 
 // If this switch is set, then ash-chrome will exec the lacros-chrome binary
 // from the indicated path rather than from component updater. Note that the
@@ -1241,11 +1216,6 @@ bool ShouldSkipOobePostLogin() {
 bool ShouldShowAccessibilityButtonOnMarketingOptInForTesting() {
   return base::CommandLine::ForCurrentProcess()->HasSwitch(
       kOobeShowAccessibilityButtonOnMarketingOptInForTesting);
-}
-
-bool IsAshDebugBrowserEnabled() {
-  return base::CommandLine::ForCurrentProcess()->HasSwitch(
-      kEnableAshDebugBrowser);
 }
 
 bool IsTabletFormFactor() {

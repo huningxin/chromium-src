@@ -53,9 +53,9 @@ Suggestion CreateSuggestionWithChildren(const std::u16string& main_text,
   return suggestion;
 }
 
-Suggestion CreatePredictionImprovementsFeedback() {
+Suggestion CreateAutofillAiFeedback() {
   Suggestion suggestion(SuggestionType::kAutofillAiFeedback);
-  suggestion.icon = Suggestion::Icon::kAutofillPredictionImprovements;
+  suggestion.icon = Suggestion::Icon::kAutofillAi;
   suggestion.highlight_on_select = false;
   suggestion.voice_over = u"Required feedback screen reader text.";
   return suggestion;
@@ -85,10 +85,10 @@ const Suggestion kSuggestions[] = {
                "label",
                Suggestion::Icon::kGlobe,
                SuggestionType::kSeePromoCodeDetails),
-    CreatePredictionImprovementsFeedback(),
+    CreateAutofillAiFeedback(),
     Suggestion("Autofill_with_AI",
                "",
-               Suggestion::Icon::kAutofillPredictionImprovements,
+               Suggestion::Icon::kAutofillAi,
                SuggestionType::kRetrieveAutofillAi),
 };
 const Suggestion kExpandableSuggestions[] = {CreateSuggestionWithChildren(

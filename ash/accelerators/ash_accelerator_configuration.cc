@@ -2,11 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-// TODO(crbug.com/40285824): Remove this and convert code to safer constructs.
-#pragma allow_unsafe_buffers
-#endif
-
 #include "ash/accelerators/ash_accelerator_configuration.h"
 
 #include <vector>
@@ -160,6 +155,11 @@ std::vector<ash::AcceleratorData> GetDefaultAccelerators() {
   if (ash::debug::DeveloperAcceleratorsEnabled()) {
     AppendAcceleratorData(accelerators, ash::kDeveloperAcceleratorData);
   }
+
+  if (ash::features::IsAppLaunchShortcutEnabled()) {
+    AppendAcceleratorData(accelerators, ash::kGeminiAcceleratorData);
+  }
+
   return accelerators;
 }
 
@@ -406,13 +406,8 @@ void AshAcceleratorConfiguration::Initialize(
 }
 
 void AshAcceleratorConfiguration::InitializeDeprecatedAccelerators() {
-  base::span<const DeprecatedAcceleratorData> deprecated_accelerator_data(
-      kDeprecatedAcceleratorsData, kDeprecatedAcceleratorsDataLength);
-  base::span<const AcceleratorData> deprecated_accelerators(
-      kDeprecatedAccelerators, kDeprecatedAcceleratorsLength);
-
-  InitializeDeprecatedAccelerators(std::move(deprecated_accelerator_data),
-                                   std::move(deprecated_accelerators));
+  InitializeDeprecatedAccelerators(kDeprecatedAcceleratorsData,
+                                   kDeprecatedAccelerators);
 }
 
 void AshAcceleratorConfiguration::AddObserver(Observer* observer) {

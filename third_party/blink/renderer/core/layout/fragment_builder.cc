@@ -110,7 +110,7 @@ void FragmentBuilder::ReplaceChild(wtf_size_t index,
                                    const PhysicalFragment& new_child,
                                    const LogicalOffset offset) {
   DCHECK_LT(index, children_.size());
-  children_[index] = LogicalFragmentLink{std::move(&new_child), offset};
+  children_[index] = LogicalFragmentLink(new_child, offset);
 }
 
 HeapVector<Member<LayoutBoxModelObject>>&
@@ -206,8 +206,7 @@ void FragmentBuilder::PropagateChildAnchors(const PhysicalFragment& child,
       }
     }
   }
-  if (child.IsCSSBox() &&
-      (child.Style().AnchorName() || child.IsImplicitAnchor())) {
+  if (child.IsAnchor()) {
     DCHECK(child.GetLayoutObject());
     // Set the child's `anchor-name` before propagating its descendants', so
     // that ancestors have precedence over their descendants.
@@ -215,7 +214,7 @@ void FragmentBuilder::PropagateChildAnchors(const PhysicalFragment& child,
                      child.Size().ConvertToLogical(GetWritingMode())};
     options = AnchorQuerySetOptions(
         child, node_, IsBlockFragmentationContextRoot() || HasItems());
-    if (child.Style().AnchorName()) {
+    if (child.IsExplicitAnchor()) {
       for (const ScopedCSSName* name : child.Style().AnchorName()->GetNames()) {
         EnsureAnchorQuery().Set(name, *child.GetLayoutObject(), rect, *options,
                                 context);
@@ -409,7 +408,7 @@ void FragmentBuilder::AddChildInternal(const PhysicalFragment* child,
   // In order to know where list-markers are within the children list (for the
   // |SimplifiedLayoutAlgorithm|) we always place them as the first child.
   if (child->IsListMarker()) {
-    children_.push_front(LogicalFragmentLink{std::move(child), child_offset});
+    children_.push_front(LogicalFragmentLink(*child, child_offset));
     return;
   }
 
@@ -418,13 +417,12 @@ void FragmentBuilder::AddChildInternal(const PhysicalFragment* child,
     // ::placeholder earlier.
     const wtf_size_t size = children_.size();
     if (size > 0) {
-      children_.insert(size - 1,
-                       LogicalFragmentLink{std::move(child), child_offset});
+      children_.insert(size - 1, LogicalFragmentLink(*child, child_offset));
       return;
     }
   }
 
-  children_.push_back(LogicalFragmentLink{std::move(child), child_offset});
+  children_.push_back(LogicalFragmentLink(*child, child_offset));
 }
 
 void FragmentBuilder::AddOutOfFlowChildCandidate(

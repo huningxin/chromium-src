@@ -1836,6 +1836,7 @@ void BrowserView::OnActiveTabChanged(content::WebContents* old_contents,
           ChromeWebContentsViewFocusHelper::FromWebContents(new_contents);
       if (focus_helper &&
           focus_helper->GetStoredFocus() != contents_web_view_) {
+        GetWidget()->UpdateAccessibleNameForRootView();
         GetWidget()->GetRootView()->NotifyAccessibilityEvent(
             ax::mojom::Event::kFocusContext, true);
       }
@@ -3845,6 +3846,10 @@ std::u16string BrowserView::GetAccessibleTabLabel(int index,
         title =
             l10n_util::GetStringFUTF16(IDS_TAB_AX_LABEL_VR_PRESENTING, title);
         break;
+      case TabAlertState::GLIC_ACCESSING:
+        title =
+            l10n_util::GetStringFUTF16(IDS_TAB_AX_LABEL_GLIC_ACCESSING, title);
+        break;
     }
   }
 
@@ -3989,10 +3994,7 @@ ui::ImageModel BrowserView::GetWindowIcon() {
 #if BUILDFLAG(IS_CHROMEOS)
   ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
   if (browser_->is_type_normal()) {
-    int resource_id = ash::switches::IsAshDebugBrowserEnabled()
-                          ? IDR_DEBUG_CHROME_APP_ICON_192
-                          : IDR_CHROME_APP_ICON_192;
-    return ui::ImageModel::FromImage(rb.GetImageNamed(resource_id));
+    return ui::ImageModel::FromImage(rb.GetImageNamed(IDR_CHROME_APP_ICON_192));
   }
   auto* window = GetNativeWindow();
   int override_window_icon_resource_id =

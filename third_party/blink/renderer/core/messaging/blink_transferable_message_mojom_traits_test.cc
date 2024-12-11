@@ -51,10 +51,8 @@ scoped_refptr<SerializedScriptValue> BuildSerializedScriptValue(
     Transferables& transferables) {
   SerializedScriptValue::SerializeOptions options;
   options.transferables = &transferables;
-  ExceptionState exceptionState(isolate, v8::ExceptionContext::kOperation,
-                                "MessageChannel", "postMessage");
   return SerializedScriptValue::Serialize(isolate, value, options,
-                                          exceptionState);
+                                          PassThroughException(isolate));
 }
 
 TEST(BlinkTransferableMessageStructTraitsTest,
@@ -251,7 +249,7 @@ class BlinkTransferableMessageStructTraitsWithFakeGpuTest : public Test {
     return MakeGarbageCollected<ImageBitmap>(
         AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
             std::move(client_si), GenTestSyncToken(100), 0,
-            SkImageInfo::MakeN32Premul(100, 100), GL_TEXTURE_2D,
+            SkImageInfo::MakeN32Premul(100, 100),
             SharedGpuContext::ContextProviderWrapper(),
             base::PlatformThread::CurrentRef(),
             base::MakeRefCounted<base::NullTaskRunner>(),

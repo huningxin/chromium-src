@@ -2045,8 +2045,4 @@ void VideoFrame::WrapScopedSharedImageMapping(
                                : nullptr);
 }
 
-bool VideoFrame::IsTextureOriginTopLeft() const {
-  return metadata().texture_origin_is_top_left;
-}
-
 }  // namespace media

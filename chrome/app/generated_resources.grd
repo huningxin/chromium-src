@@ -4862,7 +4862,7 @@ are declared in tools/grit/grit_rule.gni.
         <message name="IDS_TASK_MANAGER_NACL_DEBUG_STUB_PORT_COLUMN" desc="The text of the NativeClient debug stub port column">
           NaCl debug port
         </message>
-        <message name="IDS_TASK_MANAGER_NET_COLUMN" desc="The text of the network usage column">
+        <message name="IDS_TASK_MANAGER_NET_COLUMN" desc="The text of the network usage column" formatter_data="android_java">
           Network
         </message>
         <message name="IDS_TASK_MANAGER_CPU_COLUMN" desc="The text of the CPU usage column" formatter_data="android_java">
@@ -4936,7 +4936,7 @@ are declared in tools/grit/grit_rule.gni.
         <message name="IDS_TASK_MANAGER_TASK_COLUMN" desc="The text of the task column" formatter_data="android_java">
           Task
         </message>
-        <message name="IDS_TASK_MANAGER_NET_COLUMN" desc="The text of the network usage column">
+        <message name="IDS_TASK_MANAGER_NET_COLUMN" desc="The text of the network usage column" formatter_data="android_java">
           Network
         </message>
         <message name="IDS_TASK_MANAGER_CPU_COLUMN" desc="The text of the CPU usage column" formatter_data="android_java">
@@ -7122,6 +7122,10 @@ Keep your key file in a safe place. You will need it to create new versions of y
       <message name="IDS_PASSWORD_CROSS_DOMAIN_FILLING_CONFIRMATION_CONFIRM_BUTTON_LABEL" desc="The confirmation button label of the cross domain filling confirmation popup.">
         Use Password
       </message>
+      <message name="IDS_PASSWORD_CROSS_DOMAIN_FILLING_WARNING_DESCRIPTION"
+      desc="The description of the cross domain password filling warning popup.">
+        <ph name="PASSWORD_DOMAIN">$1<ex>example.com</ex></ph> and <ph name="DOMAIN">$2<ex>example.de</ex></ph> seem to be related. Make sure you trust <ph name="DOMAIN">$2<ex>example.de</ex></ph> before using your password.
+      </message>
       <if expr="use_titlecase">
         <message name="IDS_PASSWORD_MANAGER_ACCOUNT_CHOOSER_SIGN_IN" desc="In Title Case: The title of the Sign in button in the account chooser when there is one account.">
           Sign In
@@ -8734,8 +8738,11 @@ Keep your key file in a safe place. You will need it to create new versions of y
         <ph name="BREAK">&lt;br&gt;</ph>
         You can manage settings from the card menu or see more options in Customize Chrome.
       </message>
-      <message name="IDS_NTP_MODULES_TAB_RESUMPTION_SENTENCE" desc="Name of the tabs in the Tab Resumption module in sentence case shown in various UIs.">
-        Tabs
+      <message name="IDS_NTP_MODULES_TAB_RESUMPTION_MULTI_DISMISS" desc="String text for module dismissal in the Tab Resumption module.">
+        Tabs hidden
+      </message>
+      <message name="IDS_NTP_MODULES_TAB_RESUMPTION_SINGLE_DISMISS" desc="String text for single tab dismissal in the Tab Resumption module.">
+        Tab hidden
       </message>
       <message name="IDS_NTP_MODULES_TAB_RESUMPTION_RECENTLY_OPENED" desc="Default string text for when a tab was opened less than 60 seconds ago.">
         Recently opened
@@ -9664,43 +9671,70 @@ Keep your key file in a safe place. You will need it to create new versions of y
       </message>
 
       <!-- Strings for tab declutter -->
-      <message name="IDS_DECLUTTER_SELECTOR_HEADING" desc="Heading for the declutter button in the tab organization selector.">
+      <message name="IDS_DECLUTTER_SELECTOR_HEADING_NO_DEDUPE" desc="Heading for the declutter button in the tab organization selector when dedupe is disabled.">
         {NUM_TABS, plural,
           =0 {No inactive tabs}
           =1 {Review 1 inactive tab}
           other {Review # inactive tabs}}
       </message>
+      <message name="IDS_DECLUTTER_SELECTOR_HEADING" desc="Heading for the declutter button in the tab organization selector.">
+        {NUM_TABS, plural,
+          =0 {No unused tabs}
+          =1 {Review 1 unused tab}
+          other {Review # unused tabs}}
+      </message>
       <message name="IDS_DECLUTTER_SELECTOR_SUBHEADING" desc="Subheading for the declutter button in the tab organization selector.">
         Keep your tabs clutter-free
       </message>
       <message name="IDS_DECLUTTER_TITLE" desc="The header text for the declutter UI">
+        Clean up unused tabs
+      </message>
+      <message name="IDS_DECLUTTER_INACTIVE_TITLE_NO_DEDUPE" desc="The header text for the declutter inactive tab UI when dedupe is disabled">
         Review inactive tabs
       </message>
-      <message name="IDS_DECLUTTER_BODY" desc="The body text for the declutter UI">
+      <message name="IDS_DECLUTTER_INACTIVE_TITLE" desc="The header text for the declutter inactive tab UI">
+        Inactive tabs
+      </message>
+      <message name="IDS_DECLUTTER_INACTIVE_BODY" desc="The body text for the declutter inactive tab UI">
         Tabs you haven't used in <ph name="COUNT">$1<ex>7</ex></ph> or more days
+      </message>
+      <message name="IDS_DECLUTTER_DUPLICATE_TITLE" desc="The header text for the declutter duplicate tab UI">
+        Duplicate tabs
+      </message>
+      <message name="IDS_DECLUTTER_DUPLICATE_BODY" desc="The body text for the declutter duplicate tab UI">
+        Oldest copy kept when you close duplicates
       </message>
       <message name="IDS_DECLUTTER_EMPTY_TITLE" desc="The header text for the declutter empty state UI">
         Things look neat!
       </message>
-      <message name="IDS_DECLUTTER_EMPTY_BODY" desc="The body text for the declutter empty state UI">
+      <message name="IDS_DECLUTTER_EMPTY_BODY_NO_DEDUPE" desc="The body text for the declutter empty state UI when dedupe is disabled">
         No inactive tabs right now
       </message>
-      <message name="IDS_TOOLTIP_TAB_DECLUTTER" desc="The tooltip for the Tab Declutter button.">
+      <message name="IDS_DECLUTTER_EMPTY_BODY" desc="The body text for the declutter empty state UI">
+        No unused tabs right now
+      </message>
+      <message name="IDS_DUPLICATE_ITEM_TITLE_SINGLE" desc="The title for an item in the duplicate tabs list with 1 duplicate">
+        <ph name="URL">$1<ex>google.com</ex></ph> • 1 duplicate
+      </message>
+      <message name="IDS_DUPLICATE_ITEM_TITLE_MULTI" desc="The title for an item in the duplicate tabs list with multiple duplicates">
+        <ph name="URL">$1<ex>google.com</ex></ph> • <ph name="DUPLICATE_COUNT">$2<ex>2</ex></ph> duplicates
+      </message>
+      <message name="IDS_TOOLTIP_TAB_DECLUTTER_NO_DEDUPE" desc="The tooltip for the Tab Declutter button when dedupe is disabled.">
         Review inactive tabs?
       </message>
-      <message name="IDS_TAB_DECLUTTER" desc="The text label of the Tab Declutter button.">
+      <message name="IDS_TAB_DECLUTTER_NO_DEDUPE" desc="The text label of the Tab Declutter button when dedupe is disabled.">
         Review inactive tabs?
       </message>
-      <message name="IDS_ACCNAME_TAB_DECLUTTER" desc="The accessible name for the Tab Declutter button." is_accessibility_with_no_ui="true">
+      <message name="IDS_ACCNAME_TAB_DECLUTTER_NO_DEDUPE" desc="The accessible name for the Tab Declutter button when dedupe is disabled." is_accessibility_with_no_ui="true">
         Review inactive tabs
       </message>
-      <message name="IDS_TOOLTIP_TAB_DECLUTTER_WITH_DEDUPE" desc="The tooltip for the Tab Declutter button.">
+      <message name="IDS_TOOLTIP_TAB_DECLUTTER" desc="The tooltip for the Tab Declutter button.">
         Clean up unused tabs?
       </message>
-      <message name="IDS_TAB_DECLUTTER_WITH_DEDUPE" desc="The text label of the Tab Declutter button.">
+      <message name="IDS_TAB_DECLUTTER" desc="The text label of the Tab Declutter button.">
         Clean up unused tabs?
       </message>
-      <message name="IDS_ACCNAME_TAB_DECLUTTER_WITH_DEDUPE" desc="The accessible name for the Tab Declutter button." is_accessibility_with_no_ui="true">
+      <message name="IDS_ACCNAME_TAB_DECLUTTER" desc="The accessible name for the Tab Declutter button." is_accessibility_with_no_ui="true">
         Clean up unused tabs
       </message>
       <message name="IDS_DECLUTTER_TIMESTAMP" desc="The description of when a tab was last accessed, for use in a declutter row.">
@@ -9711,13 +9745,19 @@ Keep your key file in a safe place. You will need it to create new versions of y
       </message>
       <if expr="use_titlecase">
         <then>
-          <message name="IDS_DECLUTTER_MENU" desc="In Title Case: The text label for the declutter app menu item.">
+          <message name="IDS_DECLUTTER_MENU_NO_DEDUPE" desc="In Title Case: The text label for the declutter app menu item when dedupe is disabled.">
             Review Inactive Tabs
+          </message>
+          <message name="IDS_DECLUTTER_MENU" desc="In Title Case: The text label for the declutter app menu item.">
+            Clean Up Unused Tabs
           </message>
         </then>
         <else>
-          <message name="IDS_DECLUTTER_MENU" desc="The text label for the declutter app menu item.">
+          <message name="IDS_DECLUTTER_MENU_NO_DEDUPE" desc="The text label for the declutter app menu item when dedupe is disabled.">
             Review inactive tabs
+          </message>
+          <message name="IDS_DECLUTTER_MENU" desc="The text label for the declutter app menu item.">
+            Clean up unused tabs
           </message>
         </else>
       </if>
@@ -15831,6 +15871,9 @@ Please help our engineers fix this problem. Tell us what happened right before y
       <message name="IDS_TOOLTIP_TAB_ALERT_STATE_VR_PRESENTING" desc="Extra tool tip text, when the tab is presenting VR content to a headset.">
         This tab is presenting VR content to a headset
       </message>
+      <message name="IDS_TOOLTIP_TAB_ALERT_STATE_GLIC_ACCESSING" desc="[Placeholder Description]">
+        [Placeholder String]
+      </message>
 
       <!-- Tab accessibility labels -->
       <message name="IDS_TAB_AX_LABEL_MEDIA_RECORDING_FORMAT" is_accessibility_with_no_ui="true" desc="Accessibility label text, when the tab is recording media. Example: 'Google Hangouts - Camera and microphone recording'">
@@ -15882,6 +15925,11 @@ Please help our engineers fix this problem. Tell us what happened right before y
         <ph name="WINDOW_TITLE">
           $1<ex>A VR-enabled website</ex>
         </ph> - VR presenting to headset
+      </message>
+      <message name="IDS_TAB_AX_LABEL_GLIC_ACCESSING" is_accessibility_with_no_ui="true" desc="[Placeholder Description]">
+        <ph name="WINDOW_TITLE">
+          $1<ex>Google Photos</ex>
+        </ph> - [Placeholder String]
       </message>
       <message name="IDS_TAB_AX_LABEL_UNNAMED_GROUP_FORMAT" desc="Accessibility label text for a tab, when it is in a group that has not been named by the user. Example: 'Google Search - Part of unnamed group'">
         <ph name="WINDOW_TITLE">$1<ex>Google Search</ex></ph> - Part of unnamed group

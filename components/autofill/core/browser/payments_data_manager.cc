@@ -112,6 +112,27 @@ bool FindByContents(const C& container, const T& needle) {
   });
 }
 
+// TODO(crbug.com/326408802): Move to payments_suggestion_generator.
+std::vector<const CreditCard*> DeduplicatedCreditCardsForSuggestions(
+    base::span<const CreditCard* const> cards_to_suggest) {
+  std::vector<const CreditCard*> deduplicated_cards;
+  for (const CreditCard* card : cards_to_suggest) {
+    // Full server cards should never be suggestions, as they exist only as a
+    // cached state post-fill.
+    CHECK_NE(card->record_type(), CreditCard::RecordType::kFullServerCard);
+    // Masked server cards are preferred over their local duplicates.
+    if (!CreditCard::IsLocalCard(card) ||
+        base::ranges::none_of(
+            cards_to_suggest, [&card](const CreditCard* other_card) {
+              return card != other_card &&
+                     card->IsLocalOrServerDuplicateOf(*other_card);
+            })) {
+      deduplicated_cards.push_back(card);
+    }
+  }
+  return deduplicated_cards;
+}
+
 }  // namespace
 
 // Helper class to abstract the switching between account and profile storage
@@ -523,7 +544,7 @@ const Iban* PaymentsDataManager::GetIbanByInstrumentId(
 
 const CreditCard* PaymentsDataManager::GetCreditCardByGUID(
     const std::string& guid) const {
-  const std::vector<CreditCard*>& credit_cards = GetCreditCards();
+  const std::vector<const CreditCard*>& credit_cards = GetCreditCards();
   auto iter = FindElementByGUID(credit_cards, guid);
   return iter != credit_cards.end() ? *iter : nullptr;
 }
@@ -537,7 +558,7 @@ const CreditCard* PaymentsDataManager::GetCreditCardByNumber(
     const std::string& number) const {
   CreditCard numbered_card;
   numbered_card.SetNumber(base::ASCIIToUTF16(number));
-  for (CreditCard* credit_card : GetCreditCards()) {
+  for (const CreditCard* credit_card : GetCreditCards()) {
     DCHECK(credit_card);
     if (credit_card->MatchingCardDetails(numbered_card)) {
       return credit_card;
@@ -548,8 +569,8 @@ const CreditCard* PaymentsDataManager::GetCreditCardByNumber(
 
 const CreditCard* PaymentsDataManager::GetCreditCardByInstrumentId(
     int64_t instrument_id) const {
-  const std::vector<CreditCard*> credit_cards = GetCreditCards();
-  for (CreditCard* credit_card : credit_cards) {
+  const std::vector<const CreditCard*> credit_cards = GetCreditCards();
+  for (const CreditCard* credit_card : credit_cards) {
     if (credit_card->instrument_id() == instrument_id) {
       return credit_card;
     }
@@ -680,8 +701,8 @@ std::vector<CreditCard*> PaymentsDataManager::GetServerCreditCards() const {
                         &std::unique_ptr<CreditCard>::get);
 }
 
-std::vector<CreditCard*> PaymentsDataManager::GetCreditCards() const {
-  std::vector<CreditCard*> result;
+std::vector<const CreditCard*> PaymentsDataManager::GetCreditCards() const {
+  std::vector<const CreditCard*> result;
   result.reserve(local_credit_cards_.size() + server_credit_cards_.size());
   for (const auto& card : local_credit_cards_) {
     result.push_back(card.get());
@@ -1231,44 +1252,38 @@ PaymentsDataManager::GetVirtualCardUsageData() const {
   return autofill_virtual_card_usage_data_;
 }
 
-std::vector<CreditCard*> PaymentsDataManager::GetCreditCardsToSuggest(
+std::vector<const CreditCard*> PaymentsDataManager::GetCreditCardsToSuggest(
     bool should_use_legacy_algorithm) const {
   if (!IsAutofillPaymentMethodsEnabled()) {
     return {};
   }
-  std::vector<CreditCard*> credit_cards;
+  std::vector<const CreditCard*> credit_cards;
   if (ShouldSuggestServerPaymentMethods()) {
     credit_cards = GetCreditCards();
   } else {
-    credit_cards = GetLocalCreditCards();
+    // TODO(crbug.com/367998817): Make `GetLocalCreditCards()` return an
+    // `std::vector<const CreditCard *>` to avoid creating a copy.
+    for (const CreditCard* card_from_list : GetLocalCreditCards()) {
+      credit_cards.push_back(card_from_list);
+    }
   }
 
-  std::list<CreditCard*> cards_to_dedupe(credit_cards.begin(),
-                                         credit_cards.end());
-
-  DedupeCreditCardToSuggest(&cards_to_dedupe);
-
-  std::vector<CreditCard*> cards_to_suggest(
-      std::make_move_iterator(std::begin(cards_to_dedupe)),
-      std::make_move_iterator(std::end(cards_to_dedupe)));
+  std::vector<const CreditCard*> cards_to_suggest =
+      DeduplicatedCreditCardsForSuggestions(credit_cards);
 
   // Rank the cards by ranking score (see AutofillDataModel for details). All
   // expired cards should be suggested last, also by ranking score.
-  base::Time comparison_time = AutofillClock::Now();
-  if (cards_to_suggest.size() > 1) {
-    std::sort(cards_to_suggest.begin(), cards_to_suggest.end(),
-              [comparison_time, should_use_legacy_algorithm](
-                  const CreditCard* a, const CreditCard* b) {
-                const bool a_is_expired = a->IsExpired(comparison_time);
-                if (a_is_expired != b->IsExpired(comparison_time)) {
-                  return !a_is_expired;
-                }
-
-                return a->HasGreaterRankingThan(*b, comparison_time,
-                                                should_use_legacy_algorithm);
-              });
-  }
-
+  base::ranges::sort(
+      cards_to_suggest,
+      [comparison_time = base::Time::Now(), should_use_legacy_algorithm](
+          const CreditCard* a, const CreditCard* b) {
+        if (const bool a_is_expired = a->IsExpired(comparison_time);
+            a_is_expired != b->IsExpired(comparison_time)) {
+          return !a_is_expired;
+        }
+        return a->HasGreaterRankingThan(*b, comparison_time,
+                                        should_use_legacy_algorithm);
+      });
   return cards_to_suggest;
 }
 
@@ -1677,36 +1692,6 @@ void PaymentsDataManager::RecordUseOfIban(Iban& iban) {
   }
 
   Refresh();
-}
-
-// The priority ranking for deduping a duplicate card is:
-// 1. RecordType::kMaskedServerCard
-// 2. RecordType::kLocalCard
-// static
-void PaymentsDataManager::DedupeCreditCardToSuggest(
-    std::list<CreditCard*>* cards_to_suggest) {
-  for (auto outer_it = cards_to_suggest->begin();
-       outer_it != cards_to_suggest->end(); ++outer_it) {
-    // Full server cards should never be suggestions, as they exist only as a
-    // cached state post-fill.
-    CHECK_NE((*outer_it)->record_type(),
-             CreditCard::RecordType::kFullServerCard);
-
-    for (auto inner_it = cards_to_suggest->begin();
-         inner_it != cards_to_suggest->end();) {
-      auto inner_it_copy = inner_it++;
-      if (outer_it == inner_it_copy) {
-        continue;
-      }
-      // Check if the cards are local or server duplicate of each other. If yes,
-      // then delete the duplicate if it's a local card.
-      if ((*inner_it_copy)->IsLocalOrServerDuplicateOf(**outer_it) &&
-          (*inner_it_copy)->record_type() ==
-              CreditCard::RecordType::kLocalCard) {
-        cards_to_suggest->erase(inner_it_copy);
-      }
-    }
-  }
 }
 
 scoped_refptr<AutofillWebDataService> PaymentsDataManager::GetLocalDatabase() {

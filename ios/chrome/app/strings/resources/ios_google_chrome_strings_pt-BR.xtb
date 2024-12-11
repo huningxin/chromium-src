@@ -59,7 +59,7 @@ Considerações:
 <translation id="2342919707875585281">O Chrome compartilha sua localização com os sites aos quais você concede permissão.</translation>
 <translation id="2347208864470321755">Quando este recurso está ativado, o Google Chrome disponibiliza a tradução de páginas escritas em outros idiomas usando o Google Tradutor. <ph name="BEGIN_LINK" />Saiba mais<ph name="END_LINK" /></translation>
 <translation id="2423077901494354337">Você já pode aproveitar tudo o que o Chrome tem a oferecer no seu dispositivo.</translation>
-<translation id="2427791862912929107">O Chrome tem recursos que ajudam a gerenciar seus dados de Internet e a velocidade de carregamento de páginas da Web.
+<translation id="2427791862912929107">O Chrome tem recursos que ajudam a gerenciar os dados de Internet e a velocidade de carregamento das páginas da Web.
 <ph name="BEGIN_LINK" />Saiba mais<ph name="END_LINK" /></translation>
 <translation id="2444854139071078915">Para acessar com facilidade suas senhas salvas em outros apps, use o preenchimento automático no Chrome</translation>
 <translation id="2464852008153767546">{THRESHOLD,plural, =1{Isso acontece quando o Chrome não é usado por {THRESHOLD} minuto. Pode incluir o histórico e o preenchimento automático.}one{Isso acontece quando o Chrome não é usado por {THRESHOLD} minuto. Pode incluir o histórico e o preenchimento automático.}other{Isso acontece quando o Chrome não é usado por {THRESHOLD} minutos. Pode incluir o histórico e o preenchimento automático.}}</translation>
@@ -120,7 +120,7 @@ Aguarde alguns minutos antes de sair. Se você sair agora, esses dados serão ex
 <translation id="4064699917955374540">Confirme sua identidade para usar e salvar dados do Chrome na sua Conta do Google.</translation>
 <translation id="417201473131094001">Indisponível no Chrome Canary.</translation>
 <translation id="424864128008805179">Sair do Google Chrome?</translation>
-<translation id="447252321002412580">Ajude a melhorar os recursos e o desempenho do Chrome</translation>
+<translation id="447252321002412580">Ajudar a melhorar os recursos e o desempenho do Chrome</translation>
 <translation id="4523886039239821078">Alguns complementos causam a falha do Google Chrome. Desinstale-os.</translation>
 <translation id="4633328489441962921">Não é possível verificar se há atualizações</translation>
 <translation id="4636900170638246267">Faça login neste site e no Chrome.</translation>
@@ -221,6 +221,7 @@ Para mudar essa configuração, <ph name="BEGIN_LINK" />exclua os dados do Chrom
 Para conferir mais configurações que usam dados para melhorar sua experiência do Chrome, acesse os <ph name="BEGIN_LINK" />Serviços do Google<ph name="END_LINK" />.</translation>
 <translation id="6922332667202044570">Exclui dados de navegação no Chrome.</translation>
 <translation id="6924922227983877439">Abrir links no Chrome por padrão</translation>
+<translation id="6931601805528922498">Ao fazer login, sua conta é adicionada ao Chrome para navegação relacionada ao trabalho.</translation>
 <translation id="6975725306479268850">Escolha o Chrome para o preenchimento automático</translation>
 <translation id="7056826488869329999">Abre e realiza a Confirmação de segurança no Chrome.</translation>
 <translation id="7061455974939528301">Toque no ícone do Chrome, pressione e clique em "Editar tela inicial"</translation>

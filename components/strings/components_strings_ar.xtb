@@ -1237,6 +1237,7 @@
 <translation id="3229277193950731405">نَسخ بيانات الإصدار</translation>
 <translation id="323107829343500871">‏أدخِل رمز التحقّق (CVC) لبطاقة <ph name="CREDIT_CARD" /></translation>
 <translation id="3234666976984236645">الكشف دائمًا عن المحتوى المهم على هذا الموقع</translation>
+<translation id="323585066388831737">أحمر فاتح</translation>
 <translation id="3236212803136366317">مزايا البطاقة</translation>
 <translation id="3238395604961564389">فتح الرابط في نافذة التصفح المتخفي</translation>
 <translation id="3240683217920639535">‏<ph name="MANAGE_CHROME_THEMES_FOCUSED_FRIENDLY_MATCH_TEXT" />، اضغط على مفتاح Tab ثم مفتاح Enter لتخصيص مظهر المتصفِّح</translation>
@@ -1855,6 +1856,7 @@
 <translation id="4277937682389409325">العنوان المحلي</translation>
 <translation id="4278090321534187713">تم إيقاف البطاقات التي لا يقبلها هذا التاجر</translation>
 <translation id="4278390842282768270">مسموح به</translation>
+<translation id="4281245629646759298">أصفر فاتح</translation>
 <translation id="4281998142035485137">{0,plural, =1{هل تريد فتح الملف السرّي؟}zero{هل تريد فتح الملفات السرّية؟}two{هل تريد فتح الملفَّين السرّيَّين؟}few{هل تريد فتح الملفات السرّية؟}many{هل تريد فتح الملفات السرّية؟}other{هل تريد فتح الملفات السرّية؟}}</translation>
 <translation id="4282280603030594840">شراء مركبات</translation>
 <translation id="4282346679996504092">تم إيقاف التنبيهات لهذا المنتج وتمت إزالة الإشارة المرجعية من الصفحة.</translation>
@@ -2229,7 +2231,7 @@
 <translation id="4995474875135717171">آخر تعديل:</translation>
 <translation id="4995749490935861684">‏<ph name="CUSTOMIZE_SEARCH_ENGINES_FOCUSED_FRIENDLY_MATCH_TEXT" />، اضغط على مفتاح Tab ثم مفتاح Enter لإدارة البحث في الموقع الإلكتروني ومحرّك البحث التلقائي.</translation>
 <translation id="4998950033665438990">أحادي الوجه</translation>
-<translation id="5001526427543320409">ملفات تعريف الارتباط التابعة لجهات خارجية</translation>
+<translation id="5001526427543320409">ملفات تعريف الارتباط الخارجية</translation>
 <translation id="5002932099480077015">‏إذا تم التفعيل، سيخزن Chrome نسخة من بطاقتك على هذا الجهاز لملء النموذج بشكل أسرع.</translation>
 <translation id="5007392906805964215">مراجعة</translation>
 <translation id="5011561501798487822">لغة تم التعرّف عليها</translation>
@@ -2611,7 +2613,7 @@
 <translation id="5695542892312572833">‏هل تريد استخدام Windows Hello لإثبات صحة عملية الشراء وإكمالها؟</translation>
 <translation id="5697827549745555938">‏إنّ المعلومات التي حفظتها وهذه الصفحة يتم إرسالها إلى Google لمعرفة ما إذا كان بإمكان ميزة "الملء التلقائي" المساعدة في ملء هذا النموذج. وقد يطّلع على هذه البيانات فريق من المراجعين لتحسين هذه الميزة.</translation>
 <translation id="5699628521141772782">منتجات ألبان وبيض</translation>
-<translation id="5700761515355162635">ملفات تعريف الارتباط الخارجية مسموحة</translation>
+<translation id="5700761515355162635">ملفات تعريف الارتباط الخارجية مسموح بها</translation>
 <translation id="5701381305118179107">توسيط</translation>
 <translation id="5707154300732650394">استئناف سجلّ أنشطة البحث والتصفُّح</translation>
 <translation id="57094364128775171">اقتراح كلمة مرور قوية…</translation>
@@ -2985,7 +2987,7 @@
 <translation id="6386565501269869892">‏ظرف You 4</translation>
 <translation id="6387645831795005740">‏يحاكي المخترِقون أحيانًا المواقع الإلكترونية من خلال إجراء تغييرات بسيطة يصعب رؤيتها على عنوان URL.</translation>
 <translation id="6388060462449937608">معدّات لياقة بدنية وملحقاتها</translation>
-<translation id="6389470377220713856">الاسم كما في البطاقة</translation>
+<translation id="6389470377220713856">الاسم الوارد على البطاقة</translation>
 <translation id="6390200185239044127">‏الطي إلى نصفَين على شكل حرف Z</translation>
 <translation id="639068771471208680">نموذج متعدد الأجزاء</translation>
 <translation id="6391700400718590966">تم إغلاق صفحة عدم تطابق بيانات اعتماد الدفع الآمن.</translation>
@@ -4537,6 +4539,7 @@
 <translation id="9183425211371246419">يستخدم <ph name="HOST_NAME" /> بروتوكول غير مدعوم.</translation>
 <translation id="918454845714257218">يُرجى التأكّد من صحة الرمز المكتوب على <ph name="SIDE_OF_CARD" /> ثم إعادة المحاولة.</translation>
 <translation id="9186203289258525843">‏زر ضبط Chrome كمتصفِّح تلقائي: انقر على هذا الزر لضبط Chrome كمتصفِّح تلقائي للنظام.</translation>
+<translation id="9189789270972826888">انقر على تفاصيل البطاقة أدناه لنسخ البيانات ولصقها إذا لم يتم ملؤها تلقائيًا. <ph name="IDS_AUTOFILL_FILLED_CARD_INFORMATION_BUBBLE_LEARN_MORE_LINK_LABEL" /></translation>
 <translation id="9190557999028587593">يتم تلقائيًا حذف المواضيع التي مرّ عليها أكثر من 4 أسابيع</translation>
 <translation id="9191834167571392248">عمل ثقب أسفل اليسار</translation>
 <translation id="9192361865877479444">معدن (غير لامع)</translation>

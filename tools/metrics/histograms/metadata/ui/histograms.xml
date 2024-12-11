@@ -280,21 +280,6 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="WebUI.ShownUrl" enum="WebUIUrlHashes"
-    expires_after="2025-05-25">
-  <owner>kerenzhu@chromium.org</owner>
-  <owner>dpapad@chromium.org</owner>
-  <owner>chrome-webui@google.com</owner>
-  <summary>
-    WebUI URLs that are painted. Recorded on the first paint of a WebUI document
-    after navigation. This differs from WebUI.CreatedForUrl as it only logs
-    WebUIs that are actually painted and excludes those that are created but not
-    shown (e.g., opened in a background tab, or preloaded but never shown).
-    Caveat: this won't log on an iframe WebUI's subsequent navigations becuase
-    the paint event is emitted only once from the main frame.
-  </summary>
-</histogram>
-
 <histogram name="WebUI.TopChrome.Preload.Result" enum="WebUIPreloadResult"
     expires_after="2025-05-04">
   <owner>kerenzhu@chromium.org</owner>
@@ -309,7 +294,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="WebUI.TopChrome.RequestToFCP{WebUIName}" units="ms"
-    expires_after="2025-03-30">
+    expires_after="2025-06-08">
   <owner>kerenzhu@chromium.org</owner>
   <owner>chrome-webui-for-features@google.com</owner>
   <summary>
@@ -347,7 +332,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="WebUICodeCache.FeatureEnabled" enum="Boolean"
-    expires_after="2025-03-30">
+    expires_after="2025-06-08">
   <owner>temao@chromium.org</owner>
   <owner>tluk@chromium.org</owner>
   <summary>
@@ -357,7 +342,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="WebUITabStrip.CloseAction" enum="WebUITabStripCloseActions"
-    expires_after="2025-03-30">
+    expires_after="2025-06-08">
   <owner>collinbaker@chromium.org</owner>
   <owner>tluk@chromium.org</owner>
   <summary>
@@ -368,7 +353,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="WebUITabStrip.CloseTabAction"
-    enum="WebUITabStripCloseTabActions" expires_after="2025-03-30">
+    enum="WebUITabStripCloseTabActions" expires_after="2025-06-08">
   <owner>johntlee@chromium.org</owner>
   <owner>dpapad@chromium.org</owner>
   <summary>
@@ -407,7 +392,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="WebUITabStrip.OpenAction" enum="WebUITabStripOpenActions"
-    expires_after="2025-03-30">
+    expires_after="2025-06-08">
   <owner>collinbaker@chromium.org</owner>
   <owner>tluk@chromium.org</owner>
   <summary>
@@ -418,7 +403,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="WebUITabStrip.OpenDuration" units="ms"
-    expires_after="2025-03-30">
+    expires_after="2025-06-08">
   <owner>collinbaker@chromium.org</owner>
   <owner>tluk@chromium.org</owner>
   <summary>

@@ -101,6 +101,9 @@ class ASH_EXPORT CaptureModeSession
   views::Widget* capture_mode_settings_widget() {
     return capture_mode_settings_widget_.get();
   }
+  views::Widget* action_container_widget() {
+    return action_container_widget_.get();
+  }
   views::Widget* disclaimer_widget() { return disclaimer_.get(); }
   bool is_selecting_region() const { return is_selecting_region_; }
   CaptureModeToastController* capture_toast_controller() {
@@ -467,8 +470,8 @@ class ASH_EXPORT CaptureModeSession
   // finishes executing.
   void OnScannerActionExecuted(bool success);
 
-  // Creates the feedback button widget if it wasn't previously created, and
-  // updates the widget's bounds.
+  // Creates the feedback button widget if it wasn't previously created and
+  // should be shown, and updates the widget's bounds and visibility.
   void UpdateFeedbackButtonWidget();
 
   // Returns true if `widget` is the `feedback_button_widget_` and we should

@@ -10,7 +10,7 @@
 # Devices
 # tags: [ android-nexus-5x android-pixel-2 android-pixel-4
 #             android-pixel-6 android-shield-android-tv android-sm-a135m
-#             android-sm-a235m android-sm-s911u1 android-moto-g-power-5g---2023
+#             android-sm-a235m android-sm-s911u1
 #         chromeos-board-amd64-generic chromeos-board-eve chromeos-board-jacuzzi
 #             chromeos-board-octopus chromeos-board-volteer
 #         fuchsia-board-astro fuchsia-board-nelson fuchsia-board-sherlock
@@ -588,8 +588,9 @@ crbug.com/949249 [ fuchsia fuchsia-board-qemu-x64 ] conformance2/extensions/ovr_
 # New validation was not implemented on the validating command decoder.
 crbug.com/angleproject/6358 [ no-passthrough ] conformance/programs/program-test.html [ Failure ]
 
-# Flaking on Win/Intel UHD 770 and Mac/M1
+# Flaking on Win/Intel UHD 770, NVIDIA GTX 1660 and Mac/M1
 crbug.com/365680830 [ win angle-d3d11 intel-0x4680 ] deqp/functional/gles3/occlusionquery_strict.html [ RetryOnFailure ]
+crbug.com/365680830 [ win angle-d3d11 nvidia-0x2184 ] deqp/functional/gles3/occlusionquery_strict.html [ RetryOnFailure ]
 crbug.com/365680830 [ mac angle-metal apple ] deqp/functional/gles3/occlusionquery_strict.html [ RetryOnFailure ]
 
 

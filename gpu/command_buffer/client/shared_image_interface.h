@@ -188,10 +188,10 @@ class GPU_EXPORT SharedImageInterface
     base::WritableSharedMemoryMapping mapping;
   };
 
-  // Creates a shared image with the usage of gpu::SHARED_IMAGE_USAGE_CPU_WRITE
-  // only. A shared memory buffer is created internally and a shared image is
-  // created out this buffer. This method is used by the software compositor
-  // only.
+  // Creates a shared image with the usage of
+  // gpu::SHARED_IMAGE_USAGE_CPU_WRITE_ONLY only. A shared memory buffer is
+  // created internally and a shared image is created out this buffer. This
+  // method is used by the software compositor only.
   virtual SharedImageMapping CreateSharedImage(
       const SharedImageInfo& si_info) = 0;
 
@@ -376,10 +376,6 @@ class GPU_EXPORT SharedImageInterface
   virtual scoped_refptr<gfx::NativePixmap> GetNativePixmap(
       const gpu::Mailbox& mailbox) = 0;
 #endif
-
-  // Provides the usage flags supported by the given |mailbox|. This must have
-  // been created using a SharedImageInterface on the same channel.
-  virtual SharedImageUsageSet UsageForMailbox(const Mailbox& mailbox);
 
   // Informs that existing |mailbox| with the specified metadata can be passed
   // to DestroySharedImage().

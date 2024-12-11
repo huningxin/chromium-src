@@ -20,6 +20,7 @@
 #import "ios/chrome/browser/ui/authentication/identity_chooser/identity_chooser_coordinator.h"
 #import "ios/chrome/browser/ui/authentication/identity_chooser/identity_chooser_coordinator_delegate.h"
 #import "ios/chrome/browser/ui/authentication/signin/instant_signin/instant_signin_mediator.h"
+#import "ios/chrome/browser/ui/authentication/signin/interruptible_chrome_coordinator.h"
 #import "ios/chrome/browser/ui/authentication/signin/signin_constants.h"
 #import "ios/chrome/browser/ui/authentication/signin/signin_coordinator+protected.h"
 
@@ -157,6 +158,9 @@
       completion();
     }
   } else if (action == SigninCoordinatorInterrupt::UIShutdownNoDismiss) {
+    CHECK(!base::FeatureList::IsEnabled(
+              kIOSInterruptibleCoordinatorAlwaysDismissed),
+          base::NotFatalUntil::M136);
     // In case of `UIShutdownNoDismiss`, everything should be done
     // synchronously. So we should not wait for the mediator interruption to be
     // done. The coordinator needs to finish itself, and then call the interrupt
@@ -171,7 +175,15 @@
       completion();
     }
   } else {
-    [_mediator interruptWithAction:action completion:completion];
+    if (base::FeatureList::IsEnabled(
+            kIOSInterruptibleCoordinatorStoppedSynchronously)) {
+      [_mediator interruptWithAction:action completion:nil];
+      if (completion) {
+        completion();
+      }
+    } else {
+      [_mediator interruptWithAction:action completion:completion];
+    }
   }
 }
 

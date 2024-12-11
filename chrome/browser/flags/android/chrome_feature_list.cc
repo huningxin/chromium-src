@@ -137,6 +137,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &features::kGenericSensorExtraClasses,
     &features::kBackForwardCache,
     &features::kBoardingPassDetector,
+    &features::kHttpsFirstBalancedMode,
     &features::kNetworkServiceInProcess,
     &features::kChangeUnfocusedPriority,
     &features::kElasticOverscroll,
@@ -194,7 +195,8 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &kAndroidPdfAssistContent,
     &kAndroidTabDeclutter,
     &kAndroidTabDeclutterArchiveAllButActiveTab,
-    &kAndroidTabDeclutterArchiveTabGroupsAndDuplicateTabs,
+    &kAndroidTabDeclutterArchiveDuplicateTabs,
+    &kAndroidTabDeclutterArchiveTabGroups,
     &kAndroidTabDeclutterDedupeTabIdsKillSwitch,
     &kAndroidTabDeclutterRescueKillswitch,
     &kAndroidToolbarScrollAblation,
@@ -287,6 +289,8 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &kNotificationPermissionBottomSheet,
     &kNotificationTrampoline,
     &kTinkerTankBottomSheet,
+    &kPageAnnotationsService,
+    &kPageContentProvider,
     &kPowerSavingModeBroadcastReceiverInBackground,
     &kPreconnectOnTabCreation,
     &kPriceChangeModule,
@@ -305,7 +309,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &kReadAloudPlayback,
     &kReadAloudTapToSeek,
     &kReadAloudIPHMenuButtonHighlightCCT,
-    &kReaderModeInCCT,
     &kRecordSuppressionMetrics,
     &kReengagementNotification,
     &kRelatedSearchesAllLanguage,
@@ -322,7 +325,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &kTabDragDropAndroid,
     &kToolbarPhoneCleanup,
     &kTabGroupCreationDialogAndroid,
-    &kTabletToolbarReordering,
     &kTabResumptionModuleAndroid,
     &kTabStateFlatBuffer,
     &kTabStripGroupCollapseAndroid,
@@ -379,6 +381,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &privacy_sandbox::kPrivacySandboxPrivacyGuideAdTopics,
     &privacy_sandbox::kPrivacySandboxPrivacyPolicy,
     &privacy_sandbox::kPrivacySandboxSentimentSurvey,
+    &privacy_sandbox::kPrivacySandboxCctAdsNoticeSurvey,
     &privacy_sandbox::kTrackingProtectionUserBypassPwa,
     &privacy_sandbox::kTrackingProtectionUserBypassPwaTrigger,
     &safe_browsing::kEsbAiStringUpdate,
@@ -502,8 +505,12 @@ BASE_FEATURE(kAndroidTabDeclutterArchiveAllButActiveTab,
              "AndroidTabDeclutterArchiveAllButActiveTab",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kAndroidTabDeclutterArchiveTabGroupsAndDuplicateTabs,
-             "AndroidTabDeclutterArchiveTabGroupsAndDuplicateTabs",
+BASE_FEATURE(kAndroidTabDeclutterArchiveDuplicateTabs,
+             "AndroidTabDeclutterArchiveDuplicateTabs",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kAndroidTabDeclutterArchiveTabGroups,
+             "AndroidTabDeclutterArchiveTabGroups",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kAndroidTabDeclutterDedupeTabIdsKillSwitch,
@@ -731,10 +738,6 @@ BASE_FEATURE(kDeviceAuthenticatorAndroidx,
              "DeviceAuthenticatorAndroidx",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kDownloadAutoResumptionThrottling,
-             "DownloadAutoResumptionThrottling",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kDragDropTabTearing,
              "DragDropTabTearing",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -856,6 +859,14 @@ BASE_FEATURE(kNotificationTrampoline,
              "NotificationTrampoline",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+BASE_FEATURE(kPageAnnotationsService,
+             "PageAnnotationsService",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kPageContentProvider,
+             "PageContentProvider",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 BASE_FEATURE(kPowerSavingModeBroadcastReceiverInBackground,
              "PowerSavingModeBroadcastReceiverInBackground",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -932,10 +943,6 @@ BASE_FEATURE(kReadAloudIPHMenuButtonHighlightCCT,
              "ReadAloudIPHMenuButtonHighlightCCT",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kReaderModeInCCT,
-             "ReaderModeInCCT",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kRecordSuppressionMetrics,
              "RecordSuppressionMetrics",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -991,10 +998,6 @@ BASE_FEATURE(kToolbarPhoneCleanup,
 BASE_FEATURE(kTabGroupCreationDialogAndroid,
              "TabGroupCreationDialogAndroid",
              base::FEATURE_ENABLED_BY_DEFAULT);
-
-BASE_FEATURE(kTabletToolbarReordering,
-             "TabletToolbarReordering",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kTabStateFlatBuffer,
              "TabStateFlatBuffer",

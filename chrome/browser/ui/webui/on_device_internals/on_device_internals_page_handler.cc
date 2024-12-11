@@ -12,6 +12,7 @@
 #include "components/optimization_guide/core/prediction_manager.h"
 #include "content/public/browser/service_process_host.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
+#include "services/data_decoder/public/cpp/decode_image.h"
 #include "services/on_device_model/public/cpp/buildflags.h"
 #include "services/on_device_model/public/cpp/model_assets.h"
 
@@ -179,22 +180,25 @@ void OnDeviceInternalsPageHandler::GetOnDeviceInternalsData(
   // Populate criteria.
   base::flat_map<bool, std::string> bool_strings = {{true, "true"},
                                                     {false, "false"}};
-  auto criteria = component_manager->GetRegistrationCriteria();
+  auto* criteria = component_manager->GetRegistrationCriteria();
   base::flat_map<std::string, std::string> mojom_criteria;
-  mojom_criteria["disk_space_available"] =
-      bool_strings[criteria.disk_space_available];
-  mojom_criteria["device_capable"] = bool_strings[criteria.device_capable];
-  mojom_criteria["on_device_feature_recently_used"] =
-      bool_strings[criteria.on_device_feature_recently_used];
-  mojom_criteria["enabled_by_feature"] =
-      bool_strings[criteria.enabled_by_feature];
-  mojom_criteria["enabled_by_enterprise_policy"] =
-      bool_strings[criteria.enabled_by_enterprise_policy];
-  mojom_criteria["running_out_of_disk_space"] =
-      bool_strings[criteria.running_out_of_disk_space];
-  mojom_criteria["out_of_retention"] = bool_strings[criteria.out_of_retention];
-  mojom_criteria["is_already_installing"] =
-      bool_strings[criteria.is_already_installing];
+  if (criteria != nullptr) {
+    mojom_criteria["disk_space_available"] =
+        bool_strings[criteria->disk_space_available];
+    mojom_criteria["device_capable"] = bool_strings[criteria->device_capable];
+    mojom_criteria["on_device_feature_recently_used"] =
+        bool_strings[criteria->on_device_feature_recently_used];
+    mojom_criteria["enabled_by_feature"] =
+        bool_strings[criteria->enabled_by_feature];
+    mojom_criteria["enabled_by_enterprise_policy"] =
+        bool_strings[criteria->enabled_by_enterprise_policy];
+    mojom_criteria["running_out_of_disk_space"] =
+        bool_strings[criteria->running_out_of_disk_space];
+    mojom_criteria["out_of_retention"] =
+        bool_strings[criteria->out_of_retention];
+    mojom_criteria["is_already_installing"] =
+        bool_strings[criteria->is_already_installing];
+  }
   data->registration_criteria = mojom_criteria;
 
   // Populate status for supplementary models.
@@ -209,4 +213,13 @@ void OnDeviceInternalsPageHandler::GetOnDeviceInternalsData(
   }
 
   std::move(callback).Run(std::move(data));
+}
+
+void OnDeviceInternalsPageHandler::DecodeBitmap(
+    mojo_base::BigBuffer image_buffer,
+    DecodeBitmapCallback callback) {
+  data_decoder::DecodeImageIsolated(
+      base::span(image_buffer), data_decoder::mojom::ImageCodec::kDefault,
+      /*shrink_to_fit=*/false, data_decoder::kDefaultMaxSizeInBytes,
+      /*desired_image_frame_size=*/gfx::Size(), std::move(callback));
 }

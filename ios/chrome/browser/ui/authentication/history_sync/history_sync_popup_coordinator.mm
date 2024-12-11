@@ -18,6 +18,7 @@
 #import "ios/chrome/browser/ui/authentication/authentication_ui_util.h"
 #import "ios/chrome/browser/ui/authentication/history_sync/history_sync_coordinator.h"
 #import "ios/chrome/browser/ui/authentication/history_sync/history_sync_utils.h"
+#import "ios/chrome/browser/ui/authentication/signin/interruptible_chrome_coordinator.h"
 
 @interface HistorySyncPopupCoordinator () <
     HistorySyncCoordinatorDelegate,
@@ -120,14 +121,24 @@
   };
   switch (action) {
     case SigninCoordinatorInterrupt::DismissWithAnimation:
-      [_navigationController dismissViewControllerAnimated:YES
-                                                completion:dismissCompletion];
+    case SigninCoordinatorInterrupt::DismissWithoutAnimation: {
+      BOOL animated =
+          SigninCoordinatorInterrupt::DismissWithAnimation == action;
+      if (base::FeatureList::IsEnabled(
+              kIOSInterruptibleCoordinatorStoppedSynchronously)) {
+        [_navigationController dismissViewControllerAnimated:animated
+                                                  completion:nil];
+        dismissCompletion();
+      } else {
+        [_navigationController dismissViewControllerAnimated:animated
+                                                  completion:dismissCompletion];
+      }
       break;
-    case SigninCoordinatorInterrupt::DismissWithoutAnimation:
-      [_navigationController dismissViewControllerAnimated:NO
-                                                completion:dismissCompletion];
-      break;
+    }
     case SigninCoordinatorInterrupt::UIShutdownNoDismiss:
+      CHECK(!base::FeatureList::IsEnabled(
+                kIOSInterruptibleCoordinatorAlwaysDismissed),
+            base::NotFatalUntil::M136);
       // The view should be ignored and leave it being presented.
       _navigationController.presentationController.delegate = nil;
       _navigationController = nil;

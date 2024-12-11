@@ -406,7 +406,7 @@ DrawingBuffer::RegisteredBitmap DrawingBuffer::CreateOrRecycleBitmap() {
     return RegisteredBitmap();
   }
   auto shared_image_mapping = shared_image_interface->CreateSharedImage(
-      {format, size_, gfx::ColorSpace(), gpu::SHARED_IMAGE_USAGE_CPU_WRITE,
+      {format, size_, gfx::ColorSpace(), gpu::SHARED_IMAGE_USAGE_CPU_WRITE_ONLY,
        "DrawingBufferBitmap"});
   auto bitmap = base::MakeRefCounted<cc::CrossThreadSharedBitmap>(
       viz::SharedBitmapId(), base::ReadOnlySharedMemoryRegion(),
@@ -532,18 +532,11 @@ bool DrawingBuffer::FinishPrepareTransferableResourceSoftware(
   ReadFramebufferIntoBitmapPixels(
       static_cast<uint8_t*>(registered.bitmap->memory()));
 
-  if (registered.shared_image) {
-    *out_resource = viz::TransferableResource::MakeSoftwareSharedImage(
-        registered.shared_image, registered.sync_token, size_,
-        viz::SinglePlaneFormat::kBGRA_8888,
-        viz::TransferableResource::ResourceSource::kImageLayerBridge);
-  } else {
-    *out_resource = viz::TransferableResource::MakeSoftwareSharedBitmap(
-        registered.bitmap->id(), gpu::SyncToken(), size_,
-        viz::SinglePlaneFormat::kRGBA_8888,
-        viz::TransferableResource::ResourceSource::kDrawingBuffer);
-  }
-  out_resource->color_space = back_color_buffer_->color_space;
+  *out_resource = viz::TransferableResource::MakeSoftwareSharedImage(
+      registered.shared_image, registered.sync_token, size_,
+      viz::SinglePlaneFormat::kBGRA_8888,
+      viz::TransferableResource::ResourceSource::kImageLayerBridge);
+  out_resource->color_space = back_color_buffer_->shared_image->color_space();
   out_resource->hdr_metadata = hdr_metadata_;
 
   // ReadFramebufferIntoBitmapPixels always produced bottom-Left origin.
@@ -704,7 +697,7 @@ void DrawingBuffer::MailboxReleasedGpu(scoped_refptr<ColorBuffer> color_buffer,
 
   if (destruction_in_progress_ || color_buffer->size != size_ ||
       color_buffer->format != color_buffer_format_ ||
-      color_buffer->color_space != color_space_ ||
+      color_buffer->shared_image->color_space() != color_space_ ||
       gl_->GetGraphicsResetStatusKHR() != GL_NO_ERROR || lost_resource ||
       is_hidden_) {
     return;
@@ -786,7 +779,6 @@ scoped_refptr<StaticBitmapImage> DrawingBuffer::TransferToStaticBitmapImage() {
   return AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
       std::move(client_si), sk_image_sync_token,
       /* shared_image_texture_id = */ 0, sk_image_info,
-      transferable_resource.texture_target(),
       context_provider_->GetWeakPtr(), base::PlatformThread::CurrentRef(),
       ThreadScheduler::Current()->CleanupTaskRunner(),
       std::move(release_callback),
@@ -801,7 +793,7 @@ DrawingBuffer::CreateOrRecycleColorBuffer() {
     scoped_refptr<ColorBuffer> recycled =
         recycled_color_buffer_queue_.TakeLast();
     DCHECK(recycled->size == size_);
-    DCHECK(recycled->color_space == color_space_);
+    DCHECK(recycled->shared_image->color_space() == color_space_);
     recycled->BeginAccess(recycled->receive_sync_token, /*readonly=*/false);
     return recycled;
   }
@@ -839,9 +831,9 @@ scoped_refptr<CanvasResource> DrawingBuffer::ExportLowLatencyCanvasResource(
   }
 
   return ExternalCanvasResource::Create(
-      color_buffer->shared_image, resource, resource.is_overlay_candidate,
-      viz::ReleaseCallback(), context_provider_->GetWeakPtr(),
-      resource_provider);
+      color_buffer->shared_image, resource.sync_token(),
+      resource.resource_source, resource.hdr_metadata, viz::ReleaseCallback(),
+      context_provider_->GetWeakPtr(), resource_provider);
 }
 
 scoped_refptr<CanvasResource> DrawingBuffer::ExportCanvasResource() {
@@ -865,15 +857,15 @@ scoped_refptr<CanvasResource> DrawingBuffer::ExportCanvasResource() {
   //   returns true
   CHECK(client_si);
   return ExternalCanvasResource::Create(
-      client_si, out_resource, out_resource.is_overlay_candidate,
-      std::move(out_release_callback), context_provider_->GetWeakPtr(),
+      client_si, out_resource.sync_token(), out_resource.resource_source,
+      out_resource.hdr_metadata, std::move(out_release_callback),
+      context_provider_->GetWeakPtr(),
       /*resource_provider=*/nullptr);
 }
 
 DrawingBuffer::ColorBuffer::ColorBuffer(
     base::WeakPtr<DrawingBuffer> drawing_buffer,
     const gfx::Size& size,
-    const gfx::ColorSpace& color_space,
     viz::SharedImageFormat format,
     SkAlphaType alpha_type,
     scoped_refptr<gpu::ClientSharedImage> shared_image,
@@ -881,7 +873,6 @@ DrawingBuffer::ColorBuffer::ColorBuffer(
     : owning_thread_ref(base::PlatformThread::CurrentRef()),
       drawing_buffer(std::move(drawing_buffer)),
       size(size),
-      color_space(color_space),
       format(format),
       alpha_type(alpha_type),
       shared_image(std::move(shared_image)),
@@ -2099,7 +2090,7 @@ scoped_refptr<DrawingBuffer::ColorBuffer> DrawingBuffer::CreateColorBuffer(
     std::unique_ptr<gpu::SharedImageTexture> si_texture =
         front_buffer_shared_image->CreateGLTexture(gl_);
     front_color_buffer_ = base::MakeRefCounted<ColorBuffer>(
-        weak_factory_.GetWeakPtr(), size, color_space_, color_buffer_format_,
+        weak_factory_.GetWeakPtr(), size, color_buffer_format_,
         back_buffer_alpha_type, std::move(front_buffer_shared_image),
         std::move(si_texture));
   }
@@ -2109,7 +2100,7 @@ scoped_refptr<DrawingBuffer::ColorBuffer> DrawingBuffer::CreateColorBuffer(
       back_buffer_shared_image->CreateGLTexture(gl_);
   scoped_refptr<DrawingBuffer::ColorBuffer> color_buffer =
       base::MakeRefCounted<ColorBuffer>(
-          weak_factory_.GetWeakPtr(), size, color_space_, color_buffer_format_,
+          weak_factory_.GetWeakPtr(), size, color_buffer_format_,
           back_buffer_alpha_type, std::move(back_buffer_shared_image),
           std::move(si_texture));
   color_buffer->BeginAccess(gpu::SyncToken(), /*readonly=*/false);

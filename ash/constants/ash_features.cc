@@ -833,9 +833,6 @@ BASE_FEATURE(kFastPairHandshakeLongTermRefactor,
              "FastPairHandshakeLongTermRefactor",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables prototype support for Fast Pair HID (non-keyboard).
-BASE_FEATURE(kFastPairHID, "FastPairHID", base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables prototype support for Fast Pair for keyboards.
 BASE_FEATURE(kFastPairKeyboards,
              "FastPairKeyboards",
@@ -1024,6 +1021,11 @@ BASE_FEATURE(kFlexAutoEnrollment,
 // Enables firmware updates from LVFS for ChromeOS Flex.
 BASE_FEATURE(kFlexFirmwareUpdate,
              "FlexFirmwareUpdate",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Enables Android Vpn Apps for ChromeOS Flex.
+BASE_FEATURE(kAndroidVpnAppsOnFlex,
+             "AndroidVpnAppsOnFlex",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Controls Floating SSO feature which can move cookies between ChromeOS
@@ -1684,11 +1686,6 @@ BASE_FEATURE(kLanguagePacksInOobe,
 // via the corresponding Settings page.
 BASE_FEATURE(kLanguagePacksInSettings,
              "LanguagePacksInSettings",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enables using lacros's extension printers from ash when lacros is enabled.
-BASE_FEATURE(kLacrosExtensionPrinting,
-             "LacrosExtensionPrinting",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // When enabled, launcher continue section will suggest drive files based on
@@ -3406,10 +3403,6 @@ bool IsCaptureModeEducationBypassLimitsEnabled() {
   return base::FeatureList::IsEnabled(kCaptureModeEducationBypassLimits);
 }
 
-bool IsChangePasswordFactorSetupEnabled() {
-  return base::FeatureList::IsEnabled(kChangePasswordFactorSetup);
-}
-
 bool IsCheckPasswordsAgainstCryptohomeHelperEnabled() {
   return base::FeatureList::IsEnabled(kCheckPasswordsAgainstCryptohomeHelper);
 }
@@ -3581,10 +3574,6 @@ bool IsFastPairHandshakeLongTermRefactorEnabled() {
   return base::FeatureList::IsEnabled(kFastPairHandshakeLongTermRefactor);
 }
 
-bool IsFastPairHIDEnabled() {
-  return base::FeatureList::IsEnabled(kFastPairHID);
-}
-
 bool IsFastPairKeyboardsEnabled() {
   return base::FeatureList::IsEnabled(kFastPairKeyboards);
 }
@@ -3652,6 +3641,11 @@ bool IsFlexAutoEnrollmentEnabled() {
 bool IsFlexFirmwareUpdateEnabled() {
   return switches::IsRevenBranding() &&
          base::FeatureList::IsEnabled(kFlexFirmwareUpdate);
+}
+
+bool IsAndroidVpnAppsOnFlexEnabled() {
+  return switches::IsRevenBranding() &&
+         base::FeatureList::IsEnabled(kAndroidVpnAppsOnFlex);
 }
 
 bool IsFloatingSsoAllowed() {
@@ -3936,10 +3930,6 @@ bool IsKeyboardRewriterFixEnabled() {
 
 bool IsLanguagePacksInOobeEnabled() {
   return base::FeatureList::IsEnabled(kLanguagePacksInOobe);
-}
-
-bool IsLacrosExtensionPrintingEnabled() {
-  return base::FeatureList::IsEnabled(kLacrosExtensionPrinting);
 }
 
 bool IsLauncherContinueSectionWithRecentsEnabled() {

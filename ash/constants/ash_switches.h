@@ -156,7 +156,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kEnableArc[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kEnableArcVm[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kEnableArcVmDlc[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kEnableArcVmRtVcpu[];
-COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kEnableAshDebugBrowser[];
 COMPONENT_EXPORT(ASH_CONSTANTS)
 extern const char kEnableBirchWeatherApiForTestingOverride[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kEnableCastReceiver[];
@@ -253,10 +252,6 @@ extern const char kInstallLogFastUploadForTests[];
 COMPONENT_EXPORT(ASH_CONSTANTS)
 extern const char kKioskSplashScreenMinTimeSeconds[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kLacrosAvailabilityIgnore[];
-COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kLacrosChromeAdditionalArgs[];
-COMPONENT_EXPORT(ASH_CONSTANTS)
-extern const char kLacrosChromeAdditionalArgsFile[];
-COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kLacrosChromeAdditionalEnv[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kLacrosChromePath[];
 COMPONENT_EXPORT(ASH_CONSTANTS)
 extern const char kLacrosSelectionPolicyIgnore[];
@@ -425,9 +420,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS) bool ShouldSkipSplitModifierCheckForTesting();
 // Returns true if we should show a11y button on the marketing opt in screen.
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool ShouldShowAccessibilityButtonOnMarketingOptInForTesting();
-
-// Returns true if ash-debug browser is enabled.
-COMPONENT_EXPORT(ASH_CONSTANTS) bool IsAshDebugBrowserEnabled();
 
 // Returns true if the device is of tablet form factor.
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsTabletFormFactor();

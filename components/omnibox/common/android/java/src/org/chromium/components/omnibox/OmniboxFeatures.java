@@ -45,7 +45,7 @@ public class OmniboxFeatures {
     public static final int DEFAULT_MAX_PREFETCHES_PER_OMNIBOX_SESSION = 5;
 
     // Timeout requests after 30 minutes if we somehow fail to remove our listener.
-    private static final int DEFAULT_GEOLOCATION_REQUEST_TIMEOUT_MIN = 30;
+    private static final int DEFAULT_GEOLOCATION_REQUEST_TIMEOUT_MIN = 10;
 
     // Minimum number of characters required to trigger rich inline autocomplete.
     private static final int DEFAULT_RICH_INLINE_MIN_CHAR = 3;
@@ -80,7 +80,7 @@ public class OmniboxFeatures {
      * in omnibox requests.
      */
     public static final CachedFlag sUseFusedLocationProvider =
-            newFlag(OmniboxFeatureList.USE_FUSED_LOCATION_PROVIDER, /* defaultValue= */ false);
+            newFlag(OmniboxFeatureList.USE_FUSED_LOCATION_PROVIDER, /* defaultValue= */ true);
 
     public static final CachedFlag sAsyncViewInflation =
             newFlag(OmniboxFeatureList.OMNIBOX_ASYNC_VIEW_INFLATION, /* defaultValue= */ false);
@@ -98,6 +98,9 @@ public class OmniboxFeatures {
 
     public static final CachedFlag sAndroidHubSearch =
             newFlag(OmniboxFeatureList.ANDROID_HUB_SEARCH, /* defaultValue= */ false);
+
+    public static final CachedFlag sPostDelayedTaskFocusTab =
+            newFlag(OmniboxFeatureList.POST_DELAYED_TASK_FOCUS_TAB, /* defaultValue= */ true);
 
     public static final BooleanCachedFieldTrialParameter sAnswerActionsShowAboveKeyboard =
             newBooleanParam(sOmniboxAnswerActions, "AnswerActionsShowAboveKeyboard", false);
@@ -137,6 +140,9 @@ public class OmniboxFeatures {
 
     public static final IntCachedFieldTrialParameter sJumpStartOmniboxMaxAwayTimeMinutes =
             newIntParam(sJumpStartOmnibox, "jump_start_max_away_time_minutes", 8 * 60);
+
+    public static final IntCachedFieldTrialParameter sPostDelayedTaskFocusTabTimeMillis =
+            newIntParam(sPostDelayedTaskFocusTab, "post_delayed_task_focus_tab_time_millis", 0);
 
     // This parameter permits JSO to include additional page classifications when caching/serving
     // suggestions on SearchActivity.

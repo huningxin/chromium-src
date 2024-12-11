@@ -177,14 +177,13 @@ class FormFillerTest : public testing::Test {
     return browser_autofill_manager_->GetAutofillField(form, field);
   }
 
-  // Lets `BrowserAutofillManager` fill `form` with `profile_or_credit_card` and
+  // Lets `BrowserAutofillManager` fill `form` with `filling_payload` and
   // returns `form` as it would be extracted from the renderer afterwards, i.e.,
   // with the autofilled `FormFieldData::value`s.
   FormData FillAutofillFormData(
       FormData form,
       const FormFieldData& trigger_field,
-      absl::variant<const AutofillProfile*, const CreditCard*>
-          profile_or_credit_card,
+      FillingPayload filling_payload,
       AutofillTriggerSource trigger_source = AutofillTriggerSource::kPopup) {
     std::vector<FormFieldData> filled_fields;
     std::vector<FieldGlobalId> global_ids;
@@ -198,9 +197,9 @@ class FormFillerTest : public testing::Test {
         .WillOnce(
             DoAll(SaveArgElementsTo<2>(&filled_fields), Return(global_ids)));
     form_filler().FillOrPreviewForm(
-        mojom::ActionPersistence::kFill, form, profile_or_credit_card,
-        GetFormStructure(form), GetAutofillField(form, trigger_field),
-        trigger_source,
+        mojom::ActionPersistence::kFill, form, filling_payload,
+        *GetFormStructure(form), *GetAutofillField(form, trigger_field),
+        /*ignorable_skip_reasons=*/{}, trigger_source,
         /*is_refill=*/false);
     // Copy the filled data into the form.
     for (FormFieldData& field : test_api(form).fields()) {
@@ -223,8 +222,9 @@ class FormFillerTest : public testing::Test {
                          Return(std::vector<FieldGlobalId>{}))));
     form_filler().FillOrPreviewForm(
         mojom::ActionPersistence::kPreview, form, &virtual_card,
-        GetFormStructure(form), GetAutofillField(form, field),
-        AutofillTriggerSource::kPopup, /*is_refill=*/false);
+        *GetFormStructure(form), *GetAutofillField(form, field),
+        /*ignorable_skip_reasons=*/{}, AutofillTriggerSource::kPopup,
+        /*is_refill=*/false);
     return filled_fields;
   }
 
@@ -294,11 +294,11 @@ TEST_F(FormFillerTest, DoNotFillIfFormChanged) {
 
   EXPECT_CALL(autofill_driver_, ApplyFormAction).Times(0);
   AutofillProfile profile = test::GetFullProfile();
-  form_filler().FillOrPreviewForm(mojom::ActionPersistence::kFill, form,
-                                  &profile, GetFormStructure(form),
-                                  GetAutofillField(form, form.fields().front()),
-                                  AutofillTriggerSource::kPopup,
-                                  /*is_refill=*/false);
+  form_filler().FillOrPreviewForm(
+      mojom::ActionPersistence::kFill, form, &profile, *GetFormStructure(form),
+      *GetAutofillField(form, form.fields().front()),
+      /*ignorable_skip_reasons=*/{}, AutofillTriggerSource::kPopup,
+      /*is_refill=*/false);
 }
 
 TEST_F(FormFillerTest, SkipFillIfFieldIsMeaningfullyPreFilled) {
@@ -400,11 +400,11 @@ TEST_F(FormFillerTest, UndoSavesFormFillingData) {
       .WillRepeatedly(Return(safe_fields));
 
   AutofillProfile profile = test::GetFullProfile();
-  form_filler().FillOrPreviewForm(mojom::ActionPersistence::kFill, form,
-                                  &profile, GetFormStructure(form),
-                                  GetAutofillField(form, form.fields().front()),
-                                  AutofillTriggerSource::kPopup,
-                                  /*is_refill=*/false);
+  form_filler().FillOrPreviewForm(
+      mojom::ActionPersistence::kFill, form, &profile, *GetFormStructure(form),
+      *GetAutofillField(form, form.fields().front()),
+      /*ignorable_skip_reasons=*/{}, AutofillTriggerSource::kPopup,
+      /*is_refill=*/false);
   // Undo early returns if it has no filling history for the trigger field,
   // which is initially empty, therefore calling the driver is proof that data
   // was successfully stored.
@@ -1665,7 +1665,7 @@ TEST_F(FormFillerTest, FillOrPreviewFormWithPredictionImprovements) {
   EXPECT_CALL(autofill_driver_, ApplyFormAction)
       .WillOnce(DoAll(SaveArgElementsTo<2>(&filled_fields),
                       Return(std::vector<FieldGlobalId>())));
-  browser_autofill_manager_->FillOrPreviewFormWithPredictionImprovements(
+  browser_autofill_manager_->FillOrPreviewFormWithAutofillAiData(
       mojom::ActionPersistence::kFill,
       /*ignorable_skip_reasons=*/{}, form, form.fields().front(),
       values_to_fill);

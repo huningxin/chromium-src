@@ -174,6 +174,8 @@ data/accessibility/accname/name-file-spinbutton-valuenow-in-label-expected-blink
 data/accessibility/accname/name-file-spinbutton-valuenow-in-label.html
 data/accessibility/accname/name-file-title-expected-blink.txt
 data/accessibility/accname/name-file-title.html
+data/accessibility/accname/name-from-content-dfn-expected-blink.txt
+data/accessibility/accname/name-from-content-dfn.html
 data/accessibility/accname/name-from-content-expected-blink.txt
 data/accessibility/accname/name-from-content-of-label-expected-blink.txt
 data/accessibility/accname/name-from-content-of-label.html
@@ -181,6 +183,8 @@ data/accessibility/accname/name-from-content-of-labelledby-element-expected-blin
 data/accessibility/accname/name-from-content-of-labelledby-element.html
 data/accessibility/accname/name-from-content-of-labelledby-elements-one-of-which-is-hidden-expected-blink.txt
 data/accessibility/accname/name-from-content-of-labelledby-elements-one-of-which-is-hidden.html
+data/accessibility/accname/name-from-content-term-role-expected-blink.txt
+data/accessibility/accname/name-from-content-term-role.html
 data/accessibility/accname/name-from-content-whitespace-block-children-collapses-extra-whitespace-expected-blink.txt
 data/accessibility/accname/name-from-content-whitespace-block-children-collapses-extra-whitespace.html
 data/accessibility/accname/name-from-content-whitespace-block-children-expected-blink.txt
@@ -5586,12 +5590,16 @@ data/accessibility/mac/methods/accessibility-index-table-expected.txt
 data/accessibility/mac/methods/accessibility-index-table.html
 data/accessibility/mac/methods/accessibility-index-tree-expected.txt
 data/accessibility/mac/methods/accessibility-index-tree.html
+data/accessibility/mac/methods/accessibility-insertion-point-line-number-expected.txt
+data/accessibility/mac/methods/accessibility-insertion-point-line-number.html
 data/accessibility/mac/methods/accessibility-is-ignored-expected.txt
 data/accessibility/mac/methods/accessibility-is-ignored.html
 data/accessibility/mac/methods/accessibility-label-expected.txt
 data/accessibility/mac/methods/accessibility-label.html
 data/accessibility/mac/methods/accessibility-number-of-characters-expected.txt
 data/accessibility/mac/methods/accessibility-number-of-characters.html
+data/accessibility/mac/methods/accessibility-linked-ui-elements-expected.txt
+data/accessibility/mac/methods/accessibility-linked-ui-elements.html
 data/accessibility/mac/methods/accessibility-placeholder-value-expected.txt
 data/accessibility/mac/methods/accessibility-placeholder-value.html
 data/accessibility/mac/methods/accessibility-role-description-expected.txt
@@ -5622,6 +5630,8 @@ data/accessibility/mac/methods/accessibility-url-expected.txt
 data/accessibility/mac/methods/accessibility-url.html
 data/accessibility/mac/methods/accessibility-visible-cells-expected.txt
 data/accessibility/mac/methods/accessibility-visible-cells.html
+data/accessibility/mac/methods/accessibility-visible-character-range-expected.txt
+data/accessibility/mac/methods/accessibility-visible-character-range.html
 data/accessibility/mac/methods/accessibility-visible-columns-expected.txt
 data/accessibility/mac/methods/accessibility-visible-columns.html
 data/accessibility/mac/methods/accessibility-visible-rows-expected.txt

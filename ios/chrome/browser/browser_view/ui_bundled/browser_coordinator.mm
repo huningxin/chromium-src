@@ -33,6 +33,7 @@
 #import "components/trusted_vault/trusted_vault_server_constants.h"
 #import "ios/chrome/browser/app_launcher/model/app_launcher_tab_helper_browser_presentation_provider.h"
 #import "ios/chrome/browser/app_store_rating/ui_bundled/features.h"
+#import "ios/chrome/browser/autofill/model/bottom_sheet/autofill_bottom_sheet_tab_helper.h"
 #import "ios/chrome/browser/autofill/ui_bundled/authentication/card_unmask_authentication_coordinator.h"
 #import "ios/chrome/browser/autofill/ui_bundled/bottom_sheet/autofill_edit_profile_bottom_sheet_coordinator.h"
 #import "ios/chrome/browser/autofill/ui_bundled/bottom_sheet/payments_suggestion_bottom_sheet_coordinator.h"
@@ -108,10 +109,13 @@
 #import "ios/chrome/browser/ntp/model/new_tab_page_tab_helper.h"
 #import "ios/chrome/browser/ntp/ui_bundled/new_tab_page_component_factory.h"
 #import "ios/chrome/browser/ntp/ui_bundled/new_tab_page_coordinator.h"
+#import "ios/chrome/browser/omnibox/model/omnibox_position_browser_agent.h"
 #import "ios/chrome/browser/overlays/model/public/overlay_presenter.h"
 #import "ios/chrome/browser/overlays/ui_bundled/overlay_container_coordinator.h"
 #import "ios/chrome/browser/overscroll_actions/model/overscroll_actions_tab_helper.h"
 #import "ios/chrome/browser/overscroll_actions/ui_bundled/overscroll_actions_controller.h"
+#import "ios/chrome/browser/page_info/ui_bundled/page_info_coordinator.h"
+#import "ios/chrome/browser/page_info/ui_bundled/requirements/page_info_presentation.h"
 #import "ios/chrome/browser/parcel_tracking/parcel_tracking_infobar_delegate.h"
 #import "ios/chrome/browser/parcel_tracking/parcel_tracking_opt_in_status.h"
 #import "ios/chrome/browser/parcel_tracking/parcel_tracking_step.h"
@@ -241,8 +245,6 @@
 #import "ios/chrome/browser/ui/authentication/enterprise/enterprise_prompt/enterprise_prompt_type.h"
 #import "ios/chrome/browser/ui/authentication/signin_presenter.h"
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_controller.h"
-#import "ios/chrome/browser/ui/page_info/page_info_coordinator.h"
-#import "ios/chrome/browser/ui/page_info/requirements/page_info_presentation.h"
 #import "ios/chrome/browser/ui/popup_menu/popup_menu_coordinator.h"
 #import "ios/chrome/browser/ui/whats_new/whats_new_coordinator.h"
 #import "ios/chrome/browser/unit_conversion/ui_bundled/unit_conversion_coordinator.h"
@@ -274,6 +276,7 @@
 #import "ios/public/provider/chrome/browser/text_zoom/text_zoom_api.h"
 #import "ios/public/provider/chrome/browser/voice_search/voice_search_api.h"
 #import "ios/public/provider/chrome/browser/voice_search/voice_search_controller.h"
+#import "ios/web/public/web_state.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util.h"
 
@@ -1054,10 +1057,15 @@ enum class ToolbarKind {
   _toolbarCoordinator =
       [[ToolbarCoordinator alloc] initWithBrowser:self.browser];
 
+  OmniboxPositionBrowserAgent* omniboxPositionBrowserAgent =
+      OmniboxPositionBrowserAgent::FromBrowser(self.browser);
   _toolbarAccessoryPresenter = [[ToolbarAccessoryPresenter alloc]
-      initWithIsIncognito:profile->IsOffTheRecord()];
-  _toolbarAccessoryPresenter.toolbarLayoutGuide =
+              initWithIsIncognito:profile->IsOffTheRecord()
+      omniboxPositionBrowserAgent:omniboxPositionBrowserAgent];
+  _toolbarAccessoryPresenter.topToolbarLayoutGuide =
       [_layoutGuideCenter makeLayoutGuideNamed:kPrimaryToolbarGuide];
+  _toolbarAccessoryPresenter.bottomToolbarLayoutGuide =
+      [_layoutGuideCenter makeLayoutGuideNamed:kSecondaryToolbarGuide];
 
   _sideSwipeMediator = [[SideSwipeMediator alloc]
       initWithFullscreenController:_fullscreenController
@@ -1231,6 +1239,7 @@ enum class ToolbarKind {
   _loadQueryCommandsHandler = nil;
   _omniboxCommandsHandler = nil;
 
+  [_toolbarAccessoryPresenter disconnect];
   _toolbarAccessoryPresenter = nil;
 
   [_contextualPanelEntrypointHelpPresenter dismissAnimated:NO];
@@ -1850,10 +1859,18 @@ enum class ToolbarKind {
 }
 
 - (void)showVirtualCardEnrollmentBottomSheet:
-    (std::unique_ptr<autofill::VirtualCardEnrollUiModel>)model {
+            (std::unique_ptr<autofill::VirtualCardEnrollUiModel>)model
+                              originWebState:(web::WebState*)originWebState {
   if (self.virtualCardEnrollmentBottomSheetCoordinator) {
     [self.virtualCardEnrollmentBottomSheetCoordinator stop];
   }
+
+  if (self.activeWebState != originWebState) {
+    // Do not show the sheet if the current tab is not the one where the credit
+    // card was originally saved.
+    return;
+  }
+
   self.virtualCardEnrollmentBottomSheetCoordinator =
       [[VirtualCardEnrollmentBottomSheetCoordinator alloc]
              initWithUIModel:std::move(model)

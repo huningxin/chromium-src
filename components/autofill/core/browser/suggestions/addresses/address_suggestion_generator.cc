@@ -24,10 +24,10 @@
 #include "components/autofill/core/browser/address_data_manager.h"
 #include "components/autofill/core/browser/autofill_browser_util.h"
 #include "components/autofill/core/browser/autofill_client.h"
-#include "components/autofill/core/browser/autofill_data_util.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/autofill_profile_comparator.h"
 #include "components/autofill/core/browser/data_model/borrowed_transliterator.h"
+#include "components/autofill/core/browser/data_quality/autofill_data_util.h"
 #include "components/autofill/core/browser/field_type_utils.h"
 #include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/browser/filling/addresses/field_filling_address_util.h"
@@ -677,13 +677,18 @@ std::vector<Suggestion> GetSuggestionsOnTypingForProfile(
     // `ADDRESS_HOME_LINE1` and
     // `ADDRESS_HOME_STREET_ADDRESS` hold the same data.
     if (!suggestions_text.contains(suggestion_text)) {
-      suggestions.emplace_back(SuggestionType::kAddressEntryOnTyping);
-      suggestions.back().main_text = Suggestion::Text(suggestion_text);
+      suggestions.emplace_back(suggestion_text,
+                               SuggestionType::kAddressEntryOnTyping);
       suggestions.back().field_by_field_filling_type_used = type;
       suggestions.back().payload =
           Suggestion::AutofillProfilePayload(Suggestion::Guid(profile.guid()));
       suggestions_text.insert(suggestion_text);
     }
+  }
+  if (suggestions.size() > 0) {
+    // TODO(crbug.com/381994105): Consider adding undo.
+    base::ranges::move(GetAddressFooterSuggestions(/*is_autofilled=*/false),
+                       std::back_inserter(suggestions));
   }
   return suggestions;
 }

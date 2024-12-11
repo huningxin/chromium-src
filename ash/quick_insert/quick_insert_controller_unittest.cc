@@ -33,12 +33,15 @@
 #include "ash/test/ash_test_base.h"
 #include "ash/test/test_widget_builder.h"
 #include "ash/test/view_drawn_waiter.h"
+#include "base/files/scoped_temp_dir.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/scoped_observation.h"
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/mock_callback.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/test_future.h"
+#include "components/history/core/browser/history_service.h"
+#include "components/history/core/test/history_service_test_util.h"
 #include "components/metrics/structured/structured_events.h"
 #include "components/metrics/structured/test/test_structured_metrics_recorder.h"
 #include "components/prefs/pref_registry_simple.h"
@@ -160,12 +163,17 @@ class TestQuickInsertClient : public MockQuickInsertClient {
                         sync_preferences::TestingPrefServiceSyncable* prefs)
       : controller_(controller), prefs_(prefs) {
     controller_->SetClient(this);
+    CHECK(history_dir_.CreateUniqueTempDir());
+    history_service_ =
+        history::CreateHistoryService(history_dir_.GetPath(), true);
     // Set default behaviours. These can be overridden with `WillOnce` and
     // `WillRepeatedly`.
     ON_CALL(*this, GetSharedURLLoaderFactory)
         .WillByDefault(
             base::MakeRefCounted<network::TestSharedURLLoaderFactory>);
     ON_CALL(*this, GetPrefs).WillByDefault(Return(prefs_));
+    ON_CALL(*this, GetHistoryService)
+        .WillByDefault(Return(history_service_.get()));
   }
   ~TestQuickInsertClient() override { controller_->SetClient(nullptr); }
 
@@ -174,6 +182,8 @@ class TestQuickInsertClient : public MockQuickInsertClient {
  private:
   raw_ptr<QuickInsertController> controller_ = nullptr;
   raw_ptr<sync_preferences::TestingPrefServiceSyncable> prefs_ = nullptr;
+  base::ScopedTempDir history_dir_;
+  std::unique_ptr<history::HistoryService> history_service_;
 };
 
 class QuickInsertControllerTest : public AshTestBase {
@@ -350,7 +360,7 @@ TEST_F(QuickInsertControllerTest,
 TEST_F(QuickInsertControllerTest,
        ToggleWidgetShowsWidgetAfterCompletingFeatureTourWithoutFocus) {
   std::unique_ptr<views::Widget> test_widget =
-      ash::TestWidgetBuilder()
+      TestWidgetBuilder()
           .SetWidgetType(views::Widget::InitParams::TYPE_WINDOW_FRAMELESS)
           .SetShow(true)
           .BuildClientOwnsWidget();
@@ -397,7 +407,7 @@ TEST_F(QuickInsertControllerTest,
 TEST_F(QuickInsertControllerTest,
        ToggleWidgetShowsWidgetAfterCompletingFeatureTourWithFocus) {
   std::unique_ptr<views::Widget> textfield_widget =
-      ash::TestWidgetBuilder()
+      TestWidgetBuilder()
           .SetWidgetType(views::Widget::InitParams::TYPE_WINDOW_FRAMELESS)
           .SetShow(true)
           .BuildClientOwnsWidget();
@@ -590,7 +600,7 @@ TEST_F(QuickInsertControllerTest,
       ReadHtmlFromClipboard(ui::Clipboard::GetForCurrentThread()),
       uR"html(<img src="http://foo.com/" referrerpolicy="no-referrer" alt="a gif" width="60" height="40"/>)html");
   EXPECT_TRUE(
-      ash::ToastManager::Get()->IsToastShown("quick_insert_copy_to_clipboard"));
+      ToastManager::Get()->IsToastShown("quick_insert_copy_to_clipboard"));
 }
 
 TEST_F(QuickInsertControllerTest,
@@ -852,12 +862,6 @@ TEST_F(QuickInsertControllerTest, ShowLobsterCallsCallbackFromClient) {
 TEST_F(QuickInsertControllerTest,
        GetResultsForCategoryReturnsEmptyForEmptyResults) {
   base::test::TestFuture<std::vector<QuickInsertSearchResultsSection>> future;
-  EXPECT_CALL(client(), GetSuggestedLinkResults)
-      .WillRepeatedly(
-          [](size_t max_results,
-             TestQuickInsertClient::SuggestedLinksCallback callback) {
-            std::move(callback).Run({});
-          });
 
   controller().ToggleWidget();
   controller().GetResultsForCategory(QuickInsertCategory::kLinks,

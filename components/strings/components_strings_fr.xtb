@@ -15,7 +15,7 @@
 <translation id="1024913885641459127">Critiques de produits et comparaisons de prix</translation>
 <translation id="102916930470544692">Clé d'accès</translation>
 <translation id="1030706264415084469"><ph name="URL" /> souhaite stocker de façon permanente des données volumineuses sur votre appareil</translation>
-<translation id="1030949145805074938">{COUNT,plural, =0{Aucun}=1{De 1 site. Cette action vous déconnectera de la plupart des sites. }one{De # site. Cette action vous déconnectera de la plupart des sites. }other{De # sites. Cette action vous déconnectera de la plupart des sites. }}</translation>
+<translation id="1030949145805074938">{COUNT,plural, =0{Aucun}=1{Issus de 1 site. Cette action vous déconnectera de la plupart des sites. }one{Issus de # site. Cette action vous déconnectera de la plupart des sites. }other{Issus de # sites. Cette action vous déconnectera de la plupart des sites. }}</translation>
 <translation id="1035709686865413354">Purificateurs et filtres à eau</translation>
 <translation id="1036348656032585052">Désactiver</translation>
 <translation id="1036881361735705143">Enveloppe C4</translation>
@@ -564,7 +564,7 @@ Par défaut, ce type d'accès est bloqué par vos paramètres de confidentialit�
 <translation id="1999416967035780066">Freewares et sharewares</translation>
 <translation id="2001146170449793414">{COUNT,plural, =1{et 1 autre}one{et # autre}other{et # autres}}</translation>
 <translation id="2001469757375372617">Un problème est survenu. Votre modification n'a pas été enregistrée.</translation>
-<translation id="2002436619517051938">Vous pouvez effectuer des modifications dans les paramètres Chrome.</translation>
+<translation id="2002436619517051938">Vous pouvez modifier ces options dans les paramètres Chrome.</translation>
 <translation id="2003709556000175978">Réinitialiser votre mot de passe maintenant</translation>
 <translation id="2003775180883135320">Quadruple perforation en haut</translation>
 <translation id="2004697686368036666">Il est possible que les fonctionnalités de certains sites ne fonctionnent pas</translation>
@@ -1236,6 +1236,7 @@ Par défaut, ce type d'accès est bloqué par vos paramètres de confidentialit�
 <translation id="3229277193950731405">Copier la chaîne de la version</translation>
 <translation id="323107829343500871">Saisir le code CVC de la carte <ph name="CREDIT_CARD" /></translation>
 <translation id="3234666976984236645">Toujours détecter du contenu important sur ce site</translation>
+<translation id="323585066388831737">Rouge clair</translation>
 <translation id="3236212803136366317">Avantages des cartes</translation>
 <translation id="3238395604961564389">Ouvrir le lien dans la fenêtre de navigation privée</translation>
 <translation id="3240683217920639535"><ph name="MANAGE_CHROME_THEMES_FOCUSED_FRIENDLY_MATCH_TEXT" />, puis Tabulation, puis Entrée pour personnaliser l'apparence de votre navigateur</translation>
@@ -1496,7 +1497,7 @@ Par défaut, ce type d'accès est bloqué par vos paramètres de confidentialit�
 <translation id="3665100783276035932">La plupart des sites devraient fonctionner comme prévu</translation>
 <translation id="3665806835792525231"><ph name="BEGIN_LINK1" />En savoir plus<ph name="LINK_END1" /></translation>
 <translation id="3670229581627177274">Activer le Bluetooth</translation>
-<translation id="3671117652518853176">Lorsque cette option est désactivée, vous pouvez parfois être invité à procéder à une validation pour des raisons de sécurité</translation>
+<translation id="3671117652518853176">Même si cette option est désactivée, vous devrez parfois procéder à une validation pour des raisons de sécurité</translation>
 <translation id="3671540257457995106">Autoriser le redimensionnement ?</translation>
 <translation id="3672568546897166916">Erreur au niveau de <ph name="ERROR_PATH" /> : <ph name="ERROR_MESSAGE" /></translation>
 <translation id="3674751419374947706">Équipement réseau</translation>
@@ -1854,6 +1855,7 @@ Par défaut, ce type d'accès est bloqué par vos paramètres de confidentialit�
 <translation id="4277937682389409325">Adresse locale</translation>
 <translation id="4278090321534187713">Les cartes non acceptées par ce marchand sont désactivées</translation>
 <translation id="4278390842282768270">Autorisé</translation>
+<translation id="4281245629646759298">Jaune clair</translation>
 <translation id="4281998142035485137">{0,plural, =1{Ouvrir le fichier confidentiel ?}one{Ouvrir le fichier confidentiel ?}other{Ouvrir les fichiers confidentiels ?}}</translation>
 <translation id="4282280603030594840">Achat de véhicules</translation>
 <translation id="4282346679996504092">Les alertes pour ce produit ont été désactivées et le favori supprimé</translation>
@@ -2743,6 +2745,7 @@ Par défaut, ce type d'accès est bloqué par vos paramètres de confidentialit�
 <translation id="5969199813874624822">Enregistrer et suivre le prix</translation>
 <translation id="5973514677932942122"><ph name="EXPIRATION_DATE" /> | <ph name="SECURITY_CODE" /></translation>
 <translation id="5974052231147553524">6e rouleau</translation>
+<translation id="5974745851230707809">Options de paiement échelonné</translation>
 <translation id="5975083100439434680">Zoom arrière</translation>
 <translation id="5979084224081478209">Vérifier les mots de passe</translation>
 <translation id="5984570616552610254">Humidité de la chambre</translation>
@@ -4337,6 +4340,7 @@ Informations supplémentaires :
 <translation id="882338992931677877">Emplacement manuel</translation>
 <translation id="8830320733681313421">Hagaki (carte postale)</translation>
 <translation id="8830565333350631528">Afficher les fichiers dans <ph name="CLOUD_PROVIDER" /></translation>
+<translation id="8831783793142731637">Disponible pour les achats de plus de <ph name="RANGE_MINIMUM" /></translation>
 <translation id="8833007469711500369">Lave-linge et sèche-linge</translation>
 <translation id="8834962751196791179">Vous voyez cet avertissement, car ce site n'est pas HTTPS et que vous êtes en mode navigation privée. <ph name="BEGIN_LEARN_MORE_LINK" />En savoir plus sur cet avertissement<ph name="END_LEARN_MORE_LINK" /></translation>
 <translation id="8837398923270275776">Programmes TV de science-fiction et fantastique</translation>
@@ -4404,7 +4408,7 @@ Informations supplémentaires :
 <translation id="8968766641738584599">Enregistrer la carte</translation>
 <translation id="8970887620466824814">Un problème est survenu</translation>
 <translation id="8971063699422889582">Le certificat du serveur a expiré.</translation>
-<translation id="8975012916872825179">Y compris les numéros de téléphone, les adresses e-mail et les adresses de livraison</translation>
+<translation id="8975012916872825179">Y compris des informations comme les numéros de téléphone, les adresses e-mail et les adresses de livraison</translation>
 <translation id="8975263830901772334">Noms des fichiers que vous imprimez</translation>
 <translation id="8982884016487650216">Chargement du PDF terminé</translation>
 <translation id="8983369100812962543">Vous pouvez désormais redimensionner l'appli</translation>

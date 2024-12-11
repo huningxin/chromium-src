@@ -25,6 +25,7 @@ public class TabGroupSyncServiceImpl implements TabGroupSyncService {
     private final ObserverList<TabGroupSyncService.Observer> mObservers = new ObserverList<>();
     private long mNativePtr;
     private boolean mInitialized;
+    private boolean mIsObservingLocalChanges;
 
     @CalledByNative
     private static TabGroupSyncServiceImpl create(long nativePtr) {
@@ -33,6 +34,7 @@ public class TabGroupSyncServiceImpl implements TabGroupSyncService {
 
     private TabGroupSyncServiceImpl(long nativePtr) {
         mNativePtr = nativePtr;
+        mIsObservingLocalChanges = true;
     }
 
     @Override
@@ -118,9 +120,8 @@ public class TabGroupSyncServiceImpl implements TabGroupSyncService {
     }
 
     @Override
-    public void onTabSelected(LocalTabGroupId groupId, int tabId) {
+    public void onTabSelected(@Nullable LocalTabGroupId groupId, int tabId) {
         if (mNativePtr == 0) return;
-        assert groupId != null;
         TabGroupSyncServiceImplJni.get().setTabSelected(mNativePtr, this, groupId, tabId);
     }
 
@@ -180,6 +181,20 @@ public class TabGroupSyncServiceImpl implements TabGroupSyncService {
         assert localGroupId != null;
         TabGroupSyncServiceImplJni.get()
                 .updateLocalTabId(mNativePtr, this, localGroupId, syncTabId, localTabId);
+    }
+
+    @Override
+    public void setLocalObservationMode(boolean observeLocalChanges) {
+        if (mIsObservingLocalChanges == observeLocalChanges) return;
+        mIsObservingLocalChanges = observeLocalChanges;
+        for (Observer observer : mObservers) {
+            observer.onLocalObservationModeChanged(mIsObservingLocalChanges);
+        }
+    }
+
+    @Override
+    public boolean isObservingLocalChanges() {
+        return mIsObservingLocalChanges;
     }
 
     @Override

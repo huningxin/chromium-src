@@ -6,12 +6,11 @@ syntax = "proto3";
 
 package optimization_guide.proto;
 
+import "components/optimization_guide/proto/features/forms_predictions.proto";
 
 import "components/optimization_guide/proto/features/common_quality_data.proto";
 
 import "components/optimization_guide/proto/common_types.proto";
-
-import "components/optimization_guide/proto/features/forms_predictions.proto";
 
 import "components/optimization_guide/proto/model_quality_metadata.proto";
 
@@ -200,7 +199,6 @@ message HistoryVisitItem {
   repeated string passages = 4;
 }
 
-
 message HistoryQuery {
   // The text used to find matching history items.
   // If empty returns all entries matching the other query parameters.
@@ -241,6 +239,7 @@ message ModelPrototypingMetadata {
   string logging_description = 2;
 
   // The email address of the user who uploaded the data. This will only be
-  // populated for the TVC data upload.
+  // populated for the TVC data upload, this field will not be scrubbed and will
+  // be used to identify the user if there are issues with this feature.
   string user_email = 3;
 }

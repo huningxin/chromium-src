@@ -90,6 +90,7 @@ class LogManager;
 class PersonalDataManager;
 class SingleFieldFillRouter;
 class StrikeDatabase;
+class VotesUploader;
 struct Suggestion;
 enum class WebauthnDialogState;
 
@@ -149,7 +150,6 @@ class AutofillClient {
 
   // Describes the types of Iph shown by Autofill and anchored to a field.
   enum class IphFeature {
-    kManualFallback,
     kPredictionImprovements,
   };
 
@@ -238,6 +238,9 @@ class AutofillClient {
 
   // Returns the AutofillDriverFactory.
   virtual AutofillDriverFactory& GetAutofillDriverFactory() = 0;
+
+  // Returns the VotesUploader.
+  virtual VotesUploader& GetVotesUploader() = 0;
 
   // Returns the AutofillCrowdsourcingManager for communication with the
   // Autofill server.

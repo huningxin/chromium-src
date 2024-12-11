@@ -49,7 +49,6 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kFilterInstalledAppsWinMatching);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kFledgeLimitNumAuctions);
 CONTENT_EXPORT extern const base::FeatureParam<int>
     kFledgeLimitNumAuctionsParam;
-CONTENT_EXPORT BASE_DECLARE_FEATURE(kFledgeUseInterestGroupCache);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kFledgeDelayPostAuctionInterestGroupUpdate);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kFledgeSellerWorkletThreadPool);
 CONTENT_EXPORT extern const base::FeatureParam<int>
@@ -68,9 +67,6 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kForwardMemoryPressureEventsToGpuProcess);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kFrameRoutingCache);
 CONTENT_EXPORT extern const base::FeatureParam<int>
     kFrameRoutingCacheResponseSize;
-#if BUILDFLAG(IS_WIN)
-CONTENT_EXPORT BASE_DECLARE_FEATURE(kGpuInfoCollectionSeparatePrefetch);
-#endif
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kGroupNIKByJoiningOrigin);
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kHandleChildThreadTypeChangesInBrowser);

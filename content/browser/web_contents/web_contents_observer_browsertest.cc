@@ -304,7 +304,7 @@ class CookieTracker : public WebContentsObserver {
       cookie_accesses_.push_back({
           details.type,
           ContextType::kFrame,
-          {rfh->GetProcess()->GetID(), rfh->GetRoutingID()},
+          {rfh->GetProcess()->GetDeprecatedID(), rfh->GetRoutingID()},
           -1,
           details.url,
           details.first_party_url,
@@ -353,7 +353,8 @@ class CookieTracker : public WebContentsObserver {
   }
 
   void RenderFrameCreated(RenderFrameHost* rfh) override {
-    frame_ids_.emplace_back(rfh->GetProcess()->GetID(), rfh->GetRoutingID());
+    frame_ids_.emplace_back(rfh->GetProcess()->GetDeprecatedID(),
+                            rfh->GetRoutingID());
   }
 
  private:
@@ -776,8 +777,8 @@ IN_PROC_BROWSER_TEST_F(WebContentsObserverBrowserTestWithTPCD,
   GURL url_a(embedded_https_test_server().GetURL("a.test", "/"));
   GURL url_a_check_cookie(
       embedded_https_test_server().GetURL("a.test", "/title1.html"));
-  content::SetCookie(web_contents()->GetBrowserContext(), url_a,
-                     "foo=bar;SameSite=None;Secure");
+  ASSERT_TRUE(content::SetCookie(web_contents()->GetBrowserContext(), url_a,
+                                 "foo=bar;SameSite=None;Secure"));
   EXPECT_TRUE(NavigateToURL(web_contents(), url_a_check_cookie));
   cookie_tracker.WaitForCookies(1);
   EXPECT_THAT(

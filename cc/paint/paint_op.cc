@@ -981,16 +981,16 @@ PaintOp* DrawVerticesOp::Deserialize(PaintOpReader& reader, void* output) {
   reader.Read(&op->flags);
 
   std::vector<SkPoint> vertices;
-  reader.Read(&vertices);
+  reader.Read(vertices);
   op->vertices =
       base::MakeRefCounted<RefCountedBuffer<SkPoint>>(std::move(vertices));
 
   std::vector<SkPoint> uvs;
-  reader.Read(&uvs);
+  reader.Read(uvs);
   op->uvs = base::MakeRefCounted<RefCountedBuffer<SkPoint>>(std::move(uvs));
 
   std::vector<uint16_t> indices;
-  reader.Read(&indices);
+  reader.Read(indices);
   op->indices =
       base::MakeRefCounted<RefCountedBuffer<uint16_t>>(std::move(indices));
 
@@ -1150,7 +1150,7 @@ PaintOp* SaveLayerAlphaOp::Deserialize(PaintOpReader& reader, void* output) {
 PaintOp* SaveLayerFiltersOp::Deserialize(PaintOpReader& reader, void* output) {
   SaveLayerFiltersOp* op = new (output) SaveLayerFiltersOp;
   reader.Read(&op->flags);
-  reader.Read(&op->filters);
+  reader.Read(op->filters);
   return op;
 }
 
@@ -1520,34 +1520,16 @@ void DrawArcImpl(SkCanvas* canvas,
     return;
   }
 
-  SkScalar s180 = SkIntToScalar(180);
-  SkPath path;
-  if (SkScalarNearlyEqual(sweep_angle_degrees, SkIntToScalar(360))) {
-    // incReserve() results in a single allocation instead of multiple as is
-    // done by multiple calls to arcTo().
-    path.incReserve(10, 5, 4);
-    // SkPath::arcTo can't handle the sweepAngle that is equal to 2Pi.
-    path.arcTo(oval, start_angle_degrees, s180, false);
-    path.arcTo(oval, start_angle_degrees + s180, s180, false);
-    path.close();
-    canvas->drawPath(path, paint);
-    return;
-  }
-  if (SkScalarNearlyEqual(sweep_angle_degrees, SkIntToScalar(-360))) {
-    // incReserve() results in a single allocation instead of multiple as is
-    // done by multiple calls to arcTo().
-    path.incReserve(10, 5, 4);
-    // SkPath::arcTo can't handle the sweepAngle that is equal to 2Pi.
-    path.arcTo(oval, start_angle_degrees, -s180, false);
-    path.arcTo(oval, start_angle_degrees - s180, -s180, false);
-    path.close();
-    canvas->drawPath(path, paint);
-    return;
-  }
+  if (SkScalarNearlyEqual(std::abs(sweep_angle_degrees), 360)) {
+    // Closed ellipses can be rendered using drawOval.
+    canvas->drawOval(oval, paint);
+  } else {
     // Closed partial arcs -> general SkPath.
+    SkPath path;
     path.arcTo(oval, start_angle_degrees, sweep_angle_degrees, false);
     path.close();
     canvas->drawPath(path, paint);
+  }
 }
 
 void DrawArcOp::RasterWithFlags(const DrawArcOp* op,

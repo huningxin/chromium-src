@@ -4,6 +4,7 @@
 
 package org.chromium.chrome.browser.task_manager;
 
+import org.jni_zero.JNINamespace;
 import org.jni_zero.NativeMethods;
 
 /**
@@ -11,6 +12,7 @@ import org.jni_zero.NativeMethods;
  * receiving updates and fetching specific task information (e.g., memory usage) from the C++ task
  * manager logic.
  */
+@JNINamespace("task_manager")
 public class TaskManagerServiceBridge {
     /**
      * Adds the observer.
@@ -49,6 +51,10 @@ public class TaskManagerServiceBridge {
         return TaskManagerServiceBridgeJni.get().getPlatformIndependentCpuUsage(taskId);
     }
 
+    public long getNetworkUsage(long taskId) {
+        return TaskManagerServiceBridgeJni.get().getNetworkUsage(taskId);
+    }
+
     public long getProcessId(long taskId) {
         return TaskManagerServiceBridgeJni.get().getProcessId(taskId);
     }
@@ -85,6 +91,8 @@ public class TaskManagerServiceBridge {
         long getMemoryFootprintUsage(long taskId);
 
         double getPlatformIndependentCpuUsage(long taskId);
+
+        long getNetworkUsage(long taskId);
 
         long getProcessId(long taskId);
 

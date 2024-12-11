@@ -31,6 +31,7 @@
 #ifndef THIRD_PARTY_BLINK_PUBLIC_PLATFORM_WEB_DATA_H_
 #define THIRD_PARTY_BLINK_PUBLIC_PLATFORM_WEB_DATA_H_
 
+#include "base/containers/span.h"
 #include "third_party/blink/public/platform/web_common.h"
 #include "third_party/blink/public/platform/web_private_ptr.h"
 #include "third_party/blink/public/platform/web_vector.h"
@@ -52,13 +53,7 @@ class BLINK_PLATFORM_EXPORT WebData {
 
   WebData() = default;
 
-  WebData(const char* data, size_t size) { Assign(data, size); }
-
-  template <int N>
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  WebData(const char (&data)[N]) {
-    Assign(data, N - 1);
-  }
+  explicit WebData(base::span<const uint8_t> data) { Assign(data); }
 
   WebData(const WebData& d) { Assign(d); }
 
@@ -69,8 +64,8 @@ class BLINK_PLATFORM_EXPORT WebData {
 
   void Reset();
   void Assign(const WebData&);
-  void Assign(const char* data, size_t size);
-  void Append(const char* data, size_t size);
+  void Assign(base::span<const uint8_t> data);
+  void Append(base::span<const uint8_t> data);
 
   size_t size() const;
 
@@ -109,18 +104,6 @@ class BLINK_PLATFORM_EXPORT WebData {
   WebData& operator=(scoped_refptr<SharedBuffer>);
   operator scoped_refptr<SharedBuffer>() const;
   operator const SharedBuffer&() const;
-#else
-  template <class C>
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  WebData(const C& c) {
-    Assign(c.data(), c.size());
-  }
-
-  template <class C>
-  WebData& operator=(const C& c) {
-    Assign(c.data(), c.size());
-    return *this;
-  }
 #endif
 
  private:

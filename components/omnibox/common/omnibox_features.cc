@@ -336,7 +336,7 @@ BASE_FEATURE(kReportApplicationLanguageInSearchRequest,
 BASE_FEATURE(kOmniboxAsyncViewInflation, "OmniboxAsyncViewInflation", DISABLED);
 
 // Use FusedLocationProvider on Android to fetch device location.
-BASE_FEATURE(kUseFusedLocationProvider, "UseFusedLocationProvider", DISABLED);
+BASE_FEATURE(kUseFusedLocationProvider, "UseFusedLocationProvider", ENABLED);
 
 // Enables storing successful query/match in the shortcut database On Android.
 BASE_FEATURE(kOmniboxShortcutsAndroid, "OmniboxShortcutsAndroid", ENABLED);
@@ -378,6 +378,10 @@ BASE_FEATURE(kAndroidHubSearch,
              "AndroidHubSearch",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// When enabled, delay focusTab to prioritize navigation
+// (https://crbug.com/374852568).
+BASE_FEATURE(kPostDelayedTaskFocusTab, "PostDelayedTaskFocusTab", ENABLED);
+
 namespace android {
 static jlong JNI_OmniboxFeatureMap_GetNativeMap(JNIEnv* env) {
   static base::NoDestructor<base::android::FeatureMap> kFeatureMap(
@@ -386,7 +390,7 @@ static jlong JNI_OmniboxFeatureMap_GetNativeMap(JNIEnv* env) {
            &kOmniboxTouchDownTriggerForPrefetch, &kOmniboxAsyncViewInflation,
            &kRichAutocompletion, &kUseFusedLocationProvider,
            &kOmniboxElegantTextHeight, &kRetainOmniboxOnFocus,
-           &kJumpStartOmnibox, &kAndroidHubSearch}});
+           &kJumpStartOmnibox, &kAndroidHubSearch, &kPostDelayedTaskFocusTab}});
 
   return reinterpret_cast<jlong>(kFeatureMap.get());
 }

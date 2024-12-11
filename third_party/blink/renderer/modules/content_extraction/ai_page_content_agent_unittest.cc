@@ -253,6 +253,12 @@ TEST_F(AIPageContentAgentTest, Lists) {
       "    <li>Step 1</li>"
       "    <li>Step 2</li>"
       "  </ol>"
+      "  <dl>"
+      "    <dt>Detail 1 title</dt>"
+      "    <dd>Detail 1 description</dd>"
+      "    <dt>Detail 2 title</dt>"
+      "    <dd>Detail 2 description</dd>"
+      "  </dl>"
       "</body>",
       url_test_helpers::ToKURL("http://foobar.com"));
 
@@ -265,26 +271,30 @@ TEST_F(AIPageContentAgentTest, Lists) {
   ASSERT_TRUE(content->root_node);
 
   const auto& root = *content->root_node;
-  ASSERT_EQ(root.children_nodes.size(), 2u);
+  ASSERT_EQ(root.children_nodes.size(), 3u);
 
   const auto& ul = *root.children_nodes[0]->content_attributes;
-  EXPECT_EQ(ul.attribute_type, mojom::blink::AIPageContentAttributeType::kList);
-
-  // Each list item also has a ::marker before it.
-  ASSERT_EQ(ul.text_info.size(), 4u);
-  const auto bullet_point = String(u"\u2022 ");
-  EXPECT_EQ(ul.text_info[0]->text_content, bullet_point);
-  EXPECT_EQ(ul.text_info[1]->text_content, "Item 1");
-  EXPECT_EQ(ul.text_info[2]->text_content, bullet_point);
-  EXPECT_EQ(ul.text_info[3]->text_content, "Item 2");
+  EXPECT_EQ(ul.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kUnorderedList);
+  ASSERT_EQ(ul.text_info.size(), 2u);
+  EXPECT_EQ(ul.text_info[0]->text_content, "Item 1");
+  EXPECT_EQ(ul.text_info[1]->text_content, "Item 2");
 
   const auto& ol = *root.children_nodes[1]->content_attributes;
-  EXPECT_EQ(ol.attribute_type, mojom::blink::AIPageContentAttributeType::kList);
-  ASSERT_EQ(ol.text_info.size(), 4u);
-  EXPECT_EQ(ol.text_info[0]->text_content, "1. ");
-  EXPECT_EQ(ol.text_info[1]->text_content, "Step 1");
-  EXPECT_EQ(ol.text_info[2]->text_content, "2. ");
-  EXPECT_EQ(ol.text_info[3]->text_content, "Step 2");
+  EXPECT_EQ(ol.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kOrderedList);
+  ASSERT_EQ(ol.text_info.size(), 2u);
+  EXPECT_EQ(ol.text_info[0]->text_content, "Step 1");
+  EXPECT_EQ(ol.text_info[1]->text_content, "Step 2");
+
+  const auto& dl = *root.children_nodes[2]->content_attributes;
+  EXPECT_EQ(dl.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kUnorderedList);
+  ASSERT_EQ(dl.text_info.size(), 4u);
+  EXPECT_EQ(dl.text_info[0]->text_content, "Detail 1 title");
+  EXPECT_EQ(dl.text_info[1]->text_content, "Detail 1 description");
+  EXPECT_EQ(dl.text_info[2]->text_content, "Detail 2 title");
+  EXPECT_EQ(dl.text_info[3]->text_content, "Detail 2 description");
 }
 
 TEST_F(AIPageContentAgentTest, IFrameWithContent) {
@@ -476,6 +486,340 @@ TEST_F(AIPageContentAgentTest, TextEmphasis) {
 
   EXPECT_EQ(text.text_info[7]->text_content, "Strong text");
   EXPECT_TRUE(text.text_info[7]->text_style->has_emphasis);
+}
+
+TEST_F(AIPageContentAgentTest, Table) {
+  frame_test_helpers::LoadHTMLString(
+      helper_.LocalMainFrame(),
+      "<body>"
+      "  <table>"
+      "    <caption>Table caption</caption>"
+      "    <thead>"
+      "      <th colspan='2'>Header</th>"
+      "    </thead>"
+      "    <tr>"
+      "      <td>Row 1 Column 1</td>"
+      "      <td>Row 1 Column 2</td>"
+      "    </tr>"
+      "    <tr>"
+      "      <td>Row 2 Column 1</td>"
+      "      <td>Row 2 Column 2</td>"
+      "    </tr>"
+      "    <tfoot>"
+      "      <td>Footer 1</td>"
+      "      <td>Footer 2</td>"
+      "    </tfoot>"
+      "  </table>"
+      "</body>",
+      url_test_helpers::ToKURL("http://foobar.com"));
+
+  auto* agent = AIPageContentAgent::GetOrCreateForTesting(
+      *helper_.LocalMainFrame()->GetFrame()->GetDocument());
+  ASSERT_TRUE(agent);
+
+  auto content = agent->GetAIPageContentSync();
+  ASSERT_TRUE(content);
+  ASSERT_TRUE(content->root_node);
+
+  const auto& root = *content->root_node;
+  ASSERT_EQ(root.children_nodes.size(), 1u);
+
+  const auto& table = *root.children_nodes[0]->content_attributes;
+  EXPECT_EQ(table.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kTable);
+  ASSERT_TRUE(table.table_data);
+
+  EXPECT_EQ(table.table_data->table_name, "Table caption");
+
+  const auto& header_rows = table.table_data->header_rows;
+  EXPECT_EQ(header_rows.size(), 1u);
+
+  const auto& header_row = header_rows[0]->cells;
+  EXPECT_EQ(header_row.size(), 1u);
+  EXPECT_EQ(header_row[0]->content_attributes->text_info[0]->text_content,
+            "Header");
+
+  const auto& body_rows = table.table_data->body_rows;
+  EXPECT_EQ(body_rows.size(), 2u);
+
+  const auto& row_1 = body_rows[0]->cells;
+  EXPECT_EQ(row_1.size(), 2u);
+  EXPECT_EQ(row_1[0]->content_attributes->text_info[0]->text_content,
+            "Row 1 Column 1");
+  EXPECT_EQ(row_1[1]->content_attributes->text_info[0]->text_content,
+            "Row 1 Column 2");
+
+  const auto& row_2 = body_rows[1]->cells;
+  EXPECT_EQ(row_2.size(), 2u);
+  EXPECT_EQ(row_2[0]->content_attributes->text_info[0]->text_content,
+            "Row 2 Column 1");
+  EXPECT_EQ(row_2[1]->content_attributes->text_info[0]->text_content,
+            "Row 2 Column 2");
+
+  const auto& footer_rows = table.table_data->footer_rows;
+  EXPECT_EQ(footer_rows.size(), 1u);
+
+  const auto& footer_row = footer_rows[0]->cells;
+  EXPECT_EQ(footer_row.size(), 2u);
+  EXPECT_EQ(footer_row[0]->content_attributes->text_info[0]->text_content,
+            "Footer 1");
+  EXPECT_EQ(footer_row[1]->content_attributes->text_info[0]->text_content,
+            "Footer 2");
+}
+
+TEST_F(AIPageContentAgentTest, TableMadeWithCss) {
+  frame_test_helpers::LoadHTMLString(
+      helper_.LocalMainFrame(),
+      "<body>"
+      "    <style>"
+      "        .table {"
+      "            display: table;"
+      "            border-collapse: collapse;"
+      "            width: 100%;"
+      "        }"
+      "        .row {"
+      "            display: table-row;"
+      "        }"
+      "        .cell {"
+      "            display: table-cell;"
+      "            border: 1px solid #000;"
+      "            padding: 8px;"
+      "            text-align: center;"
+      "        }"
+      "        .header {"
+      "            background-color: #f4f4f4;"
+      "            font-weight: bold;"
+      "        }"
+      "    </style>"
+      "    <div class='table'>"
+      //       Header Rows
+      "        <div class='row header'>"
+      "            <div class='cell' colspan='2'>Personal Info</div>"
+      "            <div class='cell' colspan='2'>Contact Info</div>"
+      "        </div>"
+      "        <div class='row header'>"
+      "            <div class='cell'>Name</div>"
+      "            <div class='cell'>Age</div>"
+      "            <div class='cell'>Email</div>"
+      "            <div class='cell'>Phone</div>"
+      "        </div>"
+      //       Body Rows
+      "        <div class='row'>"
+      "            <div class='cell'>John Doe</div>"
+      "            <div class='cell'>30</div>"
+      "            <div class='cell'>john.doe@example.com</div>"
+      "            <div class='cell'>123-456-7890</div>"
+      "        </div>"
+      "        <div class='row'>"
+      "            <div class='cell'>Jane Smith</div>"
+      "            <div class='cell'>28</div>"
+      "            <div class='cell'>jane.smith@example.com</div>"
+      "            <div class='cell'>987-654-3210</div>"
+      "        </div>"
+      "    </div>"
+      "</body>",
+      url_test_helpers::ToKURL("http://foobar.com"));
+
+  auto* agent = AIPageContentAgent::GetOrCreateForTesting(
+      *helper_.LocalMainFrame()->GetFrame()->GetDocument());
+  ASSERT_TRUE(agent);
+
+  auto content = agent->GetAIPageContentSync();
+  ASSERT_TRUE(content);
+  ASSERT_TRUE(content->root_node);
+
+  const auto& root = *content->root_node;
+  ASSERT_EQ(root.children_nodes.size(), 1u);
+
+  const auto& table = *root.children_nodes[0]->content_attributes;
+  EXPECT_EQ(table.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kTable);
+  ASSERT_TRUE(table.table_data);
+
+  const auto& body_rows = table.table_data->body_rows;
+  EXPECT_EQ(body_rows.size(), 4u);
+
+  const auto& row_1 = body_rows[0]->cells;
+  EXPECT_EQ(row_1.size(), 2u);
+  EXPECT_EQ(row_1[0]->content_attributes->text_info[0]->text_content,
+            "Personal Info");
+  EXPECT_EQ(row_1[1]->content_attributes->text_info[0]->text_content,
+            "Contact Info");
+
+  const auto& row_2 = body_rows[1]->cells;
+  EXPECT_EQ(row_2.size(), 4u);
+  EXPECT_EQ(row_2[0]->content_attributes->text_info[0]->text_content, "Name");
+  EXPECT_EQ(row_2[1]->content_attributes->text_info[0]->text_content, "Age");
+  EXPECT_EQ(row_2[2]->content_attributes->text_info[0]->text_content, "Email");
+  EXPECT_EQ(row_2[3]->content_attributes->text_info[0]->text_content, "Phone");
+
+  const auto& row_3 = body_rows[2]->cells;
+  EXPECT_EQ(row_3.size(), 4u);
+  EXPECT_EQ(row_3[0]->content_attributes->text_info[0]->text_content,
+            "John Doe");
+  EXPECT_EQ(row_3[1]->content_attributes->text_info[0]->text_content, "30");
+  EXPECT_EQ(row_3[2]->content_attributes->text_info[0]->text_content,
+            "john.doe@example.com");
+  EXPECT_EQ(row_3[3]->content_attributes->text_info[0]->text_content,
+            "123-456-7890");
+
+  const auto& row_4 = body_rows[3]->cells;
+  EXPECT_EQ(row_4.size(), 4u);
+  EXPECT_EQ(row_4[0]->content_attributes->text_info[0]->text_content,
+            "Jane Smith");
+  EXPECT_EQ(row_4[1]->content_attributes->text_info[0]->text_content, "28");
+  EXPECT_EQ(row_4[2]->content_attributes->text_info[0]->text_content,
+            "jane.smith@example.com");
+  EXPECT_EQ(row_4[3]->content_attributes->text_info[0]->text_content,
+            "987-654-3210");
+}
+
+TEST_F(AIPageContentAgentTest, LandmarkSections) {
+  frame_test_helpers::LoadHTMLString(
+      helper_.LocalMainFrame(),
+      "<body>"
+      "  <header>Header</header>"
+      "  <nav>Navigation</nav>"
+      "  <search>Search</search>"
+      "  <main>Main content</main>"
+      "  <article>Article</article>"
+      "  <section>Section</section>"
+      "  <aside>Aside</aside>"
+      "  <footer>Footer</footer>"
+      "</body>",
+      url_test_helpers::ToKURL("http://foobar.com"));
+
+  auto* agent = AIPageContentAgent::GetOrCreateForTesting(
+      *helper_.LocalMainFrame()->GetFrame()->GetDocument());
+  ASSERT_TRUE(agent);
+
+  auto content = agent->GetAIPageContentSync();
+  ASSERT_TRUE(content);
+  ASSERT_TRUE(content->root_node);
+
+  const auto& root = *content->root_node;
+  ASSERT_EQ(root.children_nodes.size(), 8u);
+
+  const auto& header = *root.children_nodes[0]->content_attributes;
+  EXPECT_EQ(header.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kHeader);
+  ASSERT_EQ(header.text_info.size(), 1u);
+  EXPECT_EQ(header.text_info[0]->text_content, "Header");
+
+  const auto& nav = *root.children_nodes[1]->content_attributes;
+  EXPECT_EQ(nav.attribute_type, mojom::blink::AIPageContentAttributeType::kNav);
+  ASSERT_EQ(nav.text_info.size(), 1u);
+  EXPECT_EQ(nav.text_info[0]->text_content, "Navigation");
+
+  const auto& search = *root.children_nodes[2]->content_attributes;
+  EXPECT_EQ(search.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kSearch);
+  ASSERT_EQ(search.text_info.size(), 1u);
+  EXPECT_EQ(search.text_info[0]->text_content, "Search");
+
+  const auto& main = *root.children_nodes[3]->content_attributes;
+  EXPECT_EQ(main.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kMain);
+  ASSERT_EQ(main.text_info.size(), 1u);
+  EXPECT_EQ(main.text_info[0]->text_content, "Main content");
+
+  const auto& article = *root.children_nodes[4]->content_attributes;
+  EXPECT_EQ(article.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kArticle);
+  ASSERT_EQ(article.text_info.size(), 1u);
+  EXPECT_EQ(article.text_info[0]->text_content, "Article");
+
+  const auto& section = *root.children_nodes[5]->content_attributes;
+  EXPECT_EQ(section.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kSection);
+  ASSERT_EQ(section.text_info.size(), 1u);
+  EXPECT_EQ(section.text_info[0]->text_content, "Section");
+
+  const auto& aside = *root.children_nodes[6]->content_attributes;
+  EXPECT_EQ(aside.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kAside);
+  ASSERT_EQ(aside.text_info.size(), 1u);
+  EXPECT_EQ(aside.text_info[0]->text_content, "Aside");
+
+  const auto& footer = *root.children_nodes[7]->content_attributes;
+  EXPECT_EQ(footer.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kFooter);
+  ASSERT_EQ(footer.text_info.size(), 1u);
+  EXPECT_EQ(footer.text_info[0]->text_content, "Footer");
+}
+
+TEST_F(AIPageContentAgentTest, LandmarkSectionsWithAriaRoles) {
+  frame_test_helpers::LoadHTMLString(
+      helper_.LocalMainFrame(),
+      "<body>"
+      "  <div role='banner'>Header</div>"
+      "  <div role='navigation'>Navigation</div>"
+      "  <div role='search'>Search</div>"
+      "  <div role='main'>Main content</div>"
+      "  <div role='article'>Article</div>"
+      "  <div role='region'>Section</div>"
+      "  <div role='complementary'>Aside</div>"
+      "  <div role='contentinfo'>Footer</div>"
+      "</body>",
+      url_test_helpers::ToKURL("http://foobar.com"));
+
+  auto* agent = AIPageContentAgent::GetOrCreateForTesting(
+      *helper_.LocalMainFrame()->GetFrame()->GetDocument());
+  ASSERT_TRUE(agent);
+
+ auto content = agent->GetAIPageContentSync();
+  ASSERT_TRUE(content);
+  ASSERT_TRUE(content->root_node);
+
+  const auto& root = *content->root_node;
+  ASSERT_EQ(root.children_nodes.size(), 8u);
+
+  const auto& header = *root.children_nodes[0]->content_attributes;
+  EXPECT_EQ(header.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kHeader);
+  ASSERT_EQ(header.text_info.size(), 1u);
+  EXPECT_EQ(header.text_info[0]->text_content, "Header");
+
+  const auto& nav = *root.children_nodes[1]->content_attributes;
+  EXPECT_EQ(nav.attribute_type, mojom::blink::AIPageContentAttributeType::kNav);
+  ASSERT_EQ(nav.text_info.size(), 1u);
+  EXPECT_EQ(nav.text_info[0]->text_content, "Navigation");
+
+  const auto& search = *root.children_nodes[2]->content_attributes;
+  EXPECT_EQ(search.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kSearch);
+  ASSERT_EQ(search.text_info.size(), 1u);
+  EXPECT_EQ(search.text_info[0]->text_content, "Search");
+
+  const auto& main = *root.children_nodes[3]->content_attributes;
+  EXPECT_EQ(main.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kMain);
+  ASSERT_EQ(main.text_info.size(), 1u);
+  EXPECT_EQ(main.text_info[0]->text_content, "Main content");
+
+  const auto& article = *root.children_nodes[4]->content_attributes;
+  EXPECT_EQ(article.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kArticle);
+  ASSERT_EQ(article.text_info.size(), 1u);
+  EXPECT_EQ(article.text_info[0]->text_content, "Article");
+
+  const auto& section = *root.children_nodes[5]->content_attributes;
+  EXPECT_EQ(section.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kSection);
+  ASSERT_EQ(section.text_info.size(), 1u);
+  EXPECT_EQ(section.text_info[0]->text_content, "Section");
+
+  const auto& aside = *root.children_nodes[6]->content_attributes;
+  EXPECT_EQ(aside.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kAside);
+  ASSERT_EQ(aside.text_info.size(), 1u);
+  EXPECT_EQ(aside.text_info[0]->text_content, "Aside");
+
+  const auto& footer = *root.children_nodes[7]->content_attributes;
+  EXPECT_EQ(footer.attribute_type,
+            mojom::blink::AIPageContentAttributeType::kFooter);
+  ASSERT_EQ(footer.text_info.size(), 1u);
+  EXPECT_EQ(footer.text_info[0]->text_content, "Footer");
 }
 
 }  // namespace

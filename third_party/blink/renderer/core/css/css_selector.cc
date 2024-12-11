@@ -406,7 +406,6 @@ PseudoId CSSSelector::GetPseudoId(PseudoType type) {
     case kPseudoAutofillSelected:
     case kPseudoBlinkInternalElement:
     case kPseudoChecked:
-    case kPseudoClosed:
     case kPseudoCornerPresent:
     case kPseudoCue:
     case kPseudoCurrent:
@@ -490,7 +489,6 @@ PseudoId CSSSelector::GetPseudoId(PseudoType type) {
     case kPseudoSpatialNavigationFocus:
     case kPseudoStart:
     case kPseudoState:
-    case kPseudoStateDeprecatedSyntax:
     case kPseudoTarget:
     case kPseudoTargetCurrent:
     case kPseudoUnknown:
@@ -514,12 +512,29 @@ PseudoId CSSSelector::GetPseudoId(PseudoType type) {
   NOTREACHED();
 }
 
-void CSSSelector::Reparent(StyleRule* new_parent) {
-  if (GetPseudoType() == CSSSelector::kPseudoParent) {
-    data_.parent_rule_ = new_parent;
-  } else if (HasRareData() && data_.rare_data_->selector_list_) {
-    data_.rare_data_->selector_list_->Reparent(new_parent);
+std::optional<CSSSelector> CSSSelector::Renest(StyleRule* new_parent) const {
+  if (GetPseudoType() == CSSSelector::kPseudoParent &&
+      data_.parent_rule_ != new_parent) {
+    CSSSelector selector(*this);
+    selector.data_.parent_rule_ = new_parent;
+    return selector;
+  } else if (HasRareData()) {
+    // Handles cases where simple selectors hold an inner selector list,
+    // e.g. :is(), :where(), :not().
+    RareData* old_rare_data = data_.rare_data_;
+    RareData* new_rare_data = old_rare_data->Renest(new_parent);
+    if (old_rare_data != new_rare_data) {
+      CSSSelector selector(*this);
+      selector.data_.rare_data_ = new_rare_data;
+      return selector;
+    }
   }
+  // Note that :scope (which isn't handled by any of the branches above)
+  // does not need re-nesting, because it does not contain any reference
+  // to a parent rule. The relationship between :scope, and the elements
+  // matched by it, are instead handled dynamically at selector-matching time.
+
+  return std::nullopt;
 }
 
 // Could be made smaller and faster by replacing pointer with an
@@ -574,7 +589,6 @@ constexpr static NameToPseudoStruct kPseudoTypeWithoutArgumentsMap[] = {
     {"before", CSSSelector::kPseudoBefore},
     {"checked", CSSSelector::kPseudoChecked},
     {"checkmark", CSSSelector::kPseudoCheckMark},
-    {"closed", CSSSelector::kPseudoClosed},
     {"column", CSSSelector::kPseudoColumn},
     {"corner-present", CSSSelector::kPseudoCornerPresent},
     {"cue", CSSSelector::kPseudoWebKitCustomElement},
@@ -730,11 +744,6 @@ CSSSelector::PseudoType CSSSelector::NameToPseudoType(
     return CSSSelector::kPseudoUnknown;
   }
 
-  if (match->type == CSSSelector::kPseudoState &&
-      !RuntimeEnabledFeatures::CSSCustomStateNewSyntaxEnabled()) {
-    return CSSSelector::kPseudoUnknown;
-  }
-
   if (match->type == CSSSelector::kPseudoDetailsContent &&
       !RuntimeEnabledFeatures::DetailsStylingEnabled()) {
     return CSSSelector::kPseudoUnknown;
@@ -779,9 +788,8 @@ CSSSelector::PseudoType CSSSelector::NameToPseudoType(
     return CSSSelector::kPseudoUnknown;
   }
 
-  if ((match->type == CSSSelector::kPseudoOpen ||
-       match->type == CSSSelector::kPseudoClosed) &&
-      !RuntimeEnabledFeatures::CSSPseudoOpenClosedEnabled()) {
+  if (match->type == CSSSelector::kPseudoOpen &&
+      !RuntimeEnabledFeatures::CSSPseudoOpenEnabled()) {
     return CSSSelector::kPseudoUnknown;
   }
 
@@ -860,7 +868,7 @@ void CSSSelector::UpdatePseudoType(const AtomicString& value,
   PseudoType pseudo_type = CSSSelectorParser::ParsePseudoType(
       lower_value, has_arguments, context.GetDocument());
   SetPseudoType(pseudo_type);
-  SetValue(pseudo_type == kPseudoStateDeprecatedSyntax ? value : lower_value);
+  SetValue(lower_value);
 
   switch (GetPseudoType()) {
     case kPseudoAfter:
@@ -941,7 +949,6 @@ void CSSSelector::UpdatePseudoType(const AtomicString& value,
     case kPseudoAutofillPreviewed:
     case kPseudoAutofillSelected:
     case kPseudoChecked:
-    case kPseudoClosed:
     case kPseudoCornerPresent:
     case kPseudoCurrent:
     case kPseudoDecrement:
@@ -1013,7 +1020,6 @@ void CSSSelector::UpdatePseudoType(const AtomicString& value,
     case kPseudoSingleButton:
     case kPseudoStart:
     case kPseudoState:
-    case kPseudoStateDeprecatedSyntax:
     case kPseudoTarget:
     case kPseudoTargetCurrent:
     case kPseudoUnknown:
@@ -1124,8 +1130,7 @@ bool CSSSelector::SerializeSimpleSelector(StringBuilder& builder) const {
   } else if (Match() == kPseudoClass || Match() == kPagePseudoClass) {
     if (GetPseudoType() == kPseudoUnparsed) {
       builder.Append(Value());
-    } else if (GetPseudoType() != kPseudoStateDeprecatedSyntax &&
-               GetPseudoType() != kPseudoParent) {
+    } else if (GetPseudoType() != kPseudoParent) {
       builder.Append(':');
       builder.Append(SerializingValue());
     }
@@ -1179,10 +1184,6 @@ bool CSSSelector::SerializeSimpleSelector(StringBuilder& builder) const {
       case kPseudoHas:
       case kPseudoNot:
         DCHECK(SelectorList());
-        break;
-      case kPseudoStateDeprecatedSyntax:
-        builder.Append(':');
-        SerializeIdentifier(SerializingValue(), builder);
         break;
       case kPseudoHost:
       case kPseudoHostContext:
@@ -1708,7 +1709,6 @@ bool CSSSelector::IsAllowedAfterPart() const {
     case kPseudoRequired:
     case kPseudoSelectorFragmentAnchor:
     case kPseudoState:
-    case kPseudoStateDeprecatedSyntax:
     case kPseudoTarget:
     case kPseudoUserInvalid:
     case kPseudoUserValid:
@@ -1725,7 +1725,6 @@ bool CSSSelector::IsAllowedAfterPart() const {
     case kPseudoPictureInPicture:
     case kPseudoPlaying:
     case kPseudoXrOverlay:
-    case kPseudoClosed:
     case kPseudoDefined:
     case kPseudoDir:
     case kPseudoFutureCue:
@@ -1894,6 +1893,17 @@ CSSSelector::RareData::RareData(const AtomicString& value)
       attribute_(AnyQName()),
       argument_(g_null_atom) {}
 
+CSSSelector::RareData::RareData(const RareData& other)
+    : matching_value_(other.matching_value_),
+      serializing_value_(other.serializing_value_),
+      bits_(other.bits_),
+      attribute_(other.attribute_),
+      argument_(other.argument_),
+      selector_list_(other.selector_list_),
+      ident_list_(other.ident_list_ ? std::make_unique<Vector<AtomicString>>(
+                                          *other.ident_list_)
+                                    : nullptr) {}
+
 CSSSelector::RareData::~RareData() = default;
 
 // a helper function for checking nth-arguments
@@ -1922,6 +1932,17 @@ bool CSSSelector::RareData::MatchNth(unsigned unsigned_count) {
     return false;
   }
   return (NthBValue() - count) % (-NthAValue()) == 0;
+}
+
+CSSSelector::RareData* CSSSelector::RareData::Renest(StyleRule* new_parent) {
+  CSSSelectorList* old_list = selector_list_.Get();
+  CSSSelectorList* new_list = old_list ? old_list->Renest(new_parent) : nullptr;
+  if (old_list == new_list) {
+    return this;
+  }
+  auto* rare_data = MakeGarbageCollected<RareData>(*this);
+  rare_data->selector_list_ = new_list;
+  return rare_data;
 }
 
 void CSSSelector::SetIdentList(

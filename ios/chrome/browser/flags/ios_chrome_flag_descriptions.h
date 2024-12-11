@@ -454,6 +454,16 @@ extern const char kIndicateIdentityErrorInOverflowMenuDescription[];
 extern const char kInProductHelpDemoModeName[];
 extern const char kInProductHelpDemoModeDescription[];
 
+// Title and description for the flag that force all interruptible chrome
+// coordinator to be dismissed.
+extern const char kIOSInterruptibleCoordinatorAlwaysDismissedName[];
+extern const char kIOSInterruptibleCoordinatorAlwaysDismissedDescription[];
+
+// Title and description for the flag to enable stopping synchronously
+// interruptible coordinators.
+extern const char kIOSInterruptibleCoordinatorStoppedSynchronouslyName[];
+extern const char kIOSInterruptibleCoordinatorStoppedSynchronouslyDescription[];
+
 // Title and description for the flag to enable metrics collection for edit
 // menu.
 extern const char kIOSBrowserEditMenuMetricsName[];
@@ -471,10 +481,6 @@ extern const char kIOSDisableParcelTrackingDescription[];
 // Title and description for the flag to enable the Docking Promo.
 extern const char kIOSDockingPromoName[];
 extern const char kIOSDockingPromoDescription[];
-
-// Title and description for the flag to hide Search Web edit menu entry.
-extern const char kIOSEditMenuHideSearchWebName[];
-extern const char kIOSEditMenuHideSearchWebDescription[];
 
 // Title and description for the flag to enable the keyboard accessory upgrade.
 extern const char kIOSKeyboardAccessoryUpgradeName[];
@@ -1023,6 +1029,10 @@ extern const char kEnableLensOverlayDescription[];
 // Title and description for the flag to enable Lens View Finder unification
 extern const char kEnableLensViewFinderUnifiedExperienceName[];
 extern const char kEnableLensViewFinderUnifiedExperienceDescription[];
+
+// Title and description for the flag to enable Lens Context Menu unification
+extern const char kEnableLensContextMenuUnifiedExperienceName[];
+extern const char kEnableLensContextMenuUnifiedExperienceDescription[];
 
 // Title and description for the flag to enable the new transitions in the
 // TabGrid.

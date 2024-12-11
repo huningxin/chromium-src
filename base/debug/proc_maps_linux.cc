@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include <stddef.h>
 
+#include <unordered_map>
+
 #include "base/files/file_util.h"
 #include "base/files/scoped_file.h"
 #include "base/format_macros.h"
@@ -29,6 +31,10 @@ namespace base::debug {
 MappedMemoryRegion::MappedMemoryRegion() = default;
 MappedMemoryRegion::MappedMemoryRegion(const MappedMemoryRegion&) = default;
 MappedMemoryRegion::MappedMemoryRegion(MappedMemoryRegion&&) noexcept = default;
+MappedMemoryRegion& MappedMemoryRegion::operator=(MappedMemoryRegion&) =
+    default;
+MappedMemoryRegion& MappedMemoryRegion::operator=(
+    MappedMemoryRegion&&) noexcept = default;
 
 // Scans |proc_maps| starting from |pos| returning true if the gate VMA was
 // found, otherwise returns false.

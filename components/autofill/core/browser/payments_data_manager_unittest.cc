@@ -566,10 +566,9 @@ TEST_F(PaymentsDataManagerTest, AddUpdateRemoveCreditCards) {
 
   WaitForOnPaymentsDataChanged();
 
-  std::vector<CreditCard*> cards;
-  cards.push_back(&credit_card0);
-  cards.push_back(&credit_card1);
-  ExpectSameElements(cards, payments_data_manager().GetCreditCards());
+  EXPECT_THAT(payments_data_manager().GetCreditCards(),
+              testing::UnorderedElementsAre(Pointee(credit_card0),
+                                            Pointee(credit_card1)));
 
   // Update, remove, and add.
   credit_card0.SetRawInfo(CREDIT_CARD_NAME_FULL, u"Joe");
@@ -580,10 +579,9 @@ TEST_F(PaymentsDataManagerTest, AddUpdateRemoveCreditCards) {
 
   WaitForOnPaymentsDataChanged();
 
-  cards.clear();
-  cards.push_back(&credit_card0);
-  cards.push_back(&credit_card2);
-  ExpectSameElements(cards, payments_data_manager().GetCreditCards());
+  EXPECT_THAT(payments_data_manager().GetCreditCards(),
+              testing::UnorderedElementsAre(Pointee(credit_card0),
+                                            Pointee(credit_card2)));
 
   // Reset the PaymentsDataManager.  This tests that the personal data was saved
   // to the web database, and that we can load the credit cards from the web
@@ -591,10 +589,9 @@ TEST_F(PaymentsDataManagerTest, AddUpdateRemoveCreditCards) {
   ResetPaymentsDataManager();
 
   // Verify that we've loaded the credit cards from the web database.
-  cards.clear();
-  cards.push_back(&credit_card0);
-  cards.push_back(&credit_card2);
-  ExpectSameElements(cards, payments_data_manager().GetCreditCards());
+  EXPECT_THAT(payments_data_manager().GetCreditCards(),
+              testing::UnorderedElementsAre(Pointee(credit_card0),
+                                            Pointee(credit_card2)));
 
   // Add a server card.
   CreditCard credit_card3(base::Uuid::GenerateRandomV4().AsLowercaseString(),
@@ -607,8 +604,8 @@ TEST_F(PaymentsDataManagerTest, AddUpdateRemoveCreditCards) {
   test_api(payments_data_manager()).AddServerCreditCard(credit_card3);
   WaitForOnPaymentsDataChanged();
 
-  cards.push_back(&credit_card3);
-  ExpectSameElements(cards, payments_data_manager().GetCreditCards());
+  EXPECT_EQ(payments_data_manager().GetCreditCards()[2]->Compare(credit_card3),
+            0);
 
   // Must not add a duplicate server card with same GUID.
   MockPaymentsDataManagerObserver observer;
@@ -617,14 +614,18 @@ TEST_F(PaymentsDataManagerTest, AddUpdateRemoveCreditCards) {
       observeration{&observer};
   observeration.Observe(&payments_data_manager());
   test_api(payments_data_manager()).AddServerCreditCard(credit_card3);
-  ExpectSameElements(cards, payments_data_manager().GetCreditCards());
+  ASSERT_EQ(payments_data_manager().GetCreditCards().size(), 3U);
+  EXPECT_EQ(payments_data_manager().GetCreditCards()[2]->Compare(credit_card3),
+            0);
 
   // Must not add a duplicate card with same contents as another server card.
   CreditCard duplicate_server_card(credit_card3);
   duplicate_server_card.set_guid(
       base::Uuid::GenerateRandomV4().AsLowercaseString());
   test_api(payments_data_manager()).AddServerCreditCard(duplicate_server_card);
-  ExpectSameElements(cards, payments_data_manager().GetCreditCards());
+  ASSERT_EQ(payments_data_manager().GetCreditCards().size(), 3U);
+  EXPECT_EQ(payments_data_manager().GetCreditCards()[2]->Compare(credit_card3),
+            0);
 }
 
 // Adds two local cards and one server cards with different modification dates.
@@ -779,7 +780,7 @@ TEST_F(PaymentsDataManagerTest, AddCreditCard_BasicInformation) {
   ResetPaymentsDataManager();
 
   // Verify the addition.
-  const std::vector<CreditCard*>& results =
+  const std::vector<const CreditCard*>& results =
       payments_data_manager().GetCreditCards();
   ASSERT_EQ(1U, results.size());
   EXPECT_EQ(0, credit_card.Compare(*results[0]));
@@ -938,14 +939,11 @@ TEST_F(PaymentsDataManagerTest, SetUniqueCreditCardLabels) {
   // database.
   ResetPaymentsDataManager();
 
-  std::vector<CreditCard*> cards;
-  cards.push_back(&credit_card0);
-  cards.push_back(&credit_card1);
-  cards.push_back(&credit_card2);
-  cards.push_back(&credit_card3);
-  cards.push_back(&credit_card4);
-  cards.push_back(&credit_card5);
-  ExpectSameElements(cards, payments_data_manager().GetCreditCards());
+  EXPECT_THAT(
+      payments_data_manager().GetCreditCards(),
+      testing::UnorderedElementsAre(
+          Pointee(credit_card0), Pointee(credit_card1), Pointee(credit_card2),
+          Pointee(credit_card3), Pointee(credit_card4), Pointee(credit_card5)));
 }
 
 TEST_F(PaymentsDataManagerTest, SetEmptyCreditCard) {
@@ -1077,7 +1075,7 @@ TEST_F(PaymentsDataManagerTest, GetCreditCardsToSuggest_LocalCardsRanking) {
 
   // Sublabel is card number when filling name (exact format depends on
   // the platform, but the last 4 digits should appear).
-  std::vector<CreditCard*> card_to_suggest =
+  std::vector<const CreditCard*> card_to_suggest =
       payments_data_manager().GetCreditCardsToSuggest();
   ASSERT_EQ(3U, card_to_suggest.size());
 
@@ -1118,7 +1116,7 @@ TEST_F(PaymentsDataManagerTest,
   WaitForOnPaymentsDataChanged();
   EXPECT_EQ(5U, payments_data_manager().GetCreditCards().size());
 
-  std::vector<CreditCard*> card_to_suggest =
+  std::vector<const CreditCard*> card_to_suggest =
       payments_data_manager().GetCreditCardsToSuggest();
   ASSERT_EQ(5U, card_to_suggest.size());
 
@@ -1170,7 +1168,7 @@ TEST_F(PaymentsDataManagerTest,
   // Expect no autofilled values or suggestions.
   EXPECT_EQ(0U, payments_data_manager().GetCreditCardsToSuggest().size());
 
-  std::vector<CreditCard*> card_to_suggest =
+  std::vector<const CreditCard*> card_to_suggest =
       payments_data_manager().GetCreditCardsToSuggest();
   ASSERT_EQ(0U, card_to_suggest.size());
 }
@@ -1213,7 +1211,7 @@ TEST_F(PaymentsDataManagerTest,
   // Expect no credit card values or suggestions were loaded.
   EXPECT_EQ(0U, payments_data_manager().GetCreditCardsToSuggest().size());
 
-  std::vector<CreditCard*> card_to_suggest =
+  std::vector<const CreditCard*> card_to_suggest =
       payments_data_manager().GetCreditCardsToSuggest();
   ASSERT_EQ(0U, card_to_suggest.size());
 }
@@ -1240,63 +1238,58 @@ TEST_F(PaymentsDataManagerTest,
 // Tests that only the masked card is kept when deduping with a local duplicate
 // of it or vice-versa. This is checked based on the value assigned during the
 // for loop.
-TEST_F(PaymentsDataManagerTest, DedupeCreditCardToSuggest_MaskedIsKept) {
-  std::list<CreditCard*> credit_cards;
-
+TEST_F(PaymentsDataManagerTest,
+       GetCreditCardsToSuggest_Deduplication_MaskedIsKept) {
   CreditCard local_card("1141084B-72D7-4B73-90CF-3D6AC154673B",
                         test::kEmptyOrigin);
   test::SetCreditCardInfo(&local_card, "Homer Simpson",
                           "4234567890123456" /* Visa */, "01", "2999", "1");
-  credit_cards.push_back(&local_card);
+  payments_data_manager().AddCreditCard(local_card);
 
   // Create a masked server card that is a duplicate of a local card.
   CreditCard masked_card(CreditCard::RecordType::kMaskedServerCard, "a123");
   test::SetCreditCardInfo(&masked_card, "Homer Simpson", "3456" /* Visa */,
                           "01", "2999", "1");
   masked_card.SetNetworkForMaskedCard(kVisaCard);
-  credit_cards.push_back(&masked_card);
+  test_api(payments_data_manager()).AddServerCreditCard(masked_card);
+  WaitForOnPaymentsDataChanged();
 
-  PaymentsDataManager::DedupeCreditCardToSuggest(&credit_cards);
+  std::vector<const CreditCard*> credit_cards =
+      payments_data_manager().GetCreditCardsToSuggest();
   ASSERT_EQ(1U, credit_cards.size());
-
-  // Verify `masked_card` is returned after deduping `credit_cards` list.
-  EXPECT_EQ(*credit_cards.front(), masked_card);
+  EXPECT_EQ(0, credit_cards.front()->Compare(masked_card));
 }
 
 // Tests that different local and server credit cards are not deduped.
-TEST_F(PaymentsDataManagerTest, DedupeCreditCardToSuggest_DifferentCards) {
-  std::list<CreditCard*> credit_cards;
-
+TEST_F(PaymentsDataManagerTest,
+       GetCreditCardsToSuggest_Deduplication_DifferentCards) {
   CreditCard local_card("002149C1-EE28-4213-A3B9-DA243FFF021B",
                         test::kEmptyOrigin);
-  local_card.set_use_count(1);
-  local_card.set_use_date(AutofillClock::Now() - base::Days(1));
   test::SetCreditCardInfo(&local_card, "Homer Simpson",
                           "5105105105105100" /* Mastercard */, "", "", "");
-  credit_cards.push_back(&local_card);
+  payments_data_manager().AddCreditCard(local_card);
 
   // Create a masked server card that is different from the local card.
   CreditCard masked_card(CreditCard::RecordType::kMaskedServerCard, "b456");
   test::SetCreditCardInfo(&masked_card, "Homer Simpson", "0005", "12", "2999",
                           "1");
-  masked_card.set_use_count(3);
-  masked_card.set_use_date(AutofillClock::Now() - base::Days(15));
-  credit_cards.push_back(&masked_card);
+  test_api(payments_data_manager()).AddServerCreditCard(masked_card);
+  WaitForOnPaymentsDataChanged();
 
-  PaymentsDataManager::DedupeCreditCardToSuggest(&credit_cards);
+  std::vector<const CreditCard*> credit_cards =
+      payments_data_manager().GetCreditCardsToSuggest();
   EXPECT_EQ(2U, credit_cards.size());
 }
 
 // Tests case-insensitive deduping of the name field, i.e. the server card is
 // kept for duplicate cards except different name casing.
-TEST_F(PaymentsDataManagerTest, DedupeCreditCardToSuggest_CaseInsensitiveName) {
-  std::list<CreditCard*> credit_cards;
-
+TEST_F(PaymentsDataManagerTest,
+       GetCreditCardsToSuggest_Deduplication_CaseInsensitiveName) {
   CreditCard local_card("1141084B-72D7-4B73-90CF-3D6AC154673B",
                         test::kEmptyOrigin);
   test::SetCreditCardInfo(&local_card, "homer simpson",
                           "4234567890123456" /* Visa */, "01", "2999", "1");
-  credit_cards.push_back(&local_card);
+  payments_data_manager().AddCreditCard(local_card);
 
   // Create a masked server card that is a duplicate of a local card except name
   // casing.
@@ -1304,13 +1297,15 @@ TEST_F(PaymentsDataManagerTest, DedupeCreditCardToSuggest_CaseInsensitiveName) {
   test::SetCreditCardInfo(&masked_card, "Homer Simpson", "3456" /* Visa */,
                           "01", "2999", "1");
   masked_card.SetNetworkForMaskedCard(kVisaCard);
-  credit_cards.push_back(&masked_card);
+  test_api(payments_data_manager()).AddServerCreditCard(masked_card);
+  WaitForOnPaymentsDataChanged();
 
-  PaymentsDataManager::DedupeCreditCardToSuggest(&credit_cards);
+  std::vector<const CreditCard*> credit_cards =
+      payments_data_manager().GetCreditCardsToSuggest();
   ASSERT_EQ(1U, credit_cards.size());
 
   // Verify `masked_card` is returned after deduping `credit_cards` list.
-  EXPECT_EQ(*credit_cards.front(), masked_card);
+  EXPECT_EQ(0, credit_cards.front()->Compare(masked_card));
 }
 
 TEST_F(PaymentsDataManagerTest, DeleteLocalCreditCards) {
@@ -2625,7 +2620,7 @@ TEST_F(PaymentsDataManagerTest, OnAcceptedLocalCreditCardSaveWithVerifiedData) {
   WaitForOnPaymentsDataChanged();
 
   // Expect that the saved credit card is updated.
-  const std::vector<CreditCard*>& results =
+  const std::vector<const CreditCard*>& results =
       payments_data_manager().GetCreditCards();
   ASSERT_EQ(1U, results.size());
   EXPECT_EQ(u"B. Small", results[0]->GetRawInfo(CREDIT_CARD_NAME_FULL));

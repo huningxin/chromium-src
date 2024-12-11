@@ -22,6 +22,7 @@
 #include "chrome/browser/browser_process_platform_part.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/file_system_access/chrome_file_system_access_permission_context.h"
+#include "chrome/browser/history_embeddings/history_embeddings_utils.h"
 #include "chrome/browser/net/system_network_context_manager.h"
 #include "chrome/browser/obsolete_system/obsolete_system.h"
 #include "chrome/browser/optimization_guide/optimization_guide_keyed_service.h"
@@ -76,7 +77,6 @@
 #include "components/dom_distiller/core/dom_distiller_features.h"
 #include "components/google/core/common/google_util.h"
 #include "components/history/core/common/pref_names.h"
-#include "components/history_embeddings/history_embeddings_features.h"
 #include "components/password_manager/core/browser/leak_detection_dialog_utils.h"
 #include "components/password_manager/core/browser/manage_passwords_referrer.h"
 #include "components/password_manager/core/common/password_manager_features.h"
@@ -1148,7 +1148,6 @@ void AddAutofillStrings(content::WebUIDataSource* html_source,
       {"addresses", IDS_AUTOFILL_ADDRESSES},
       {"addressesTableAriaLabel", IDS_AUTOFILL_ADDRESSES_TABLE_ARIA_LABEL},
       {"addressesTitle", IDS_AUTOFILL_ADDRESSES_SETTINGS_TITLE},
-      {"addressesSublabel", IDS_AUTOFILL_ADDRESSES_SETTINGS_SUBLABEL},
       {"addAddressTitle", IDS_SETTINGS_AUTOFILL_ADDRESSES_ADD_TITLE},
       {"editAddressTitle", IDS_SETTINGS_AUTOFILL_ADDRESSES_EDIT_TITLE},
       {"localAddressIconA11yLabel", IDS_AUTOFILL_LOCAL_ADDRESS_ICON_A11Y_LABEL},
@@ -1288,35 +1287,35 @@ void AddAutofillStrings(content::WebUIDataSource* html_source,
       {"benefitsTermsTagForCreditCardListEntry",
        IDS_AUTOFILL_SETTINGS_PAGE_BENEFITS_TERMS_TAG_FOR_CREDIT_CARD_LIST_ENTRY},
       {"cardBenefitsLabel", IDS_AUTOFILL_SETTINGS_PAGE_CARD_BENEFITS_LABEL},
-      {"autofillPredictionImprovementsPageTitle",
+      {"autofillAiPageTitle",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_PAGE_TITLE},
-      {"autofillPredictionImprovementsDescription",
+      {"autofillAiDescription",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_DESCRIPTION},
-      {"autofillPredictionImprovementsWhenOnSavedInfo",
+      {"autofillAiWhenOnSavedInfo",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_WHEN_ON_SAVED_INFO},
-      {"autofillPredictionImprovementsUseToFill",
+      {"autofillAiUseToFill",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_WHEN_ON_USE_TO_FILL},
-      {"autofillPredictionImprovementsNewFeature",
+      {"autofillAiNewFeature",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_TO_CONSIDER_NEW_FEATURE},
-      {"autofillPredictionImprovementsToConsiderDataUsage",
+      {"autofillAiToConsiderDataUsage",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_TO_CONSIDER_DATA_USAGE},
-      {"autofillPredictionImprovementsToConsiderDataStorage",
+      {"autofillAiToConsiderDataStorage",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_TO_CONSIDER_STORAGE},
-      {"autofillPredictionImprovementsToConsiderDataImprovement",
+      {"autofillAiToConsiderDataImprovement",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_TO_CONSIDER_IMPROVEMENT},
-      {"autofillPredictionImprovementsUserAnnotationsHeader",
+      {"autofillAiUserAnnotationsHeader",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_USER_ANNOTATIONS_HEADER},
-      {"autofillPredictionImprovementsUserAnnotationsNone",
+      {"autofillAiUserAnnotationsNone",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_USER_ANNOTATIONS_NONE},
-      {"autofillPredictionImprovementsDeleteEntryDialogTitle",
+      {"autofillAiDeleteEntryDialogTitle",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_DELETE_ENTRY_DIALOG_TITLE},
-      {"autofillPredictionImprovementsDeleteEntryDialogText",
+      {"autofillAiDeleteEntryDialogText",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_DELETE_ENTRY_DIALOG_TEXT},
-      {"autofillPredictionImprovementsDeleteAllEntriesButtonLabel",
+      {"autofillAiDeleteAllEntriesButtonLabel",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_DELETE_ALL_ENTRIES_BUTTON_LABEL},
-      {"autofillPredictionImprovementsDeleteAllEntriesDialogTitle",
+      {"autofillAiDeleteAllEntriesDialogTitle",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_DELETE_ALL_ENTRIES_DIALOG_TITLE},
-      {"autofillPredictionImprovementsDeleteAllEntriesDialogText",
+      {"autofillAiDeleteAllEntriesDialogText",
        IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_DELETE_ALL_ENTRIES_DIALOG_TEXT},
   };
 
@@ -1332,7 +1331,7 @@ void AddAutofillStrings(content::WebUIDataSource* html_source,
                          autofill::payments::GetManageInstrumentsUrl().spec());
   html_source->AddString("addressesAndPaymentMethodsLearnMoreURL",
                          chrome::kAddressesAndPaymentMethodsLearnMoreURL);
-  html_source->AddString("autofillPredictionImprovementsLearnMoreURL",
+  html_source->AddString("autofillAiLearnMoreURL",
                          chrome::kAutofillPredictionImprovementsLearnMoreURL);
   html_source->AddString(
       "signedOutUserLabel",
@@ -1401,6 +1400,14 @@ void AddAutofillStrings(content::WebUIDataSource* html_source,
 
   html_source->AddLocalizedStrings(kLocalizedStrings);
 
+  html_source->AddString(
+      "addressesSublabel",
+      l10n_util::GetStringUTF8(
+          base::FeatureList::IsEnabled(
+              plus_addresses::features::kPlusAddressesEnabled)
+              ? IDS_AUTOFILL_ADDRESSES_SETTINGS_WITH_PLUS_ADDRESS_SUBLABEL
+              : IDS_AUTOFILL_ADDRESSES_SETTINGS_SUBLABEL));
+
   html_source->AddBoolean(
       "syncEnableContactInfoDataTypeInTransportMode",
       base::FeatureList::IsEnabled(
@@ -1416,15 +1423,15 @@ void AddAutofillStrings(content::WebUIDataSource* html_source,
       plus_addresses::features::kPlusAddressManagementUrl.Get());
 
   html_source->AddBoolean(
-      "autofillPredictionImprovementsEnabled",
+      "autofillAiEnabled",
       autofill_ai::IsAutofillAiSupported(profile->GetPrefs()));
 
   html_source->AddBoolean(
-      "autofillPredictionBootstrappingEnabled",
+      "autofillAiBootstrappingEnabled",
       base::FeatureList::IsEnabled(autofill_ai::kAutofillAiBootstrapping));
 
   html_source->AddString(
-      "autofillPredictionImprovementsToggleSubLabel",
+      "autofillAiToggleSubLabel",
       l10n_util::GetStringFUTF16(
           IDS_SETTINGS_AUTOFILL_PREDICTION_IMPROVEMENTS_TOGGLE_SUB_LABEL,
           chrome::kAutofillPredictionImprovementsLearnMoreURL));
@@ -1744,7 +1751,7 @@ void AddPeopleStrings(content::WebUIDataSource* html_source, Profile* profile) {
       OptimizationGuideKeyedServiceFactory::GetForProfile(profile);
   html_source->AddBoolean(
       "historyEmbeddingsAnswersFeatureEnabled",
-      history_embeddings::IsHistoryEmbeddingsAnswersEnabled() &&
+      history_embeddings::IsHistoryEmbeddingsAnswersFeatureEnabled() &&
           optimization_guide_keyed_service &&
           optimization_guide_keyed_service
               ->ShouldModelExecutionBeAllowedForUser());
@@ -2099,10 +2106,6 @@ void AddPrivacyGuideStrings(content::WebUIDataSource* html_source) {
       {"privacyGuideBackButton", IDS_SETTINGS_PRIVACY_GUIDE_BACK_BUTTON},
       {"privacyGuideSteps", IDS_SETTINGS_PRIVACY_GUIDE_STEPS},
       {"privacyGuideNextButton", IDS_SETTINGS_PRIVACY_GUIDE_NEXT_BUTTON},
-      {"privacyGuideFeatureDescriptionHeader",
-       IDS_SETTINGS_PRIVACY_GUIDE_FEATURE_DESCRIPTION_HEADER},
-      {"privacyGuideThingsToConsider",
-       IDS_SETTINGS_PRIVACY_GUIDE_THINGS_TO_CONSIDER},
       {"privacyGuideWelcomeCardHeader",
        IDS_SETTINGS_PRIVACY_GUIDE_WELCOME_CARD_HEADER},
       {"privacyGuideWelcomeCardSubHeader",
@@ -2125,6 +2128,8 @@ void AddPrivacyGuideStrings(content::WebUIDataSource* html_source) {
        IDS_SETTINGS_PRIVACY_GUIDE_COMPLETION_CARD_WAA_LABEL},
       {"privacyGuideCompletionCardWaaSubLabel",
        IDS_SETTINGS_PRIVACY_GUIDE_COMPLETION_CARD_WAA_SUB_LABEL},
+      {"privacyGuideCompletionCardAiSettingsLabel",
+       IDS_SETTINGS_PRIVACY_GUIDE_COMPLETION_CARD_AI_SETTINGS_LABEL},
       {"privacyGuideMsbbCardHeader",
        IDS_SETTINGS_PRIVACY_GUIDE_MSBB_CARD_HEADER},
       {"privacyGuideMsbbFeatureDescription1",

@@ -32,6 +32,7 @@
 #include <memory>
 #include <utility>
 
+#include "base/containers/adapters.h"
 #include "base/feature_list.h"
 #include "cc/input/snap_selection_strategy.h"
 #include "third_party/blink/public/common/features.h"
@@ -1048,7 +1049,7 @@ HeapVector<Member<Element>>* Element::GetAttrAssociatedElements(
       if (candidate) {
         if (resolve_reference_target) {
           // 4.3.NEW. Resolve the referenceTarget of the candidate element
-         candidate = candidate->GetShadowReferenceTargetOrSelf(attr);
+          candidate = candidate->GetShadowReferenceTargetOrSelf(attr);
         }
         // 4.3.2. Append candidate to elements.
         result_elements->push_back(candidate);
@@ -3061,7 +3062,8 @@ Node::InsertionNotificationRequest Element::InsertedInto(
   // by the time we reach updateId
   ContainerNode::InsertedInto(insertion_point);
 
-  DCHECK(!GetElementRareData() || !GetElementRareData()->HasPseudoElements() || GetDocument().StatePreservingAtomicMoveInProgress());
+  DCHECK(!GetElementRareData() || !GetElementRareData()->HasPseudoElements() ||
+         GetDocument().StatePreservingAtomicMoveInProgress());
 
   RecomputeDirectionFromParent();
 
@@ -3274,7 +3276,6 @@ void Element::RemovedFrom(ContainerNode& insertion_point) {
 
     DCHECK(!data->HasPseudoElements() ||
            GetDocument().StatePreservingAtomicMoveInProgress());
-
   }
 
   if (auto* const frame = document.GetFrame()) {
@@ -3700,17 +3701,13 @@ bool Element::SkipStyleRecalcForContainer(
     return false;
   }
 
-  // ::scroll-marker-group boxes are created outside their originating element's
-  // box and cannot be skipped if the originating element is a size container
-  // because the pseudo element and its box need to be created before layout.
-  if (!style.ScrollMarkerGroupNone()) {
-    return false;
-  }
-
-  // Same as above about ::scroll-marker-group goes about ::scroll-button().
-  // Note: using generic kPseudoIdScrollButton here, as style collection only
-  // sets generic pseudo style flag on originating element.
-  if (CanGeneratePseudoElement(kPseudoIdScrollButton)) {
+  // ::scroll-marker-group and ::scroll-button() boxes are created outside their
+  // originating element's box and cannot be skipped if the originating element
+  // is a size container because the pseudo element and its box need to be
+  // created before layout.
+  if (!style.ScrollMarkerGroupNone() ||
+      CanGeneratePseudoElement(kPseudoIdScrollButton) ||
+      HasSiblingBoxPseudoElements()) {
     return false;
   }
 
@@ -3919,16 +3916,17 @@ void Element::RecalcStyle(const StyleRecalcChange change,
   }
 
   if (child_change.TraverseChildren(*this)) {
-    SelectorFilterParentScope filter_scope(*this);
     if (ShadowRoot* root = GetShadowRoot()) {
-      root->RecalcDescendantStyles(child_change, child_recalc_context);
+      root->RecalcDescendantStyles(child_change, child_recalc_context, *this);
       if (child_change.RecalcDescendants()) {
         MarkNonSlottedHostChildrenForStyleRecalc();
       }
     } else if (auto* slot = ToHTMLSlotElementIfSupportsAssignmentOrNull(this)) {
+      SelectorFilterParentScope filter_scope(
+          this, SelectorFilterParentScope::ScopeType::kParent);
       slot->RecalcStyleForSlotChildren(child_change, child_recalc_context);
     } else {
-      RecalcDescendantStyles(child_change, child_recalc_context);
+      RecalcDescendantStyles(child_change, child_recalc_context, *this);
     }
   }
 
@@ -5189,11 +5187,17 @@ Element::HighlightRecalc Element::CalculateHighlightRecalc(
     return HighlightRecalc::kNone;
   }
   // If we are a root element (our parent is a Document or ShadowRoot), we can
-  // skip highlight recalc if there neither are nor were any non-UA highlight
-  // rules (regardless of whether or not they are non-universal), and the root’s
-  // effective zoom (‘zoom’ × page zoom × device scale factor) did not change.
+  // skip highlight recalc if all of the following are true:
+  // * there neither are nor were any non-UA highlight rules (regardless of
+  //   whether or not they are non-universal), because then no inherited
+  //   highlight properties have changed.
+  // * the root’s effective zoom (‘zoom’ × page zoom × device scale factor) did
+  //   not change, because then no units have changed size.
+  // * the InitialData for custom properties has not changed, because then
+  //   custom properties will still have the same initial values.
   // In that case, we only need to calculate highlight styles once, because our
-  // UA styles only use type selectors and we never change them dynamically.
+  // UA styles only use type selectors, do not have custom properties, and we
+  // never change them dynamically.
   DCHECK(IsInTreeScope());
   if (parentNode() == GetTreeScope().RootNode()) {
     if (new_style.HasNonUaHighlightPseudoStyles()) {
@@ -5204,6 +5208,9 @@ Element::HighlightRecalc Element::CalculateHighlightRecalc(
         return HighlightRecalc::kFull;
       }
       if (old_style->EffectiveZoom() != new_style.EffectiveZoom()) {
+        return HighlightRecalc::kFull;
+      }
+      if (old_style->InitialData() != new_style.InitialData()) {
         return HighlightRecalc::kFull;
       }
       // Neither the new style nor the old style has any non-UA highlight rules,
@@ -7845,8 +7852,8 @@ const ComputedStyle* Element::EnsureComputedStyle(
     filter_root = nullptr;
   }
 
-  SelectorFilterRootScope root_scope(filter_root);
-  SelectorFilterParentScope::EnsureParentStackIsPushed();
+  SelectorFilterParentScope root_scope(
+      filter_root, SelectorFilterParentScope::ScopeType::kRoot);
   SelectorFilter& filter =
       top->GetDocument().GetStyleResolver().GetSelectorFilter();
   GetDocument().GetStyleEngine().UpdateViewportSize();
@@ -7858,8 +7865,8 @@ const ComputedStyle* Element::EnsureComputedStyle(
                                   : StyleRecalcContext();
   style_recalc_context.is_outside_flat_tree = !is_in_flat_tree;
 
-  for (auto it = ancestors.rbegin(); it != ancestors.rend(); it++) {
-    Element* ancestor = it->Get();
+  SelectorFilter::Mark mark = filter.SetMark();
+  for (Element* ancestor : base::Reversed(ancestors)) {
     const ComputedStyle* style =
         ancestor->EnsureOwnComputedStyle(style_recalc_context, kPseudoIdNone);
     if (is_in_flat_tree) {
@@ -7874,9 +7881,7 @@ const ComputedStyle* Element::EnsureComputedStyle(
       style_recalc_context, pseudo_element_specifier, pseudo_argument);
 
   if (is_in_flat_tree) {
-    for (auto& ancestor : ancestors) {
-      filter.PopParent(*ancestor.Get());
-    }
+    filter.PopTo(mark);
   }
 
   return style;
@@ -8321,7 +8326,9 @@ PseudoElement* Element::UpdatePseudoElement(
         // cache, so that when attribute value changes it will force style
         // invalidation.
         if (element->GetComputedStyle() &&
-            element->GetComputedStyle()->HasAttrFunction()) {
+            element->GetComputedStyle()->HasAttrFunction() &&
+            !GetComputedStyle()->GetCachedPseudoElementStyle(pseudo_id,
+                                                             g_null_atom)) {
           GetComputedStyle()->AddCachedPseudoElementStyle(
               element->GetComputedStyle(), pseudo_id, g_null_atom);
         }
@@ -8363,7 +8370,9 @@ PseudoElement* Element::CreatePseudoElementIfNeeded(
     // If the content property is relying on attr() we should add the
     // originating element's ComputedStyle to the pseudo element style cache, so
     // that when attribute value changes it will force style invalidation.
-    if (pseudo_style && pseudo_style->HasAttrFunction()) {
+    if (pseudo_style && pseudo_style->HasAttrFunction() &&
+        !GetComputedStyle()->GetCachedPseudoElementStyle(pseudo_id,
+                                                         g_null_atom)) {
       GetComputedStyle()->AddCachedPseudoElementStyle(pseudo_style, pseudo_id,
                                                       g_null_atom);
     }
@@ -8716,6 +8725,22 @@ bool Element::CanGeneratePseudoElement(PseudoId pseudo_id) const {
   return false;
 }
 
+bool Element::HasSiblingBoxPseudoElements() const {
+  const ElementRareDataVector* rare_data = GetElementRareData();
+  if (!rare_data) {
+    return false;
+  }
+  for (PseudoId pseudo_id :
+       {kPseudoIdScrollUpButton, kPseudoIdScrollDownButton,
+        kPseudoIdScrollLeftButton, kPseudoIdScrollRightButton,
+        kPseudoIdScrollMarkerGroupAfter, kPseudoIdScrollMarkerGroupBefore}) {
+    if (rare_data->GetPseudoElement(pseudo_id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool Element::MayTriggerVirtualKeyboard() const {
   return IsEditable(*this);
 }
@@ -8791,9 +8816,8 @@ String Element::GetURLAttribute(const QualifiedName& name) const {
 #endif
   KURL url = GetDocument().CompleteURL(
       StripLeadingAndTrailingHTMLSpaces(getAttribute(name)));
-  return url.IsValid()
-             ? url
-             : StripLeadingAndTrailingHTMLSpaces(getAttribute(name));
+  return url.IsValid() ? url
+                       : StripLeadingAndTrailingHTMLSpaces(getAttribute(name));
 }
 
 KURL Element::GetURLAttributeAsKURL(const QualifiedName& name) const {

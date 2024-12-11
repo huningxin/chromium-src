@@ -43,6 +43,7 @@
 #include "chrome/browser/policy/file_selection_dialogs_policy_handler.h"
 #include "chrome/browser/policy/homepage_location_policy_handler.h"
 #include "chrome/browser/policy/javascript_policy_handler.h"
+#include "chrome/browser/policy/power_battery_charging_optimization_policy_handler.h"
 #include "chrome/browser/policy/webhid_device_policy_handler.h"
 #include "chrome/browser/policy/webusb_allow_devices_for_urls_policy_handler.h"
 #include "chrome/browser/prefetch/pref_names.h"
@@ -1641,9 +1642,6 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kFloatingWorkspaceV2Enabled,
     ash::prefs::kFloatingWorkspaceV2Enabled,
     base::Value::Type::BOOLEAN },
-  { key::kDevicePowerAdaptiveChargingEnabled,
-    ash::prefs::kPowerAdaptiveChargingEnabled,
-    base::Value::Type::BOOLEAN },
   { key::kCalendarIntegrationEnabled,
     ash::prefs::kCalendarIntegrationEnabled,
     base::Value::Type::BOOLEAN },
@@ -2215,9 +2213,6 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
     base::Value::Type::BOOLEAN},
   { key::kMutationEventsEnabled,
     policy_prefs::kMutationEventsEnabled,
-    base::Value::Type::BOOLEAN},
-  { key::kCSSCustomStateDeprecatedSyntaxEnabled,
-    policy_prefs::kCSSCustomStateDeprecatedSyntaxEnabled,
     base::Value::Type::BOOLEAN},
   { key::kSelectParserRelaxationEnabled,
     policy_prefs::kSelectParserRelaxationEnabled,
@@ -3262,6 +3257,15 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
 #endif  // BUILDFLAG(IS_CHROMEOS)
   handlers->AddHandler(std::make_unique<GenAiDefaultSettingsPolicyHandler>(
       std::move(gen_ai_default_policies)));
+
+#if BUILDFLAG(IS_CHROMEOS)
+  handlers->AddHandler(std::make_unique<SimpleDeprecatingPolicyHandler>(
+      std::make_unique<SimplePolicyHandler>(
+          key::kDevicePowerAdaptiveChargingEnabled,
+          ash::prefs::kPowerAdaptiveChargingEnabled,
+          base::Value::Type::BOOLEAN),
+      std::make_unique<PowerBatteryChargingOptimizationPolicyHandler>()));
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
   return handlers;
 }

@@ -10,6 +10,7 @@
 #import "components/signin/public/identity_manager/identity_manager.h"
 #import "ios/chrome/browser/signin/model/signin_util.h"
 #import "ios/chrome/browser/signin/model/system_identity_interaction_manager.h"
+#import "ios/chrome/browser/ui/authentication/signin/interruptible_chrome_coordinator.h"
 
 @interface AddAccountSigninManager ()
 
@@ -96,6 +97,9 @@
   self.signinInterrupted = YES;
   switch (action) {
     case SigninCoordinatorInterrupt::UIShutdownNoDismiss:
+      CHECK(!base::FeatureList::IsEnabled(
+                kIOSInterruptibleCoordinatorAlwaysDismissed),
+            base::NotFatalUntil::M136);
       // IdentityInteractionManager doesn't support interrupt with no dismiss.
       // We need to stop with no animation to make sure dealloc are done with
       // CHECK failures.
@@ -116,20 +120,27 @@
       __weak __typeof(self) weakSelf = self;
       BOOL animated =
           action == SigninCoordinatorInterrupt::DismissWithAnimation;
-      [self.identityInteractionManager
-          cancelAuthActivityAnimated:animated
-                          completion:^() {
-                            // If `identityInteractionManager` completion
-                            // callback has not been called yet, the add account
-                            // needs to be fully done by calling:
-                            // `operationCompletedWithIdentity:error:`, before
-                            // calling `completion` See crbug.com/1227658.
-                            [weakSelf operationCompletedWithIdentity:nil
-                                                               error:nil];
-                            if (completion) {
-                              completion();
-                            }
-                          }];
+      ProceduralBlock cancelCompletion = ^() {
+        // If `identityInteractionManager` completion
+        // callback has not been called yet, the add account
+        // needs to be fully done by calling:
+        // `operationCompletedWithIdentity:error:`, before
+        // calling `completion` See crbug.com/1227658.
+        [weakSelf operationCompletedWithIdentity:nil error:nil];
+        if (completion) {
+          completion();
+        }
+      };
+      if (base::FeatureList::IsEnabled(
+              kIOSInterruptibleCoordinatorStoppedSynchronously)) {
+        [self.identityInteractionManager cancelAuthActivityAnimated:animated
+                                                         completion:nil];
+        cancelCompletion();
+      } else {
+        [self.identityInteractionManager
+            cancelAuthActivityAnimated:animated
+                            completion:cancelCompletion];
+      }
       break;
     }
   }

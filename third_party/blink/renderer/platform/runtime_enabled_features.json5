@@ -363,6 +363,14 @@
       // enabled to make the whole feature work.
     },
     {
+      name: "AllowSyntheticTimingForCanvasCapture",
+      base_feature: "none",
+      status: {
+        "Mac": "stable",
+        "default": ""
+      }
+    },
+    {
       name: "AllowURNsInIframes",
       base_feature: "none",
     },
@@ -712,6 +720,11 @@
       status: "experimental",
     },
     {
+      // https://crbug.com/377325952
+      name: "CanvasInterventions",
+      browser_process_read_write_access: true,
+    },
+    {
       // https://github.com/Igalia/explainers/blob/main/canvas-formatted-text/html-in-canvas.md
       name: "CanvasPlaceElement",
       status: "experimental",
@@ -916,12 +929,6 @@
       name: "CorsRFC1918",
     },
     {
-      // Controls whether form elements may delay editor creation until layout.
-      // This is a kill switch. See https://crbug.com/325613706 for details.
-      name: "CreateInputShadowTreeDuringLayout",
-      status: "stable"
-    },
-    {
       // Allow WebAuthn relying parties to report information about existing
       // credentials back to credential storage providers.
       // Enabled by default on M132. Remove flag on or after M135.
@@ -930,6 +937,10 @@
     },
     {
       name: "CrossFramePerformanceTimeline",
+      status: "experimental",
+    },
+    {
+      name: "CSPReportHash",
       status: "experimental",
     },
     {
@@ -1019,23 +1030,6 @@
       // https://drafts.csswg.org/css-images-4/#cross-fade-function
       name: "CSSCrossFade",
       status: "experimental",
-    },
-    {
-      // This flag controls whether the deprecated :--foo syntax is enabled. It
-      // is being replaced by :state(foo), which is controlled by the
-      // CSSCustomStateNewSyntax flag.
-      // TODO(crbug.com/1514397): Remove this when the feature is fully launched.
-      name: "CSSCustomStateDeprecatedSyntax",
-      public: true,
-    },
-    {
-      // This flag controls whether the :state(foo) pseudo-class for custom
-      // elements is enabled. It is a rename of :--foo, which is being
-      // deprecated and is controlled by the CSSCustomStateDeprecatedSyntax
-      // flag.
-      // TODO(crbug.com/1514397): Remove this when the deprecation is done.
-      name: "CSSCustomStateNewSyntax",
-      status: "stable",
     },
     {
       name: "CSSDynamicRangeLimit",
@@ -1150,9 +1144,9 @@
       status: "experimental",
     },
     {
-      // Enables the :open and :closed pseudo-selectors.
+      // Enables the :open pseudo-selector.
       // https://chromestatus.com/feature/5085419215781888
-      name: "CSSPseudoOpenClosed",
+      name: "CSSPseudoOpen",
       status: "experimental",
     },
     {
@@ -1340,11 +1334,9 @@
       // customizable.
       name: "CustomizableSelect",
       status: "experimental",
-      // :open is used in the UA stylesheet for CustomizableSelect, so this feature
-      // will not work properly without CSSPseudoOpenClosed.
       // SelectParserRelaxation is needed to allow more content in <select>
       // than just <option>s etc.
-      depends_on: ["CSSPseudoOpenClosed", "SelectParserRelaxation"],
+      depends_on: ["SelectParserRelaxation"],
     },
     {
       name: "Database",
@@ -1688,13 +1680,6 @@
       // was affected by autoscroll, i.e. from text selection.
       name: "EventTimingSelectionAutoScrollNoInteractionId",
       status: "experimental",
-    },
-    {
-      // When the fling is active, a tap on the page can stop scroll. When
-      // calculating the input latency, we should exclude all the input events
-      // caused by this tap.
-      name: "EventTimingTapStopScrollNoInteractionId",
-      status: "stable",
     },
     {
       name: "ExcludeTransparentTextsFromBeingLcpEligible",
@@ -2276,6 +2261,12 @@
       name: "HTMLEmbedElementNotForceLayout",
       status: "stable",
     },
+    // The width attribute on the hr element, previously converted 0 values to 1px.
+    // This will ship in M133, so should be safe to remove in M135.
+    {
+      name: "HTMLHRWidthAllowZero",
+      status: "stable"
+    },
     // Adds support for the experimental `interesttarget`
     // attributes, as specified in the open-ui "Interest Invokers" explainer.
     // https://open-ui.org/components/interest-invokers.explainer/
@@ -2411,6 +2402,10 @@
       // stable in M131, then this flag can be removed in M133.
       name: "InputClosesSelect",
       depends_on: ["SelectParserRelaxation"],
+    },
+    {
+      name: "InputEventConstructorThrows",
+      status: "stable",
     },
     {
       name: "InputMultipleFieldsUI",
@@ -3858,12 +3853,6 @@
       status: "experimental",
     },
     {
-      name: "ServiceWorkerStaticRouter",
-      base_feature: "none",
-      origin_trial_feature_name: "ServiceWorkerStaticRouter",
-      public: true,
-    },
-    {
       name: "ServiceWorkerStaticRouterTimingInfo",
       origin_trial_feature_name: "ServiceWorkerStaticRouterTimingInfo",
     },
@@ -4014,8 +4003,10 @@
     {
       name: "SpeculationRulesPrefetchWithSubresources",
     },
+    // Kill switch for change to unify image-set and srcset selection logic.
     {
-      name: "SrcsetMaxDensity",
+      name: "SrcsetSelectionMatchesImageSet",
+      status: "stable",
     },
     // Used as argument in attribute of stable-release functions/interfaces
     // where a runtime-enabled feature name is required for correct IDL syntax.
@@ -4220,7 +4211,7 @@
       // disabling automatic size adjustments when non-auto values are used.
       // See: https://crbug.com/340389272.
       name: "TextSizeAdjustImprovements",
-      status: "experimental",
+      status: "stable",
     },
     {
       // crbug.com/379254069
@@ -4781,6 +4772,14 @@
       name: "WebGPUExperimentalFeatures",
       status: "experimental",
       public: true,
+    },
+    {
+      // Launch feature flag for GPURequestAdapterOptions featureLevel
+      // https://chromestatus.com/feature/5154347661656064
+      name: "WebGPUFeatureLevel",
+      status: "experimental",
+      // Also enabled as part of all experimental WebGPU features.
+      implied_by: ["WebGPUExperimentalFeatures"],
     },
     {
       // Launch feature flag for 1-component GPUVertexFormat and unorm8x4-bgra

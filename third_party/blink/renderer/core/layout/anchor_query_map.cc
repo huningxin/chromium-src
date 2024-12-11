@@ -163,30 +163,6 @@ struct StitchedAnchorQueries {
             anchored_oof_containers_and_ancestors),
         root_(root) {}
 
-  void AddChildren(base::span<const LogicalFragmentLink> children,
-                   const FragmentItemsBuilder::ItemWithOffsetList* items,
-                   const WritingModeConverter& converter) {
-    const FragmentainerContext fragmentainer{{}, {}, converter};
-    if (items) {
-      for (const FragmentItemsBuilder::ItemWithOffset& item_with_offset :
-           *items) {
-        const FragmentItem& item = item_with_offset.item;
-        if (const PhysicalBoxFragment* fragment = item.BoxFragment()) {
-          AddBoxChild(*fragment, item.OffsetInContainerFragment(),
-                      fragmentainer);
-        }
-      }
-    }
-
-    for (const LogicalFragmentLink& child : children) {
-      DCHECK(!child->IsFragmentainerBox());
-      DCHECK(!child->IsColumnSpanAll());
-      const PhysicalOffset child_offset =
-          converter.ToPhysical(child.offset, child->Size());
-      AddChild(*child, child_offset, fragmentainer);
-    }
-  }
-
   void AddFragmentainerChildren(base::span<const LogicalFragmentLink> children,
                                 WritingDirectionMode writing_direction) {
     LayoutUnit fragmentainer_stitched_offset;
@@ -285,7 +261,7 @@ struct StitchedAnchorQueries {
           fragmentainer.converter.ToLogical(
               offset_from_fragmentainer + child.offset, child->Size()) +
           fragmentainer.offset;
-      children.push_back(LogicalFragmentLink{child.fragment, child_offset});
+      children.push_back(LogicalFragmentLink(*child.fragment, child_offset));
     }
     AddFragmentainerChildren(children,
                              fragmentainer.converter.GetWritingDirection());
@@ -295,8 +271,7 @@ struct StitchedAnchorQueries {
                          const PhysicalOffset& offset_from_fragmentainer,
                          const FragmentainerContext& fragmentainer) {
     DCHECK(fragment.IsOutOfFlowPositioned());
-    if (!fragment.Style().AnchorName() && !fragment.IsImplicitAnchor() &&
-        !fragment.AnchorQuery()) {
+    if (!fragment.HasAnchorQueryToPropagate()) {
       return;
     }
     // OOF fragments in block-fragmentation context are children of the
@@ -321,7 +296,7 @@ struct StitchedAnchorQueries {
     while (containing_block && containing_block != root_ &&
            !skip_info.AncestorSkipped()) {
       StitchedAnchorQuery& query = EnsureStitchedAnchorQuery(*containing_block);
-      if (fragment.Style().AnchorName()) {
+      if (fragment.IsExplicitAnchor()) {
         for (const ScopedCSSName* name :
              fragment.Style().AnchorName()->GetNames()) {
           query.AddAnchorReference(
@@ -414,20 +389,14 @@ void LogicalAnchorQueryMap::Update(const LayoutObject& layout_object) const {
   HeapHashSet<Member<const LayoutObject>> anchored_oof_containers_and_ancestors;
   for (const LayoutObject* runner = &layout_object;
        runner && runner != &root_box_; runner = runner->Parent()) {
-    const auto result = anchored_oof_containers_and_ancestors.insert(runner);
-    if (!result.is_new_entry)
-      break;
+    anchored_oof_containers_and_ancestors.insert(runner);
   }
 
   // Traverse descendants and collect anchor queries for each containing block.
   StitchedAnchorQueries stitched_anchor_queries(
       root_box_, anchored_oof_containers_and_ancestors);
-  if (converter_) {
-    stitched_anchor_queries.AddChildren(*children_, items_, *converter_);
-  } else {
-    stitched_anchor_queries.AddFragmentainerChildren(*children_,
-                                                     writing_direction_);
-  }
+  stitched_anchor_queries.AddFragmentainerChildren(*children_,
+                                                   writing_direction_);
 
   // TODO(kojii): Currently this clears and rebuilds all anchor queries on
   // incremental updates. It may be possible to reduce the computation when

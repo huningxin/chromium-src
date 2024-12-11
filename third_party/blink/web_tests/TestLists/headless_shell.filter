@@ -70,6 +70,8 @@
 -external/wpt/compute-pressure/compute_pressure_disconnect_idempotent.https.window.html*
 -external/wpt/console/console-log-large-array.any.html
 -external/wpt/content-security-policy/reporting-api/*
+-external/wpt/content-security-policy/report-hash/*
+-virtual/verify-minimal-resource-request-kill-switch/external/wpt/content-security-policy/report-hash/*
 -external/wpt/content-security-policy/securitypolicyviolation/securitypolicyviolation-block-cross-origin-image-from-script.sub.html
 # https://github.com/web-platform-tests/wpt/issues/48078
 -external/wpt/cookie-store/*
@@ -545,7 +547,7 @@
 -external/wpt/css/selectors/selectors-4/lang-024.html
 -external/wpt/css/selectors/invalidation/lang-pseudo-class-in-has-multiple-document-elements.html
 -external/wpt/css/selectors/media/media-loading-state.html
--external/wpt/css/selectors/open-closed-pseudo.html
+-external/wpt/css/selectors/open-pseudo.html
 -external/wpt/css/selectors/remove-hovered-element.html
 -external/wpt/css/selectors/user-invalid-form-submission-invalidation.html
 -external/wpt/density-size-correction/*
@@ -938,6 +940,7 @@
 -external/wpt/shadow-dom/accesskey.tentative.html
 -external/wpt/shadow-dom/crashtests/move-to-new-tree-1343016.html
 -external/wpt/shadow-dom/Document-caretPositionFromPoint.tentative.html
+-external/wpt/shadow-dom/focus/focus-pseudo-on-shadow-host-1.html
 -external/wpt/shadow-dom/focus/focus-pseudo-on-shadow-host-2.html
 -external/wpt/shadow-dom/focus-navigation/delegatesFocus-highlight-sibling.html
 -external/wpt/shadow-dom/focus-navigation/focus-navigation-slot-fallback-default-tabindex.html
@@ -1143,6 +1146,7 @@
 -virtual/popover-anchor-relationships-disabled/external/wpt/html/semantics/forms/the-select-element/customizable-select/switch-picker-appearance.tentative.html
 -virtual/customizable-select-disabled/external/wpt/html/semantics/forms/the-select-element/customizable-select/select-events.tentative.html
 -virtual/select-parser-relaxation/external/wpt/html/semantics/forms/the-select-element/customizable-select/select-events.tentative.html
+-virtual/select-parser-relaxation/external/wpt/html/semantics/forms/the-select-element/reset-algorithm-rendering.html
 -virtual/popover-anchor-relationships-disabled/external/wpt/html/semantics/popovers/popover-minimum-role.html
 -virtual/popover-anchor-relationships-disabled/external/wpt/html/semantics/popovers/popover-open-overflow-display.tentative.html
 -virtual/popover-hint-disabled/external/wpt/html/semantics/popovers/popover-focus.html
@@ -1174,6 +1178,7 @@
 -virtual/speculation-rules-prerender-target-hint/external/wpt/speculation-rules/prerender/navigation-intercepted-by-service-worker.https.html
 -virtual/speculation-rules-prerender-target-hint/external/wpt/speculation-rules/prerender/navigator-plugins.html
 -virtual/speculation-rules-prerender-target-hint/external/wpt/speculation-rules/prerender/referrer.html
+-virtual/speculation-rules-prerender-target-hint/external/wpt/speculation-rules/prerender/referrer-policy-mismatch.html
 -virtual/speculation-rules-prerender-target-hint/external/wpt/speculation-rules/prerender/referrer-policy-no-referrer.html
 -virtual/speculation-rules-prerender-target-hint/external/wpt/speculation-rules/prerender/referrer-policy-origin.html
 -virtual/speculation-rules-prerender-target-hint/external/wpt/speculation-rules/prerender/referrer-policy-strict-origin.html

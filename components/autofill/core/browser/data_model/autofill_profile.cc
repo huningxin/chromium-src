@@ -38,6 +38,8 @@
 #include "components/autofill/core/browser/data_model/autofill_structured_address_utils.h"
 #include "components/autofill/core/browser/data_model/contact_info.h"
 #include "components/autofill/core/browser/data_model/phone_number.h"
+#include "components/autofill/core/browser/data_quality/addresses/profile_token_quality.h"
+#include "components/autofill/core/browser/data_quality/validation.h"
 #include "components/autofill/core/browser/field_type_utils.h"
 #include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/browser/geo/address_i18n.h"
@@ -45,8 +47,6 @@
 #include "components/autofill/core/browser/geo/phone_number_i18n.h"
 #include "components/autofill/core/browser/geo/state_names.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
-#include "components/autofill/core/browser/profile_token_quality.h"
-#include "components/autofill/core/browser/validation.h"
 #include "components/autofill/core/common/autofill_clock.h"
 #include "components/autofill/core/common/autofill_constants.h"
 #include "components/autofill/core/common/autofill_features.h"
@@ -74,6 +74,8 @@ using ::i18n::addressinput::AddressField;
 namespace autofill {
 
 namespace {
+
+constexpr char kAddressComponentsDefaultLocality[] = "en-US";
 
 // Stores the data types that are relevant for the structured address/name.
 constexpr DenseSet kStructuredDataTypes = {NAME_FIRST,
@@ -460,6 +462,21 @@ FieldType AutofillProfile::GetStorableTypeOf(FieldType type) const {
     // The other FieldTypeGroups only support storable types.
     return type;
   }
+}
+
+FieldTypeSet AutofillProfile::GetUserVisibleTypes() const {
+  FieldTypeSet visible_types{PHONE_HOME_WHOLE_NUMBER, EMAIL_ADDRESS};
+  std::string components_language_code;
+  for (const AutofillAddressUIComponent& component :
+       GetAddressComponents(GetAddressCountryCode().value(),
+                            kAddressComponentsDefaultLocality,
+                            /*enable_field_labels_localization=*/false,
+                            /*include_literals=*/false,
+                            components_language_code)) {
+    visible_types.insert(component.field);
+  }
+
+  return visible_types;
 }
 
 bool AutofillProfile::IsEmpty(const std::string& app_locale) const {

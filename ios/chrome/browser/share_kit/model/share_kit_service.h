@@ -36,14 +36,20 @@ class ShareKitService : public KeyedService {
   // Ensures that the service is using the current primary account.
   virtual void PrimaryAccountChanged() = 0;
 
-  // Initiates the share group flow for the given `config`.
-  virtual void ShareGroup(ShareKitShareGroupConfiguration* config) = 0;
+  // Cancels the current `sessionID` flow.
+  virtual void CancelSession(NSString* session_id) = 0;
 
-  // Initiates the flow to manage the group, using `config`.
-  virtual void ManageGroup(ShareKitManageConfiguration* config) = 0;
+  // Initiates the share group flow for the given `config` and returns its
+  // sessionID.
+  virtual NSString* ShareTabGroup(ShareKitShareGroupConfiguration* config) = 0;
 
-  // Initiates the flow to join the group, using `config`.
-  virtual void JoinGroup(ShareKitJoinConfiguration* config) = 0;
+  // Initiates the flow to manage the group, using `config` and returns its
+  // sessionID.
+  virtual NSString* ManageTabGroup(ShareKitManageConfiguration* config) = 0;
+
+  // Initiates the flow to join the group, using `config` and returns its
+  // sessionID.
+  virtual NSString* JoinTabGroup(ShareKitJoinConfiguration* config) = 0;
 
   // Returns a new FacePile view controller for the given `config`.
   virtual UIViewController* FacePile(ShareKitFacePileConfiguration* config) = 0;

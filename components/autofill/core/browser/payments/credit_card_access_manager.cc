@@ -85,11 +85,10 @@ CreditCardAccessManager::~CreditCardAccessManager() {
 }
 
 void CreditCardAccessManager::UpdateCreditCardFormEventLogger() {
-  std::vector<CreditCard*> credit_cards =
-      payments_data_manager().GetCreditCards();
   size_t server_record_type_count = 0;
   size_t local_record_type_count = 0;
-  for (const CreditCard* credit_card : credit_cards) {
+  for (const CreditCard* credit_card :
+       payments_data_manager().GetCreditCards()) {
     if (credit_card->record_type() == CreditCard::RecordType::kLocalCard) {
       local_record_type_count++;
     } else {
@@ -126,8 +125,8 @@ bool CreditCardAccessManager::ShouldClearPreviewedForm() {
 void CreditCardAccessManager::PrepareToFetchCreditCard() {
 #if !BUILDFLAG(IS_IOS)
   // No need to fetch details if there are no server cards.
-  if (!std::ranges::any_of(payments_data_manager().GetCreditCardsToSuggest(),
-                           std::not_fn(&CreditCard::IsLocalCard))) {
+  if (std::ranges::all_of(payments_data_manager().GetCreditCardsToSuggest(),
+                          &CreditCard::IsLocalCard)) {
     return;
   }
 
@@ -1598,7 +1597,7 @@ bool CreditCardAccessManager::ShouldLogServerCardUnmaskAttemptMetrics(
   CHECK_NE(record_type, CreditCard::RecordType::kFullServerCard);
 
   return record_type == CreditCard::RecordType::kMaskedServerCard ||
-      record_type == CreditCard::RecordType::kVirtualCard;
+         record_type == CreditCard::RecordType::kVirtualCard;
 }
 
 void CreditCardAccessManager::StartDeviceAuthenticationForFilling(

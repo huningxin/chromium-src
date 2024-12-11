@@ -22,6 +22,7 @@
 #import "ios/chrome/test/earl_grey/chrome_earl_grey_ui.h"
 #import "ios/chrome/test/earl_grey/chrome_matchers.h"
 #import "ios/chrome/test/earl_grey/chrome_test_case.h"
+#import "ios/chrome/test/earl_grey/test_switches.h"
 #import "ios/testing/earl_grey/app_launch_configuration.h"
 #import "ios/testing/earl_grey/app_launch_manager.h"
 #import "ios/testing/earl_grey/earl_grey_test.h"
@@ -79,6 +80,11 @@ AppLaunchConfiguration SharedTabGroupAppLaunchConfiguration(
   config.features_enabled.push_back(kTabGroupSync);
   config.features_enabled.push_back(kTabGroupIndicator);
   config.features_enabled.push_back(shared_tab_group_flavor);
+
+  // Add the flag to use FakeTabGroupSyncService.
+  config.additional_args.push_back(
+      "--" + std::string(test_switches::kEnableFakeTabGroupSyncService));
+
   return config;
 }
 
@@ -124,8 +130,7 @@ void ShareGroupAtIndex(int index) {
 }
 
 // Tests that the user education is shown in the grid only once.
-// TODO(crbug.com/381850856): Fix this flaky test.
-- (void)DISABLED_testUserEducationInGrid {
+- (void)testUserEducationInGrid {
   [ChromeEarlGrey
       removeUserDefaultsObjectForKey:kSharedTabGroupUserEducationShownOnceKey];
 
@@ -201,8 +206,7 @@ void ShareGroupAtIndex(int index) {
 
 // Checks opening the Share flow from the Tab Grid and actually sharing. Then
 // checks opening the Manage flow. Using the face pile.
-// TODO(crbug.com/381850856): Fix this flaky test.
-- (void)DISABLED_testShareGroupAndManageGroupUsingFacePile {
+- (void)testShareGroupAndManageGroupUsingFacePile {
   // Open the tab grid.
   [ChromeEarlGreyUI openTabGrid];
 
@@ -248,8 +252,7 @@ void ShareGroupAtIndex(int index) {
 
 // Checks opening the Share flow from the Tab Grid and actually sharing. Then
 // checks opening the Manage flow. Using context menus.
-// TODO(crbug.com/381850856): Fix this flaky test.
-- (void)DISABLED_testShareGroupAndManageGroupUsingContextMenus {
+- (void)testShareGroupAndManageGroupUsingContextMenus {
   // Open the tab grid.
   [ChromeEarlGreyUI openTabGrid];
 
@@ -301,8 +304,7 @@ void ShareGroupAtIndex(int index) {
 }
 
 // Checks that the user with JoinOnly can trigger the Join flow.
-// TODO(crbug.com/381444321): Fix this flaky test.
-- (void)FLAKY_testJoinGroup {
+- (void)testJoinGroup {
   GURL joinGroupURL =
       GURL(data_sharing::features::kDataSharingURL.Get() +
            "?group_id=resources%2F3bebf45000000000%2Fe%2F50cc3ac28e000000&"
@@ -310,8 +312,7 @@ void ShareGroupAtIndex(int index) {
   [ChromeEarlGrey loadURL:joinGroupURL waitForCompletion:NO];
 
   // Verify that it opened the Join flow.
-  [[EarlGrey selectElementWithMatcher:FakeJoinFlowView()]
-      assertWithMatcher:grey_sufficientlyVisible()];
+  [ChromeEarlGrey waitForUIElementToAppearWithMatcher:FakeJoinFlowView()];
 
   // Close the Join flow.
   [[EarlGrey selectElementWithMatcher:NavigationBarCancelButton()]
@@ -406,8 +407,7 @@ void ShareGroupAtIndex(int index) {
 }
 
 // Checks that the user with JoinOnly can trigger the Join flow.
-// TODO(crbug.com/381444321): Fix this flaky test.
-- (void)FLAKY_testJoinGroup {
+- (void)testJoinGroup {
   GURL joinGroupURL =
       GURL(data_sharing::features::kDataSharingURL.Get() +
            "?group_id=resources%2F3bebf45000000000%2Fe%2F50cc3ac28e000000&"
@@ -415,8 +415,7 @@ void ShareGroupAtIndex(int index) {
   [ChromeEarlGrey loadURL:joinGroupURL waitForCompletion:NO];
 
   // Verify that it opened the Join flow.
-  [[EarlGrey selectElementWithMatcher:FakeJoinFlowView()]
-      assertWithMatcher:grey_sufficientlyVisible()];
+  [ChromeEarlGrey waitForUIElementToAppearWithMatcher:FakeJoinFlowView()];
 
   // Close the Join flow.
   [[EarlGrey selectElementWithMatcher:NavigationBarCancelButton()]

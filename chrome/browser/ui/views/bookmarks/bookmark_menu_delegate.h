@@ -17,6 +17,7 @@
 #include "chrome/browser/ui/views/bookmarks/bookmark_context_menu.h"
 #include "components/bookmarks/browser/base_bookmark_model_observer.h"
 #include "components/bookmarks/browser/bookmark_model.h"
+#include "components/bookmarks/browser/bookmark_node.h"
 #include "components/bookmarks/browser/bookmark_node_data.h"
 #include "ui/base/dragdrop/mojom/drag_drop_types.mojom-forward.h"
 #include "ui/base/mojom/menu_source_type.mojom-forward.h"
@@ -136,6 +137,30 @@ class BookmarkMenuDelegate : public bookmarks::BaseBookmarkModelObserver,
 
  private:
   friend class BookmarkMenuDelegateTest;
+  class BookmarkFolderOrURL {
+   public:
+    explicit BookmarkFolderOrURL(const bookmarks::BookmarkNode* node);
+    ~BookmarkFolderOrURL();
+
+    const BookmarkParentFolder* GetIfBookmarkFolder() const;
+
+    const bookmarks::BookmarkNode* GetIfBookmarkURL() const;
+
+    const bookmarks::BookmarkNode* GetIfNonPermanentNode() const;
+
+    std::vector<raw_ptr<const bookmarks::BookmarkNode, VectorExperimental>>
+    GetUnderlyingNodes(
+        BookmarkMergedSurfaceService* bookmark_merged_service) const;
+
+   private:
+    static std::variant<BookmarkParentFolder,
+                        raw_ptr<const bookmarks::BookmarkNode>>
+    GetFromNode(const bookmarks::BookmarkNode* node);
+
+    const std::variant<BookmarkParentFolder,
+                       raw_ptr<const bookmarks::BookmarkNode>>
+        folder_or_url_;
+  };
 
   typedef std::map<int, raw_ptr<const bookmarks::BookmarkNode, CtnExperimental>>
       MenuIDToNodeMap;
@@ -147,34 +172,36 @@ class BookmarkMenuDelegate : public bookmarks::BaseBookmarkModelObserver,
     size_t index_to_drop_at = 0;
   };
 
-  // Computes the parent and the index at which the dragged/copied node will be
-  // dropped.
-  // Returns `std::nullopt` if the drop is not valid.
+  bool IsDropValid(const BookmarkFolderOrURL* target,
+                   const views::MenuDelegate::DropPosition* position);
+
+  // Computes the parent and the index at which the dragged/copied node will
+  // be dropped. Returns `std::nullopt` if the drop is not valid.
   std::optional<DropParams> GetDropParams(
       views::MenuItemView* menu,
       views::MenuDelegate::DropPosition* position);
 
   // Returns whether the menu should close id 'delete' is selected.
-  bool ShouldCloseOnRemove(const bookmarks::BookmarkNode* node) const;
+  bool ShouldCloseOnRemove(const BookmarkFolderOrURL* node) const;
 
   // Creates a menu. This uses BuildMenu() to recursively populate the menu.
   views::MenuItemView* CreateMenu(const bookmarks::BookmarkNode* parent,
                                   size_t start_child_index);
 
-  // Invokes BuildMenuForPermanentNode() for the permanent nodes (excluding
-  // 'other bookmarks' folder).
-  void BuildMenusForPermanentNodes(views::MenuItemView* menu);
+  // Builds menus for the 'other' and 'mobile' nodes if they're not empty,
+  // adding them to `parent_menu_item_`.
+  void BuildMenusForPermanentNodes();
 
-  // If |node| has children a new menu is created and added to |menu| to
-  // represent it. If |node| is not empty and |added_separator| is false, a
-  // separator is added before the new menu items and |added_separator| is set
-  // to true.
-  void BuildMenuForPermanentNode(const bookmarks::BookmarkNode* node,
-                                 const ui::ImageModel& icon,
-                                 views::MenuItemView* menu,
-                                 bool* added_separator);
+  // Builds a submenu item for the provided bookmark folder node, adding it to
+  // `parent_menu`.
+  void BuildMenuForFolder(const bookmarks::BookmarkNode* node,
+                          const ui::ImageModel& icon,
+                          views::MenuItemView* parent_menu);
 
-  void BuildMenuForManagedNode(views::MenuItemView* menu);
+  // Builds a menu item for the provided bookmark url, adding it to
+  // `parent_menu`.
+  void BuildMenuForURL(const bookmarks::BookmarkNode* node,
+                       views::MenuItemView* parent_menu);
 
   // Creates an entry in menu for each child node of |parent| starting at
   // |start_child_index|.

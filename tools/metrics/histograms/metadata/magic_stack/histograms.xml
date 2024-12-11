@@ -86,6 +86,17 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="MagicStack.Clank.NewTabPage.Module.EducationalTip.Impression"
+    enum="ModuleType" expires_after="2025-05-11">
+  <owner>xinyiji@google.com</owner>
+  <owner>hanxi@google.com</owner>
+  <summary>
+    Records the total number of times the different educational tip cards are
+    shown to the user within the magic stack. The histogram is logged when the
+    card is shown to the user in the Magic Stack. Android-only.
+  </summary>
+</histogram>
+
 <histogram
     name="MagicStack.Clank.NewTabPage.Module.FetchDataDurationMs.{ModuleType}"
     units="ms" expires_after="2025-03-02">
@@ -206,7 +217,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="MagicStack.Clank.NewTabPage.{HostSurfaceState}.Module.{ModuleType}.Build"
-    enum="ModulePosition" expires_after="2025-03-30">
+    enum="ModulePosition" expires_after="2025-06-08">
   <owner>hanxi@chromium.org</owner>
   <owner>xinyiji@chromium.org</owner>
   <summary>
@@ -220,7 +231,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="MagicStack.Clank.NewTabPage.{HostSurfaceState}.Module.{ModuleType}.Click"
-    enum="ModulePosition" expires_after="2025-03-23">
+    enum="ModulePosition" expires_after="2025-06-08">
   <owner>hanxi@chromium.org</owner>
   <owner>xinyiji@chromium.org</owner>
   <summary>

@@ -30,6 +30,7 @@
 #include "components/browsing_topics/common/common_types.h"
 #include "components/download/public/common/quarantine_connection.h"
 #include "components/file_access/scoped_file_access.h"
+#include "components/language_detection/content/common/language_detection.mojom-forward.h"
 #include "content/common/content_export.h"
 #include "content/public/browser/allow_service_worker_result.h"
 #include "content/public/browser/auction_result.h"
@@ -84,6 +85,7 @@
 #include "third_party/blink/public/mojom/file_system_access/file_system_access_cloud_identifier.mojom-forward.h"
 #include "third_party/blink/public/mojom/file_system_access/file_system_access_error.mojom-forward.h"
 #include "third_party/blink/public/mojom/manifest/manifest.mojom-forward.h"
+#include "third_party/blink/public/mojom/on_device_translation/translation_manager.mojom-forward.h"
 #include "third_party/blink/public/mojom/origin_trials/origin_trials_settings.mojom-forward.h"
 #include "third_party/blink/public/mojom/payments/payment_credential.mojom-forward.h"
 #include "third_party/blink/public/mojom/worker/shared_worker_info.mojom.h"
@@ -574,16 +576,10 @@ class CONTENT_EXPORT ContentBrowserClient {
   virtual network::mojom::IPAddressSpace DetermineAddressSpaceFromURL(
       const GURL& url);
 
-  // Called when WebUI objects are created. Only internal (e.g. chrome://) URLs
-  // are logged. Note that a WebUI can be created but never shown, which will
-  // also be logged by this function. Returns whether the URL was actually
-  // logged. This is used to collect WebUI usage data.
-  virtual bool LogWebUICreated(const GURL& web_ui_url);
-
-  // Called when a WebUI completes the first non-empty paint. Only internal
-  // (e.g. chrome://) URLs are logged. Returns whether the URL was actually
-  // logged. This is used to collect WebUI usage data.
-  virtual bool LogWebUIShown(const GURL& web_ui_url);
+  // Called when WebUI objects are created to get aggregate usage data (i.e. is
+  // chrome://downloads used more than chrome://bookmarks?). Only internal (e.g.
+  // chrome://) URLs are logged. Returns whether the URL was actually logged.
+  virtual bool LogWebUIUrl(const GURL& web_ui_url);
 
   // http://crbug.com/829412
   // Renderers with WebUI bindings shouldn't make http(s) requests for security
@@ -3080,6 +3076,24 @@ class CONTENT_EXPORT ContentBrowserClient {
       BrowserContext* browser_context,
       base::SupportsUserData* context_user_data,
       mojo::PendingReceiver<blink::mojom::AIManager> receiver);
+
+  // Binds the TranslationManager for the given `browser_context`,
+  // `context_user_data` and `origin` to `receiver`. The created
+  // TranslationManager will be owned by the `context_user_data`.
+  virtual void BindTranslationManager(
+      BrowserContext* browser_context,
+      base::SupportsUserData* context_user_data,
+      const url::Origin& origin,
+      mojo::PendingReceiver<blink::mojom::TranslationManager> receiver);
+
+  // Binds to a singleton new instance of
+  // `language_detection::ContentLanguageDetectionDriver` which receives the
+  // model from a local file specified by a flag param..
+  virtual void BindLanguageDetectionDriver(
+      BrowserContext* browser_context,
+      base::SupportsUserData* context_user_data,
+      mojo::PendingReceiver<
+          language_detection::mojom::ContentLanguageDetectionDriver> receiver);
 
 #if !BUILDFLAG(IS_ANDROID)
   // Given the last committed URL of the RenderFrameHost, |frame_url|, and the

@@ -551,6 +551,11 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest, AccessibilityLabel) {
 }
 
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest,
+                       AccessibilityLinkedUIElements) {
+  RunTypedTest<kMacMethods>("accessibility-linked-ui-elements.html");
+}
+
+IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest,
                        AccessibilityNumberOfCharacters) {
   RunTypedTest<kMacMethods>("accessibility-number-of-characters.html");
 }
@@ -558,6 +563,16 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest,
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest,
                        AccessibilitySelectedTextAndRange) {
   RunTypedTest<kMacMethods>("accessibility-selected-text-and-range.html");
+}
+
+IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest,
+                       AccessibilityVisibleCharacterRange) {
+  RunTypedTest<kMacMethods>("accessibility-visible-character-range.html");
+}
+
+IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest,
+                       AccessibilityInsertionPointLineNumber) {
+  RunTypedTest<kMacMethods>("accessibility-insertion-point-line-number.html");
 }
 
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityScriptTest,

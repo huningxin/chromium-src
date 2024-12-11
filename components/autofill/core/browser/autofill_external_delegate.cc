@@ -127,8 +127,8 @@ AutofillTriggerSource TriggerSourceFromSuggestionTriggerSource(
       // context menu) and a trigger source (by selecting a suggestion generated
       // through the context menu).
       return AutofillTriggerSource::kManualFallback;
-    case AutofillSuggestionTriggerSource::kPredictionImprovements:
-      return AutofillTriggerSource::kPredictionImprovements;
+    case AutofillSuggestionTriggerSource::kAutofillAi:
+      return AutofillTriggerSource::kAutofillAi;
   }
   NOTREACHED();
 }
@@ -527,11 +527,11 @@ void AutofillExternalDelegate::OnSuggestionsShown(
   if (base::ranges::any_of(shown_suggestion_types,
                            [](const SuggestionType& type) {
                              return GetFillingProductFromSuggestionType(type) ==
-                                    FillingProduct::kPredictionImprovements;
+                                    FillingProduct::kAutofillAi;
                            })) {
-    if (auto* prediction_improvements_delegate =
+    if (auto* autofill_ai_delegate =
             manager_->client().GetAutofillAiDelegate()) {
-      prediction_improvements_delegate->OnSuggestionsShown(
+      autofill_ai_delegate->OnSuggestionsShown(
           shown_suggestion_types, query_form_, query_field_,
           CreateUpdateSuggestionsCallback());
     }
@@ -667,8 +667,7 @@ void AutofillExternalDelegate::DidSelectSuggestion(
           TriggerSourceFromSuggestionTriggerSource(trigger_source_));
       break;
     case SuggestionType::kFillAutofillAi:
-      // TODO(crbug.com/361414075): Implement previewing prediction
-      // improvements.
+      // TODO(crbug.com/361414075): Implement previewing Autofill AI data.
       break;
     case SuggestionType::kAddressEntryOnTyping:
       CHECK(suggestion.field_by_field_filling_type_used);
@@ -875,7 +874,7 @@ void AutofillExternalDelegate::DidAcceptSuggestion(
       }
       return;
     case SuggestionType::kFillAutofillAi:
-      FillPredictionImprovements(suggestion);
+      FillAutofillAiData(suggestion);
       break;
     case SuggestionType::kEditAutofillAiData:
       if (AutofillAiDelegate* delegate =
@@ -894,6 +893,10 @@ void AutofillExternalDelegate::DidAcceptSuggestion(
                                     suggestion.payload)) {
         FillAddressFieldByFieldFillingSuggestion(*profile, suggestion,
                                                  metadata);
+        base::UmaHistogramEnumeration(
+            "Autofill.AddressSuggestionOnTyping.AddressFieldTypeUsed",
+            suggestion.field_by_field_filling_type_used.value(),
+            FieldType::MAX_VALID_FIELD_TYPE);
       }
       break;
     case SuggestionType::kTitle:
@@ -1136,12 +1139,14 @@ void AutofillExternalDelegate::FillAddressFieldByFieldFillingSuggestion(
         mojom::ActionPersistence::kFill, mojom::FieldActionType::kReplaceAll,
         query_form_, query_field_, filling_value, suggestion.type,
         suggestion.field_by_field_filling_type_used);
-    if (suggestion.type != SuggestionType::kAddressEntryOnTyping) {
+    if (suggestion.type == SuggestionType::kAddressFieldByFieldFilling) {
       // Ensure that `SuggestionType::kAddressEntryOnTyping` do not (at least
       // yet) affect key metrics.
       manager_->OnDidFillAddressFormFillingSuggestion(
           profile, query_form_.global_id(), query_field_.global_id(),
           TriggerSourceFromSuggestionTriggerSource(trigger_source_));
+    } else if (suggestion.type == SuggestionType::kAddressEntryOnTyping) {
+      manager_->OnDidFillAddressOnTypingSuggestion(query_field_.global_id());
     }
   }
 }
@@ -1172,23 +1177,19 @@ void AutofillExternalDelegate::FillAutofillFormData(
     }
     return;
   }
-
   if (const CreditCard* credit_card =
           pdm.payments_data_manager().GetCreditCardByGUID(
               absl::get<Suggestion::Guid>(payload).value())) {
-    is_preview ? manager_->FillOrPreviewCreditCardForm(
-                     mojom::ActionPersistence::kPreview, query_form_,
-                     query_field_.global_id(), *credit_card, trigger_source)
-               : manager_->AuthenticateThenFillCreditCardForm(
-                     query_form_, query_field_.global_id(),
-                     type == SuggestionType::kVirtualCreditCardEntry
-                         ? CreditCard::CreateVirtualCard(*credit_card)
-                         : *credit_card,
-                     trigger_source);
+    manager_->FillOrPreviewCreditCardForm(
+        action_persistence, query_form_, query_field_.global_id(),
+        !is_preview && type == SuggestionType::kVirtualCreditCardEntry
+            ? CreditCard::CreateVirtualCard(*credit_card)
+            : *credit_card,
+        trigger_source);
   }
 }
 
-void AutofillExternalDelegate::FillPredictionImprovements(
+void AutofillExternalDelegate::FillAutofillAiData(
     const Suggestion& suggestion) {
   // Single field filling.
   if (absl::holds_alternative<Suggestion::ValueToFill>(suggestion.payload)) {
@@ -1201,9 +1202,9 @@ void AutofillExternalDelegate::FillPredictionImprovements(
                                  /*field_type_used=*/std::nullopt);
   } else {
     // Full form filling.
-    Suggestion::PredictionImprovementsPayload payload =
-        suggestion.GetPayload<Suggestion::PredictionImprovementsPayload>();
-    manager_->FillOrPreviewFormWithPredictionImprovements(
+    Suggestion::AutofillAiPayload payload =
+        suggestion.GetPayload<Suggestion::AutofillAiPayload>();
+    manager_->FillOrPreviewFormWithAutofillAiData(
         mojom::ActionPersistence::kFill, payload.ignorable_skip_reasons,
         query_form_, query_field_, payload.values_to_fill);
   }

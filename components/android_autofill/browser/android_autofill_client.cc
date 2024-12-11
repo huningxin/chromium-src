@@ -78,10 +78,14 @@ AndroidAutofillClient::GetCrowdsourcingManager() {
   if (!crowdsourcing_manager_) {
     // Lazy initialization to avoid virtual function calls in the constructor.
     crowdsourcing_manager_ =
-        std::make_unique<autofill::AutofillCrowdsourcingManager>(
-            this, GetChannel(), GetLogManager());
+        std::make_unique<autofill::AutofillCrowdsourcingManager>(this,
+                                                                 GetChannel());
   }
   return *crowdsourcing_manager_;
+}
+
+autofill::VotesUploader& AndroidAutofillClient::GetVotesUploader() {
+  return votes_uploader_;
 }
 
 autofill::PersonalDataManager& AndroidAutofillClient::GetPersonalDataManager() {

@@ -157,7 +157,7 @@ void FormatLabel(views::Label& label,
     case FillingProduct::kIban:
     case FillingProduct::kMerchantPromoCode:
     case FillingProduct::kPassword:
-    case FillingProduct::kPredictionImprovements:
+    case FillingProduct::kAutofillAi:
     case FillingProduct::kNone:
       break;
   }
@@ -563,10 +563,9 @@ std::unique_ptr<PopupRowView> CreateNewPlusAddressInlineSuggestion(
       PopupRowWithButtonView::ButtonSelectBehavior::kSelectSuggestion);
 }
 
-// Creates the row for the `SuggestionType::kPredictionImprovementsFeedback`
-// suggestion.
+// Creates the row for the `SuggestionType::kAutofillAiFeedback` suggestion.
 std::unique_ptr<autofill_ai::PopupRowAutofillAiFeedbackView>
-CreatePredictionImprovementsFeedbackRow(
+CreateAutofillAiFeedbackRow(
     base::WeakPtr<AutofillPopupController> controller,
     PopupRowView::AccessibilitySelectionDelegate& a11y_selection_delegate,
     PopupRowView::SelectionDelegate& selection_delegate,
@@ -596,8 +595,8 @@ std::unique_ptr<PopupRowView> CreatePopupRowView(
   }
 
   if (type == SuggestionType::kAutofillAiFeedback) {
-    return CreatePredictionImprovementsFeedbackRow(
-        controller, a11y_selection_delegate, selection_delegate, line_number);
+    return CreateAutofillAiFeedbackRow(controller, a11y_selection_delegate,
+                                       selection_delegate, line_number);
   }
 
   if (IsFooterSuggestionType(type)) {

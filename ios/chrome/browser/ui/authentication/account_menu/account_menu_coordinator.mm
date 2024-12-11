@@ -54,6 +54,7 @@
 #import "ios/chrome/browser/ui/authentication/account_menu/account_menu_view_controller.h"
 #import "ios/chrome/browser/ui/authentication/authentication_flow.h"
 #import "ios/chrome/browser/ui/authentication/signin/add_account_signin/add_account_signin_coordinator.h"
+#import "ios/chrome/browser/ui/authentication/signin/interruptible_chrome_coordinator.h"
 #import "ios/chrome/browser/ui/authentication/signin/signin_constants.h"
 #import "ios/chrome/browser/ui/authentication/signin/signin_coordinator+protected.h"
 #import "ios/chrome/browser/ui/authentication/signin/signin_coordinator.h"
@@ -203,8 +204,7 @@
   // We assume the dismiss was done by the user.
   self.mediator.signinCoordinatorResult = SigninCoordinatorResultCanceledByUser;
   // UIShutdownNoDismiss because the UI is already dismissed.
-  [self interruptWithAction:SigninCoordinatorInterrupt::UIShutdownNoDismiss
-                 completion:nil];
+  [self interruptWithAction:SynchronousStopAction() completion:nil];
 }
 
 #pragma mark - AccountMenuMediatorDelegate
@@ -442,8 +442,14 @@
       completion();
     }
   };
-  [self stopChildrenAndViewControllerWithAction:action
-                                     completion:childrenCompletion];
+  if (base::FeatureList::IsEnabled(
+          kIOSInterruptibleCoordinatorStoppedSynchronously)) {
+    [self stopChildrenAndViewControllerWithAction:action completion:nil];
+    childrenCompletion();
+  } else {
+    [self stopChildrenAndViewControllerWithAction:action
+                                       completion:childrenCompletion];
+  }
 }
 
 #pragma mark - ManageAccountsCoordinatorDelegate
@@ -539,9 +545,8 @@
   _signoutActionSheetCoordinator = nil;
 }
 
-// Stops all children, then dismiss the view controller, then execute
-// `completion`. If `dismiss` is YES, dismiss the add account coordinator if it
-// is present.
+// Stops all children, then dismiss the view controller. Executes
+// `completion` synchronously.
 - (void)stopChildrenAndViewControllerWithAction:
             (SigninCoordinatorInterrupt)action
                                      completion:(ProceduralBlock)completion {
@@ -590,6 +595,9 @@
   _viewController = nil;
   switch (action) {
     case SigninCoordinatorInterrupt::UIShutdownNoDismiss: {
+      CHECK(!base::FeatureList::IsEnabled(
+                kIOSInterruptibleCoordinatorAlwaysDismissed),
+            base::NotFatalUntil::M136);
       if (completion) {
         completion();
       }

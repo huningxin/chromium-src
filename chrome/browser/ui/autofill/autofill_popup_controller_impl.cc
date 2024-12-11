@@ -129,7 +129,7 @@ bool ShouldLogPopupInteractionShown(
       return true;
     case AutofillSuggestionTriggerSource::kTextFieldDidChange:
     case AutofillSuggestionTriggerSource::kComposeDelayedProactiveNudge:
-    case AutofillSuggestionTriggerSource::kPredictionImprovements:
+    case AutofillSuggestionTriggerSource::kAutofillAi:
     case AutofillSuggestionTriggerSource::kPlusAddressUpdatedInBrowserProcess:
       return false;
   }
@@ -550,7 +550,7 @@ bool AutofillPopupControllerImpl::RemoveSuggestion(
     case FillingProduct::kPassword:
     case FillingProduct::kCompose:
     case FillingProduct::kPlusAddresses:
-    case FillingProduct::kPredictionImprovements:
+    case FillingProduct::kAutofillAi:
       break;
   }
 

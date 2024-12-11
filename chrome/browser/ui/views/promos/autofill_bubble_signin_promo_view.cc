@@ -62,8 +62,7 @@ AutofillBubbleSignInPromoView::AutofillBubbleSignInPromoView(
     content::WebContents* web_contents,
     signin_metrics::AccessPoint access_point,
     base::OnceCallback<void(content::WebContents*)> move_callback)
-    : controller_(*web_contents, access_point, std::move(move_callback)),
-      access_point_(access_point) {
+    : controller_(*web_contents, access_point, std::move(move_callback)) {
   SetLayoutManager(std::make_unique<views::FillLayout>());
 
   Profile* profile =
@@ -77,10 +76,25 @@ AutofillBubbleSignInPromoView::AutofillBubbleSignInPromoView(
       profile, dice_sign_in_promo_delegate_.get(), access_point));
 }
 
-void AutofillBubbleSignInPromoView::RecordSignInPromoDismissed(
-    content::WebContents* web_contents) {
-  Profile* profile =
-      Profile::FromBrowserContext(web_contents->GetBrowserContext());
+void AutofillBubbleSignInPromoView::AddedToWidget() {
+  scoped_widget_observation_.Observe(GetWidget());
+}
+
+void AutofillBubbleSignInPromoView::OnWidgetDestroying(views::Widget* widget) {
+  scoped_widget_observation_.Reset();
+
+  // Don't record anything if the bubble was not actively dismissed by the user.
+  if (!(widget->closed_reason() ==
+            views::Widget::ClosedReason::kCloseButtonClicked ||
+        widget->closed_reason() ==
+            views::Widget::ClosedReason::kCancelButtonClicked ||
+        widget->closed_reason() ==
+            views::Widget::ClosedReason::kEscKeyPressed)) {
+    return;
+  }
+
+  Profile* profile = Profile::FromBrowserContext(
+      controller_.GetWebContents()->GetBrowserContext());
   AccountInfo account = signin_ui_util::GetSingleAccountForPromos(
       IdentityManagerFactory::GetForProfile(profile));
 

@@ -20,6 +20,7 @@
 #import "base/strings/sys_string_conversions.h"
 #import "base/strings/utf_string_conversions.h"
 #import "components/autofill/core/browser/autofill_plus_address_delegate.h"
+#import "components/autofill/core/browser/crowdsourcing/votes_uploader.h"
 #import "components/autofill/core/browser/form_import/addresses/autofill_save_update_address_profile_delegate_ios.h"
 #import "components/autofill/core/browser/form_import/form_data_importer.h"
 #import "components/autofill/core/browser/logging/log_manager.h"
@@ -142,10 +143,24 @@ AutofillCrowdsourcingManager&
 ChromeAutofillClientIOS::GetCrowdsourcingManager() {
   if (!crowdsourcing_manager_) {
     // Lazy initialization to avoid virtual function calls in the constructor.
-    crowdsourcing_manager_ = std::make_unique<AutofillCrowdsourcingManager>(
-        this, GetChannel(), GetLogManager());
+    crowdsourcing_manager_ =
+        std::make_unique<AutofillCrowdsourcingManager>(this, GetChannel());
   }
   return *crowdsourcing_manager_;
+}
+
+VotesUploader& ChromeAutofillClientIOS::GetVotesUploader() {
+  if (!votes_uploader_) {
+    // We need to do lazy evaluation because AutofillDriverIOSFactory is created
+    // only after ChromeAutofillClientIOS. This is OK because only
+    // BrowserAutofillManager, which is owned by AutofillClientIOS and thus
+    // instantiated after AutofillDriverIOSFactory, calls GetVotesUploader().
+    //
+    // TODO(crbug.com/355907668): Make AutofillDriverIOSFactory owned by
+    // ChromeAutofillClientIOS and initialize  `votes_uploader_` non-lazily.
+    votes_uploader_ = std::make_unique<VotesUploader>(this);
+  }
+  return *votes_uploader_;
 }
 
 PersonalDataManager& ChromeAutofillClientIOS::GetPersonalDataManager() {

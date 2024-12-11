@@ -95,6 +95,7 @@
 #include "components/dom_distiller/core/dom_distiller_features.h"
 #include "components/dom_distiller/core/dom_distiller_switches.h"
 #include "components/download/public/common/download_features.h"
+#include "components/enterprise/data_controls/core/browser/features.h"
 #include "components/error_page/common/error_page_switches.h"
 #include "components/feature_engagement/public/feature_constants.h"
 #include "components/feature_engagement/public/feature_list.h"
@@ -155,6 +156,7 @@
 #include "components/search_engines/search_engines_switches.h"
 #include "components/security_interstitials/content/stateful_ssl_host_state_delegate.h"
 #include "components/security_state/core/security_state.h"
+#include "components/segmentation_platform/embedder/home_modules/constants.h"
 #include "components/segmentation_platform/public/features.h"
 #include "components/send_tab_to_self/features.h"
 #include "components/sensitive_content/features.h"
@@ -383,6 +385,10 @@
 
 #if BUILDFLAG(SKIA_BUILD_RUST_PNG)
 #include "skia/rusty_png_feature.h"
+#endif
+
+#if !BUILDFLAG(IS_CHROMEOS)
+#include "components/variations/net/variations_command_line.h"
 #endif
 
 using flags_ui::FeatureEntry;
@@ -1017,26 +1023,9 @@ const FeatureEntry::FeatureVariation kBorealisZinkGlDriverVariations[] = {
 
 const char kLacrosAvailabilityIgnoreInternalName[] =
     "lacros-availability-ignore";
-const char kLacrosStabilityInternalName[] = "lacros-stability";
 const char kLacrosWaylandLoggingInternalName[] = "lacros-wayland-logging";
 const char kArcEnableVirtioBlkForDataInternalName[] =
     "arc-enable-virtio-blk-for-data";
-
-const FeatureEntry::Choice kLacrosStabilityChoices[] = {
-    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
-    {ash::standalone_browser::kLacrosStabilityChannelCanary,
-     ash::standalone_browser::kLacrosStabilitySwitch,
-     ash::standalone_browser::kLacrosStabilityChannelCanary},
-    {ash::standalone_browser::kLacrosStabilityChannelDev,
-     ash::standalone_browser::kLacrosStabilitySwitch,
-     ash::standalone_browser::kLacrosStabilityChannelDev},
-    {ash::standalone_browser::kLacrosStabilityChannelBeta,
-     ash::standalone_browser::kLacrosStabilitySwitch,
-     ash::standalone_browser::kLacrosStabilityChannelBeta},
-    {ash::standalone_browser::kLacrosStabilityChannelStable,
-     ash::standalone_browser::kLacrosStabilitySwitch,
-     ash::standalone_browser::kLacrosStabilityChannelStable},
-};
 
 const char kLacrosSelectionInternalName[] = "lacros-selection";
 const char kProjectorServerSideSpeechRecognition[] =
@@ -2287,6 +2276,23 @@ const FeatureEntry::FeatureVariation kMagicStackAndroidVariations[] = {
      std::size(kMagicStackAndroid_show_all_modules), nullptr},
 };
 
+const FeatureEntry::FeatureParam kDefaultBrowserPromoShowArm[] = {
+    {segmentation_platform::features::kEphemeralCardRankerForceShowCardParam,
+     segmentation_platform::kDefaultBrowserPromo},
+};
+const FeatureEntry::FeatureParam kDefaultBrowserPromoHideArm[] = {
+    {segmentation_platform::features::kEphemeralCardRankerForceHideCardParam,
+     segmentation_platform::kDefaultBrowserPromo},
+};
+
+const FeatureEntry::FeatureVariation kEphemeralCardRankerCardOverrideOptions[] =
+    {
+        {"- Force show default browser promo", kDefaultBrowserPromoShowArm,
+         std::size(kDefaultBrowserPromoShowArm), nullptr},
+        {"- Force hide default browser promo", kDefaultBrowserPromoHideArm,
+         std::size(kDefaultBrowserPromoHideArm), nullptr},
+};
+
 const FeatureEntry::FeatureParam kEducationalTipModule_force_default_browser[] =
     {{"force_default_browser", "true"}};
 const FeatureEntry::FeatureParam kEducationalTipModule_force_tab_group[] = {
@@ -2677,12 +2683,23 @@ const FeatureEntry::FeatureParam
         {"force_card_shown", "true"},
         {"use_large_favicon", "true"}};
 const FeatureEntry::FeatureParam
+    kAndroidAppIntegrationWithFavicon_UseLargeFavicon_ForceCardShown_NonPixel
+        [] = {{"force_card_shown", "true"},
+              {"show_third_party_card", "true"},
+              {"use_large_favicon", "true"}};
+const FeatureEntry::FeatureParam
     kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck[] = {
         {"skip_device_check", "true"},
         {"use_large_favicon", "true"}};
 const FeatureEntry::FeatureParam
     kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown
         [] = {{"force_card_shown", "true"},
+              {"skip_device_check", "true"},
+              {"use_large_favicon", "true"}};
+const FeatureEntry::FeatureParam
+    kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown_NonPixel
+        [] = {{"force_card_shown", "true"},
+              {"show_third_party_card", "true"},
               {"skip_device_check", "true"},
               {"use_large_favicon", "true"}};
 const FeatureEntry::FeatureParam
@@ -2693,32 +2710,44 @@ const FeatureEntry::FeatureParam
         {"schedule_delay_time_ms", "200"},
         {"use_large_favicon", "true"}};
 
-const FeatureEntry::FeatureVariation kAndroidAppIntegrationWithFaviconVariations[] =
-    {{"Use large favicon (No delay)",
-      kAndroidAppIntegrationWithFavicon_UseLargeFavicon,
-      std::size(kAndroidAppIntegrationWithFavicon_UseLargeFavicon), nullptr},
-     {"Use large favicon (No delay) + force card shown",
-      kAndroidAppIntegrationWithFavicon_UseLargeFavicon_ForceCardShown,
-      std::size(
-          kAndroidAppIntegrationWithFavicon_UseLargeFavicon_ForceCardShown),
-      nullptr},
-     {"Skip device check + Use large favicon (No delay)",
-      kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck,
-      std::size(
-          kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck),
-      nullptr},
-     {"Skip device check + Use large favicon (No delay) + force card shown",
-      kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown,
-      std::size(
-          kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown),
-      nullptr},
-     {"200ms delay", kAndroidAppIntegrationWithFavicon_DelayTime200Ms,
-      std::size(kAndroidAppIntegrationWithFavicon_DelayTime200Ms), nullptr},
-     {"200ms delay with large favicon",
-      kAndroidAppIntegrationWithFavicon_DelayTime200Ms_UseLargeFavicon,
-      std::size(
-          kAndroidAppIntegrationWithFavicon_DelayTime200Ms_UseLargeFavicon),
-      nullptr}};
+const FeatureEntry::FeatureVariation kAndroidAppIntegrationWithFaviconVariations[] = {
+    {"Use large favicon (no delay)",
+     kAndroidAppIntegrationWithFavicon_UseLargeFavicon,
+     std::size(kAndroidAppIntegrationWithFavicon_UseLargeFavicon), nullptr},
+    {"Use large favicon (no delay) + force card shown (Pixel devices)",
+     kAndroidAppIntegrationWithFavicon_UseLargeFavicon_ForceCardShown,
+     std::size(
+         kAndroidAppIntegrationWithFavicon_UseLargeFavicon_ForceCardShown),
+     nullptr},
+    {"Use large favicon (no delay) + force card shown (third party devices)",
+     kAndroidAppIntegrationWithFavicon_UseLargeFavicon_ForceCardShown_NonPixel,
+     std::size(
+         kAndroidAppIntegrationWithFavicon_UseLargeFavicon_ForceCardShown_NonPixel),
+     nullptr},
+    {"Skip device check + use large favicon (no delay)",
+     kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck,
+     std::size(
+         kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck),
+     nullptr},
+    {"Skip device check + use large favicon (no delay) + force card shown "
+     "(Pixel devices)",
+     kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown,
+     std::size(
+         kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown),
+     nullptr},
+    {"Skip device check + use large favicon (no delay) + force card shown "
+     "(third party devices)",
+     kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown_NonPixel,
+     std::size(
+         kAndroidAppIntegrationWithFavicon_UseLargeFavicon_SkipDeviceCheck_ForceCardShown),
+     nullptr},
+    {"200ms delay", kAndroidAppIntegrationWithFavicon_DelayTime200Ms,
+     std::size(kAndroidAppIntegrationWithFavicon_DelayTime200Ms), nullptr},
+    {"200ms delay with large favicon",
+     kAndroidAppIntegrationWithFavicon_DelayTime200Ms_UseLargeFavicon,
+     std::size(
+         kAndroidAppIntegrationWithFavicon_DelayTime200Ms_UseLargeFavicon),
+     nullptr}};
 
 const FeatureEntry::FeatureParam kAuxiliarySearchDonation_MaxDonation_20[] = {
     {chrome::android::kAuxiliarySearchMaxBookmarksCountParam.name, "20"},
@@ -3907,14 +3936,18 @@ const FeatureEntry::FeatureParam kLocationProviderManagerModePlatformOnly[] = {
     {"LocationProviderManagerMode", "PlatformOnly"}};
 const FeatureEntry::FeatureParam kLocationProviderManagerModeHybridPlatform[] =
     {{"LocationProviderManagerMode", "HybridPlatform"}};
+const FeatureEntry::FeatureParam kLocationProviderManagerModeHybridPlatform2[] =
+    {{"LocationProviderManagerMode", "HybridPlatform2"}};
 
 const FeatureEntry::FeatureVariation kLocationProviderManagerVariations[] = {
-    {"NetworkOnly", kLocationProviderManagerModeNetworkOnly,
+    {"Network only", kLocationProviderManagerModeNetworkOnly,
      std::size(kLocationProviderManagerModeNetworkOnly), nullptr},
-    {"PlatformOnly", kLocationProviderManagerModePlatformOnly,
+    {"Platform only", kLocationProviderManagerModePlatformOnly,
      std::size(kLocationProviderManagerModePlatformOnly), nullptr},
-    {"HybridPlatform", kLocationProviderManagerModeHybridPlatform,
-     std::size(kLocationProviderManagerModeHybridPlatform), nullptr}};
+    {"Wi-Fi fallback", kLocationProviderManagerModeHybridPlatform,
+     std::size(kLocationProviderManagerModeHybridPlatform), nullptr},
+    {"Fallback on error", kLocationProviderManagerModeHybridPlatform2,
+     std::size(kLocationProviderManagerModeHybridPlatform2), nullptr}};
 #endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
 
 #if !BUILDFLAG(IS_ANDROID)
@@ -4130,6 +4163,17 @@ const FeatureEntry::FeatureVariation
         {"as table rows", kSecurePaymentConfirmationNetworkAndIssuerIcons_Rows,
          std::size(kSecurePaymentConfirmationNetworkAndIssuerIcons_Rows),
          nullptr}};
+
+const FeatureEntry::FeatureParam kSkiaGraphite_ValidationEnabled[] = {
+    {"dawn_skip_validation", "false"}};
+const FeatureEntry::FeatureParam kSkiaGraphite_ValidationDisabled[] = {
+    {"dawn_skip_validation", "true"}};
+
+const FeatureEntry::FeatureVariation kSkiaGraphiteVariations[] = {
+    {"dawn frontend validation enabled", kSkiaGraphite_ValidationEnabled,
+     std::size(kSkiaGraphite_ValidationEnabled), nullptr},
+    {"dawn frontend validation disabled", kSkiaGraphite_ValidationDisabled,
+     std::size(kSkiaGraphite_ValidationDisabled), nullptr}};
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
 const FeatureEntry::FeatureParam kTranslationAPI_SkipLanguagePackLimit[] = {
@@ -4385,6 +4429,13 @@ const FeatureEntry kFeatureEntries[] = {
     {"show-overdraw-feedback", flag_descriptions::kShowOverdrawFeedbackName,
      flag_descriptions::kShowOverdrawFeedbackDescription, kOsAll,
      SINGLE_VALUE_TYPE(switches::kShowOverdrawFeedback)},
+#if !BUILDFLAG(IS_CHROMEOS)
+    {"feedback-include-variations",
+     flag_descriptions::kFeedbackIncludeVariationsName,
+     flag_descriptions::kFeedbackIncludeVariationsDescription,
+     kOsWin | kOsLinux | kOsMac,
+     FEATURE_VALUE_TYPE(variations::kFeedbackIncludeVariations)},
+#endif
     {"ui-disable-partial-swap", flag_descriptions::kUiPartialSwapName,
      flag_descriptions::kUiPartialSwapDescription, kOsAll,
      SINGLE_DISABLE_VALUE_TYPE(switches::kUIDisablePartialSwap)},
@@ -4766,9 +4817,6 @@ const FeatureEntry kFeatureEntries[] = {
     {ash::standalone_browser::kLacrosAvailabilityPolicyInternalName, "", "",
      kOsCrOS, MULTI_VALUE_TYPE(kLacrosAvailabilityPolicyChoices)},
     // Used to carry the policy value crossing the Chrome process lifetime.
-    {kLacrosStabilityInternalName, flag_descriptions::kLacrosStabilityName,
-     flag_descriptions::kLacrosStabilityDescription, kOsCrOS,
-     MULTI_VALUE_TYPE(kLacrosStabilityChoices)},
     {kLacrosWaylandLoggingInternalName,
      flag_descriptions::kLacrosWaylandLoggingName,
      flag_descriptions::kLacrosWaylandLoggingDescription, kOsCrOS,
@@ -4881,10 +4929,6 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kDisconnectWiFiOnEthernetConnectedName,
      flag_descriptions::kDisconnectWiFiOnEthernetConnectedDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(ash::features::kDisconnectWiFiOnEthernetConnected)},
-    {"lacros-extension-printing",
-     flag_descriptions::kLacrosExtensionPrintingName,
-     flag_descriptions::kLacrosExtensionPrintingDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(ash::features::kLacrosExtensionPrinting)},
     {"use-legacy-dhcpcd", flag_descriptions::kUseLegacyDHCPCDName,
      flag_descriptions::kUseLegacyDHCPCDDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(ash::features::kUseLegacyDHCPCD)},
@@ -5623,6 +5667,13 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kReengagementNotificationName,
      flag_descriptions::kReengagementNotificationDescription, kOsAndroid,
      FEATURE_VALUE_TYPE(chrome::android::kReengagementNotification)},
+
+    // Enterprise Data Controls
+    {"enable-clipboard-data-controls-android",
+     flag_descriptions::kEnableClipboardDataControlsAndroidName,
+     flag_descriptions::kEnableClipboardDataControlsAndroidDescription,
+     kOsAndroid,
+     FEATURE_VALUE_TYPE(data_controls::kEnableClipboardDataControlsAndroid)},
 
     // Android Edge to edge
     {"draw-cutout-edge-to-edge", flag_descriptions::kDrawCutoutEdgeToEdgeName,
@@ -6781,11 +6832,6 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kDoubleTapToZoomInTabletModeName,
      flag_descriptions::kDoubleTapToZoomInTabletModeDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(features::kDoubleTapToZoomInTabletMode)},
-
-    {"quick-settings-pwa-notifications",
-     flag_descriptions::kQuickSettingsPWANotificationsName,
-     flag_descriptions::kQuickSettingsPWANotificationsDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(features::kQuickSettingsPWANotifications)},
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
     {flag_descriptions::kTabGroupsDeferRemoteNavigationsId,
@@ -6870,10 +6916,6 @@ const FeatureEntry kFeatureEntries[] = {
 #endif  // !BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(IS_ANDROID)
-    {"enable-reader-mode-in-cct", flag_descriptions::kReaderModeInCCTName,
-     flag_descriptions::kReaderModeInCCTDescription, kOsAndroid,
-     FEATURE_VALUE_TYPE(chrome::android::kReaderModeInCCT)},
-
     {"enable-share-custom-actions-in-cct",
      flag_descriptions::kShareCustomActionsInCCTName,
      flag_descriptions::kShareCustomActionsInCCTDescription, kOsAndroid,
@@ -7278,8 +7320,11 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kSegmentationPlatformEphemeralCardRankerName,
      flag_descriptions::kSegmentationPlatformEphemeralCardRankerDescription,
      kOsAndroid,
-     FEATURE_VALUE_TYPE(segmentation_platform::features::
-                            kSegmentationPlatformEphemeralCardRanker)},
+     FEATURE_WITH_PARAMS_VALUE_TYPE(
+         segmentation_platform::features::
+             kSegmentationPlatformEphemeralCardRanker,
+         kEphemeralCardRankerCardOverrideOptions,
+         "EducationalTipModule")},
 
     {"maylaunchurl-uses-separate-storage-partition",
      flag_descriptions::kMayLaunchUrlUsesSeparateStoragePartitionName,
@@ -7365,11 +7410,6 @@ const FeatureEntry kFeatureEntries[] = {
     {"tab-drag-drop", flag_descriptions::kTabDragDropName,
      flag_descriptions::kTabDragDropDescription, kOsAndroid,
      FEATURE_VALUE_TYPE(chrome::android::kTabDragDropAndroid)},
-
-    {"enable-tablet-toolbar-reordering",
-     flag_descriptions::kTabletToolbarReorderingAndroidName,
-     flag_descriptions::kTabletToolbarReorderingAndroidDescription, kOsAndroid,
-     FEATURE_VALUE_TYPE(chrome::android::kTabletToolbarReordering)},
 
     {"enable-delay-temp-strip-removal",
      flag_descriptions::kDelayTempStripRemovalName,
@@ -7887,10 +7927,6 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kFastPairHandshakeLongTermRefactorName,
      flag_descriptions::kFastPairHandshakeLongTermRefactorDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(ash::features::kFastPairHandshakeLongTermRefactor)},
-
-    {"fast-pair-hid", flag_descriptions::kFastPairHIDName,
-     flag_descriptions::kFastPairHIDDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(ash::features::kFastPairHID)},
 
     {"fast-pair-keyboards", flag_descriptions::kFastPairKeyboardsName,
      flag_descriptions::kFastPairKeyboardsDescription, kOsCrOS,
@@ -9243,7 +9279,9 @@ const FeatureEntry kFeatureEntries[] = {
 
     {"skia-graphite", flag_descriptions::kSkiaGraphiteName,
      flag_descriptions::kSkiaGraphiteDescription, kOsAll,
-     FEATURE_VALUE_TYPE(features::kSkiaGraphite)},
+     FEATURE_WITH_PARAMS_VALUE_TYPE(features::kSkiaGraphite,
+                                    kSkiaGraphiteVariations,
+                                    "SkiaGraphite")},
 
     {"skia-graphite-precompilation",
      flag_descriptions::kSkiaGraphitePrecompilationName,
@@ -10332,6 +10370,12 @@ const FeatureEntry kFeatureEntries[] = {
     {"flex-firmware-update", flag_descriptions::kFlexFirmwareUpdateName,
      flag_descriptions::kFlexFirmwareUpdateDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(ash::features::kFlexFirmwareUpdate)},
+
+    {"enable-android-vpn-apps-on-flex",
+     flag_descriptions::kAndroidVpnAppsOnFlexName,
+     flag_descriptions::kAndroidVpnAppsOnFlexDescription, kOsCrOS,
+     FEATURE_VALUE_TYPE(ash::features::kAndroidVpnAppsOnFlex)},
+
     {"ipp-first-setup-for-usb-printers",
      flag_descriptions::kIppFirstSetupForUsbPrintersName,
      flag_descriptions::kIppFirstSetupForUsbPrintersDescription, kOsCrOS,
@@ -11076,13 +11120,6 @@ const FeatureEntry kFeatureEntries[] = {
          kThreadedScrollPreventRenderingStarvationVariations,
          "ThreadedScrollPreventRenderingStarvation")},
 
-#if BUILDFLAG(IS_CHROMEOS)
-    {"allow-fpmcu-beta-firmware",
-     flag_descriptions::kAllowFpmcuBetaFirmwareName,
-     flag_descriptions::kAllowFpmcuBetaFirmwareDescription, kOsCrOS,
-     PLATFORM_FEATURE_NAME_TYPE("CrOSLateBootAllowFpmcuBetaFirmware")},
-#endif  // BUILDFLAG(IS_CHROMEOS)
-
     {"autofill-upload-card-request-timeout",
      flag_descriptions::kAutofillUploadCardRequestTimeoutName,
      flag_descriptions::kAutofillUploadCardRequestTimeoutDescription, kOsAll,
@@ -11768,6 +11805,18 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kSignatureBasedSriDescription, kOsAll,
      FEATURE_VALUE_TYPE(network::features::kSRIMessageSignatureEnforcement)},
 
+#if !BUILDFLAG(IS_ANDROID)
+    {"policy-promotion-banner-flag",
+     flag_descriptions::kEnablePolicyPromotionBannerName,
+     flag_descriptions::kEnablePolicyPromotionBannerDescription, kOsDesktop,
+     FEATURE_VALUE_TYPE(features::kEnablePolicyPromotionBanner)},
+#endif
+
+    {"privacy-sandbox-ads-api-ux-enhancements",
+     flag_descriptions::kPrivacySandboxAdsApiUxEnhancementsName,
+     flag_descriptions::kPrivacySandboxAdsApiUxEnhancementsDescription, kOsAll,
+     FEATURE_VALUE_TYPE(privacy_sandbox::kPrivacySandboxAdsApiUxEnhancements)}
+
     // NOTE: Adding a new flag requires adding a corresponding entry to enum
     // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag
     // Histograms" in tools/metrics/histograms/README.md (run the
@@ -11901,10 +11950,6 @@ bool ShouldSkipConditionalFeatureEntry(const flags_ui::FlagsStorage* storage,
   if (!strcmp(kArcEnableAttestationFlag, entry.internal_name)) {
     return base::CommandLine::ForCurrentProcess()->HasSwitch(
         ash::switches::kArcEnableAttestation);
-  }
-
-  if (!strcmp(kLacrosStabilityInternalName, entry.internal_name)) {
-    return !crosapi::browser_util::IsLacrosAllowedToBeEnabled();
   }
 
   if (!strcmp(kArcEnableVirtioBlkForDataInternalName, entry.internal_name)) {

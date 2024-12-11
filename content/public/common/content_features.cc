@@ -367,11 +367,6 @@ const base::FeatureParam<content::DIPSTriggeringAction> kDIPSTriggeringAction{
 const base::FeatureParam<base::TimeDelta> kDIPSClientBounceDetectionTimeout{
     &kDIPS, "client_bounce_detection_timeout", base::Seconds(10)};
 
-// Whether DIPS deletes Privacy Sandbox data.
-BASE_FEATURE(kDIPSPreservePSData,
-             "DIPSPreservePSData",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables HW decode acceleration for WebRTC.
 BASE_FEATURE(kWebRtcHWDecoding,
              "webrtc-hw-decoding",
@@ -980,12 +975,6 @@ BASE_FEATURE(kServiceWorkerAutoPreload,
              "ServiceWorkerAutoPreload",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables ServiceWorker static routing API.
-// https://github.com/WICG/service-worker-static-routing-api
-BASE_FEATURE(kServiceWorkerStaticRouter,
-             "ServiceWorkerStaticRouter",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // crbug.com/374606637: When this is enabled, race-network-and-fetch-hander will
 // prioritize the response processing for the network request over the
 // processing for the fetch handler.
@@ -1456,14 +1445,6 @@ BASE_FEATURE(kSonomaAccessibilityActivationRefinements,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 #endif  // BUILDFLAG(IS_MAC)
-
-#if defined(WEBRTC_USE_PIPEWIRE)
-// Controls whether the PipeWire support for screen capturing is enabled on the
-// Wayland display server.
-BASE_FEATURE(kWebRtcPipeWireCapturer,
-             "WebRTCPipeWireCapturer",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-#endif  // defined(WEBRTC_USE_PIPEWIRE)
 
 // Default amount of days after which the global navigation capturing IPH
 // guardrails are cleared from storage.

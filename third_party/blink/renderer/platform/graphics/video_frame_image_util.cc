@@ -166,10 +166,8 @@ scoped_refptr<StaticBitmapImage> CreateImageFromVideoFrame(
         },
         frame, SharedGpuContext::ContextProviderWrapper());
 
-    return AcceleratedStaticBitmapImage::CreateFromVideoFrameSharedImage(
+    return AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
         frame->shared_image(), frame->acquire_sync_token(), 0u, sk_image_info,
-        frame->shared_image()->GetTextureTarget(),
-        frame->IsTextureOriginTopLeft(),
         // Pass nullptr for |context_provider_wrapper|, because we don't
         // know which context the mailbox came from. It is used only to
         // detect when the mailbox is invalid due to context loss, and is

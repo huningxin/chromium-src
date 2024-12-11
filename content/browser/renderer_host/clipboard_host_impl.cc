@@ -467,7 +467,8 @@ void ClipboardHostImpl::ReadFiles(ui::ClipboardBuffer clipboard_buffer,
   RenderProcessHost* process = render_frame_host().GetProcess();
   result->file_system_id = PrepareDataTransferFilenamesForChildProcess(
       filenames, ChildProcessSecurityPolicyImpl::GetInstance(),
-      process->GetID(), process->GetStoragePartition()->GetFileSystemContext());
+      process->GetDeprecatedID(),
+      process->GetStoragePartition()->GetFileSystemContext());
 
   // Convert to DataTransferFiles which creates the access token for each file.
   StoragePartitionImpl* storage_partition = static_cast<StoragePartitionImpl*>(
@@ -475,7 +476,7 @@ void ClipboardHostImpl::ReadFiles(ui::ClipboardBuffer clipboard_buffer,
   std::vector<blink::mojom::DataTransferFilePtr> files =
       FileInfosToDataTransferFiles(
           filenames, storage_partition->GetFileSystemAccessManager(),
-          process->GetID());
+          process->GetDeprecatedID());
   std::move(files.begin(), files.end(), std::back_inserter(result->files));
 
   PasteIfPolicyAllowed(
@@ -691,7 +692,7 @@ void ClipboardHostImpl::ReadUnsanitizedCustomFormat(
 
   std::string result;
   ui::Clipboard::GetForCurrentThread()->ReadData(
-      ui::ClipboardFormatType::GetType(web_custom_format_string),
+      ui::ClipboardFormatType::CustomPlatformType(web_custom_format_string),
       data_endpoint.get(), &result);
   if (result.size() >= blink::mojom::ClipboardHost::kMaxDataSize)
     return;

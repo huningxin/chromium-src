@@ -59,7 +59,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Histogram.MismatchedConstructionArguments"
-    enum="HistogramNameHash" expires_after="2025-03-30">
+    enum="HistogramNameHash" expires_after="2025-06-08">
   <owner>asvitkine@chromium.org</owner>
   <owner>src/base/metrics/OWNERS</owner>
   <summary>
@@ -162,7 +162,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="UMA.CleanExitBeaconConsistency3"
-    enum="UmaCleanExitConsistency3" expires_after="2025-04-06">
+    enum="UmaCleanExitConsistency3" expires_after="2025-06-08">
   <owner>caitlinfischer@google.com</owner>
   <owner>justincohen@chromium.org</owner>
   <owner>src/base/metrics/OWNERS</owner>
@@ -641,7 +641,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="UMA.PersistentAllocator.EarlyHistograms.{PersistentAllocatorType}"
-    units="histograms" expires_after="2025-04-06">
+    units="histograms" expires_after="2025-06-08">
   <owner>rogerm@chromium.org</owner>
   <owner>src/base/metrics/OWNERS</owner>
   <summary>
@@ -993,7 +993,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="UMA.TruncatedEvents.UserAction" units="events"
-    expires_after="2025-05-25">
+    expires_after="2025-06-08">
   <owner>rkaplow@chromium.org</owner>
   <owner>src/base/metrics/OWNERS</owner>
   <summary>

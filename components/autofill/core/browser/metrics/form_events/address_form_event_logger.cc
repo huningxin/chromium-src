@@ -11,14 +11,15 @@
 #include "base/metrics/histogram_functions.h"
 #include "base/metrics/user_metrics.h"
 #include "base/metrics/user_metrics_action.h"
-#include "components/autofill/core/browser/autofill_data_util.h"
 #include "components/autofill/core/browser/autofill_trigger_source.h"
+#include "components/autofill/core/browser/data_quality/autofill_data_util.h"
 #include "components/autofill/core/browser/logging/log_manager.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics_utils.h"
 #include "components/autofill/core/browser/metrics/form_interactions_ukm_logger.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/autofill_internals/log_message.h"
 #include "components/autofill/core/common/autofill_internals/logging_scope.h"
+#include "components/autofill/core/common/unique_ids.h"
 
 namespace autofill::autofill_metrics {
 
@@ -49,7 +50,14 @@ CategoryResolvedKeyMetricBucket ProfileCategoriesToMetricBucket(
 AddressFormEventLogger::AddressFormEventLogger(BrowserAutofillManager* owner)
     : FormEventLoggerBase("Address", owner) {}
 
-AddressFormEventLogger::~AddressFormEventLogger() = default;
+AddressFormEventLogger::~AddressFormEventLogger() {
+  for (const auto& [field_global_id, state] :
+       fields_where_autofill_on_typing_was_shown_) {
+    base::UmaHistogramBoolean(
+        "Autofill.AddressSuggestionOnTypingAcceptance",
+        state == AutofillOnTypingSuggestionState::kAccepted);
+  }
+}
 
 void AddressFormEventLogger::UpdateProfileAvailabilityForReadiness(
     const std::vector<const AutofillProfile*>& profiles) {
@@ -86,6 +94,19 @@ void AddressFormEventLogger::OnDidFillFormFillingSuggestion(
 void AddressFormEventLogger::OnDidUndoAutofill() {
   has_logged_undo_after_fill_ = true;
   base::RecordAction(base::UserMetricsAction("Autofill_UndoAddressAutofill"));
+}
+
+void AddressFormEventLogger::OnDidShownAutofillOnTyping(
+    FieldGlobalId field_global_id) {
+  fields_where_autofill_on_typing_was_shown_[field_global_id] =
+      AutofillOnTypingSuggestionState::kShown;
+}
+
+void AddressFormEventLogger::OnDidAcceptAutofillOnTyping(
+    FieldGlobalId field_global_id) {
+  CHECK(fields_where_autofill_on_typing_was_shown_.contains(field_global_id));
+  fields_where_autofill_on_typing_was_shown_[field_global_id] =
+      AutofillOnTypingSuggestionState::kAccepted;
 }
 
 void AddressFormEventLogger::OnLog(const std::string& name,

@@ -137,8 +137,9 @@ class ProcessNode : public TypedNode<ProcessNode> {
   // only be non-zero on Linux, ChromeOS, and Android.
   virtual uint64_t GetPrivateSwapKb() const = 0;
 
-  // Returns the render process id (equivalent to RenderProcessHost::GetID()),
-  // or ChildProcessHost::kInvalidUniqueID if this is not a renderer.
+  // Returns the render process id (equivalent to
+  // RenderProcessHost::GetDeprecatedID()), or
+  // ChildProcessHost::kInvalidUniqueID if this is not a renderer.
   virtual RenderProcessHostId GetRenderProcessHostId() const = 0;
 
   // Returns a proxy to the RenderProcessHost associated with this node. The
@@ -173,12 +174,21 @@ class ProcessNodeObserver : public base::CheckedObserver {
 
   // Node lifetime notifications.
 
-  // Called when a |process_node| is added to the graph. Observers must not make
+  // Called before a `process_node` is added to the graph. OnPageNodeAdded() is
+  // better for most purposes, but this can be useful if an observer needs to
+  // check the state of the graph without including `process_node`.
+  //
+  // Observers must not make any property changes or cause re-entrant
+  // notifications during the scope of this call. Instead, make property changes
+  // via a separate posted task.
+  virtual void OnBeforeProcessNodeAdded(const ProcessNode* process_node) = 0;
+
+  // Called when a `process_node` is added to the graph. Observers must not make
   // any property changes or cause re-entrant notifications during the scope of
   // this call.
   virtual void OnProcessNodeAdded(const ProcessNode* process_node) = 0;
 
-  // The process associated with |process_node| has been started or has exited.
+  // The process associated with `process_node` has been started or has exited.
   // This implies some or all of the process, process_id, launch time and/or
   // exit status properties have changed.
   virtual void OnProcessLifetimeChange(const ProcessNode* process_node) = 0;
@@ -189,6 +199,7 @@ class ProcessNodeObserver : public base::CheckedObserver {
   virtual void OnBeforeProcessNodeRemoved(const ProcessNode* process_node) = 0;
 
   // Notifications of property changes.
+
   // Invoked when the |main_thread_task_load_is_low| property changes.
   virtual void OnMainThreadTaskLoadIsLow(const ProcessNode* process_node) = 0;
 
@@ -215,6 +226,7 @@ class ProcessNode::ObserverDefaultImpl : public ProcessNodeObserver {
   ~ObserverDefaultImpl() override;
 
   // ProcessNodeObserver implementation:
+  void OnBeforeProcessNodeAdded(const ProcessNode* process_node) override {}
   void OnProcessNodeAdded(const ProcessNode* process_node) override {}
   void OnProcessLifetimeChange(const ProcessNode* process_node) override {}
   void OnBeforeProcessNodeRemoved(const ProcessNode* process_node) override {}

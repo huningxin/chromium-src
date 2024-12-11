@@ -36,26 +36,29 @@ import org.robolectric.shadows.ShadowPendingIntent;
 
 import org.chromium.base.IntentUtils;
 import org.chromium.base.test.BaseRobolectricTestRunner;
+import org.chromium.base.test.util.Features.EnableFeatures;
 import org.chromium.chrome.browser.data_sharing.DataSharingNotificationManager.Action;
 import org.chromium.chrome.browser.notifications.NotificationIntentInterceptor;
 import org.chromium.chrome.browser.notifications.NotificationUmaTracker;
 import org.chromium.chrome.browser.notifications.channels.ChromeChannelDefinitions;
 import org.chromium.chrome.browser.notifications.channels.ChromeChannelDefinitions.ChannelId;
-import org.chromium.components.browser_ui.notifications.AsyncNotificationManagerProxy;
+import org.chromium.components.browser_ui.notifications.BaseNotificationManagerProxy;
 import org.chromium.components.browser_ui.notifications.BaseNotificationManagerProxyFactory;
+import org.chromium.components.browser_ui.notifications.NotificationFeatureMap;
 import org.chromium.components.browser_ui.notifications.NotificationMetadata;
 import org.chromium.components.browser_ui.notifications.NotificationWrapper;
 import org.chromium.url.GURL;
 
 /** Unit tests for {@link DataSharingNotificationManager}. */
 @RunWith(BaseRobolectricTestRunner.class)
+@EnableFeatures({NotificationFeatureMap.CACHE_NOTIIFICATIONS_ENABLED})
 @Config(manifest = Config.NONE)
 public class DataSharingNotificationManagerUnitTest {
     private static final String TAG = "data_sharing";
 
     @Rule public MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    @Mock private AsyncNotificationManagerProxy mNotificationManagerProxy;
+    @Mock private BaseNotificationManagerProxy mNotificationManagerProxy;
 
     @Captor ArgumentCaptor<NotificationWrapper> mNotifyCaptor;
     @Captor ArgumentCaptor<Intent> mIntentCaptor;

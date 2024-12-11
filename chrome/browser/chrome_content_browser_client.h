@@ -25,11 +25,11 @@
 #include "base/timer/timer.h"
 #include "base/values.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "chrome/browser/startup_data.h"
 #include "components/file_access/scoped_file_access.h"
 #include "components/guest_view/buildflags/buildflags.h"
 #include "components/safe_browsing/buildflags.h"
+#include "components/services/on_device_translation/buildflags/buildflags.h"
 #include "content/public/browser/child_process_security_policy.h"
 #include "content/public/browser/content_browser_client.h"
 #include "content/public/browser/digital_identity_provider.h"
@@ -45,6 +45,7 @@
 #include "services/network/public/mojom/network_context.mojom.h"
 #include "services/network/public/mojom/url_loader_factory.mojom.h"
 #include "services/video_effects/public/cpp/buildflags.h"
+#include "third_party/blink/public/mojom/on_device_translation/translation_manager.mojom-forward.h"
 #include "third_party/blink/public/mojom/worker/shared_worker_info.mojom.h"
 
 #if BUILDFLAG(ENABLE_VIDEO_EFFECTS)
@@ -225,8 +226,7 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
       std::vector<std::string>* additional_schemes) override;
   network::mojom::IPAddressSpace DetermineAddressSpaceFromURL(
       const GURL& url) override;
-  bool LogWebUICreated(const GURL& web_ui_url) override;
-  bool LogWebUIShown(const GURL& web_ui_url) override;
+  bool LogWebUIUrl(const GURL& web_ui_url) override;
   bool IsWebUIAllowedToMakeNetworkRequests(const url::Origin& origin) override;
   bool IsHandledURL(const GURL& url) override;
   bool HasCustomSchemeHandler(content::BrowserContext* browser_context,
@@ -481,7 +481,7 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
                        bool* no_javascript_access) override;
   content::SpeechRecognitionManagerDelegate*
   CreateSpeechRecognitionManagerDelegate() override;
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   content::TtsControllerDelegate* GetTtsControllerDelegate() override;
 #endif
   void MaybeOverrideManifest(content::RenderFrameHost* render_frame_host,
@@ -550,11 +550,6 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
       int child_process_id,
       content::PosixFileDescriptorInfo* mappings) override;
 #endif  // BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC)
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  void GetAdditionalMappedFilesForZygote(
-      base::CommandLine* command_line,
-      content::PosixFileDescriptorInfo* mappings) override;
-#endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
 #if BUILDFLAG(IS_WIN)
   bool PreSpawnChild(sandbox::TargetConfig* config,
                      sandbox::mojom::Sandbox sandbox_type,
@@ -910,7 +905,6 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
   content::XrIntegrationClient* GetXrIntegrationClient() override;
 #endif
 
-  void BindBrowserControlInterface(mojo::ScopedMessagePipeHandle pipe) override;
   bool ShouldInheritCrossOriginEmbedderPolicyImplicitly(
       const GURL& url) override;
   bool ShouldServiceWorkerInheritPolicyContainerFromCreator(
@@ -1092,6 +1086,27 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
       content::BrowserContext* browser_context,
       base::SupportsUserData* context_user_data,
       mojo::PendingReceiver<blink::mojom::AIManager> receiver) override;
+
+#if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+  void BindTranslationManager(
+      content::BrowserContext* browser_context,
+      base::SupportsUserData* context_user_data,
+      const url::Origin& origin,
+      mojo::PendingReceiver<blink::mojom::TranslationManager> receiver)
+      override;
+#endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+
+  // Binds to a new instance of
+  // `language_detection::ContentLanguageDetectionDriver` which receives the
+  // model from Optimization Guide. The instance becomes owned
+  // `context_user_data` to ensure it does not outlive the execution context for
+  // which it was created.
+  void BindLanguageDetectionDriver(
+      content::BrowserContext* browser_context,
+      base::SupportsUserData* context_user_data,
+      mojo::PendingReceiver<
+          language_detection::mojom::ContentLanguageDetectionDriver> receiver)
+      override;
 
 #if !BUILDFLAG(IS_ANDROID)
   void QueryInstalledWebAppsByManifestId(

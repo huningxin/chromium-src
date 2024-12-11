@@ -103,7 +103,6 @@ CONTENT_EXPORT extern const base::FeatureParam<content::DIPSTriggeringAction>
     kDIPSTriggeringAction;
 CONTENT_EXPORT extern const base::FeatureParam<base::TimeDelta>
     kDIPSClientBounceDetectionTimeout;
-CONTENT_EXPORT BASE_DECLARE_FEATURE(kDIPSPreservePSData);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kWebContentsDiscard);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(
     kDisconnectExtensionMessagePortWhenPageEntersBFCache);
@@ -252,7 +251,6 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kUtilityWithUiPumpInitializesCom);
 #endif  // BUILDFLAG(IS_WIN)
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kDisableProcessReuse);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kServiceWorkerAutoPreload);
-CONTENT_EXPORT BASE_DECLARE_FEATURE(kServiceWorkerStaticRouter);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(
     kServiceWorkerStaticRouterRaceNetworkRequestPerformanceImprovement);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kUserMediaCaptureOnFocus);
@@ -322,10 +320,6 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(kMacImeLiveConversionFix);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kMacSyscallSandbox);
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kSonomaAccessibilityActivationRefinements);
 #endif  // BUILDFLAG(IS_MAC)
-
-#if defined(WEBRTC_USE_PIPEWIRE)
-CONTENT_EXPORT BASE_DECLARE_FEATURE(kWebRtcPipeWireCapturer);
-#endif  // defined(WEBRTC_USE_PIPEWIRE)
 
 // Number of days to "store" IPH guardrails for navigation captured app launches
 // till they are cleared.

@@ -17,6 +17,10 @@
 #include "third_party/blink/renderer/core/layout/layout_text_fragment.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_root.h"
+#include "third_party/blink/renderer/core/layout/table/layout_table.h"
+#include "third_party/blink/renderer/core/layout/table/layout_table_caption.h"
+#include "third_party/blink/renderer/core/layout/table/layout_table_row.h"
+#include "third_party/blink/renderer/core/layout/table/layout_table_section.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
 #include "ui/gfx/geometry/rect_conversions.h"
 
@@ -32,7 +36,7 @@ constexpr float kHeading3FontSizeMultiplier = 1.17;
 constexpr float kHeading5FontSizeMultiplier = 0.83;
 constexpr float kHeading6FontSizeMultiplier = 0.67;
 
-// TODO(khushalsagar): This is duplicating logic from
+// TODO(b/383128653): This is duplicating logic from
 // UnsupportedTagTypeValueForNode, consider reusing it.
 bool IsHeadingTag(const HTMLElement& element) {
   return element.HasTagName(html_names::kH1Tag) ||
@@ -111,14 +115,65 @@ std::optional<mojom::blink::AIPageContentAttributeType> GetAttributeType(
     return mojom::blink::AIPageContentAttributeType::kHeading;
   }
 
-  if (element->HasTagName(html_names::kOlTag) ||
-      element->HasTagName(html_names::kUlTag) ||
+  if (element->HasTagName(html_names::kOlTag)) {
+    return mojom::blink::AIPageContentAttributeType::kOrderedList;
+  }
+
+  if (element->HasTagName(html_names::kUlTag) ||
       element->HasTagName(html_names::kDlTag)) {
-    return mojom::blink::AIPageContentAttributeType::kList;
+    return mojom::blink::AIPageContentAttributeType::kUnorderedList;
   }
 
   if (element->HasTagName(html_names::kFigureTag)) {
     return mojom::blink::AIPageContentAttributeType::kFigure;
+  }
+
+  if (object.IsTable()) {
+    return mojom::blink::AIPageContentAttributeType::kTable;
+  }
+
+  if (object.IsTableCell()) {
+    return mojom::blink::AIPageContentAttributeType::kTableCell;
+  }
+
+  if (element->HasTagName(html_names::kHeaderTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "banner") {
+    return mojom::blink::AIPageContentAttributeType::kHeader;
+  }
+
+  if (element->HasTagName(html_names::kNavTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "navigation") {
+    return mojom::blink::AIPageContentAttributeType::kNav;
+  }
+
+  if (element->HasTagName(html_names::kSearchTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "search") {
+    return mojom::blink::AIPageContentAttributeType::kSearch;
+  }
+
+  if (element->HasTagName(html_names::kMainTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "main") {
+    return mojom::blink::AIPageContentAttributeType::kMain;
+  }
+
+  if (element->HasTagName(html_names::kArticleTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "article") {
+    return mojom::blink::AIPageContentAttributeType::kArticle;
+  }
+
+  if (element->HasTagName(html_names::kSectionTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "region") {
+    return mojom::blink::AIPageContentAttributeType::kSection;
+  }
+
+  if (element->HasTagName(html_names::kAsideTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "complementary") {
+    return mojom::blink::AIPageContentAttributeType::kAside;
+  }
+
+  if (element->HasTagName(html_names::kFooterTag) ||
+      element->FastGetAttribute(html_names::kRoleAttr) == "contentinfo") {
+    return mojom::blink::AIPageContentAttributeType::kFooter;
   }
 
   // TODO: Add FormData for attribute_type = FORM.
@@ -242,11 +297,20 @@ void AIPageContentAgent::ProcessNode(
       continue;
     }
 
+    if (child->IsListMarker()) {
+      continue;
+    }
+
     auto child_content_node = MaybeGenerateContentNode(*child);
     if (child_content_node &&
         child_content_node->content_attributes->attribute_type ==
             mojom::blink::AIPageContentAttributeType::kIframe) {
       ProcessIframe(*GetIFrame(*child), *child_content_node);
+    } else if (child_content_node &&
+        child_content_node->content_attributes->attribute_type ==
+            mojom::blink::AIPageContentAttributeType::kTable) {
+      ProcessTable(To<LayoutTable>(*child), *child_content_node,
+                   document_style);
     } else {
       auto& node_for_child =
           child_content_node ? *child_content_node : content_node;
@@ -352,11 +416,11 @@ void AIPageContentAgent::MaybeAddNodeContent(
     image_info->image_bounding_box =
         image->AbsoluteBoundingBoxRect(kMapCoordinatesFlags);
     if (auto* image_element = DynamicTo<HTMLImageElement>(image->GetNode())) {
-      // TODO(khushalsagar): A11y stack generates alt text using image data
+      // TODO(b/383127202): A11y stack generates alt text using image data
       // which could be reused for this.
       image_info->image_caption = image_element->AltText();
     }
-    // TODO(khushalsagar): Include image source origin.
+    // TODO(b/382558422): Include image source origin.
     attributes.image_info.emplace_back(std::move(image_info));
   }
 }
@@ -384,6 +448,69 @@ void AIPageContentAgent::AddNodeGeometry(
   object.MapToVisualRectInAncestorSpace(nullptr, visible_bounding_box,
                                         kVisualRectFlags);
   geometry.visible_bounding_box = ToEnclosingRect(visible_bounding_box);
+}
+
+void AIPageContentAgent::ProcessTable(
+    const LayoutTable& object,
+    mojom::blink::AIPageContentNode& content_node,
+    const ComputedStyle& document_style) const {
+  auto table_data = mojom::blink::AIPageContentTableData::New();
+  for (auto* child = object.FirstChild(); child; child = child->NextSibling()) {
+    if (child->IsTableCaption()) {
+      ProcessTableCaption(To<LayoutTableCaption>(*child), *table_data);
+    }
+    if (child->IsTableSection()) {
+      ProcessTableSection(To<LayoutTableSection>(*child), *table_data,
+                          document_style);
+    }
+  }
+  content_node.content_attributes->table_data = std::move(table_data);
+}
+
+void AIPageContentAgent::ProcessTableCaption(
+    const LayoutTableCaption& object,
+    mojom::blink::AIPageContentTableData& table_data) const {
+  StringBuilder table_name;
+  for (auto* child = object.FirstChild(); child; child = child->NextSibling()) {
+    if (const auto* layout_text = DynamicTo<LayoutText>(*child)) {
+      table_name.Append(layout_text->TransformedText());
+    }
+  }
+  table_data.table_name = table_name.ToString();
+}
+
+void AIPageContentAgent::ProcessTableSection(
+    const LayoutTableSection& object,
+    mojom::blink::AIPageContentTableData& table_data,
+    const ComputedStyle& document_style) const {
+  auto* element = DynamicTo<HTMLElement>(object.GetNode());
+  for (auto* child = object.FirstChild(); child; child = child->NextSibling()) {
+    auto row = mojom::blink::AIPageContentTableRow::New();
+    ProcessTableRow(To<LayoutTableRow>(*child), *row, document_style);
+    if (element && element->HasTagName(html_names::kTheadTag)) {
+      table_data.header_rows.emplace_back(std::move(row));
+    } else if (element && element->HasTagName(html_names::kTfootTag)) {
+      table_data.footer_rows.emplace_back(std::move(row));
+    } else {
+      table_data.body_rows.emplace_back(std::move(row));
+    }
+  }
+}
+
+void AIPageContentAgent::ProcessTableRow(
+    const LayoutTableRow& object,
+    mojom::blink::AIPageContentTableRow& table_row,
+    const ComputedStyle& document_style) const {
+  for (auto* child = object.FirstChild(); child; child = child->NextSibling()) {
+    // Add the cell contents as a ContentNode.
+    // TODO(b/383127685): Consider adding additional information as
+    // CellContentData, such as the cell's column span.
+    auto child_content_node = MaybeGenerateContentNode(*child);
+    MaybeAddNodeContent(*child, *child_content_node->content_attributes,
+                        document_style);
+    ProcessNode(*child, *child_content_node, document_style);
+    table_row.cells.emplace_back(std::move(child_content_node));
+  }
 }
 
 }  // namespace blink

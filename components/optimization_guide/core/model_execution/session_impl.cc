@@ -49,6 +49,24 @@ void LogResponseHasRepeats(ModelBasedCapabilityKey feature, bool has_repeats) {
       has_repeats);
 }
 
+void LogResponseCompleteTime(ModelBasedCapabilityKey feature,
+                             base::TimeDelta time_to_completion) {
+  base::UmaHistogramMediumTimes(
+      base::StrCat(
+          {"OptimizationGuide.ModelExecution.OnDeviceResponseCompleteTime.",
+           GetStringNameForModelExecutionFeature(feature)}),
+      time_to_completion);
+}
+
+void LogResponseCompleteTokens(ModelBasedCapabilityKey feature,
+                               uint32_t tokens) {
+  base::UmaHistogramCounts10000(
+      base::StrCat(
+          {"OptimizationGuide.ModelExecution.OnDeviceResponseCompleteTokens.",
+           GetStringNameForModelExecutionFeature(feature)}),
+      tokens);
+}
+
 std::string GenerateExecutionId() {
   return "on-device:" + base::Uuid::GenerateRandomV4().AsLowercaseString();
 }
@@ -519,7 +537,7 @@ void SessionImpl::OnResponse(on_device_model::mojom::ResponseChunkPtr chunk) {
     return;
   }
 
-  RunRawOutputSafetyCheck();
+  RunRawOutputSafetyCheck(/*is_complete=*/false);
 }
 
 void SessionImpl::OnComplete(
@@ -527,16 +545,13 @@ void SessionImpl::OnComplete(
   proto::OnDeviceModelServiceResponse* logged_response =
       on_device_state_->MutableLoggedResponse();
   LogResponseHasRepeats(feature_, logged_response->has_repeats());
-
+  LogResponseCompleteTokens(feature_, on_device_state_->num_response_tokens);
   base::TimeDelta time_to_completion =
       base::TimeTicks::Now() - on_device_state_->start;
-  base::UmaHistogramMediumTimes(
-      base::StrCat(
-          {"OptimizationGuide.ModelExecution.OnDeviceResponseCompleteTime.",
-           GetStringNameForModelExecutionFeature(feature_)}),
-      time_to_completion);
+  LogResponseCompleteTime(feature_, time_to_completion);
   logged_response->set_time_to_completion_millis(
       time_to_completion.InMilliseconds());
+
   on_device_state_->opts.model_client->OnResponseCompleted();
 
   on_device_state_->model_response_complete = true;
@@ -546,13 +561,13 @@ void SessionImpl::OnComplete(
     MaybeSendCompleteResponse();
     return;
   }
-  RunRawOutputSafetyCheck();
+  RunRawOutputSafetyCheck(/*is_complete=*/true);
 }
 
-void SessionImpl::RunRawOutputSafetyCheck() {
+void SessionImpl::RunRawOutputSafetyCheck(bool is_complete) {
   on_device_state_->num_unchecked_response_tokens = 0;
   on_device_state_->opts.safety_checker->RunRawOutputCheck(
-      on_device_state_->current_response,
+      on_device_state_->current_response, is_complete,
       base::BindOnce(&SessionImpl::OnRawOutputSafetyResult,
                      on_device_state_->session_weak_ptr_factory_.GetWeakPtr(),
                      on_device_state_->current_response.size()));
@@ -680,10 +695,11 @@ void SessionImpl::SendResponse(ResponseType response_type) {
   std::string safe_response = on_device_state_->current_response.substr(
       0, on_device_state_->latest_safe_raw_output.length);
   on_device_state_->MutableLoggedResponse()->set_output_string(safe_response);
+  size_t previous_response_pos = on_device_state_->latest_response_pos;
   on_device_state_->latest_response_pos =
       on_device_state_->latest_safe_raw_output.length;
   on_device_state_->opts.adapter->ParseResponse(
-      *last_message_, safe_response, on_device_state_->latest_response_pos,
+      *last_message_, safe_response, previous_response_pos,
       base::BindOnce(&SessionImpl::OnParsedResponse,
                      on_device_state_->session_weak_ptr_factory_.GetWeakPtr(),
                      is_complete));
@@ -708,7 +724,7 @@ void SessionImpl::OnParsedResponse(
     }
   }
   on_device_state_->opts.safety_checker->RunResponseChecks(
-      *last_message_, *output,
+      *last_message_, *output, is_complete,
       base::BindOnce(&SessionImpl::OnResponseSafetyResult,
                      on_device_state_->session_weak_ptr_factory_.GetWeakPtr(),
                      is_complete, *output));

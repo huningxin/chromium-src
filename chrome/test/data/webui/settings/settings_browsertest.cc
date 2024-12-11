@@ -91,9 +91,8 @@ IN_PROC_BROWSER_TEST_F(SettingsTest, AutofillSection) {
   RunTest("settings/autofill_section_test.js", "mocha.run()");
 }
 
-IN_PROC_BROWSER_TEST_F(SettingsTest, AutofillPredictionImprovementsSection) {
-  RunTest("settings/autofill_prediction_improvements_section_test.js",
-          "mocha.run()");
+IN_PROC_BROWSER_TEST_F(SettingsTest, AutofillAiSection) {
+  RunTest("settings/autofill_ai_section_test.js", "mocha.run()");
 }
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC)
@@ -833,7 +832,8 @@ class SettingsPrivacyGuideTest : public SettingsBrowserTest {
   SettingsPrivacyGuideTest() {
     scoped_feature_list_.InitWithFeatures(
         {features::kPrivacyGuideForceAvailable,
-         content_settings::features::kTrackingProtection3pcd},
+         content_settings::features::kTrackingProtection3pcd,
+         optimization_guide::features::kPrivacyGuideAiSettings},
         {});
   }
 
@@ -903,27 +903,27 @@ IN_PROC_BROWSER_TEST_F(SettingsBrowserTest, MAYBE_Integration) {
 
 // Privacy guide fragment tests.
 IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest, WelcomeFragment) {
-  RunTest("settings/privacy_guide_fragments_test.js",
+  RunTest("settings/privacy_guide_welcome_fragment_test.js",
           "runMochaSuite('WelcomeFragment')");
 }
 
 IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest, MsbbFragment) {
-  RunTest("settings/privacy_guide_fragments_test.js",
+  RunTest("settings/privacy_guide_msbb_fragment_test.js",
           "runMochaSuite('MsbbFragment')");
 }
 
 IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest, HistorySyncFragment) {
-  RunTest("settings/privacy_guide_fragments_test.js",
+  RunTest("settings/privacy_guide_history_sync_fragment_test.js",
           "runMochaSuite('HistorySyncFragment')");
 }
 
 IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest, SafeBrowsingFragment) {
-  RunTest("settings/privacy_guide_fragments_test.js",
+  RunTest("settings/privacy_guide_safe_browsing_fragment_test.js",
           "runMochaSuite('SafeBrowsingFragment')");
 }
 
 IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest, CookiesFragment) {
-  RunTest("settings/privacy_guide_fragments_test.js",
+  RunTest("settings/privacy_guide_cookies_fragment_test.js",
           "runMochaSuite('CookiesFragment')");
 }
 
@@ -950,6 +950,13 @@ IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest,
                        CompletionFragmentWithAdTopicsCard) {
   RunTest("settings/privacy_guide_completion_fragment_test.js",
           "runMochaSuite('CompletionFragmentWithAdTopicsCard')");
+}
+
+IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest,
+                       CompletionFragmentAiSettingsInPrivacyGuideDisabled) {
+  RunTest(
+      "settings/privacy_guide_completion_fragment_test.js",
+      "runMochaSuite('CompletionFragmentAiSettingsInPrivacyGuideDisabled')");
 }
 
 IN_PROC_BROWSER_TEST_F(SettingsPrivacyGuideTest, AdTopicsFragment) {

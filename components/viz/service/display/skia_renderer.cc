@@ -100,6 +100,7 @@
 #include "ui/gfx/geometry/transform_util.h"
 #include "ui/gfx/gpu_fence_handle.h"
 #include "ui/gfx/hdr_metadata.h"
+#include "ui/gfx/swap_result.h"
 
 #if BUILDFLAG(IS_ANDROID)
 #include "components/viz/service/display/overlay_processor_surface_control.h"
@@ -1243,20 +1244,36 @@ void SkiaRenderer::SwapBuffersComplete(
     overlay_processor_->OnSwapBuffersComplete(params.swap_response.result);
   }
 
+  // SWAP_SKIPPED is the only case where presentation is skipped. Even if
+  // presentation wasn't successful for some other results the GPU thread
+  // still ran presentation logic.
+  bool did_present =
+      params.swap_response.result != gfx::SwapResult::SWAP_SKIPPED;
   if (buffer_queue_) {
     if (params.swap_response.result ==
         gfx::SwapResult::SWAP_NAK_RECREATE_BUFFERS) {
       buffer_queue_->RecreateBuffers();
     }
-    buffer_queue_->SwapBuffersComplete();
+
+    buffer_queue_->SwapBuffersComplete(did_present);
   }
 
 #if BUILDFLAG(ENABLE_VULKAN) && BUILDFLAG(IS_CHROMEOS) && \
     BUILDFLAG(USE_V4L2_CODEC)
   if (protected_buffer_queue_) {
-    protected_buffer_queue_->SwapBuffersComplete();
+    protected_buffer_queue_->SwapBuffersComplete(did_present);
   }
 #endif
+
+  if (!did_present) {
+    CHECK(release_fence.is_null());
+    // Current pending overlays aren't going to be presented so unlock them
+    // immediately. `committed_overlay_locks_` remains unchanged.
+    DisplayResourceProvider::ScopedBatchReturnResources returner(
+        resource_provider_.get(), /*allow_access_to_gpu_thread=*/true);
+    pending_overlay_locks_.pop_front();
+    return;
+  }
 
   if (!release_fence.is_null()) {
     // Set release fences to return overlay resources for last frame.
@@ -2707,8 +2724,8 @@ void SkiaRenderer::DrawTextureQuad(const TextureDrawQuad* quad,
     DCHECK(SkColorSpace::Equals(image->colorSpace(),
                                 dst_color_space.ToSkColorSpace().get()));
     sk_sp<SkColorFilter> color_filter = GetColorSpaceConversionFilter(
-        src_color_space, std::nullopt, src_hdr_metadata, dst_color_space,
-        quad->is_video_frame);
+        src_color_space, std::nullopt, src_hdr_metadata,
+        quad->dynamic_range_limit, dst_color_space, quad->is_video_frame);
     paint.setColorFilter(color_filter->makeComposed(paint.refColorFilter()));
   }
 
@@ -2951,6 +2968,7 @@ sk_sp<SkColorFilter> SkiaRenderer::GetColorSpaceConversionFilter(
     const gfx::ColorSpace& src,
     std::optional<uint32_t> src_bit_depth,
     std::optional<gfx::HDRMetadata> src_hdr_metadata,
+    const cc::PaintFlags::DynamicRangeLimitMixture& src_dynamic_range_limit,
     const gfx::ColorSpace& dst,
     bool is_video_frame) {
   // Use the current SDR slider white level for PQ HDR videos on
@@ -2966,10 +2984,12 @@ sk_sp<SkColorFilter> SkiaRenderer::GetColorSpaceConversionFilter(
     hdr_metadata->ndwl = gfx::HdrMetadataNdwl(
         current_frame()->display_color_spaces.GetSDRMaxLuminanceNits());
   }
+
   return color_filter_cache_.Get(
       src, dst, src_bit_depth, hdr_metadata,
       current_frame()->display_color_spaces.GetSDRMaxLuminanceNits(),
-      current_frame()->display_color_spaces.GetHDRMaxLuminanceRelative());
+      src_dynamic_range_limit.ComputeHdrHeadroom(
+          current_frame()->display_color_spaces.GetHDRMaxLuminanceRelative()));
 }
 
 namespace {

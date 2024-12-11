@@ -232,12 +232,6 @@
   <message name="IDS_AUTOFILL_IPH_EXTERNAL_ACCOUNT_PROFILE_SUGGESTION" desc="IPH bubble for a suggestion item with an account profile that was created somewhere outside Chrome (e.g. Google Pay)." formatter_data="android_java">
     You can now use addresses from your Google Account
   </message>
-  <message name="IDS_AUTOFILL_IPH_MANUAL_FALLBACK" desc="IPH bubble for triggering autofill from the context menu.">
-    Right click to autofill saved info, like your name or address, on any form
-  </message>
-  <message name="IDS_AUTOFILL_IPH_MANUAL_FALLBACK_SCREENREADER" is_accessibility_with_no_ui="true" desc="Screenreader text for the IPH bubble for triggering autofill from the context menu.">
-    Right click to autofill saved info, like your name or address, on any form
-  </message>
 
   <!-- Autofill suggestion label separator -->
   <message name="IDS_AUTOFILL_SUGGESTION_LABEL_SEPARATOR" desc="A separator to place between different elements of a suggestion's label. Labels sometimes have more than one type of information, such as a phone number and an email address or a street address, a phone number, and an email address. A symbol, in this case a bullet •, with a white space before it and a white space after it, is used to separate the parts of the label that appear on the same line, e.g. (877) 733-7699 • fanfeedback@redsox.com or 465 Huntington Ave • (617) 267-9300 • matthewt@mfa.org. A bullet • is preferred for separating the label parts; however, if the bullet • resembles another symbol in the language, please translate the bullet • as a symbol (A) that is not easily mistaken for a number or letter in the language and (B) that is typically used to separate elements.">
@@ -556,6 +550,12 @@
     </message>
     <message name="IDS_AUTOFILL_POPUP_SEARCH_BAR_PASSWORDS_NOT_FOUND" desc="On the autofill popup for paswords, the label to be used when no passwords matching user's request were found.">
       No passwords found
+    </message>
+    <message name="IDS_AUTOFILL_SIGNIN_PROMO_TITLE_ADDRESS" desc="This is the body text of a confirmation message and means that the address was only saved locally to the user's device (not in their Google Account). It appears after an address save if the user is not signed in to Chrome or their sign-in credentials have expired. If the user wants to save this data to their Google Account, they can click the button at the bottom of this message. The tone should be motivating.">
+    Address saved to this device
+    </message>
+    <message name="IDS_AUTOFILL_VERIFY_PROMO_SUBTITLE_ADDRESS" desc="This is the body text of a confirmation message and means that the address was only saved locally to the user's device (not in their Google Account). It appears when the user was signed in to Chrome but their sign-in credentials have expired; now, they need to sign back in to Chrome. The string is after the 'Address saved to this device' string. If the user wants to save this data to their Google Account, they can click the 'Verify it's you' button at the bottom of this message. The tone should be motivating.">
+    To save and use this address on all your devices, verify it's you
     </message>
   </if>
 

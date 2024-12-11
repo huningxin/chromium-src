@@ -79,25 +79,23 @@ struct Suggestion {
     bool offer_refresh = true;
   };
 
-  struct PredictionImprovementsPayload final {
-    PredictionImprovementsPayload();
-    PredictionImprovementsPayload(
+  struct AutofillAiPayload final {
+    AutofillAiPayload();
+    AutofillAiPayload(
         const base::flat_map<FieldGlobalId, std::u16string>& values_to_fill,
         const DenseSet<FieldFillingSkipReason>& ignorable_skip_reasons);
-    PredictionImprovementsPayload(const PredictionImprovementsPayload&);
-    PredictionImprovementsPayload(PredictionImprovementsPayload&&);
-    PredictionImprovementsPayload& operator=(
-        const PredictionImprovementsPayload&);
-    PredictionImprovementsPayload& operator=(PredictionImprovementsPayload&&);
-    ~PredictionImprovementsPayload();
+    AutofillAiPayload(const AutofillAiPayload&);
+    AutofillAiPayload(AutofillAiPayload&&);
+    AutofillAiPayload& operator=(const AutofillAiPayload&);
+    AutofillAiPayload& operator=(AutofillAiPayload&&);
+    ~AutofillAiPayload();
 
-    friend bool operator==(const PredictionImprovementsPayload&,
-                           const PredictionImprovementsPayload&) = default;
+    friend bool operator==(const AutofillAiPayload&,
+                           const AutofillAiPayload&) = default;
 
     // Values to be filled into fields with corresponding ids.
     base::flat_map<FieldGlobalId, std::u16string> values_to_fill;
-    // Autofill skip reasons that need to be ignored for filling improved
-    // predictions.
+    // Autofill skip reasons to be ignored.
     DenseSet<FieldFillingSkipReason> ignorable_skip_reasons;
   };
 
@@ -154,7 +152,7 @@ struct Suggestion {
                                 ValueToFill,
                                 PasswordSuggestionDetails,
                                 PlusAddressPayload,
-                                PredictionImprovementsPayload,
+                                AutofillAiPayload,
                                 PaymentsPayload>;
 
   // This struct is used to provide password suggestions with custom icons,
@@ -277,7 +275,7 @@ struct Suggestion {
     kCardVisa,
     kIban,
     kBnpl,
-    kAutofillPredictionImprovements,
+    kAutofillAi,
   };
 
   // This enum is used to control filtration of suggestions (see it's used in
@@ -373,7 +371,7 @@ struct Suggestion {
                absl::holds_alternative<InstrumentId>(payload);
       case SuggestionType::kFillAutofillAi:
         return absl::holds_alternative<ValueToFill>(payload) ||
-               absl::holds_alternative<PredictionImprovementsPayload>(payload);
+               absl::holds_alternative<AutofillAiPayload>(payload);
       case SuggestionType::kCreditCardEntry:
       case SuggestionType::kVirtualCreditCardEntry:
         // TODO(crbug.com/367434234): Use `PaymentsPayload` for all credit card

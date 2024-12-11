@@ -60,9 +60,9 @@
 #include "components/autofill/core/browser/browser_autofill_manager_test_delegate.h"
 #include "components/autofill/core/browser/crowdsourcing/votes_uploader_test_api.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
+#include "components/autofill/core/browser/data_quality/validation.h"
 #include "components/autofill/core/browser/mock_autofill_manager_observer.h"
 #include "components/autofill/core/browser/test_autofill_manager_waiter.h"
-#include "components/autofill/core/browser/validation.h"
 #include "components/autofill/core/common/autofill_constants.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/autofill_util.h"
@@ -3106,7 +3106,8 @@ IN_PROC_BROWSER_TEST_F(AutofillInteractiveTestDynamicForm,
   ASSERT_TRUE(content::ExecJs(GetWebContents(),
                               "document.getElementById('testform').submit();"));
   ASSERT_TRUE(std::move(submission_waiter).Wait());
-  ASSERT_TRUE(test_api(test_api(autofill_manager).votes_uploader())
+  ASSERT_TRUE(test_api(ContentAutofillClient::FromWebContents(GetWebContents())
+                           ->GetVotesUploader())
                   .FlushPendingVotes());
   load_stop_observer.Wait();
 

@@ -2382,13 +2382,20 @@ void StyleEngine::ApplyRuleSetInvalidationForTreeScope(
     // The SelectorFilter stack is set up for invalidating the tree
     // under the host, which includes the host. When invalidating the
     // host itself, we need to take it out so that the stack is consistent.
+    //
+    // Note that since we don't have a mark for PopTo(), the actual bits
+    // in the filter for the host will stay, giving a potential false
+    // positive. It would be nice to handle this somehow.
     selector_filter.PopParent(host);
     ApplyRuleSetInvalidationForElement(tree_scope, host, selector_filter,
                                        style_scope_frame, rule_sets,
                                        changed_rule_flags,
                                        /*is_shadow_host=*/true);
     selector_filter.PushParent(host);
-    if (host.GetStyleChangeType() == kSubtreeStyleChange) {
+    if (host.GetStyleChangeType() == kSubtreeStyleChange ||
+        !host.GetComputedStyle()) {
+      // Skip traversal of the shadow tree if the host is marked for subtree
+      // recalc, or if the host is not rendered.
       return;
     }
     for (auto rule_set : rule_sets) {
@@ -2465,11 +2472,12 @@ void StyleEngine::ApplyRuleSetInvalidationForSubtree(
 
   if (invalidation_scope == kInvalidateAllScopes) {
     if (ShadowRoot* shadow_root = element.GetShadowRoot()) {
+      SelectorFilter::Mark mark = selector_filter.SetMark();
       selector_filter.PushParent(element);
       ApplyRuleSetInvalidationForTreeScope(tree_scope, shadow_root->RootNode(),
                                            selector_filter, style_scope_frame,
                                            rule_sets, kInvalidateAllScopes);
-      selector_filter.PopParent(element);
+      selector_filter.PopTo(mark);
     }
   }
 
@@ -2480,6 +2488,7 @@ void StyleEngine::ApplyRuleSetInvalidationForSubtree(
        element.GetComputedStyle());
 
   if (traverse_children) {
+    SelectorFilter::Mark mark = selector_filter.SetMark();
     selector_filter.PushParent(element);
 
     for (Element& child : ElementTraversal::ChildrenOf(element)) {
@@ -2490,7 +2499,7 @@ void StyleEngine::ApplyRuleSetInvalidationForSubtree(
           invalidate_part);
     }
 
-    selector_filter.PopParent(element);
+    selector_filter.PopTo(mark);
   }
 }
 
@@ -3570,8 +3579,16 @@ void StyleEngine::UpdateStyleAndLayoutTreeForContainer(
   const ComputedStyle& style = container.GetLayoutObject()->StyleRef();
   DCHECK(style.IsContainerForSizeContainerQueries());
   WritingMode writing_mode = style.GetWritingMode();
-  PhysicalSize physical_size = AdjustForAbsoluteZoom::AdjustPhysicalSize(
-      ToPhysicalSize(logical_size, writing_mode), style);
+  PhysicalSize physical_size = ToPhysicalSize(logical_size, writing_mode);
+  // Clamping kIndefiniteSize to 0 is correct because the container is
+  // size-contained, and therefore an auto size will be as if it had no children
+  // (i.e. 0).
+  DCHECK(
+      (physical_size.width >= 0 || physical_size.width == kIndefiniteSize) &&
+      (physical_size.height >= 0 || physical_size.height == kIndefiniteSize));
+  physical_size.ClampNegativeToZero();
+  physical_size =
+      AdjustForAbsoluteZoom::AdjustPhysicalSize(physical_size, style);
   PhysicalAxes physical_axes = ToPhysicalAxes(contained_axes, writing_mode);
 
   StyleRecalcChange change;
@@ -3701,7 +3718,8 @@ void StyleEngine::RecalcStyle(StyleRecalcChange change,
   Element& root_element = style_recalc_root_.RootElement();
   Element* parent = FlatTreeTraversal::ParentElement(root_element);
 
-  SelectorFilterRootScope filter_scope(parent);
+  SelectorFilterParentScope filter_scope(
+      parent, SelectorFilterParentScope::ScopeType::kRoot);
   root_element.RecalcStyle(change, style_recalc_context);
 
   for (ContainerNode* ancestor = root_element.GetStyleRecalcParent(); ancestor;
@@ -3725,8 +3743,10 @@ void StyleEngine::RecalcPositionTryStyleForPseudoElement(
   SkipStyleRecalcScope skip_scope(*this);
   CheckPseudoHasCacheScope check_pseudo_has_cache_scope(
       &GetDocument(), /*within-selector_checking=*/false);
-  SelectorFilterRootScope filter_scope(FlatTreeTraversal::ParentElement(
-      *pseudo_element.UltimateOriginatingElement()));
+  SelectorFilterParentScope filter_scope(
+      FlatTreeTraversal::ParentElement(
+          *pseudo_element.UltimateOriginatingElement()),
+      SelectorFilterParentScope::ScopeType::kRoot);
   pseudo_element.RecalcStyle(style_recalc_change, style_recalc_context);
 }
 
@@ -3734,7 +3754,8 @@ void StyleEngine::RecalcTransitionPseudoStyle() {
   // TODO(khushalsagar) : This forces a style recalc and layout tree rebuild
   // for the pseudo element tree each time we do a style recalc phase. See if
   // we can optimize this to only when the pseudo element tree is dirtied.
-  SelectorFilterRootScope filter_scope(nullptr);
+  SelectorFilterParentScope filter_scope(
+      nullptr, SelectorFilterParentScope::ScopeType::kRoot);
   document_->documentElement()->RecalcTransitionPseudoTreeStyle(
       view_transition_names_);
 }
@@ -3791,7 +3812,8 @@ void StyleEngine::RebuildLayoutTree(Element* size_container) {
 
     // We need a root scope here in case we recalc style for ::first-letter
     // elements as part of UpdateFirstLetterPseudoElement.
-    SelectorFilterRootScope filter_scope(nullptr);
+    SelectorFilterParentScope filter_scope(
+        nullptr, SelectorFilterParentScope::ScopeType::kRoot);
 
     Element& root_element = layout_tree_rebuild_root_.RootElement();
     {

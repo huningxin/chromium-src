@@ -54,6 +54,7 @@
 #include "chrome/browser/webauthn/gpm_user_verification_policy.h"
 #include "chrome/browser/webauthn/passkey_model_factory.h"
 #include "chrome/browser/webauthn/proto/enclave_local_state.pb.h"
+#include "chrome/browser/webauthn/webauthn_metrics_util.h"
 #include "chrome/browser/webauthn/webauthn_pref_names.h"
 #include "components/device_event_log/device_event_log.h"
 #include "components/prefs/pref_service.h"
@@ -892,6 +893,9 @@ void GPMEnclaveController::SetAccountStateReady() {
 }
 
 void GPMEnclaveController::OnGPMSelected() {
+  // Reset after each GPM selection to ensure correct metric emission.
+  model_->in_onboarding_flow = false;
+
   if (model_->is_off_the_record && !off_the_record_confirmed_) {
     model_->SetStep(Step::kGPMConfirmOffTheRecordCreate);
     return;
@@ -899,6 +903,10 @@ void GPMEnclaveController::OnGPMSelected() {
 
   switch (account_state_) {
     case AccountState::kEmpty:
+      // Set to true to indicate that the user has entered the GPM onboarding
+      // flow. This enables emission of onboarding-specific metrics.
+      model_->in_onboarding_flow = true;
+      RecordOnboardingEvent(webauthn::metrics::OnboardingEvents::kStarted);
       model_->SetStep(Step::kGPMCreatePasskey);
       break;
 
@@ -954,15 +962,6 @@ void GPMEnclaveController::OnGPMSelected() {
 void GPMEnclaveController::OnGPMPasskeySelected(
     std::vector<uint8_t> credential_id) {
   selected_cred_id_ = std::move(credential_id);
-  // Change the Step from `kPasskeyAutofill` so that it's clear that an
-  // operation is in progress. This was originally motivated because updating
-  // the "last used" field in a passkey entity triggered a callback that
-  // restarted the request because the Step hadn't been updated.
-  if (model_->step() == Step::kPasskeyAutofill &&
-      base::FeatureList::IsEnabled(device::kWebAuthnUpdateLastUsed)) {
-    model_->SetStep(Step::kNotStarted);
-  }
-
   switch (account_state_) {
     case AccountState::kReady:
       uv_method_ = PickEnclaveUserVerificationMethod(

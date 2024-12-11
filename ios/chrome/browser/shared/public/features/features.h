@@ -281,9 +281,6 @@ const base::TimeDelta InactiveThresholdForNewUsersUntilDockingPromoShown();
 // Promo to old users.
 const base::TimeDelta InactiveThresholdForOldUsersUntilDockingPromoShown();
 
-// Feature flag to hide search web in the edit menu.
-BASE_DECLARE_FEATURE(kIOSEditMenuHideSearchWeb);
-
 // Feature flag to use direct upload for Lens searches.
 BASE_DECLARE_FEATURE(kIOSLensUseDirectUpload);
 
@@ -309,6 +306,9 @@ extern const base::NotFatalUntil kLensOverlayNotFatalUntil;
 
 // Feature flag to enable the Lens View Finder Unified experience
 BASE_DECLARE_FEATURE(kEnableLensViewFinderUnifiedExperience);
+
+// Feature flag to enable the Lens Context Menu Unified experience
+BASE_DECLARE_FEATURE(kEnableLensContextMenuUnifiedExperience);
 
 // Feature flag to enable the Lens overlay location bar entrypoint. Enabled by
 // default.

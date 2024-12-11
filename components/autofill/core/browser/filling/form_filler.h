@@ -31,6 +31,8 @@ enum class RefillTriggerReason {
   kExpirationDateFormatted,
 };
 
+using FillingPayload = absl::variant<const AutofillProfile*, const CreditCard*>;
+
 // Helper class responsible for [re]filling forms and fields.
 //
 // It is privately owned by the BrowserAutofillManager, which is the only
@@ -54,7 +56,7 @@ enum class RefillTriggerReason {
 // It holds any state that is only relevant for [re]filling.
 class FormFiller {
  public:
-  FormFiller(BrowserAutofillManager& manager, LogManager* log_manager);
+  explicit FormFiller(BrowserAutofillManager& manager);
 
   FormFiller(const FormFiller&) = delete;
   FormFiller& operator=(const FormFiller&) = delete;
@@ -83,9 +85,6 @@ class FormFiller {
 
   // Resets states that FormFiller holds and maintains.
   void Reset();
-
-  // TODO(crbug.com/41490871): Remove.
-  std::optional<base::TimeTicks> GetOriginalFillingTime(FormGlobalId form_id);
 
   base::TimeDelta get_limit_before_refill() { return limit_before_refill_; }
 
@@ -125,11 +124,11 @@ class FormFiller {
   // DO NOT USE! //
   /////////////////
   // Fills or previews `values_to_fill` in the `form`. Called only by
-  // `AutofillPredictionImprovementsManager`.
+  // `AutofillAiManager`.
   // Minimal version of `FillOrPreviewForm()` that misses every feature besides
-  // filling / preview. E.g. does not handle refill, undo or any metrics.
+  // filling / preview. E.g. does not handle refill, undo, or any metrics.
   // TODO(crbug.com/40227071): Clean up the generic API and remove this.
-  void FillOrPreviewFormWithPredictionImprovements(
+  void FillOrPreviewFormWithAutofillAiData(
       mojom::ActionPersistence action_persistence,
       const DenseSet<FieldFillingSkipReason>& ignorable_skip_reasons,
       const FormData& form,
@@ -138,15 +137,15 @@ class FormFiller {
       const AutofillField& autofill_trigger_field,
       const base::flat_map<FieldGlobalId, std::u16string>& values_to_fill);
 
-  // Fills or previews `profile_or_credit_card` in the `form`.
+  // Fills or previews the data from `filling_payload` into `form`.
   // TODO(crbug.com/40227071): Clean up the API.
   void FillOrPreviewForm(
       mojom::ActionPersistence action_persistence,
       const FormData& form,
-      absl::variant<const AutofillProfile*, const CreditCard*>
-          profile_or_credit_card,
-      FormStructure* form_structure,
-      AutofillField* autofill_field,
+      const FillingPayload& filling_payload,
+      FormStructure& form_structure,
+      AutofillField& autofill_field,
+      DenseSet<FieldFillingSkipReason> ignorable_skip_reasons,
       AutofillTriggerSource trigger_source,
       bool is_refill = false);
 
@@ -189,19 +188,20 @@ class FormFiller {
 
   // Keeps track of the filling context for a form, used to make refill
   // attempts.
-  struct FillingContext {
-    // |profile_or_credit_card| contains either AutofillProfile or CreditCard
-    // and must be non-null.
-    // If |profile_or_credit_card| contains a CreditCard, |optional_cvc| may be
-    // non-null.
-    FillingContext(const AutofillField& field,
-                   absl::variant<const AutofillProfile*, const CreditCard*>
-                       profile_or_credit_card);
-    ~FillingContext();
+  struct RefillContext {
+    // |filling_payload| contains the data used to perform the initial filling
+    // operation.
+    RefillContext(const AutofillField& field,
+                  const FillingPayload& filling_payload);
+    ~RefillContext();
 
     // Whether a refill attempt was made.
     bool attempted_refill = false;
-    // The profile or credit card that was used for the initial fill.
+    // The profile or credit card that was used for the initial fill. This is
+    // slightly different from `filling_payload` that is used by the filling
+    // function: This contains actual objects because this needs to survive
+    // potential storage mutation, and this only contains payloads that support
+    // refills.
     absl::variant<CreditCard, AutofillProfile> profile_or_credit_card;
     // Possible identifiers of the field that was focused when the form was
     // initially filled. A refill shall be triggered from the same field.
@@ -211,7 +211,7 @@ class FormFiller {
     url::Origin filled_origin;
     // The time at which the initial fill occurred.
     // TODO(crbug.com/41490871): Remove in favor of
-    // FormStructure::last_filling_timestamp
+    // FormStructure::last_filling_timestamp_.
     const base::TimeTicks original_fill_time;
     // The timer used to trigger a refill.
     base::OneShotTimer on_refill_timer;
@@ -227,10 +227,10 @@ class FormFiller {
     std::optional<FormData> filled_form;
   };
 
-  void SetFillingContext(FormGlobalId form_id,
-                         std::unique_ptr<FillingContext> context);
+  void SetRefillContext(FormGlobalId form_id,
+                        std::unique_ptr<RefillContext> context);
 
-  FillingContext* GetFillingContext(FormGlobalId form_id);
+  RefillContext* GetRefillContext(FormGlobalId form_id);
 
   // Stores the value to be filled into a field, along with its field type and
   // if it's an override.
@@ -244,8 +244,7 @@ class FormFiller {
   // override.
   FieldFillingData GetFieldFillingData(
       const AutofillField& autofill_field,
-      const absl::variant<const AutofillProfile*, const CreditCard*>
-          profile_or_credit_card,
+      const FillingPayload& filling_payload,
       const std::map<FieldGlobalId, std::u16string>& forced_fill_values,
       const FormFieldData& field_data,
       mojom::ActionPersistence action_persistence,
@@ -257,27 +256,27 @@ class FormFiller {
   // TODO(crbug.com/40227071): Cleanup API and logic.
   bool FillField(
       AutofillField& autofill_field,
-      absl::variant<const AutofillProfile*, const CreditCard*>
-          profile_or_credit_card,
+      const FillingPayload& filling_payload,
       const std::map<FieldGlobalId, std::u16string>& forced_fill_values,
       FormFieldData& field_data,
       mojom::ActionPersistence action_persistence,
       std::string* failure_to_fill);
 
+  LogManager* log_manager();
+
   // Container holding the history of Autofill filling operations. Used to undo
   // some of the filling operations.
   FormAutofillHistory form_autofill_history_;
 
-  // A map from FormGlobalId to FillingContext instances used to make refill
+  // A map from FormGlobalId to RefillContext instances used to make refill
   // attempts for dynamic forms.
-  std::map<FormGlobalId, std::unique_ptr<FillingContext>> filling_context_;
+  std::map<FormGlobalId, std::unique_ptr<RefillContext>> refill_context_;
 
   // The maximum amount of time between a change in the form and the original
   // fill that triggers a refill. This value is only changed in browser tests,
   // where time cannot be mocked, to avoid flakiness.
   base::TimeDelta limit_before_refill_ = kLimitBeforeRefill;
 
-  const raw_ptr<LogManager> log_manager_;
   const raw_ref<BrowserAutofillManager> manager_;
 
   base::WeakPtrFactory<FormFiller> weak_ptr_factory_{this};

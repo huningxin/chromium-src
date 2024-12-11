@@ -75,6 +75,7 @@ class FlexItem {
   //   |min_max_cross_sizes| does include cross_axis_border_padding.
   FlexItem(const FlexibleBoxAlgorithm*,
            const ComputedStyle& style,
+           unsigned main_axis_auto_margin_count,
            LayoutUnit flex_base_content_size,
            MinMaxSizes min_max_main_sizes,
            LayoutUnit main_axis_border_padding,
@@ -111,29 +112,15 @@ class FlexItem {
 
   ItemPosition Alignment() const;
 
-  bool MainAxisIsInlineAxis() const;
-
-  // Returns the main-start margin value.
-  LayoutUnit FlowAwareMarginStart() const;
-  // Returns the main-end margin value.
-  LayoutUnit FlowAwareMarginEnd() const;
   // Returns the cross-start margin value ignoring flex-wrap.
   LayoutUnit FlowAwareMarginBefore() const;
   // Returns the cross-end margin value ignoring flex-wrap.
   LayoutUnit FlowAwareMarginAfter() const;
-  // Returns the margin value on the block-end in the container writing-mode.
-  // This isn't aware of `flex-direction` and `flex-wrap`.
-  LayoutUnit MarginBlockEnd() const;
 
   LayoutUnit MainAxisMarginExtent() const;
   LayoutUnit CrossAxisMarginExtent() const;
 
   LayoutUnit MarginBoxAscent(bool is_last_baseline, bool is_wrap_reverse) const;
-
-  void UpdateAutoMarginsInMainAxis(LayoutUnit auto_margin_offset);
-
-  // Returns true if the margins were adjusted due to auto margin resolution.
-  bool UpdateAutoMarginsInCrossAxis(LayoutUnit available_alignment_space);
 
   LayoutUnit CrossAxisOffset(const NGFlexLine&, LayoutUnit cross_axis_size);
 
@@ -148,11 +135,12 @@ class FlexItem {
   Member<const ComputedStyle> style_;
   const float flex_grow_;
   const float flex_shrink_;
+  const unsigned main_axis_auto_margin_count_;
   const LayoutUnit flex_base_content_size_;
   const MinMaxSizes min_max_main_sizes_;
   const LayoutUnit hypothetical_main_content_size_;
   const LayoutUnit main_axis_border_padding_;
-  PhysicalBoxStrut physical_margins_;
+  const PhysicalBoxStrut physical_margins_;
   const BoxStrut scrollbars_;
   const WritingDirectionMode baseline_writing_direction_;
   const BaselineGroup baseline_group_;
@@ -213,17 +201,19 @@ class FlexLine {
   FlexLine(FlexibleBoxAlgorithm* algorithm,
            FlexItemVectorView line_items,
            LayoutUnit sum_flex_base_size,
+           LayoutUnit sum_hypothetical_main_size,
            double total_flex_grow,
            double total_flex_shrink,
            double total_weighted_flex_shrink,
-           LayoutUnit sum_hypothetical_main_size)
+           unsigned main_axis_auto_margin_count)
       : algorithm_(algorithm),
         line_items_(std::move(line_items)),
         sum_flex_base_size_(sum_flex_base_size),
+        sum_hypothetical_main_size_(sum_hypothetical_main_size),
         total_flex_grow_(total_flex_grow),
         total_flex_shrink_(total_flex_shrink),
         total_weighted_flex_shrink_(total_weighted_flex_shrink),
-        sum_hypothetical_main_size_(sum_hypothetical_main_size) {}
+        main_axis_auto_margin_count_(main_axis_auto_margin_count) {}
 
   FlexSign Sign() const {
     return sum_hypothetical_main_size_ < container_main_inner_size_
@@ -244,12 +234,6 @@ class FlexLine {
   // This modifies remaining_free_space.
   bool ResolveFlexibleLengths();
 
-  // Distributes remaining_free_space across the main axis auto margins
-  // of the flex items of this line and returns the amount that should be
-  // used for each auto margins. If there are no auto margins, leaves
-  // remaining_free_space unchanged.
-  LayoutUnit ApplyMainAxisAutoMarginAdjustment();
-
   // Computes & sets desired_position on the FlexItems on this line.
   // Before calling this function, the items need to be laid out with
   // flexed_content_size set as the override main axis size, and
@@ -259,13 +243,15 @@ class FlexLine {
 
   FlexibleBoxAlgorithm* algorithm_;
   FlexItemVectorView line_items_;
+
   const LayoutUnit sum_flex_base_size_;
+  const LayoutUnit sum_hypothetical_main_size_;
+
   double total_flex_grow_;
   double total_flex_shrink_;
   double total_weighted_flex_shrink_;
-  // The hypothetical main size of an item is the flex base size clamped
-  // according to its min and max main size properties
-  const LayoutUnit sum_hypothetical_main_size_;
+
+  const unsigned main_axis_auto_margin_count_;
 
   // This gets set by SetContainerMainInnerSize
   LayoutUnit container_main_inner_size_;
@@ -337,11 +323,6 @@ class CORE_EXPORT FlexibleBoxAlgorithm {
   bool IsMultiline() const { return style_->FlexWrap() != EFlexWrap::kNowrap; }
   static bool IsHorizontalFlow(const ComputedStyle&);
   static bool IsColumnFlow(const ComputedStyle&);
-  // Returns the physical direction of the main axis.
-  // This function is aware of `writing-mode`, `direction`, and
-  // `flex-direction`, but assumes `flex-direction:column-reverse` is same as
-  // `flex-direction:column`.
-  PhysicalDirection MainAxisDirection() const;
   // Returns the physical direction of the cross axis.
   // This function is aware of `writing-mode`, `flex-direction`, and
   // no `flex-wrap`.

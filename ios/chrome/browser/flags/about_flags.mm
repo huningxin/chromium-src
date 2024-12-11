@@ -89,6 +89,7 @@
 #import "ios/chrome/browser/ntp/model/features.h"
 #import "ios/chrome/browser/ntp/ui_bundled/new_tab_page_feature.h"
 #import "ios/chrome/browser/omnibox/ui_bundled/omnibox_ui_features.h"
+#import "ios/chrome/browser/page_info/ui_bundled/features.h"
 #import "ios/chrome/browser/parcel_tracking/features.h"
 #import "ios/chrome/browser/policy/model/policy_util.h"
 #import "ios/chrome/browser/price_insights/model/price_insights_feature.h"
@@ -102,7 +103,7 @@
 #import "ios/chrome/browser/start_surface/ui_bundled/start_surface_features.h"
 #import "ios/chrome/browser/tabs/model/inactive_tabs/features.h"
 #import "ios/chrome/browser/text_selection/model/text_selection_util.h"
-#import "ios/chrome/browser/ui/page_info/features.h"
+#import "ios/chrome/browser/ui/authentication/signin/interruptible_chrome_coordinator.h"
 #import "ios/chrome/browser/ui/popup_menu/overflow_menu/feature_flags.h"
 #import "ios/chrome/browser/ui/whats_new/whats_new_util.h"
 #import "ios/chrome/browser/web/model/features.h"
@@ -1367,6 +1368,11 @@ const flags_ui::FeatureEntry kFeatureEntries[] = {
      FEATURE_WITH_PARAMS_VALUE_TYPE(kContentPushNotifications,
                                     kContentPushNotificationsVariations,
                                     "ContentPushNotifications")},
+    {"enable-lens-context-menu-unified-experience",
+     flag_descriptions::kEnableLensContextMenuUnifiedExperienceName,
+     flag_descriptions::kEnableLensContextMenuUnifiedExperienceDescription,
+     flags_ui::kOsIos,
+     FEATURE_VALUE_TYPE(kEnableLensContextMenuUnifiedExperience)},
     {"enable-lens-in-omnibox-copied-image",
      flag_descriptions::kEnableLensInOmniboxCopiedImageName,
      flag_descriptions::kEnableLensInOmniboxCopiedImageDescription,
@@ -1669,10 +1675,6 @@ const flags_ui::FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kOnlyAccessClipboardAsyncName,
      flag_descriptions::kOnlyAccessClipboardAsyncDescription, flags_ui::kOsIos,
      FEATURE_VALUE_TYPE(kOnlyAccessClipboardAsync)},
-    {"ios-edit-menu-hide-search-web",
-     flag_descriptions::kIOSEditMenuHideSearchWebName,
-     flag_descriptions::kIOSEditMenuHideSearchWebDescription, flags_ui::kOsIos,
-     FEATURE_VALUE_TYPE(kIOSEditMenuHideSearchWeb)},
     {"autofill-enable-card-art-image",
      flag_descriptions::kAutofillEnableCardArtImageName,
      flag_descriptions::kAutofillEnableCardArtImageDescription,
@@ -1865,6 +1867,17 @@ const flags_ui::FeatureEntry kFeatureEntries[] = {
          kIdentityConfirmationSnackbar,
          kIdentityConfirmationSnackbarTestingVariations,
          "IdentityConfirmationSnackbar")},
+    {"ios-interruptible-coordinator-always-dismissed",
+     flag_descriptions::kIOSInterruptibleCoordinatorAlwaysDismissedName,
+     flag_descriptions::kIOSInterruptibleCoordinatorAlwaysDismissedDescription,
+     flags_ui::kOsIos,
+     FEATURE_VALUE_TYPE(kIOSInterruptibleCoordinatorStoppedSynchronously)},
+    {"ios-interruptible-coordinator-stop-synchronously",
+     flag_descriptions::kIOSInterruptibleCoordinatorStoppedSynchronouslyName,
+     flag_descriptions::
+         kIOSInterruptibleCoordinatorStoppedSynchronouslyDescription,
+     flags_ui::kOsIos,
+     FEATURE_VALUE_TYPE(kIOSInterruptibleCoordinatorStoppedSynchronously)},
     {"ios-quick-delete", flag_descriptions::kIOSQuickDeleteName,
      flag_descriptions::kIOSQuickDeleteDescription, flags_ui::kOsIos,
      FEATURE_VALUE_TYPE(kIOSQuickDelete)},

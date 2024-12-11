@@ -25,20 +25,12 @@ import java.util.function.Function;
  * Default implementation of the AsyncNotificationManagerProxy, which passes through all calls to
  * the normal Android Notification Manager.
  */
-/* package */ class AsyncNotificationManagerProxyImpl implements AsyncNotificationManagerProxy {
+/* package */ class AsyncNotificationManagerProxyImpl implements BaseNotificationManagerProxy {
     private static final String TAG = "AsyncNotifManager";
     private final NotificationManagerCompat mNotificationManager;
 
     public AsyncNotificationManagerProxyImpl() {
         mNotificationManager = NotificationManagerCompat.from(ContextUtils.getApplicationContext());
-    }
-
-    @Override
-    public void areNotificationsEnabled(Callback<Boolean> callback) {
-        runAsyncAndReply(
-                "AsyncNotificationManagerProxyImpl.areNotificationsEnabled",
-                () -> mNotificationManager.areNotificationsEnabled(),
-                callback);
     }
 
     @Override

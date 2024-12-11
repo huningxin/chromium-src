@@ -1005,6 +1005,9 @@ SubmitResult CompositorFrameSinkSupport::MaybeSubmitCompositorFrame(
   pending_received_frame_times_[frame.metadata.frame_token]->set_surface_id(
       last_created_surface_id_);
 
+  pending_received_frame_times_[frame.metadata.frame_token]->set_frame_id(
+      frame.metadata.begin_frame_ack.frame_id);
+
   const int64_t trace_id = ~frame.metadata.begin_frame_ack.trace_id;
   TRACE_EVENT_WITH_FLOW1(TRACE_DISABLED_BY_DEFAULT("viz.hit_testing_flow"),
                          "Event.Pipeline", TRACE_ID_GLOBAL(trace_id),
@@ -1132,6 +1135,7 @@ void CompositorFrameSinkSupport::DidPresentCompositorFrame(
   details.draw_start_timestamp = draw_start_timestamp;
   details.swap_timings = swap_timings;
   details.presentation_feedback = feedback;
+  details.frame_id = received_frame_timestamp->second->frame_id();
   AdjustPresentationFeedback(&details.presentation_feedback,
                              swap_timings.swap_start);
   // Override with the throttled interval if one has been set. Otherwise,
@@ -1252,8 +1256,23 @@ void CompositorFrameSinkSupport::OnBeginFrame(const BeginFrameArgs& args) {
         // this OnBeginFrame() call is triggered by an unsolicited frame in the
         // AutoNeedsBeginFrame mode.
         if (!handling_auto_needs_begin_frame_) {
-          client_->OnBeginFrame(adjusted_args, frame_timing_details_, frame_ack,
-                                std::move(surface_returned_resources_));
+          {
+            TRACE_EVENT(
+                "graphics.pipeline", "Graphics.Pipeline",
+                perfetto::Flow::Global(adjusted_args.trace_id),
+                [&](perfetto::EventContext ctx) {
+                  auto* event =
+                      ctx.event<perfetto::protos::pbzero::ChromeTrackEvent>();
+                  auto* data = event->set_chrome_graphics_pipeline();
+                  data->set_step(
+                      perfetto::protos::pbzero::ChromeGraphicsPipeline::
+                          StepName::STEP_SEND_ON_BEGIN_FRAME_MOJO_MESSAGE);
+                  data->set_surface_frame_trace_id(adjusted_args.trace_id);
+                });
+            client_->OnBeginFrame(adjusted_args, frame_timing_details_,
+                                  frame_ack,
+                                  std::move(surface_returned_resources_));
+          }
           frame_timing_details_.clear();
         } else {
           if (frame_ack) {
@@ -1269,9 +1288,23 @@ void CompositorFrameSinkSupport::OnBeginFrame(const BeginFrameArgs& args) {
         }
         surface_returned_resources_.clear();
       } else if (!handling_auto_needs_begin_frame_) {
-        client_->OnBeginFrame(adjusted_args, frame_timing_details_,
-                              /*frame_ack=*/false,
-                              std::vector<ReturnedResource>());
+        {
+          TRACE_EVENT(
+              "graphics.pipeline", "Graphics.Pipeline",
+              perfetto::Flow::Global(adjusted_args.trace_id),
+              [&](perfetto::EventContext ctx) {
+                auto* event =
+                    ctx.event<perfetto::protos::pbzero::ChromeTrackEvent>();
+                auto* data = event->set_chrome_graphics_pipeline();
+                data->set_step(
+                    perfetto::protos::pbzero::ChromeGraphicsPipeline::StepName::
+                        STEP_SEND_ON_BEGIN_FRAME_MOJO_MESSAGE);
+                data->set_surface_frame_trace_id(adjusted_args.trace_id);
+              });
+          client_->OnBeginFrame(adjusted_args, frame_timing_details_,
+                                /*frame_ack=*/false,
+                                std::vector<ReturnedResource>());
+        }
         frame_timing_details_.clear();
       }
     }
@@ -1859,6 +1892,11 @@ void CompositorFrameSinkSupport::PendingFrameDetails::OnAddedSurfaceReference(
   }
   frame_embed_timestamp_ = base::TimeTicks::Now();
   surface_manager_->RemoveObserver(this);
+}
+
+void CompositorFrameSinkSupport::PendingFrameDetails::set_frame_id(
+    BeginFrameId frame_id) {
+  frame_id_ = frame_id;
 }
 
 }  // namespace viz

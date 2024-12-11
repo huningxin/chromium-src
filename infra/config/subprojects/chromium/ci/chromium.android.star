@@ -3924,6 +3924,7 @@ ci.builder(
     ),
     targets = targets.bundle(
         targets = [
+            "android_14_device_ci_only_gtests",
             "android_14_device_gtests",
             "chromium_android_scripts",
         ],
@@ -4334,6 +4335,14 @@ ci.builder(
                     # https://crbug.com/361042311
                     "--gtest_filter=-All/SharedStorageChromeBrowserTest.CrossOriginWorklet_SelectURL_Success/*",
                 ],
+                swarming = targets.swarming(
+                    shards = 12,
+                ),
+            ),
+            "android_sync_integration_tests": targets.mixin(
+                swarming = targets.swarming(
+                    shards = 2,
+                ),
             ),
             "base_unittests": targets.mixin(
                 args = [
@@ -4344,6 +4353,9 @@ ci.builder(
                 args = [
                     "--test-launcher-filter-file=../../testing/buildbot/filters/android.emulator_15.chrome_public_test_apk.filter",
                 ],
+                swarming = targets.swarming(
+                    shards = 40,
+                ),
             ),
             "chrome_public_unit_test_apk": targets.mixin(
                 args = [
@@ -4360,6 +4372,7 @@ ci.builder(
                 args = [
                     "--test-launcher-filter-file=../../testing/buildbot/filters/android.emulator_15.content_browsertests.filter",
                 ],
+                ci_only = True,
                 swarming = targets.swarming(
                     shards = 40,
                 ),
@@ -4368,6 +4381,7 @@ ci.builder(
                 args = [
                     "--test-launcher-filter-file=../../testing/buildbot/filters/android.emulator_14_15_16.content_shell_test_apk.filter",
                 ],
+                ci_only = True,
             ),
             "content_unittests": targets.mixin(
                 args = [
@@ -4399,6 +4413,11 @@ ci.builder(
                     # TODO(crbug.com/40201873): Fix the failed test
                     "--gtest_filter=-ScopedDirTest.CloseOutOfScope",
                 ],
+            ),
+            "services_unittests": targets.mixin(
+                swarming = targets.swarming(
+                    shards = 2,
+                ),
             ),
             "unit_tests": targets.mixin(
                 args = [

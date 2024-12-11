@@ -519,7 +519,6 @@ bool ui::IsNSRange(id value) {
     NSString* attribute;
     NSString* methodName;
   } attributeToMethodNameContainer[] = {
-      {NSAccessibilityChildrenAttribute, @"children"},
       {NSAccessibilityColumnsAttribute, @"columns"},
       {NSAccessibilityColumnIndexRangeAttribute, @"columnIndexRange"},
       {NSAccessibilityContentsAttribute, @"contents"},
@@ -532,8 +531,6 @@ bool ui::IsNSRange(id value) {
       {NSAccessibilityExpandedAttribute, @"expanded"},
       {NSAccessibilityHeaderAttribute, @"header"},
       {NSAccessibilityIndexAttribute, @"index"},
-      {NSAccessibilityInsertionPointLineNumberAttribute,
-       @"insertionPointLineNumber"},
       {NSAccessibilityLanguageAttribute, @"language"},
       {NSAccessibilityLinkedUIElementsAttribute, @"linkedUIElements"},
       {NSAccessibilityMaxValueAttribute, @"maxValue"},
@@ -562,7 +559,6 @@ bool ui::IsNSRange(id value) {
       // Not currently supported by Chrome -- mismatch of types supported:
       // {NSAccessibilityValueAutofillTypeAttribute, @"valueAutofillType"},
       {NSAccessibilityValueDescriptionAttribute, @"valueDescription"},
-      {NSAccessibilityVisibleCharacterRangeAttribute, @"visibleCharacterRange"},
       {NSAccessibilityVisibleCellsAttribute, @"visibleCells"},
       {NSAccessibilityVisibleChildrenAttribute, @"visibleChildren"},
       {NSAccessibilityVisibleColumnsAttribute, @"visibleColumns"},
@@ -595,13 +591,9 @@ bool ui::IsNSRange(id value) {
   [super detach];
 }
 
-- (NSArray*)AXChildren {
-  return [self children];
-}
-
 // Returns an array of BrowserAccessibilityCocoa objects, representing the
 // accessibility children of this object.
-- (NSArray*)children {
+- (NSArray*)accessibilityChildren {
   if (![self instanceActive])
     return nil;
   if (_needsToUpdateChildren) {
@@ -636,9 +628,9 @@ bool ui::IsNSRange(id value) {
 }
 
 - (void)childrenChanged {
-  // This function may be called in the middle of children() if this node adds
-  // extra mac nodes while its children are being requested. If _gettingChildren
-  // is true, we don't need to do anything here.
+  // This function may be called in the middle of -accessibilityChildren if
+  // this node adds extra mac nodes while its children are being requested. If
+  // _gettingChildren is true, we don't need to do anything here.
   if (![self instanceActive] || _gettingChildren)
     return;
   _needsToUpdateChildren = true;
@@ -845,11 +837,51 @@ bool ui::IsNSRange(id value) {
   return false;
 }
 
-- (NSNumber*)AXInsertionPointLineNumber {
-  return [self insertionPointLineNumber];
-}
+// LINT.IfChange
+- (NSInteger)accessibilityInsertionPointLineNumber {
+  if (![self instanceActive]) {
+    return NSNotFound;
+  }
+  if (!_owner->HasVisibleCaretOrSelection()) {
+    return NSNotFound;
+  }
 
-- (NSNumber*)insertionPointLineNumber {
+  const AXRange range = GetSelectedRange(*_owner);
+
+  // If the selection is not collapsed, then there is no visible caret.
+  if (!range.IsCollapsed()) {
+    return NSNotFound;
+  }
+
+  // "ax::mojom::MoveDirection" is only relevant on platforms that use object
+  // replacement characters in the accessibility tree. Mac is not one of them.
+  const AXPosition caretPosition = range.focus()->LowestCommonAncestorPosition(
+      *_owner->CreateTextPositionAt(0), ax::mojom::MoveDirection::kForward);
+  DCHECK(!caretPosition->IsNullPosition())
+      << "Calling HasVisibleCaretOrSelection() should have ensured that there "
+         "is a valid selection focus inside the current object.";
+  const std::vector<int> lineStarts =
+      _owner->GetIntListAttribute(ax::mojom::IntListAttribute::kLineStarts);
+
+  // Find the text offset that starts the next line after the current caret
+  // position, then subtract 1 to get the current line number.
+  auto iterator =
+      std::upper_bound(lineStarts.begin(), lineStarts.end(),
+                       caretPosition->AsTextPosition()->text_offset());
+
+  // If the caret is on a single line and the line is empty, then
+  // the iterator will be equal to lineStarts.begin() because the lineStarts
+  // vector will be empty. The line number should be 0 in this case.
+  if (iterator == lineStarts.begin()) {
+    return 0;
+  }
+
+  return std::distance(lineStarts.begin(), std::prev(iterator));
+}
+// LINT.ThenChange(AXInsertionPointLineNumber)
+
+// LINT.IfChange
+- (NSNumber*)AXInsertionPointLineNumber {
   if (![self instanceActive])
     return nil;
   if (!_owner->HasVisibleCaretOrSelection())
@@ -885,6 +917,7 @@ bool ui::IsNSRange(id value) {
 
   return @(std::distance(lineStarts.begin(), std::prev(iterator)));
 }
+// LINT.ThenChange(accessibilityInsertionPointLineNumber)
 
 - (NSString*)language {
   if (![self instanceActive])
@@ -894,42 +927,33 @@ bool ui::IsNSRange(id value) {
   return base::SysUTF8ToNSString(node->GetLanguage());
 }
 
-// private
-- (void)addLinkedUIElementsFromAttribute:(ax::mojom::IntListAttribute)attribute
-                                   addTo:(NSMutableArray*)outArray {
-  const std::vector<int32_t>& attributeValues =
-      _owner->GetIntListAttribute(attribute);
-  for (size_t i = 0; i < attributeValues.size(); ++i) {
-    BrowserAccessibility* element =
-        _owner->manager()->GetFromID(attributeValues[i]);
-    if (element)
-      [outArray addObject:element->GetNativeViewAccessible()];
-  }
-}
-
-// private
+// LINT.IfChange(accessibilityLinkedUIElements)
 - (NSArray*)linkedUIElements {
-  NSMutableArray* ret = [[NSMutableArray alloc] init];
-  [self
-      addLinkedUIElementsFromAttribute:ax::mojom::IntListAttribute::kControlsIds
-                                 addTo:ret];
-  [self addLinkedUIElementsFromAttribute:ax::mojom::IntListAttribute::kFlowtoIds
-                                   addTo:ret];
+  NSMutableArray* elements = [[NSMutableArray alloc] init];
+  [elements
+      addObjectsFromArray:[self uiElementsForAttribute:
+                                    ax::mojom::IntListAttribute::kControlsIds]];
+  [elements
+      addObjectsFromArray:[self uiElementsForAttribute:
+                                    ax::mojom::IntListAttribute::kFlowtoIds]];
 
   int target_id;
   if (_owner->GetIntAttribute(ax::mojom::IntAttribute::kInPageLinkTargetId,
                               &target_id)) {
     BrowserAccessibility* target =
         _owner->manager()->GetFromID(static_cast<int32_t>(target_id));
-    if (target)
-      [ret addObject:target->GetNativeViewAccessible()];
+    if (target) {
+      [elements addObject:target->GetNativeViewAccessible()];
+    }
   }
 
-  [self addLinkedUIElementsFromAttribute:ax::mojom::IntListAttribute::
-                                             kRadioGroupIds
-                                   addTo:ret];
-  return ret;
+  [elements
+      addObjectsFromArray:[self
+                              uiElementsForAttribute:
+                                  ax::mojom::IntListAttribute::kRadioGroupIds]];
+  return elements;
 }
+// LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityLinkedUIElements)
 
 - (NSNumber*)maxValue {
   if (![self instanceActive])
@@ -1446,17 +1470,17 @@ bool ui::IsNSRange(id value) {
 // Returns all tabs in this subtree.
 // LINT.IfChange(accessibilityTabs)
 - (NSArray*)tabs {
-  if (![self instanceActive])
+  if (![self instanceActive]) {
     return nil;
+  }
+
   NSMutableArray* tabSubtree = [[NSMutableArray alloc] init];
 
   if ([self internalRole] == ax::mojom::Role::kTab)
     [tabSubtree addObject:self];
 
-  for (uint i = 0; i < [[self children] count]; ++i) {
-    NSArray* tabChildren = [[[self children] objectAtIndex:i] tabs];
-    if ([tabChildren count] > 0)
-      [tabSubtree addObjectsFromArray:tabChildren];
+  for (id child in [self accessibilityChildren]) {
+    [tabSubtree addObjectsFromArray:[child tabs]];
   }
 
   return tabSubtree;
@@ -1570,20 +1594,34 @@ bool ui::IsNSRange(id value) {
       _owner->GetStringAttribute(ax::mojom::StringAttribute::kValue));
 }
 
-- (NSValue*)AXVisibleCharacterRange {
-  return [self visibleCharacterRange];
-}
+// LINT.IfChange
+- (NSRange)accessibilityVisibleCharacterRange {
+  if (![self instanceActive]) {
+    return NSMakeRange(0, 0);
+  }
+  // TODO(crbug.com/363275809): Why do we limit support to text fields here, but
+  // not in `AXPlatformNodeCocoa`?
+  if (!_owner->IsTextField() || _owner->IsPasswordField()) {
+    return NSMakeRange(0, 0);
+  }
 
-- (NSValue*)visibleCharacterRange {
+  return NSMakeRange(
+      0, static_cast<NSUInteger>(_owner->GetValueForControl().size()));
+}
+// LINT.ThenChange(AXVisibleCharacterRange)
+
+// LINT.IfChange
+- (NSValue*)AXVisibleCharacterRange {
   if ([self instanceActive] && _owner->IsTextField() &&
       !_owner->IsPasswordField()) {
     return [NSValue
         valueWithRange:NSMakeRange(0,
-                                   static_cast<int>(
+                                   static_cast<NSUInteger>(
                                        _owner->GetValueForControl().size()))];
   }
   return nil;
 }
+// LINT.ThenChange(accessibilityVisibleCharacterRange)
 
 // LINT.IfChange(accessibilityVisibleCells)
 - (NSArray*)visibleCells {
@@ -1603,7 +1641,7 @@ bool ui::IsNSRange(id value) {
 - (NSArray*)visibleChildren {
   if (![self instanceActive])
     return nil;
-  return [self children];
+  return [self accessibilityChildren];
 }
 
 // LINT.IfChange(accessibilityVisibleColumns)

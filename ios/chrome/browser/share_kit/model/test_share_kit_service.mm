@@ -17,6 +17,7 @@
 #import "ios/chrome/browser/share_kit/model/share_kit_share_group_configuration.h"
 #import "ios/chrome/browser/share_kit/model/test_constants.h"
 #import "ios/chrome/browser/shared/model/web_state_list/tab_group.h"
+#import "ios/chrome/test/app/sync_test_util.h"
 
 TestShareKitService::TestShareKitService(
     data_sharing::DataSharingService* data_sharing_service,
@@ -41,16 +42,19 @@ void TestShareKitService::PrimaryAccountChanged() {
   // No-op for testing.
 }
 
-void TestShareKitService::ShareGroup(ShareKitShareGroupConfiguration* config) {
+void TestShareKitService::CancelSession(NSString* session_id) {}
+
+NSString* TestShareKitService::ShareTabGroup(
+    ShareKitShareGroupConfiguration* config) {
   const TabGroup* tab_group = config.tabGroup;
   if (!tab_group) {
-    return;
+    return nil;
   }
   tab_groups::LocalTabGroupID tab_group_id = tab_group->tab_group_id();
 
   FakeShareKitFlowViewController* viewController =
-      [[FakeShareKitFlowViewController alloc] init];
-  viewController.view.accessibilityIdentifier = kFakeShareFlowIdentifier;
+      [[FakeShareKitFlowViewController alloc]
+          initWithType:FakeShareKitFlowType::kShare];
   viewController.completionBlock = config.completionBlock;
 
   // Set the shared group completion block.
@@ -64,24 +68,27 @@ void TestShareKitService::ShareGroup(ShareKitShareGroupConfiguration* config) {
   [config.baseViewController presentViewController:navController
                                           animated:NO
                                         completion:nil];
+  return @"sharedFlow";
 }
 
-void TestShareKitService::ManageGroup(ShareKitManageConfiguration* config) {
+NSString* TestShareKitService::ManageTabGroup(
+    ShareKitManageConfiguration* config) {
   FakeShareKitFlowViewController* viewController =
-      [[FakeShareKitFlowViewController alloc] init];
-  viewController.view.accessibilityIdentifier = kFakeManageFlowIdentifier;
+      [[FakeShareKitFlowViewController alloc]
+          initWithType:FakeShareKitFlowType::kManage];
 
   UINavigationController* navController = [[UINavigationController alloc]
       initWithRootViewController:viewController];
   [config.baseViewController presentViewController:navController
                                           animated:NO
                                         completion:nil];
+  return @"manageFlow";
 }
 
-void TestShareKitService::JoinGroup(ShareKitJoinConfiguration* config) {
+NSString* TestShareKitService::JoinTabGroup(ShareKitJoinConfiguration* config) {
   FakeShareKitFlowViewController* viewController =
-      [[FakeShareKitFlowViewController alloc] init];
-  viewController.view.accessibilityIdentifier = kFakeJoinFlowIdentifier;
+      [[FakeShareKitFlowViewController alloc]
+          initWithType:FakeShareKitFlowType::kJoin];
   viewController.completionBlock = config.completionBlock;
 
   UINavigationController* navController = [[UINavigationController alloc]
@@ -89,6 +96,7 @@ void TestShareKitService::JoinGroup(ShareKitJoinConfiguration* config) {
   [config.baseViewController presentViewController:navController
                                           animated:NO
                                         completion:nil];
+  return @"joinFlow";
 }
 
 UIViewController* TestShareKitService::FacePile(
@@ -128,8 +136,12 @@ void TestShareKitService::SetTabGroupCollabID(
     NSString* collab_id) {
   if (sync_service_ && collab_id) {
     std::string collaboration_id = base::SysNSStringToUTF8(collab_id);
+    // It is necessary to make the collab available on both the sync server and
+    // the finder.
+    chrome_test_util::AddCollaboration(collaboration_id);
     sync_service_->GetCollaborationFinderForTesting()
         ->SetCollaborationAvailableForTesting(collaboration_id);
+
     std::optional<tab_groups::SavedTabGroup> saved_group =
         sync_service_->GetGroup(tab_group_id);
     if (saved_group && !saved_group->is_shared_tab_group()) {

@@ -8,10 +8,6 @@
 #include "base/metrics/field_trial_params.h"
 #include "build/build_config.h"
 
-#if BUILDFLAG(IS_CHROMEOS)
-#include "chromeos/constants/chromeos_features.h"
-#endif
-
 namespace history_embeddings {
 
 namespace {
@@ -23,18 +19,34 @@ FeatureParameters& GetFeatureParametersMutable() {
 
 }  // namespace
 
-// Please use `IsFeatureManagementHistoryEmbeddingEnabled()` instead
-// of using `kHistoryEmbeddings` directly.
+// These are the kill switches for the launched history embeddings features.
+BASE_FEATURE(kLaunchedHistoryEmbeddings,
+             "LaunchedHistoryEmbeddings",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kLaunchedHistoryEmbeddingsAnswers,
+             "LaunchedHistoryEmbeddingsAnswers",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// This is the main feature switch for history embeddings search, and when it is
+// disabled, answering functionality will not be available either. This feature
+// is client-side launched on desktop platforms in US only, so it remains
+// disabled by default for other regions.
 BASE_FEATURE(kHistoryEmbeddings,
              "HistoryEmbeddings",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// This feature specifies whether to answer queries using an answerer; it can be
+// considered a toggle for v2 answering functionality. Parameters are all kept
+// under the primary kHistoryEmbeddings feature. The kHistoryEmbeddingsAnswers
+// feature state is not applicable if kHistoryEmbeddings is disabled.
 // Note: This feature has no parameters. Since it entirely depends on the
 // above kHistoryEmbeddings feature, all parameters are owned by that
 // feature to avoid confusion about which feature owns which parameters.
 BASE_FEATURE(kHistoryEmbeddingsAnswers,
              "HistoryEmbeddingsAnswers",
              base::FEATURE_DISABLED_BY_DEFAULT);
+
+////////////////////////////////////////////////////////////////////////////////
 
 const base::FeatureParam<bool> kShowSourcePassages(&kHistoryEmbeddings,
                                                    "ShowSourcePassages",
@@ -105,7 +117,7 @@ const base::FeatureParam<int> kMockIntentClassifierDelayMS(
 
 const base::FeatureParam<bool> kUseMlAnswerer(&kHistoryEmbeddings,
                                               "UseMlAnswerer",
-                                              false);
+                                              true);
 
 const base::FeatureParam<double> kMlAnswererMinScore(&kHistoryEmbeddings,
                                                      "MlAnswererMinScore",
@@ -139,7 +151,7 @@ const base::FeatureParam<bool> kOmniboxUnscoped(&kHistoryEmbeddings,
 
 const base::FeatureParam<bool> kAnswersInOmniboxScoped(&kHistoryEmbeddings,
                                                        "AnswersInOmniboxScoped",
-                                                       false);
+                                                       true);
 
 const base::FeatureParam<int> kScheduledEmbeddingsMax(&kHistoryEmbeddings,
                                                       "ScheduledEmbeddingsMax",
@@ -147,18 +159,10 @@ const base::FeatureParam<int> kScheduledEmbeddingsMax(&kHistoryEmbeddings,
 
 const base::FeatureParam<bool> kSendQualityLog(&kHistoryEmbeddings,
                                                "SendQualityLog",
-                                               false);
+                                               true);
 const base::FeatureParam<bool> kSendQualityLogV2(&kHistoryEmbeddings,
                                                  "SendQualityLogV2",
-                                                 false);
-
-const base::FeatureParam<int> kEmbedderNumThreads(&kHistoryEmbeddings,
-                                                  "EmbeddingsNumThreads",
-                                                  4);
-
-const base::FeatureParam<int> kEmbedderCacheSize(&kHistoryEmbeddings,
-                                                 "EmbedderCacheSize",
-                                                 1000);
+                                                 true);
 
 const base::FeatureParam<int> kMaxPassagesPerPage(&kHistoryEmbeddings,
                                                   "MaxPassagesPerPage",
@@ -180,18 +184,13 @@ const base::FeatureParam<bool> kUseUrlFilter(&kHistoryEmbeddings,
                                              "UseUrlFilter",
                                              false);
 
-const base::FeatureParam<base::TimeDelta> kEmbeddingsServiceTimeout(
-    &kHistoryEmbeddings,
-    "EmbeddingsServiceTimeout",
-    base::Seconds(60));
-
 const base::FeatureParam<bool> kEnableSidePanel(&kHistoryEmbeddings,
                                                 "EnableSidePanel",
-                                                false);
+                                                true);
 
 const base::FeatureParam<bool> kTrimAfterHostInResults(&kHistoryEmbeddings,
                                                        "TrimAfterHostInResults",
-                                                       false);
+                                                       true);
 
 const base::FeatureParam<int> kMaxAnswererContextUrlCount(
     &kHistoryEmbeddings,
@@ -201,11 +200,11 @@ const base::FeatureParam<int> kMaxAnswererContextUrlCount(
 const base::FeatureParam<double> kWordMatchMinEmbeddingScore(
     &kHistoryEmbeddings,
     "WordMatchMinEmbeddingScore",
-    1.0);
+    0.7);
 
 const base::FeatureParam<int> kWordMatchMinTermLength(&kHistoryEmbeddings,
                                                       "WordMatchMinTermLength",
-                                                      3);
+                                                      0);
 
 const base::FeatureParam<double> kWordMatchScoreBoostFactor(
     &kHistoryEmbeddings,
@@ -219,11 +218,11 @@ const base::FeatureParam<int> kWordMatchLimit(&kHistoryEmbeddings,
 const base::FeatureParam<int> kWordMatchSmoothingFactor(
     &kHistoryEmbeddings,
     "WordMatchSmoothingFactor",
-    1);
+    0);
 
 const base::FeatureParam<int> kWordMatchMaxTermCount(&kHistoryEmbeddings,
                                                      "WordMatchMaxTermCount",
-                                                     3);
+                                                     10);
 
 const base::FeatureParam<double> kWordMatchRequiredTermRatio(
     &kHistoryEmbeddings,
@@ -238,20 +237,6 @@ const base::FeatureParam<bool> kEraseNonAsciiCharacters(
     &kHistoryEmbeddings,
     "EraseNonAsciiCharacters",
     false);
-
-bool IsHistoryEmbeddingsEnabled() {
-#if BUILDFLAG(IS_CHROMEOS)
-  return chromeos::features::IsFeatureManagementHistoryEmbeddingEnabled() &&
-         base::FeatureList::IsEnabled(kHistoryEmbeddings);
-#else
-  return base::FeatureList::IsEnabled(kHistoryEmbeddings);
-#endif
-}
-
-bool IsHistoryEmbeddingsAnswersEnabled() {
-  return IsHistoryEmbeddingsEnabled() &&
-         base::FeatureList::IsEnabled(kHistoryEmbeddingsAnswers);
-}
 
 FeatureParameters::FeatureParameters(bool load_finch) {
   if (!load_finch) {
@@ -284,14 +269,11 @@ FeatureParameters::FeatureParameters(bool load_finch) {
   scheduled_embeddings_max = kScheduledEmbeddingsMax.Get();
   send_quality_log = kSendQualityLog.Get();
   send_quality_log_v2 = kSendQualityLogV2.Get();
-  embedder_num_threads = kEmbedderNumThreads.Get();
-  embedder_cache_size = kEmbedderCacheSize.Get();
   max_passages_per_page = kMaxPassagesPerPage.Get();
   delete_embeddings = kDeleteEmbeddings.Get();
   rebuild_embeddings = kRebuildEmbeddings.Get();
   use_database_before_embedder = kUseDatabaseBeforeEmbedder.Get();
   use_url_filter = kUseUrlFilter.Get();
-  embeddings_service_timeout = kEmbeddingsServiceTimeout.Get();
   enable_side_panel = kEnableSidePanel.Get();
   trim_after_host_in_results = kTrimAfterHostInResults.Get();
   max_answerer_context_url_count = kMaxAnswererContextUrlCount.Get();

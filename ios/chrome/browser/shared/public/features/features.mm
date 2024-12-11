@@ -255,10 +255,6 @@ BASE_FEATURE(kIOSDockingPromoPreventDeregistrationKillswitch,
              "IOSDockingPromoPreventDeregistrationKillswitch",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kIOSEditMenuHideSearchWeb,
-             "IOSEditMenuHideSearchWeb",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kEnableColorLensAndVoiceIconsInHomeScreenWidget,
              "kEnableColorLensAndVoiceIconsInHomeScreenWidget",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -273,6 +269,10 @@ BASE_FEATURE(kEnableLensOverlay,
 
 BASE_FEATURE(kEnableLensViewFinderUnifiedExperience,
              "EnableLensViewFinderUnifiedExperience",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kEnableLensContextMenuUnifiedExperience,
+             "EnableLensContextMenuUnifiedExperience",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Update to the correct milestone after launch.
@@ -430,7 +430,7 @@ SafetyCheckNotificationsExperimentTypeEnabled() {
       base::GetFieldTrialParamByFeatureAsInt(
           kSafetyCheckNotifications, kSafetyCheckNotificationsExperimentType,
           /*default_value=*/
-          (int)SafetyCheckNotificationsExperimentalArm::kVerbose));
+          (int)SafetyCheckNotificationsExperimentalArm::kSuccinct));
 }
 
 SafetyCheckNotificationsImpressionTrigger

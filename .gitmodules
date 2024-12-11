@@ -616,9 +616,6 @@
 [submodule "third_party/xnnpack/src"]
 	path = third_party/xnnpack/src
 	url = https://chromium.googlesource.com/external/github.com/google/XNNPACK
-[submodule "tools/page_cycler/acid3"]
-	path = tools/page_cycler/acid3
-	url = https://chromium.googlesource.com/chromium/deps/acid3
 [submodule "third_party/zstd/src"]
 	path = third_party/zstd/src
 	url = https://chromium.googlesource.com/external/github.com/facebook/zstd
@@ -837,10 +834,6 @@
 	path = skia/tools/clusterfuzz-data
 	url = https://chrome-internal.googlesource.com/chrome/tools/clusterfuzz-data
 	gclient-condition = checkout_clusterfuzz_data and checkout_src_internal
-[submodule "third_party/amd"]
-	path = third_party/amd
-	url = https://chrome-internal.googlesource.com/chrome/deps/amd
-	gclient-condition = checkout_win and checkout_src_internal
 [submodule "third_party/android_tools_internal"]
 	path = third_party/android_tools_internal
 	url = https://chrome-internal.googlesource.com/clank/third_party/android_tools

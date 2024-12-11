@@ -88,7 +88,6 @@ COMPONENT_EXPORT(AX_PLATFORM)
 // on the characteristics of this accessibility node.
 - (ui::BrowserAccessibility*)actionTarget;
 
-@property(nonatomic, readonly) NSArray* children;
 @property(nonatomic, readonly) NSArray* columns;
 @property(nonatomic, readonly) NSValue* columnIndexRange;
 @property(nonatomic, readonly) NSNumber* disclosing;
@@ -104,7 +103,6 @@ COMPONENT_EXPORT(AX_PLATFORM)
 // Index of a row, column, or tree item.
 @property(nonatomic, readonly) NSNumber* index;
 @property(nonatomic, readonly) NSNumber* treeItemRowIndex;
-@property(nonatomic, readonly) NSNumber* insertionPointLineNumber;
 @property(nonatomic, readonly) NSNumber* maxValue;
 @property(nonatomic, readonly) NSNumber* minValue;
 @property(nonatomic, readonly) NSString* orientation;
@@ -127,7 +125,6 @@ COMPONENT_EXPORT(AX_PLATFORM)
 @property(nonatomic, readonly) NSArray* tabs;
 @property(nonatomic, readonly) NSString* value;
 @property(nonatomic, readonly) NSString* valueDescription;
-@property(nonatomic, readonly) NSValue* visibleCharacterRange;
 @property(nonatomic, readonly) NSArray* visibleCells;
 @property(nonatomic, readonly) NSArray* visibleChildren;
 @property(nonatomic, readonly) NSArray* visibleColumns;

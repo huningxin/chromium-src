@@ -47,8 +47,10 @@
 #include "ash/shell.h"
 #include "ash/style/icon_button.h"
 #include "ash/style/pill_button.h"
+#include "ash/style/tab_slider_button.h"
 #include "ash/system/toast/anchored_nudge_manager_impl.h"
 #include "ash/test/ash_test_base.h"
+#include "ash/test/ash_test_util.h"
 #include "ash/test/test_ash_web_view_factory.h"
 #include "ash/wm/tablet_mode/tablet_mode_controller_test_api.h"
 #include "base/auto_reset.h"
@@ -999,43 +1001,67 @@ TEST_F(SunfishTest, DismissButtonsOnSourceChange) {
   // Start default mode. Test the buttons are hidden.
   auto* controller =
       StartCaptureSession(CaptureModeSource::kRegion, CaptureModeType::kImage);
-  ASSERT_TRUE(controller->IsActive());
+  VerifyActiveBehavior(BehaviorType::kDefault);
   auto* session =
       static_cast<CaptureModeSession*>(controller->capture_mode_session());
   CaptureModeSessionTestApi session_test_api(session);
   ASSERT_FALSE(session_test_api.GetActionContainerWidget());
 
-  // Select a region and wait for the buttons to show up.
+  // Select a region large enough that the video capture button will not
+  // intersect with where the search action button previously was and wait for
+  // the buttons to show up.
   auto* generator = GetEventGenerator();
-  SelectCaptureModeRegion(generator, gfx::Rect(10, 10, 40, 40),
+  SelectCaptureModeRegion(generator, gfx::Rect(10, 10, 200, 200),
                           /*release_mouse=*/true, /*verify_region=*/true);
   auto* container_widget = session_test_api.GetActionContainerWidget();
   ASSERT_TRUE(container_widget->IsVisible());
   ASSERT_EQ(session_test_api.GetActionButtons().size(), 1u);
-  EXPECT_TRUE(
-      session_test_api.GetButtonWithViewID(ActionButtonViewID::kSearchButton));
+  auto* search_button =
+      session_test_api.GetButtonWithViewID(ActionButtonViewID::kSearchButton);
+  gfx::Rect search_button_bounds(search_button->GetBoundsInScreen());
 
   // Set the type to `kVideo`. Test the buttons are hidden.
   controller->SetType(CaptureModeType::kVideo);
   EXPECT_FALSE(container_widget->IsVisible());
   EXPECT_EQ(session_test_api.GetActionButtons().size(), 0u);
+  auto* label_view = session_test_api.GetCaptureLabelView();
+  ASSERT_TRUE(label_view->IsRecordingTypeDropDownButtonVisible());
+  const gfx::Rect capture_button_bounds(label_view->capture_button_container()
+                                            ->capture_button()
+                                            ->GetBoundsInScreen());
+  ASSERT_FALSE(capture_button_bounds.Intersects(search_button_bounds));
+  auto* cursor_manager = Shell::Get()->cursor_manager();
+
+  // Hover over where the search button was previously shown.
+  generator->MoveMouseTo(search_button_bounds.CenterPoint());
+  EXPECT_EQ(ui::mojom::CursorType::kCell, cursor_manager->GetCursor().type());
 
   // Switch back to `kImage` then select a region.
   controller->SetType(CaptureModeType::kImage);
-  SelectCaptureModeRegion(generator, gfx::Rect(100, 100, 50, 50),
+  CaptureModeTestApi().SetUserSelectedRegion(gfx::Rect());
+  SelectCaptureModeRegion(generator, gfx::Rect(10, 10, 200, 200),
                           /*release_mouse=*/true, /*verify_region=*/true);
   EXPECT_TRUE(container_widget->IsVisible());
   EXPECT_EQ(session_test_api.GetActionButtons().size(), 1u);
-  EXPECT_TRUE(
-      session_test_api.GetButtonWithViewID(ActionButtonViewID::kSearchButton));
+  search_button =
+      session_test_api.GetButtonWithViewID(ActionButtonViewID::kSearchButton);
+  ASSERT_TRUE(search_button);
+  EXPECT_TRUE(search_button->GetVisible());
+  search_button_bounds = search_button->GetBoundsInScreen();
 
   // Set the source to `kFullscreen`. Test the buttons are hidden.
   controller->SetSource(CaptureModeSource::kFullscreen);
   EXPECT_FALSE(container_widget->IsVisible());
   EXPECT_EQ(session_test_api.GetActionButtons().size(), 0u);
+  EXPECT_EQ(ui::mojom::CursorType::kCustom, cursor_manager->GetCursor().type());
+
+  // Hover over where the search button was previously shown.
+  generator->MoveMouseTo(search_button_bounds.CenterPoint());
+  EXPECT_EQ(ui::mojom::CursorType::kCustom, cursor_manager->GetCursor().type());
 
   // Switch back to `kRegion` then select a region.
   controller->SetSource(CaptureModeSource::kRegion);
+  CaptureModeTestApi().SetUserSelectedRegion(gfx::Rect());
   SelectCaptureModeRegion(generator, gfx::Rect(10, 10, 50, 50),
                           /*release_mouse=*/true, /*verify_region=*/true);
   EXPECT_TRUE(container_widget->IsVisible());
@@ -1050,6 +1076,48 @@ TEST_F(SunfishTest, DismissButtonsOnSourceChange) {
 
   // TODO(b/377569542): Re-show the action buttons if the mode changes back to
   // image region.
+}
+
+TEST_F(SunfishTest, HideFeedbackButtonOnSourceTypeChange) {
+  // Start default image region capture mode.
+  auto* controller =
+      StartCaptureSession(CaptureModeSource::kRegion, CaptureModeType::kImage);
+  CaptureModeSessionTestApi session_test_api(
+      controller->capture_mode_session());
+  views::Widget* feedback_button_widget =
+      session_test_api.GetFeedbackButtonWidget();
+  ASSERT_TRUE(feedback_button_widget);
+  EXPECT_EQ(1.f, feedback_button_widget->GetLayer()->GetTargetOpacity());
+
+  // Simulate clicking the video toggle button to change the type.
+  LeftClickOn(GetVideoToggleButton());
+  ASSERT_EQ(CaptureModeType::kVideo, controller->type());
+
+  // Test the feedback button is hidden and hovering over it does not update the
+  // cursor.
+  ASSERT_TRUE(feedback_button_widget);
+  EXPECT_FALSE(feedback_button_widget->IsVisible());
+  EXPECT_EQ(0.f, feedback_button_widget->GetLayer()->GetTargetOpacity());
+
+  auto* generator = GetEventGenerator();
+  generator->MoveMouseTo(
+      feedback_button_widget->GetWindowBoundsInScreen().CenterPoint());
+  auto* cursor_manager = Shell::Get()->cursor_manager();
+  EXPECT_EQ(ui::mojom::CursorType::kCell, cursor_manager->GetCursor().type());
+
+  // Switch back to image region capture.
+  LeftClickOn(GetImageToggleButton());
+  ASSERT_EQ(CaptureModeType::kImage, controller->type());
+
+  // Test the feedback button is re-shown and hovering over it updates the
+  // cursor.
+  ASSERT_TRUE(feedback_button_widget);
+  EXPECT_TRUE(feedback_button_widget->IsVisible());
+  EXPECT_EQ(1.f, feedback_button_widget->GetLayer()->GetTargetOpacity());
+
+  generator->MoveMouseTo(
+      feedback_button_widget->GetWindowBoundsInScreen().CenterPoint());
+  EXPECT_EQ(ui::mojom::CursorType::kHand, cursor_manager->GetCursor().type());
 }
 
 // Tests that the search button is re-shown on region selected or adjusted in
@@ -1730,6 +1798,84 @@ TEST_F(SunfishTest, LauncherNudgeLimits) {
             3);
 }
 
+// Test that the action buttons can be navigated using the keyboard, and that
+// the indices are correct when new buttons are added.
+TEST_F(SunfishTest, KeyboardNavigationActionButtons) {
+  // Start default mode.
+  auto* controller =
+      StartCaptureSession(CaptureModeSource::kRegion, CaptureModeType::kImage);
+  VerifyActiveBehavior(BehaviorType::kDefault);
+
+  // Select a capture region. Only the "Search with Lens" should be present by
+  // default.
+  SelectCaptureModeRegion(GetEventGenerator(), gfx::Rect(100, 100, 600, 500));
+  CaptureModeSessionTestApi session_test_api(
+      controller->capture_mode_session());
+  ASSERT_EQ(session_test_api.GetActionButtons().size(), 1u);
+
+  // Use tab to navigate to the action button.
+  auto* event_generator = GetEventGenerator();
+  SendKey(ui::VKEY_TAB, event_generator, ui::EF_SHIFT_DOWN, /*count=*/3);
+  ASSERT_EQ(CaptureModeSessionFocusCycler::FocusGroup::kActionButtons,
+            session_test_api.GetCurrentFocusGroup());
+  ASSERT_EQ(0u, session_test_api.GetCurrentFocusIndex());
+  EXPECT_EQ(session_test_api.GetActionButtons()[0],
+            session_test_api.GetCurrentFocusedView()->GetView());
+
+  // Add a fake "Copy Text" button to the front of the list.
+  capture_mode_util::AddActionButton(
+      views::Button::PressedCallback(), u"Copy Text", &kCaptureModeImageIcon,
+      ActionButtonRank(ActionButtonType::kOther, 0),
+      ActionButtonViewID::kCopyTextButton);
+
+  // The "Search with Lens" buttons should still be focused.
+  EXPECT_TRUE(CaptureModeSessionFocusCycler::HighlightHelper::Get(
+                  session_test_api.GetActionButtons()[1])
+                  ->has_focus());
+
+  // Cycle backwards once.
+  SendKey(ui::VKEY_TAB, event_generator, ui::EF_SHIFT_DOWN);
+  ASSERT_EQ(CaptureModeSessionFocusCycler::FocusGroup::kActionButtons,
+            session_test_api.GetCurrentFocusGroup());
+  ASSERT_EQ(0u, session_test_api.GetCurrentFocusIndex());
+
+  // We should now be focused on the "Copy Text" button, even though the focus
+  // index is still 0.
+  ActionButtonView* copy_text_button = session_test_api.GetActionButtons()[0];
+  EXPECT_EQ(copy_text_button, session_test_api.GetButtonWithViewID(
+                                  ActionButtonViewID::kCopyTextButton));
+  EXPECT_TRUE(
+      CaptureModeSessionFocusCycler::HighlightHelper::Get(copy_text_button)
+          ->has_focus());
+
+  // Cycle forwards once.
+  SendKey(ui::VKEY_TAB, event_generator, ui::EF_NONE);
+  ASSERT_EQ(CaptureModeSessionFocusCycler::FocusGroup::kActionButtons,
+            session_test_api.GetCurrentFocusGroup());
+  ASSERT_EQ(1u, session_test_api.GetCurrentFocusIndex());
+
+  // Add another generic test button to the end of the list.
+  capture_mode_util::AddActionButton(
+      views::Button::PressedCallback(), u"Test", &kCaptureModeImageIcon,
+      ActionButtonRank(ActionButtonType::kSunfish, 1),
+      ActionButtonViewID::kSmartActionsButton);
+
+  // Cycle forwards once.
+  SendKey(ui::VKEY_TAB, event_generator, ui::EF_NONE);
+  ASSERT_EQ(CaptureModeSessionFocusCycler::FocusGroup::kActionButtons,
+            session_test_api.GetCurrentFocusGroup());
+  ASSERT_EQ(2u, session_test_api.GetCurrentFocusIndex());
+
+  // We should now be focused on the newest test button.
+  ActionButtonView* smart_action_button =
+      session_test_api.GetActionButtons()[2];
+  EXPECT_EQ(smart_action_button, session_test_api.GetButtonWithViewID(
+                                     ActionButtonViewID::kSmartActionsButton));
+  EXPECT_TRUE(
+      CaptureModeSessionFocusCycler::HighlightHelper::Get(smart_action_button)
+          ->has_focus());
+}
+
 class ScannerTest : public AshTestBase {
  public:
   ScannerTest()
@@ -2123,8 +2269,7 @@ TEST_F(ScannerTest, ActionButtonsEndSessionOnActionSuccess) {
       session_test_api.GetActionButtons();
   ASSERT_THAT(
       action_buttons,
-      ElementsAre(Property(&ActionButtonView::label_for_testing,
-                           Property(&views::Label::GetText, u"New event"))));
+      ElementsAre(ActionButtonIdIs(ActionButtonViewID::kScannerButton)));
   LeftClickOn(action_buttons[0]);
   fetch_action_details_future.Take().Run(
       std::make_unique<manta::proto::ScannerOutput>(output),
@@ -2162,8 +2307,7 @@ TEST_F(ScannerTest, ActionButtonsEndSessionOnActionSuccessAfterFailure) {
       session_test_api.GetActionButtons();
   ASSERT_THAT(
       action_buttons,
-      ElementsAre(Property(&ActionButtonView::label_for_testing,
-                           Property(&views::Label::GetText, u"New event"))));
+      ElementsAre(ActionButtonIdIs(ActionButtonViewID::kScannerButton)));
   LeftClickOn(action_buttons[0]);
   fetch_action_details_future.Take().Run(nullptr, manta::MantaStatus());
   LeftClickOn(action_buttons[0]);
@@ -2200,8 +2344,7 @@ TEST_F(ScannerTest, ActionButtonsDoNotEndSessionOnActionFailure) {
       session_test_api.GetActionButtons();
   ASSERT_THAT(
       action_buttons,
-      ElementsAre(Property(&ActionButtonView::label_for_testing,
-                           Property(&views::Label::GetText, u"New event"))));
+      ElementsAre(ActionButtonIdIs(ActionButtonViewID::kScannerButton)));
   LeftClickOn(action_buttons[0]);
   fetch_action_details_future.Take().Run(nullptr, manta::MantaStatus());
 
@@ -2849,6 +2992,52 @@ TEST_F(ScannerTest, DisclaimerDeclinedGoesBackToScreenshotMode) {
   LeftClickOn(smart_actions_button);
   EXPECT_TRUE(CaptureModeSessionTestApi(controller->capture_mode_session())
                   .GetDisclaimerWidget());
+}
+
+// Tests that the consent disclaimer can be properly navigated using the
+// keyboard.
+TEST_F(ScannerTest, KeyboardNavigationDisclaimer) {
+  base::HistogramTester histogram_tester;
+  Shell::Get()->session_controller()->GetActivePrefService()->SetBoolean(
+      kSunfishConsentDisclaimerAccepted, false);
+
+  ActionButtonView* smart_actions_button = GetSmartActionsButton();
+  ASSERT_TRUE(smart_actions_button);
+  auto* controller = CaptureModeController::Get();
+  CaptureModeSessionTestApi session_test_api(
+      controller->capture_mode_session());
+  ASSERT_EQ(session_test_api.GetActionButtons().size(), 2u);
+
+  // Use tab to navigate to the smart actions button.
+  auto* event_generator = GetEventGenerator();
+  SendKey(ui::VKEY_TAB, event_generator, ui::EF_SHIFT_DOWN, /*count=*/4);
+  ASSERT_EQ(CaptureModeSessionFocusCycler::FocusGroup::kActionButtons,
+            session_test_api.GetCurrentFocusGroup());
+  ASSERT_EQ(0u, session_test_api.GetCurrentFocusIndex());
+  ASSERT_EQ(session_test_api.GetActionButtons()[0], smart_actions_button);
+
+  // Press enter to open the consent disclaimer.
+  SendKey(ui::VKEY_RETURN, event_generator);
+  auto* disclaimer = session_test_api.GetDisclaimerWidget();
+  ASSERT_TRUE(disclaimer);
+
+  // Press tab once. The focus should shift to the decline button in the consent
+  // disclaimer.
+  SendKey(ui::VKEY_TAB, event_generator);
+  views::View* decline_button = disclaimer->GetContentsView()->GetViewByID(
+      kDisclaimerViewDeclineButtonId);
+  EXPECT_TRUE(decline_button->HasFocus());
+
+  // Press tab again. The accept button should now be focused.
+  SendKey(ui::VKEY_TAB, event_generator);
+  views::View* accept_button =
+      disclaimer->GetContentsView()->GetViewByID(kDisclaimerViewAcceptButtonId);
+  EXPECT_TRUE(accept_button->HasFocus());
+
+  // Press tab one more time. The focus should stay inside the disclaimer, and
+  // loop back around to the decline button.
+  SendKey(ui::VKEY_TAB, event_generator);
+  EXPECT_TRUE(decline_button->HasFocus());
 }
 
 }  // namespace ash

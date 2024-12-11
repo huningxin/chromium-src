@@ -45,7 +45,10 @@ import org.chromium.base.ThreadUtils;
 import org.chromium.base.test.util.Batch;
 import org.chromium.base.test.util.CommandLineFlags;
 import org.chromium.base.test.util.Feature;
+import org.chromium.base.test.util.Features.DisableFeatures;
+import org.chromium.base.test.util.Features.EnableFeatures;
 import org.chromium.base.test.util.UserActionTester;
+import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.flags.ChromeSwitches;
 import org.chromium.chrome.browser.preferences.Pref;
 import org.chromium.chrome.browser.profiles.ProfileManager;
@@ -146,6 +149,7 @@ public final class TopicsFragmentTest {
     @Test
     @SmallTest
     @Feature({"RenderTest"})
+    @DisableFeatures(ChromeFeatureList.PRIVACY_SANDBOX_ADS_API_UX_ENHANCEMENTS)
     public void testRenderTopicsOff() throws IOException {
         setTopicsPrefEnabled(false);
         startTopicsSettings();
@@ -155,6 +159,7 @@ public final class TopicsFragmentTest {
     @Test
     @SmallTest
     @Feature({"RenderTest"})
+    @DisableFeatures(ChromeFeatureList.PRIVACY_SANDBOX_ADS_API_UX_ENHANCEMENTS)
     public void testRenderTopicsEmpty() throws IOException {
         setTopicsPrefEnabled(true);
         startTopicsSettings();
@@ -164,6 +169,7 @@ public final class TopicsFragmentTest {
     @Test
     @SmallTest
     @Feature({"RenderTest"})
+    @DisableFeatures(ChromeFeatureList.PRIVACY_SANDBOX_ADS_API_UX_ENHANCEMENTS)
     public void testRenderTopicsPopulated() throws IOException {
         setTopicsPrefEnabled(true);
         mFakePrivacySandboxBridge.setCurrentTopTopics(TOPIC_NAME_1, TOPIC_NAME_2);
@@ -190,6 +196,16 @@ public final class TopicsFragmentTest {
         startTopicsSettings();
         onView(withText(R.string.settings_topics_page_blocked_topics_heading_new)).perform(click());
         mRenderTestRule.render(getBlockedTopicsRootView(), "blocked_topics_page_populated");
+    }
+
+    @Test
+    @SmallTest
+    @Feature({"RenderTest"})
+    @EnableFeatures(ChromeFeatureList.PRIVACY_SANDBOX_ADS_API_UX_ENHANCEMENTS)
+    public void testRenderTopicsOffV2() throws IOException {
+        setTopicsPrefEnabled(false);
+        startTopicsSettings();
+        mRenderTestRule.render(getTopicsRootView(), "topics_page_off_v2");
     }
 
     @Test
@@ -398,6 +414,7 @@ public final class TopicsFragmentTest {
 
     @Test
     @SmallTest
+    @DisableFeatures(ChromeFeatureList.PRIVACY_SANDBOX_ADS_API_UX_ENHANCEMENTS)
     public void testFooterFledgeLink() throws IOException {
         setTopicsPrefEnabled(true);
         mFakePrivacySandboxBridge.setCurrentTopTopics(TOPIC_NAME_1, TOPIC_NAME_2);
@@ -411,6 +428,27 @@ public final class TopicsFragmentTest {
         // Open a Fledge settings activity.
         onView(withText(containsString("suggested ads"))).perform(clickOnClickableSpan(0));
         onViewWaiting(withText(R.string.settings_fledge_page_toggle_sub_label))
+                .check(matches(isDisplayed()));
+        // Close the additional activity by navigating back.
+        pressBack();
+    }
+
+    @Test
+    @SmallTest
+    @EnableFeatures(ChromeFeatureList.PRIVACY_SANDBOX_ADS_API_UX_ENHANCEMENTS)
+    public void displaysFledgeFooterLinkV2() throws IOException {
+        setTopicsPrefEnabled(true);
+        mFakePrivacySandboxBridge.setCurrentTopTopics(TOPIC_NAME_1, TOPIC_NAME_2);
+        startTopicsSettings();
+        TopicsFragment fragment = mSettingsActivityTestRule.getFragment();
+        ThreadUtils.runOnUiThreadBlocking(
+                () -> {
+                    RecyclerView recyclerView = fragment.getView().findViewById(R.id.recycler_view);
+                    recyclerView.scrollToPosition(recyclerView.getAdapter().getItemCount() - 1);
+                });
+        // Open a Fledge settings activity.
+        onView(withText(containsString("suggested ads"))).perform(clickOnClickableSpan(0));
+        onViewWaiting(withText(R.string.settings_site_suggested_ads_page_toggle_sub_label_v2))
                 .check(matches(isDisplayed()));
         // Close the additional activity by navigating back.
         pressBack();

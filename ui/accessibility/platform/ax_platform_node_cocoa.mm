@@ -282,6 +282,8 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
       @"accessibilityDisclosureLevel" : NSAccessibilityDisclosureLevelAttribute,
       @"accessibilityHeader" : NSAccessibilityHeaderAttribute,
       @"accessibilityIndex" : NSAccessibilityIndexAttribute,
+      @"accessibilityLinkedUIElements" :
+          NSAccessibilityLinkedUIElementsAttribute,
       @"accessibilityRowCount" : NSAccessibilityRowCountAttribute,
       @"accessibilityRowHeaderUIElements" :
           NSAccessibilityRowHeaderUIElementsAttribute,
@@ -514,6 +516,24 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   }
 
   return true;
+}
+
+- (NSArray*)uiElementsForAttribute:(ax::mojom::IntListAttribute)attribute {
+  NSMutableArray* elements = [NSMutableArray array];
+  ui::AXPlatformNodeDelegate* delegate = [self nodeDelegate];
+  if (!delegate) {
+    return elements;
+  }
+
+  const std::vector<int32_t>& attributeValues =
+      delegate->GetIntListAttribute(attribute);
+  for (auto& attributeValue : attributeValues) {
+    ui::AXPlatformNode* node = delegate->GetFromNodeID(attributeValue);
+    if (node) {
+      [elements addObject:node->GetNativeViewAccessible()];
+    }
+  }
+  return elements;
 }
 
 - (void)getTreeItemDescendantNodeIds:(std::vector<int32_t>*)treeItemIds {
@@ -1179,7 +1199,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
     return nil;
   }
 
-  for (id child in [[self AXChildren] reverseObjectEnumerator]) {
+  for (id child in [[self accessibilityChildren] reverseObjectEnumerator]) {
     if (!NSPointInRect(point, [child accessibilityFrame]))
       continue;
     if (id foundChild = [child accessibilityHitTest:point])
@@ -2057,7 +2077,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return NSAccessibilityUnignoredAncestor(_node->GetParent());
 }
 
-- (NSArray*)AXChildren {
+- (NSArray*)accessibilityChildren {
   if (!_node)
     return @[];
 
@@ -2183,14 +2203,18 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 }
 // LINT.ThenChange(accessibilityNumberOfCharacters)
 
+// LINT.IfChange
 - (NSValue*)AXVisibleCharacterRange {
   return [NSValue valueWithRange:{0, [[self getAXValueAsString] length]}];
 }
+// LINT.ThenChange(accessibilityVisibleCharacterRange)
 
+// LINT.IfChange
 - (NSNumber*)AXInsertionPointLineNumber {
   // TODO: multiline is not supported on views.
   return @0;
 }
+// LINT.ThenChange(accessibilityInsertionPointLineNumber)
 
 // Parameterized text-specific attributes.
 
@@ -2385,6 +2409,42 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return @"";
 }
 
+// LINT.IfChange(accessibilityLinkedUIElements)
+- (NSArray*)accessibilityLinkedUIElements {
+  if (![self instanceActive]) {
+    return nil;
+  }
+
+  ui::AXPlatformNodeDelegate* delegate = [self nodeDelegate];
+  if (!delegate) {
+    return nil;
+  }
+
+  NSMutableArray* elements = [[NSMutableArray alloc] init];
+  [elements
+      addObjectsFromArray:[self uiElementsForAttribute:
+                                    ax::mojom::IntListAttribute::kControlsIds]];
+  [elements
+      addObjectsFromArray:[self uiElementsForAttribute:
+                                    ax::mojom::IntListAttribute::kFlowtoIds]];
+
+  int targetId;
+  if (delegate->GetIntAttribute(ax::mojom::IntAttribute::kInPageLinkTargetId,
+                                &targetId)) {
+    ui::AXPlatformNode* target = delegate->GetFromNodeID(targetId);
+    if (target) {
+      [elements addObject:target->GetNativeViewAccessible()];
+    }
+  }
+
+  [elements
+      addObjectsFromArray:[self
+                              uiElementsForAttribute:
+                                  ax::mojom::IntListAttribute::kRadioGroupIds]];
+  return elements;
+}
+// LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityLinkedUIElements)
+
 - (NSString*)accessibilityTitle {
   if (![self instanceActive])
     return nil;
@@ -2519,8 +2579,8 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 }
 
 // NSAccessibility: Determining Relationships.
-- (NSArray*)accessibilityChildren {
-  return [self AXChildren];
+- (NSArray*)AXChildren {
+  return [self accessibilityChildren];
 }
 
 - (id)accessibilityParent {
@@ -2962,9 +3022,19 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 // NOTIMPLEMENTED() seem to not be called anywhere (and were NOTIMPLEMENTED in
 // the old API as well).
 
+// LINT.IfChange
 - (NSInteger)accessibilityInsertionPointLineNumber {
-  return [[self AXInsertionPointLineNumber] integerValue];
+  if (![self instanceActive]) {
+    return NSNotFound;
+  }
+
+  // TODO(crbug.com/363275809): According to the comment in the old API code,
+  // "multiline is not supported on views." If that is no longer the case, we
+  // need an implementation here. Also the old API code in `AXPlatformNodeCocoa`
+  // doesn't do any of the work done in by `BrowserAccessibilityCocoa`.
+  return 0;
 }
+// LINT.ThenChange(AXInsertionPointLineNumber)
 
 // LINT.IfChange
 - (NSInteger)accessibilityNumberOfCharacters {
@@ -3049,12 +3119,15 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return @[ [self AXSelectedTextRange] ];
 }
 
+// LINT.IfChange
 - (NSRange)accessibilityVisibleCharacterRange {
-  if (!_node)
+  if (![self instanceActive]) {
     return NSMakeRange(0, 0);
+  }
 
-  return [[self AXVisibleCharacterRange] rangeValue];
+  return NSMakeRange(0, [[self getAXValueAsString] length]);
 }
+// LINT.ThenChange(AXVisibleCharacterRange)
 
 - (NSString*)accessibilityStringForRange:(NSRange)range {
   if (!_node)
@@ -3268,7 +3341,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
       _node->GetRole() != ax::mojom::Role::kMathMLFraction) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if ([children count] >= 1)
     return children[0];
   return nil;
@@ -3279,7 +3352,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
       _node->GetRole() != ax::mojom::Role::kMathMLFraction) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if ([children count] >= 2)
     return children[1];
   return nil;
@@ -3291,7 +3364,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
         _node->GetRole() == ax::mojom::Role::kMathMLSquareRoot)) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if (_node->GetRole() == ax::mojom::Role::kMathMLRoot) {
     if ([children count] >= 1)
       return [NSArray arrayWithObjects:children[0], nil];
@@ -3305,7 +3378,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
       _node->GetRole() != ax::mojom::Role::kMathMLRoot) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if ([children count] >= 2)
     return children[1];
   return nil;
@@ -3322,7 +3395,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
         _node->GetRole() == ax::mojom::Role::kMathMLMultiscripts)) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if ([children count] >= 1)
     return children[0];
   return nil;
@@ -3334,7 +3407,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
         _node->GetRole() == ax::mojom::Role::kMathMLUnderOver)) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if ([children count] >= 2)
     return children[1];
   return nil;
@@ -3346,7 +3419,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
         _node->GetRole() == ax::mojom::Role::kMathMLUnderOver)) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if (_node->GetRole() == ax::mojom::Role::kMathMLOver &&
       [children count] >= 2) {
     return children[1];
@@ -3364,7 +3437,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
         _node->GetRole() == ax::mojom::Role::kMathMLSubSup)) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if ([children count] >= 2)
     return children[1];
   return nil;
@@ -3376,7 +3449,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
         _node->GetRole() == ax::mojom::Role::kMathMLSubSup)) {
     return nil;
   }
-  NSArray* children = [self AXChildren];
+  NSArray* children = [self accessibilityChildren];
   if (_node->GetRole() == ax::mojom::Role::kMathMLSup &&
       [children count] >= 2) {
     return children[1];
@@ -3411,7 +3484,7 @@ NSDictionary* CreateMathSubSupScriptsPair(AXPlatformNodeCocoa* subscript,
   NSMutableArray* ret = [NSMutableArray array];
   bool foundBaseElement = false;
   AXPlatformNodeCocoa* subscript = nullptr;
-  for (AXPlatformNodeCocoa* child in [self AXChildren]) {
+  for (AXPlatformNodeCocoa* child in [self accessibilityChildren]) {
     if ([child internalRole] == ax::mojom::Role::kMathMLPrescriptDelimiter)
       break;
     if (!foundBaseElement) {
@@ -3436,7 +3509,7 @@ NSDictionary* CreateMathSubSupScriptsPair(AXPlatformNodeCocoa* subscript,
   NSMutableArray* ret = [NSMutableArray array];
   bool foundPrescriptDelimiter = false;
   AXPlatformNodeCocoa* subscript = nullptr;
-  for (AXPlatformNodeCocoa* child in [self AXChildren]) {
+  for (AXPlatformNodeCocoa* child in [self accessibilityChildren]) {
     if (!foundPrescriptDelimiter) {
       foundPrescriptDelimiter =
           ([child internalRole] == ax::mojom::Role::kMathMLPrescriptDelimiter);

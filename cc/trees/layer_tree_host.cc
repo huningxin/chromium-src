@@ -1565,11 +1565,19 @@ void LayerTreeHost::SetDisplayColorSpaces(
       pending_commit_state()->display_color_spaces, display_color_spaces);
   pending_commit_state()->display_color_spaces = display_color_spaces;
 
+  // Some layers needs to re-display when HDR headroom changes (e.g, any layer
+  // containing an HDR image needs to re-raster, and layers with HDR video will
+  // require re-tone-mapping).
+  bool did_set_needs_display = false;
   for (auto* layer : *this) {
     if (!only_hdr_changed ||
         layer->RequiresSetNeedsDisplayOnHdrHeadroomChange()) {
       layer->SetNeedsDisplay();
+      did_set_needs_display = true;
     }
+  }
+  if (did_set_needs_display) {
+    SetNeedsCommit();
   }
 }
 
@@ -2129,6 +2137,12 @@ void LayerTreeHost::DropActiveScrollDeltaNextCommit(ElementId scroll_element) {
   pending_commit_state()->scrollers_clobbering_active_value.insert(
       scroll_element);
   SetNeedsCommit();
+}
+
+void LayerTreeHost::CrashGpuProcessForTesting() {
+  if (current_layer_tree_frame_sink_) {
+    current_layer_tree_frame_sink_->CrashGpuProcessForTesting();  // IN-TEST
+  }
 }
 
 }  // namespace cc

@@ -6,8 +6,10 @@
 
 #import <memory>
 
+#import "components/collaboration/internal/messaging/data_sharing_change_notifier_impl.h"
 #import "components/collaboration/internal/messaging/empty_messaging_backend_service.h"
 #import "components/collaboration/internal/messaging/messaging_backend_service_impl.h"
+#import "components/collaboration/internal/messaging/storage/messaging_backend_store_impl.h"
 #import "components/collaboration/internal/messaging/tab_group_change_notifier_impl.h"
 #import "components/data_sharing/public/features.h"
 #import "components/keyed_service/ios/browser_state_dependency_manager.h"
@@ -58,9 +60,14 @@ MessagingBackendServiceFactory::BuildServiceInstanceFor(
       data_sharing::DataSharingServiceFactory::GetForProfile(profile);
   auto tab_group_change_notifier =
       std::make_unique<TabGroupChangeNotifierImpl>(tab_group_sync_service);
+  auto data_sharing_change_notifier =
+      std::make_unique<DataSharingChangeNotifierImpl>(data_sharing_service);
+  auto messaging_backend_store = std::make_unique<MessagingBackendStoreImpl>();
 
   return std::make_unique<MessagingBackendServiceImpl>(
-      std::move(tab_group_change_notifier), tab_group_sync_service,
+      std::move(tab_group_change_notifier),
+      std::move(data_sharing_change_notifier),
+      std::move(messaging_backend_store), tab_group_sync_service,
       data_sharing_service);
 }
 

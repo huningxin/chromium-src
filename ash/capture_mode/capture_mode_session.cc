@@ -745,6 +745,7 @@ void CaptureModeSession::UpdateCursor(const gfx::Point& location_in_screen,
   // cursor.
   const bool is_event_on_action_button =
       action_container_widget_ &&
+      action_container_widget_->GetLayer()->GetTargetOpacity() &&
       action_container_widget_->GetWindowBoundsInScreen().Contains(
           location_in_screen);
   if (is_event_on_action_button) {
@@ -756,6 +757,7 @@ void CaptureModeSession::UpdateCursor(const gfx::Point& location_in_screen,
   // cursor.
   const bool is_event_on_feedback_button =
       feedback_button_widget_ &&
+      feedback_button_widget_->GetLayer()->GetTargetOpacity() &&
       feedback_button_widget_->GetWindowBoundsInScreen().Contains(
           location_in_screen);
   if (is_event_on_feedback_button) {
@@ -940,9 +942,9 @@ void CaptureModeSession::MaybeUpdateCaptureUisOpacity(
   }
 
   for (const auto& pair : widget_opacity_map) {
-    ui::Layer* layer = pair.first->GetLayer();
+    views::Widget* widget = pair.first;
     const float& opacity = pair.second;
-    capture_mode_util::AnimateToOpacity(layer, opacity);
+    capture_mode_util::AnimateToOpacity(widget, opacity);
   }
 }
 
@@ -995,6 +997,7 @@ void CaptureModeSession::OnCaptureSourceChanged(CaptureModeSource new_source) {
   layer()->SchedulePaint(layer()->bounds());
   UpdateCaptureLabelWidget(CaptureLabelAnimation::kNone);
   UpdateActionContainerWidget();
+  UpdateFeedbackButtonWidget();
   UpdateCursor(display::Screen::GetScreen()->GetCursorScreenPoint(),
                /*is_touch=*/false);
 
@@ -1013,6 +1016,7 @@ void CaptureModeSession::OnCaptureTypeChanged(CaptureModeType new_type) {
   MaybeUpdateSelfieCamInSessionVisibility();
   UpdateCaptureLabelWidget(CaptureLabelAnimation::kNone);
   UpdateActionContainerWidget();
+  UpdateFeedbackButtonWidget();
   UpdateCursor(display::Screen::GetScreen()->GetCursorScreenPoint(),
                /*is_touch=*/false);
 
@@ -1408,6 +1412,8 @@ ActionButtonView* CaptureModeSession::AddActionButton(
   auto new_action_button =
       std::make_unique<ActionButtonView>(std::move(callback), text, icon, rank);
   new_action_button->SetID(id);
+  CaptureModeSessionFocusCycler::HighlightHelper::Install(
+      new_action_button.get());
   ActionButtonView* new_action_button_ptr = new_action_button.get();
   action_buttons.push_back(std::move(new_action_button));
 
@@ -1643,6 +1649,16 @@ void CaptureModeSession::OnKeyEvent(ui::KeyEvent* event) {
   // key events.
   if (controller_->IsSearchResultsPanelVisible() &&
       controller_->GetSearchResultsPanel()->HasFocus()) {
+    return;
+  }
+
+  // If the consent disclaimer is visible, let it handle key events.
+  if (disclaimer_) {
+    // The action button may still have a focus ring when we switch focus to the
+    // disclaimer, so clear it first.
+    if (focus_cycler_->HasFocus()) {
+      focus_cycler_->ClearFocus();
+    }
     return;
   }
 
@@ -3373,7 +3389,10 @@ void CaptureModeSession::RemoveAllActionButtons() {
 }
 
 void CaptureModeSession::UpdateFeedbackButtonWidget() {
-  if (!IsSunfishAllowedAndEnabled()) {
+  if (ShouldHideFeedbackWidget(feedback_button_widget_.get())) {
+    if (feedback_button_widget_ && feedback_button_widget_->IsVisible()) {
+      feedback_button_widget_->Hide();
+    }
     return;
   }
 
@@ -3391,8 +3410,8 @@ void CaptureModeSession::UpdateFeedbackButtonWidget() {
                                 base::Unretained(this)),
             u"Send Feedback", PillButton::Type::kDefaultWithIconLeading,
             &kFeedbackIcon));
-    feedback_button_widget_->ShowInactive();
   }
+  feedback_button_widget_->ShowInactive();
 
   // TODO(hewer): Determine the behavior/appearance of the feedback button and
   // search results panel to avoid overlap.
@@ -3412,6 +3431,10 @@ void CaptureModeSession::UpdateFeedbackButtonWidget() {
 bool CaptureModeSession::ShouldHideFeedbackWidget(views::Widget* widget) const {
   if (widget != feedback_button_widget_.get()) {
     return false;
+  }
+
+  if (!IsSunfishAllowedAndEnabled()) {
+    return true;
   }
 
   // If drag for capture region is in progress, the feedback button should be

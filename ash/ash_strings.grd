@@ -4306,6 +4306,9 @@ No devices connected.
        <message name="IDS_ASH_ACCELERATOR_DESCRIPTION_OPEN_CROSH" desc="Label for accelerator action - Open Crosh window.">
         Open Crosh window
       </message>
+      <message name="IDS_ASH_ACCELERATOR_DESCRIPTION_TOGGLE_GEMINI_APP" desc="Label for accelerator action - Toggle Gemini App.">
+        Toggle Gemini
+      </message>
       <message name="IDS_ASH_ACCELERATOR_DESCRIPTION_OPEN_DIAGNOSTICS" desc="Label for accelerator action - Open Diagnostics App.">
         Open Diagnostics app
       </message>
@@ -6778,6 +6781,24 @@ Here are some things you can try to get started.
       </message>
       <message name="IDS_ASH_SCREEN_CAPTURE_EDUCATION_SETTINGS_NUDGE_LABEL" desc="The label of the Screen Capture Education settings nudge (Arm 3) for using the quick settings menu.">
         Use the screen capture tool in quick settings to take screenshots
+      </message>
+
+      <!-- Scanner -->
+      <!-- TODO: crbug.com/375967525 - Finalize these strings and mark them as translateable -->
+      <message name="IDS_ASH_SCANNER_ACTION_CREATE_EVENT_LABEL" desc="The label on a button that can be clicked to create a new calendar event from the contents of a screenshot." translateable="false">
+        Add to Calendar
+      </message>
+      <message name="IDS_ASH_SCANNER_ACTION_CREATE_CONTACT_LABEL" desc="The label on a button that can be clicked to create a new contact from the contents of a screenshot." translateable="false">
+        Create contact
+      </message>
+      <message name="IDS_ASH_SCANNER_ACTION_CREATE_SHEET" desc="The label on a button that can be clicked to create a new Google Sheet from the contents of a screenshot." translateable="false">
+        Create Google Sheets
+      </message>
+      <message name="IDS_ASH_SCANNER_ACTION_CREATE_DOC" desc="The label on a button that can be clicked to create a new Google Doc from the contents of a screenshot." translateable="false">
+        Create Google Docs
+      </message>
+      <message name="IDS_ASH_SCANNER_ACTION_COPY_TEXT_AND_FORMAT" desc="The label on a button that can be clicked to copy text with formatting from the contents of a screenshot." translateable="false">
+        Copy text and format
       </message>
 
       <!-- Snap Group -->

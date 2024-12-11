@@ -98,6 +98,9 @@ extern const char kAndroidBrowserControlsInVizName[];
 extern const char kAndroidBrowserControlsInVizDescription[];
 
 #if BUILDFLAG(IS_CHROMEOS)
+extern const char kAndroidVpnAppsOnFlexName[];
+extern const char kAndroidVpnAppsOnFlexDescription[];
+
 extern const char kAnnotatorModeName[];
 extern const char kAnnotatorModeDescription[];
 #endif  // BUILDFLAG(IS_CHROMEOS)
@@ -1367,9 +1370,6 @@ extern const char kJumpStartOmniboxDescription[];
 extern const char kExtractRelatedSearchesFromPrefetchedZPSResponseName[];
 extern const char kExtractRelatedSearchesFromPrefetchedZPSResponseDescription[];
 
-extern const char kLacrosExtensionPrintingName[];
-extern const char kLacrosExtensionPrintingDescription[];
-
 extern const char kLanguageDetectionAPIName[];
 extern const char kLanguageDetectionAPIDescription[];
 
@@ -1801,6 +1801,9 @@ extern const char kPriceChangeModuleDescription[];
 extern const char kPrivacySandboxAdsAPIsOverrideName[];
 extern const char kPrivacySandboxAdsAPIsOverrideDescription[];
 
+extern const char kPrivacySandboxAdsApiUxEnhancementsName[];
+extern const char kPrivacySandboxAdsApiUxEnhancementsDescription[];
+
 extern const char kPrivacySandboxEnrollmentOverridesName[];
 extern const char kPrivacySandboxEnrollmentOverridesDescription[];
 
@@ -2009,6 +2012,11 @@ extern const char kShowPerformanceMetricsHudDescription[];
 extern const char kShowOverdrawFeedbackName[];
 extern const char kShowOverdrawFeedbackDescription[];
 
+#if !BUILDFLAG(IS_CHROMEOS)
+extern const char kFeedbackIncludeVariationsName[];
+extern const char kFeedbackIncludeVariationsDescription[];
+#endif
+
 extern const char kSidePanelResizingFlagId[];
 extern const char kSidePanelResizingName[];
 extern const char kSidePanelResizingDescription[];
@@ -2126,9 +2134,6 @@ extern const char kTabSearchPositionSettingDescription[];
 
 extern const char kTearOffWebAppAppTabOpensWebAppWindowName[];
 extern const char kTearOffWebAppAppTabOpensWebAppWindowDescription[];
-
-extern const char kTabletToolbarReorderingAndroidName[];
-extern const char kTabletToolbarReorderingAndroidDescription[];
 
 extern const char kTabResumptionModuleAndroidName[];
 extern const char kTabResumptionModuleAndroidDescription[];
@@ -2623,6 +2628,9 @@ extern const char kEnablePixDetectionDescription[];
 extern const char kEnablePixDetectionOnDomContentLoadedName[];
 extern const char kEnablePixDetectionOnDomContentLoadedDescription[];
 
+extern const char kEnableClipboardDataControlsAndroidName[];
+extern const char kEnableClipboardDataControlsAndroidDescription[];
+
 extern const char kEwalletPaymentsName[];
 extern const char kEwalletPaymentsDescription[];
 
@@ -2754,9 +2762,6 @@ extern const char kReaderModeHeuristicsAdaboost[];
 extern const char kReaderModeHeuristicsAllArticles[];
 extern const char kReaderModeHeuristicsAlwaysOff[];
 extern const char kReaderModeHeuristicsAlwaysOn[];
-
-extern const char kReaderModeInCCTName[];
-extern const char kReaderModeInCCTDescription[];
 
 extern const char kReengagementNotificationName[];
 extern const char kReengagementNotificationDescription[];
@@ -3328,9 +3333,6 @@ extern const char kAllowCrossDeviceFeatureSuiteDescription[];
 extern const char kLinkCrossDeviceInternalsName[];
 extern const char kLinkCrossDeviceInternalsDescription[];
 
-extern const char kAllowFpmcuBetaFirmwareName[];
-extern const char kAllowFpmcuBetaFirmwareDescription[];
-
 extern const char kAllowScrollSettingsName[];
 extern const char kAllowScrollSettingsDescription[];
 
@@ -3648,9 +3650,6 @@ extern const char kFastPairDebugMetadataDescription[];
 extern const char kFastPairHandshakeLongTermRefactorName[];
 extern const char kFastPairHandshakeLongTermRefactorDescription[];
 
-extern const char kFastPairHIDName[];
-extern const char kFastPairHIDDescription[];
-
 extern const char kFastPairKeyboardsName[];
 extern const char kFastPairKeyboardsDescription[];
 
@@ -3672,7 +3671,6 @@ extern const char kEnableExternalDisplayHdr10Description[];
 extern const char kDoubleTapToZoomInTabletModeName[];
 extern const char kDoubleTapToZoomInTabletModeDescription[];
 
-extern const char kQuickSettingsPWANotificationsName[];
 extern const char kQuickSettingsPWANotificationsDescription[];
 
 extern const char kDriveFsMirroringName[];
@@ -4795,6 +4793,11 @@ extern const char kEnableCertManagementV2UIWriteDescription[];
 extern const char kOverlayScrollbarsOSSettingsName[];
 extern const char kOverlayScrollbarsOSSettingsDescription[];
 #endif
+
+#if !BUILDFLAG(IS_ANDROID)
+extern const char kEnablePolicyPromotionBannerName[];
+extern const char kEnablePolicyPromotionBannerDescription[];
+#endif  // !BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
 extern const char kSupervisedProfileHideGuestName[];

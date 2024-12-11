@@ -25,6 +25,7 @@
 #include "base/run_loop.h"
 #include "base/scoped_observation.h"
 #include "base/test/metrics/histogram_tester.h"
+#include "base/types/optional_ref.h"
 #include "base/types/strong_alias.h"
 #include "base/types/to_address.h"
 #include "build/build_config.h"
@@ -1043,12 +1044,14 @@ std::vector<net::CanonicalCookie> GetCanonicalCookies(
 // Sets a cookie for the given url. Uses inclusive SameSiteCookieContext by
 // default, which gets cookies regardless of their SameSite attribute. The
 // cookie is unpartitioned by default. Returns true on success.
-bool SetCookie(BrowserContext* browser_context,
-               const GURL& url,
-               const std::string& value,
-               net::CookieOptions::SameSiteCookieContext context =
-                   net::CookieOptions::SameSiteCookieContext::MakeInclusive(),
-               net::CookiePartitionKey* cookie_partition_key = nullptr);
+[[nodiscard]] bool SetCookie(
+    BrowserContext* browser_context,
+    const GURL& url,
+    const std::string& value,
+    net::CookieOptions::SameSiteCookieContext context =
+        net::CookieOptions::SameSiteCookieContext::MakeInclusive(),
+    base::optional_ref<const net::CookiePartitionKey> cookie_partition_key =
+        base::optional_ref<const net::CookiePartitionKey>(std::nullopt));
 
 // Deletes cookies matching the provided filter. Returns the number of cookies
 // that were deleted.
@@ -1323,9 +1326,10 @@ class RenderProcessHostBadMojoMessageWaiter {
   [[nodiscard]] std::optional<std::string> Wait();
 
  private:
-  void OnBadMojoMessage(int render_process_id, const std::string& error);
+  void OnBadMojoMessage(ChildProcessId render_process_id,
+                        const std::string& error);
 
-  int monitored_render_process_id_;
+  ChildProcessId monitored_render_process_id_;
   std::optional<std::string> observed_mojo_error_;
   RenderProcessHostKillWaiter kill_waiter_;
 };

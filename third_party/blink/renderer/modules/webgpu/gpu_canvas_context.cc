@@ -103,8 +103,10 @@ V8OffscreenRenderingContext* GPUCanvasContext::AsV8OffscreenRenderingContext() {
 }
 
 SkColorInfo GPUCanvasContext::CanvasRenderingContextSkColorInfo() const {
-  if (!swap_buffers_)
-    return CanvasRenderingContext::CanvasRenderingContextSkColorInfo();
+  if (!swap_buffers_) {
+    return SkColorInfo(kN32_SkColorType, kPremul_SkAlphaType,
+                       SkColorSpace::MakeSRGB());
+  }
   return SkColorInfo(viz::ToClosestSkColorType(
                          /*gpu_compositing=*/true, swap_buffers_->Format()),
                      alpha_mode_ == V8GPUCanvasAlphaMode::Enum::kOpaque
@@ -241,14 +243,11 @@ bool GPUCanvasContext::PushFrame() {
   // If it was possible to prepare the transferable resource, the
   // ClientSharedImage must also be valid.
   CHECK(client_si);
-
-  // TODO(crbug.com/378688985): Move this inside PrepareTransferableResource.
-  transferable_resource.origin = client_si->surface_origin();
-
   auto canvas_resource = ExternalCanvasResource::Create(
-      std::move(client_si), transferable_resource,
-      transferable_resource.is_overlay_candidate, std::move(release_callback),
-      GetContextProviderWeakPtr(), /*resource_provider=*/nullptr);
+      std::move(client_si), transferable_resource.sync_token(),
+      transferable_resource.resource_source, transferable_resource.hdr_metadata,
+      std::move(release_callback), GetContextProviderWeakPtr(),
+      /*resource_provider=*/nullptr);
   if (!canvas_resource)
     return false;
 
@@ -332,8 +331,7 @@ ImageBitmap* GPUCanvasContext::TransferToImageBitmap(
       AcceleratedStaticBitmapImage::CreateFromCanvasSharedImage(
           std::move(client_si), sk_image_sync_token,
           /* shared_image_texture_id = */ 0, sk_image_info,
-          transferable_resource.texture_target(), GetContextProviderWeakPtr(),
-          base::PlatformThread::CurrentRef(),
+          GetContextProviderWeakPtr(), base::PlatformThread::CurrentRef(),
           ThreadScheduler::Current()->CleanupTaskRunner(),
           std::move(release_callback),
           /*supports_display_compositing=*/true,

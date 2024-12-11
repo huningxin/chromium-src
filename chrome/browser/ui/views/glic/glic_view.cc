@@ -8,6 +8,7 @@
 #include "chrome/browser/profiles/keep_alive/profile_keep_alive_types.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
+#include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
@@ -18,41 +19,6 @@
 #include "ui/events/event_observer.h"
 #include "ui/views/event_monitor.h"
 #include "ui/views/widget/widget.h"
-
-namespace {
-// Default value for how close the corner of glic has to be from a browser's
-// glic button to snap.
-constexpr static int kSnapDistanceThreshold = 50;
-
-// Helper class for observing mouse and key events from native window.
-class WindowEventObserver : public ui::EventObserver {
- public:
-  explicit WindowEventObserver(glic::GlicView* glic_view)
-      : glic_view_(glic_view) {
-    event_monitor_ = views::EventMonitor::CreateWindowMonitor(
-        this, glic_view_->GetWidget()->GetNativeWindow(),
-        {ui::EventType::kMouseDragged});
-  }
-
-  WindowEventObserver(const WindowEventObserver&) = delete;
-  WindowEventObserver& operator=(const WindowEventObserver&) = delete;
-  ~WindowEventObserver() override = default;
-
-  void OnEvent(const ui::Event& event) override {
-    if (event.IsMouseEvent()) {
-      if (event.type() == ui::EventType::kMouseDragged) {
-        gfx::Point mouse_location = event_monitor_->GetLastMouseLocation();
-        views::View::ConvertPointFromScreen(glic_view_, &mouse_location);
-        glic_view_->DragFromPoint(mouse_location.OffsetFromOrigin());
-      }
-    }
-  }
-
-  raw_ptr<glic::GlicView> glic_view_;
-  std::unique_ptr<views::EventMonitor> event_monitor_;
-};
-
-}  // namespace
 
 namespace glic {
 
@@ -91,66 +57,5 @@ std::pair<views::UniqueWidgetPtr, GlicView*> GlicView::CreateWidget(
   widget->SetContentsView(std::move(glic_view));
 
   return {std::move(widget), raw_glic_view};
-}
-
-void GlicView::AddedToWidget() {
-  window_event_observer_ = std::make_unique<WindowEventObserver>(this);
-}
-
-void GlicView::DragFromPoint(gfx::Vector2d mouse_location) {
-  // This code isn't set up to handle nested run loops. Nested run loops will
-  // lead to crashes.
-  if (!in_move_loop_) {
-    in_move_loop_ = true;
-    gfx::Vector2d drag_offset = mouse_location;
-    const views::Widget::MoveLoopSource move_loop_source =
-        views::Widget::MoveLoopSource::kMouse;
-    GetWidget()->RunMoveLoop(drag_offset, move_loop_source,
-                             views::Widget::MoveLoopEscapeBehavior::kDontHide);
-    SnapToBrowserIfInBounds(
-        GetWidget()->GetWindowBoundsInScreen().OffsetFromOrigin() +
-        mouse_location);
-    in_move_loop_ = false;
-  }
-}
-
-void GlicView::SnapToBrowserIfInBounds(gfx::Vector2d mouse_location) {
-  views::Widget* widget = GetWidget();
-  gfx::Rect glic_rect = widget->GetWindowBoundsInScreen();
-  // Loops through all browsers in activation order with the latest accessed
-  // browser first.
-  for (Browser* browser : BrowserList::GetInstance()->OrderedByActivation()) {
-    views::Widget* window_widget =
-        browser->window()->AsBrowserView()->GetWidget();
-    // Skips if:
-    // - incognito
-    // - not visible
-    // - is the same widget as glic
-    // - is a different profile (uses browser context to check)
-    if (browser->profile()->IsOffTheRecord() ||
-        !browser->window()->IsVisible() || window_widget == widget ||
-        browser->GetWebView()->GetBrowserContext() !=
-            web_view()->GetBrowserContext()) {
-      continue;
-    }
-    gfx::Rect glic_button_rect = browser->window()
-                                     ->AsBrowserView()
-                                     ->tab_strip_region_view()
-                                     ->glic_button()
-                                     ->GetBoundsInScreen();
-
-    float glic_button_mouse_distance =
-        (glic_button_rect.CenterPoint() -
-         gfx::PointAtOffsetFromOrigin(mouse_location))
-            .Length();
-    if (glic_button_mouse_distance < kSnapDistanceThreshold) {
-      // TODO fix exact snap location
-      gfx::Point top_right = glic_button_rect.top_right();
-      int tab_strip_padding = GetLayoutConstant(TAB_STRIP_PADDING);
-      glic_rect.set_x(top_right.x() - glic_rect.width() - tab_strip_padding);
-      glic_rect.set_y(top_right.y() + tab_strip_padding);
-      widget->SetBounds(glic_rect);
-    }
-  }
 }
 }  // namespace glic

@@ -65,6 +65,7 @@ class AppInstallControllerImpl : public AppInstallController {
     }
     if (tag_args) {
       request.brand_code = tag_args->brand_code;
+      request.install_id = tag_args->installation_id;
     }
     update_service_->Install(request, GetDecodedInstallDataFromAppArgs(app_id),
                              GetInstallDataIndexFromAppArgs(app_id),
@@ -90,10 +91,9 @@ class AppInstallControllerImpl : public AppInstallController {
     update_service_ = update_service;
   }
 
- protected:
+ private:
   ~AppInstallControllerImpl() override = default;
 
- private:
   scoped_refptr<UpdateService> update_service_;
 };
 

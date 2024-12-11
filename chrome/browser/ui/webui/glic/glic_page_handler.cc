@@ -8,7 +8,6 @@
 #include "chrome/browser/glic/glic_keyed_service.h"
 #include "chrome/browser/glic/glic_keyed_service_factory.h"
 #include "chrome/browser/glic/glic_window_controller.h"
-#include "chrome/browser/glic/glic_window_manager.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/webui/glic/glic.mojom.h"
 #include "ui/gfx/geometry/mojom/geometry.mojom.h"
@@ -47,6 +46,7 @@ class GlicWebClientHandler : public glic::mojom::WebClientHandler {
     std::optional<gfx::Size> actual_size = glic_service_->ResizePanel(size);
     if (!actual_size) {
       std::move(callback).Run(std::nullopt);
+      return;
     }
     std::move(callback).Run(actual_size);
   }

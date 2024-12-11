@@ -662,6 +662,7 @@ void HTMLCanvasElement::DidDraw(const SkIRect& rect) {
 
 void HTMLCanvasElement::InitializeLayerWithCSSProperties(cc::Layer* layer) {
   layer->SetFilterQuality(filter_quality_);
+  layer->SetDynamicRangeLimit(dynamic_range_limit_);
 }
 
 void HTMLCanvasElement::PreFinalizeFrame() {
@@ -709,10 +710,11 @@ void HTMLCanvasElement::DisableAcceleration(
     std::unique_ptr<CanvasResourceProvider> new_provider_for_testing) {
   DisabledAccelerationCounterSupplement::From(GetDocument())
       .IncrementDisabledCount();
-  // Create and configure an unaccelerated Canvas2DLayerBridge.
+  // Create and configure an unaccelerated CanvasResourceProvider.
   SetPreferred2DRasterMode(RasterModeHint::kPreferCPU);
 
-  ReplaceExisting2dLayerBridge(std::move(new_provider_for_testing));
+  ReplaceExistingResourceProviderFor2DContext(
+      std::move(new_provider_for_testing));
 
   // We must force a paint invalidation on the canvas even if it's
   // content did not change because it layer was destroyed.
@@ -1036,7 +1038,7 @@ void HTMLCanvasElement::PaintInternal(GraphicsContext& context,
     // Note: Test coverage for this is assured by manual (non-automated)
     // web test printing/manual/canvas2d-vector-text.html
     // That test should be run manually against CLs that touch this code.
-    if (IsPrinting() && IsRenderingContext2D() && canvas2d_bridge_) {
+    if (IsPrinting() && IsRenderingContext2D()) {
       FlushRecording(FlushReason::kPrinting);
       // `FlushRecording` might be a no-op if a flush already happened before.
       // Fortunately, the last flush recording was kept by the provider.
@@ -1147,18 +1149,18 @@ scoped_refptr<StaticBitmapImage> HTMLCanvasElement::Snapshot(
         // size. Hence, we need to query the adjusted size of DrawingBuffer.
         gfx::Size adjusted_size = context_->DrawingBufferSize();
         if (!adjusted_size.IsEmpty()) {
-          SkColorInfo color_info =
-              GetRenderingContextSkColorInfo().makeAlphaType(
-                  kUnpremul_SkAlphaType);
-          if (color_info.colorType() == kN32_SkColorType)
-            color_info = color_info.makeColorType(kRGBA_8888_SkColorType);
-          else
-            color_info = color_info.makeColorType(kRGBA_F16_SkColorType);
+          SkColorType color_type = GetRenderingContextSkColorType();
+          if (color_type == kN32_SkColorType) {
+            color_type = kRGBA_8888_SkColorType;
+          } else {
+            color_type = kRGBA_F16_SkColorType;
+          }
           image_bitmap = StaticBitmapImage::Create(
               std::move(pixel_data),
               SkImageInfo::Make(
                   SkISize::Make(adjusted_size.width(), adjusted_size.height()),
-                  color_info));
+                  color_type, kUnpremul_SkAlphaType,
+                  GetRenderingContextSkColorSpace()));
         }
       }
     }
@@ -1531,12 +1533,28 @@ void HTMLCanvasElement::DiscardResourceProvider() {
 }
 
 void HTMLCanvasElement::UpdateSuspendOffscreenCanvasAnimation() {
-  if (GetPage()) {
-    SetSuspendOffscreenCanvasAnimation(
-        GetPage()->GetVisibilityState() ==
-            mojom::blink::PageVisibilityState::kHidden &&
-        !HasCanvasCapture());
+  if (!GetPage()) {
+    return;
   }
+
+  CanvasResourceDispatcher::AnimationState animation_state =
+      CanvasResourceDispatcher::AnimationState::kActive;
+  const bool is_hidden = GetPage()->GetVisibilityState() ==
+                         mojom::blink::PageVisibilityState::kHidden;
+  if (is_hidden) {
+    if (HasCanvasCapture()) {
+      const bool allow_synthetic_timing =
+          RuntimeEnabledFeatures::AllowSyntheticTimingForCanvasCaptureEnabled();
+      animation_state = allow_synthetic_timing
+                            ? CanvasResourceDispatcher::AnimationState::
+                                  kActiveWithSyntheticTiming
+                            : CanvasResourceDispatcher::AnimationState::kActive;
+    } else {
+      animation_state = CanvasResourceDispatcher::AnimationState::kSuspended;
+    }
+  }
+
+  SetSuspendOffscreenCanvasAnimation(animation_state);
 }
 
 void HTMLCanvasElement::PageVisibilityChanged() {
@@ -1569,12 +1587,16 @@ void HTMLCanvasElement::StyleDidChange(const ComputedStyle* old_style,
       (new_style.ImageRendering() == EImageRendering::kPixelated)
           ? cc::PaintFlags::FilterQuality::kNone
           : cc::PaintFlags::FilterQuality::kLow;
-  if (filter_quality_ != new_filter_quality) {
+  const auto new_dynamic_range_limit = new_style.GetDynamicRangeLimit();
+  if (filter_quality_ != new_filter_quality ||
+      dynamic_range_limit_ != new_dynamic_range_limit) {
     filter_quality_ = new_filter_quality;
+    dynamic_range_limit_ = new_dynamic_range_limit;
     // Set the property on the SurfaceLayer (if applicable).
     if (surface_layer_bridge_) {
       if (auto* surface_layer = surface_layer_bridge_->GetCcLayer()) {
         surface_layer->SetFilterQuality(filter_quality_);
+        surface_layer->SetDynamicRangeLimit(dynamic_range_limit_);
       }
     }
     // Set the property on the TextureLayer for 2D canvas (which is owned via
@@ -1582,12 +1604,14 @@ void HTMLCanvasElement::StyleDidChange(const ComputedStyle* old_style,
     // which use composition).
     if (auto* context_layer_2d = CcLayer()) {
       context_layer_2d->SetFilterQuality(filter_quality_);
+      context_layer_2d->SetDynamicRangeLimit(dynamic_range_limit_);
     }
     // Set the property on WebGL, WebGPU, or ImageBitmapRenderingContext.
     if (context_ &&
         (IsWebGL() || IsWebGPU() || IsImageBitmapRenderingContext())) {
       if (auto* context_layer = context_->CcLayer()) {
         context_layer->SetFilterQuality(filter_quality_);
+        context_layer->SetDynamicRangeLimit(dynamic_range_limit_);
       }
     }
   }
@@ -1645,7 +1669,7 @@ bool HTMLCanvasElement::RecreateCanvasInGPURasterMode() {
     return false;
   }
   SetPreferred2DRasterMode(RasterModeHint::kPreferGPU);
-  ReplaceExisting2dLayerBridge();
+  ReplaceExistingResourceProviderFor2DContext();
   return true;
 }
 
@@ -1888,7 +1912,7 @@ size_t HTMLCanvasElement::GetMemoryUsage() const {
   return base::saturated_cast<size_t>(externally_allocated_memory_);
 }
 
-void HTMLCanvasElement::ReplaceExisting2dLayerBridge(
+void HTMLCanvasElement::ReplaceExistingResourceProviderFor2DContext(
     std::unique_ptr<CanvasResourceProvider> new_provider_for_testing) {
   CanvasResourceProvider* old_provider = ResourceProvider();
   if (old_provider == nullptr) {
@@ -1898,7 +1922,7 @@ void HTMLCanvasElement::ReplaceExisting2dLayerBridge(
   scoped_refptr<StaticBitmapImage> image =
       context_->GetImage(FlushReason::kReplaceLayerBridge);
   // image can be null if allocation failed in which case we should just
-  // abort the surface switch to retain the old surface which is still
+  // abort the provider switch to retain the old provider, which is still
   // functional.
   if (!image) {
     return;
@@ -1915,8 +1939,7 @@ void HTMLCanvasElement::ReplaceExisting2dLayerBridge(
     ReplaceResourceProvider(std::move(new_provider_for_testing));
   }
 
-  // If PaintCanvas cannot be get from the new layer bridge, revert the
-  // replacement.
+  // Bail out if it's not possible to create a new provider.
   CanvasResourceProvider* new_provider =
       GetOrCreateCanvasResourceProviderFor2DContext(
           canvas2d_bridge_->GetHibernationHandler());
@@ -1929,10 +1952,10 @@ void HTMLCanvasElement::ReplaceExisting2dLayerBridge(
     auto paint_image = image->PaintImageForCurrentFrame();
     if ((GetRasterMode() == RasterMode::kCPU) &&
         paint_image.IsTextureBacked()) {
-      // If new bridge is unaccelerated we must read back |paint_image| here.
-      // DrawFullImage will record the image and potentially raster on a worker
-      // thread, but texture backed PaintImages can't be used on a different
-      // thread.
+      // If the new provider is unaccelerated we must read back |paint_image|
+      // here. DrawFullImage will record the image and potentially raster on a
+      // worker thread, but texture backed PaintImages can't be used on a
+      // different thread.
       auto sk_image = paint_image.GetSwSkImage();
       auto content_id = paint_image.GetContentIdForFrame(0);
       auto builder =

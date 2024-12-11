@@ -6,7 +6,7 @@
 #define COMPONENTS_FACILITATED_PAYMENTS_CORE_METRICS_FACILITATED_PAYMENTS_METRICS_H_
 
 #include "base/types/expected.h"
-#include "components/facilitated_payments/core/ui_utils/facilitated_payments_ui_utils.h"
+#include "components/facilitated_payments/core/utils/facilitated_payments_ui_utils.h"
 #include "services/metrics/public/cpp/ukm_source_id.h"
 
 namespace base {
@@ -14,6 +14,12 @@ class TimeDelta;
 }
 
 namespace payments::facilitated {
+
+// A payment system that is currently running.
+enum class FacilitatedPaymentsType {
+  kEwallet = 0,
+  kPix = 1,
+};
 
 // Reasons for why the payflow was exited early. These only include the reasons
 // after the renderer has detected a valid code and sent the signal to the

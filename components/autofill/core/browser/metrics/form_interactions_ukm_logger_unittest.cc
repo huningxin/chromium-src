@@ -335,6 +335,7 @@ TEST_F(FieldLogUkmMetricTest, AddressSubmittedFormLogEvents) {
                                          {.label = u"Street"},
                                          {.label = u"Number"},
                                      }});
+  autofill_driver().SetLocalFrameToken(form.host_frame());
 
   std::vector<FieldType> field_types = {
       ADDRESS_HOME_STATE, ADDRESS_HOME_STREET_ADDRESS, NO_SERVER_DATA};
@@ -1744,8 +1745,8 @@ TEST_P(LogFocusedComplexFormAtFormRemoveTest, TestEmittedUKM) {
       FillTestProfile(form);
     } else if (GroupTypeOfHtmlFieldType(autocomplete) ==
                FieldTypeGroup::kCreditCard) {
-      autofill_manager().AuthenticateThenFillCreditCardForm(
-          form, first_field.global_id(),
+      autofill_manager().FillOrPreviewCreditCardForm(
+          mojom::ActionPersistence::kFill, form, first_field.global_id(),
           *personal_data().payments_data_manager().GetCreditCardByGUID(
               "10000000-0000-0000-0000-000000000001"),
           AutofillTriggerSource::kPopup);

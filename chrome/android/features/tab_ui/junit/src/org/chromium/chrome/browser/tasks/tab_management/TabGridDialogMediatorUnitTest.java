@@ -103,9 +103,11 @@ import org.chromium.components.collaboration.messaging.CollaborationEvent;
 import org.chromium.components.collaboration.messaging.MessageAttribution;
 import org.chromium.components.collaboration.messaging.MessagingBackendService;
 import org.chromium.components.collaboration.messaging.PersistentMessage;
+import org.chromium.components.collaboration.messaging.PersistentNotificationType;
 import org.chromium.components.collaboration.messaging.TabGroupMessageMetadata;
 import org.chromium.components.collaboration.messaging.TabMessageMetadata;
 import org.chromium.components.data_sharing.DataSharingService;
+import org.chromium.components.data_sharing.DataSharingUIDelegate;
 import org.chromium.components.data_sharing.GroupMember;
 import org.chromium.components.data_sharing.SharedGroupTestHelper;
 import org.chromium.components.signin.base.CoreAccountInfo;
@@ -124,6 +126,7 @@ import org.chromium.url.GURL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /** Tests for {@link TabGridDialogMediator}. */
 @SuppressWarnings({"ArraysAsListWithZeroOrOneArgument", "ResultOfMethodCallIgnored"})
@@ -172,6 +175,7 @@ public class TabGridDialogMediatorUnitTest {
     @Mock private IdentityManager mIdentityManager;
     @Mock private TabGroupSyncService mTabGroupSyncService;
     @Mock private DataSharingService mDataSharingService;
+    @Mock private DataSharingUIDelegate mDataSharingUiDelegate;
     @Mock private CollaborationService mCollaborationService;
     @Mock private ServiceStatus mServiceStatus;
     @Mock private MessagingBackendService mMessagingBackendService;
@@ -211,6 +215,7 @@ public class TabGridDialogMediatorUnitTest {
         when(mIdentityServicesProvider.getIdentityManager(any())).thenReturn(mIdentityManager);
         TabGroupSyncServiceFactory.setForTesting(mTabGroupSyncService);
         DataSharingServiceFactory.setForTesting(mDataSharingService);
+        when(mDataSharingService.getUiDelegate()).thenReturn(mDataSharingUiDelegate);
         CollaborationServiceFactory.setForTesting(mCollaborationService);
         when(mServiceStatus.isAllowedToJoin()).thenReturn(true);
         when(mCollaborationService.getServiceStatus()).thenReturn(mServiceStatus);
@@ -1579,7 +1584,7 @@ public class TabGridDialogMediatorUnitTest {
 
         assertFalse(mModel.get(TabGridDialogProperties.SHOW_SHARE_BUTTON));
         assertFalse(mModel.get(TabGridDialogProperties.SHOW_IMAGE_TILES));
-        verify(mSharedImageTilesCoordinator).updateCollaborationId(null);
+        verify(mSharedImageTilesCoordinator).onGroupMembersChanged(null, null);
     }
 
     @Test
@@ -1593,7 +1598,8 @@ public class TabGridDialogMediatorUnitTest {
         resetForDataSharing(/* isShared= */ true, GROUP_MEMBER1, GROUP_MEMBER2);
         assertFalse(mModel.get(TabGridDialogProperties.SHOW_SHARE_BUTTON));
         assertTrue(mModel.get(TabGridDialogProperties.SHOW_IMAGE_TILES));
-        verify(mSharedImageTilesCoordinator).updateCollaborationId(COLLABORATION_ID1);
+        verify(mSharedImageTilesCoordinator)
+                .onGroupMembersChanged(COLLABORATION_ID1, List.of(GROUP_MEMBER1, GROUP_MEMBER2));
         verify(mDialogController, never()).addMessageCardItem(/* position= */ eq(0), any());
 
         // Reset with null first as re-using the same TabGroupId does not reset the observer.
@@ -1602,7 +1608,7 @@ public class TabGridDialogMediatorUnitTest {
                 .thenReturn(false);
         resetForDataSharing(/* isShared= */ false);
         verify(mDialogController).removeMessageCardItem(MessageType.COLLABORATION_ACTIVITY);
-        verify(mSharedImageTilesCoordinator).updateCollaborationId(null);
+        verify(mSharedImageTilesCoordinator).onGroupMembersChanged(null, null);
         assertTrue(mModel.get(TabGridDialogProperties.SHOW_SHARE_BUTTON));
         assertEquals(
                 R.string.tab_grid_share_button_text,
@@ -1816,6 +1822,8 @@ public class TabGridDialogMediatorUnitTest {
         for (int i = 0; i < removed; i++) {
             messageList.add(makePersistentMessage(CollaborationEvent.TAB_REMOVED));
         }
-        when(mMessagingBackendService.getMessagesForGroup(any(), any())).thenReturn(messageList);
+        when(mMessagingBackendService.getMessagesForGroup(
+                        any(), eq(Optional.of(PersistentNotificationType.DIRTY_TAB))))
+                .thenReturn(messageList);
     }
 }

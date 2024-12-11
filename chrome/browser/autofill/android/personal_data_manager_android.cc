@@ -25,13 +25,14 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/common/pref_names.h"
 #include "components/autofill/core/browser/address_data_manager.h"
-#include "components/autofill/core/browser/autofill_data_util.h"
 #include "components/autofill/core/browser/autofill_experiments.h"
 #include "components/autofill/core/browser/autofill_type.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/bank_account.h"
 #include "components/autofill/core/browser/data_model/ewallet.h"
 #include "components/autofill/core/browser/data_model/payment_instrument.h"
+#include "components/autofill/core/browser/data_quality/autofill_data_util.h"
+#include "components/autofill/core/browser/data_quality/validation.h"
 #include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/browser/geo/address_i18n.h"
 #include "components/autofill/core/browser/geo/autofill_country.h"
@@ -39,7 +40,6 @@
 #include "components/autofill/core/browser/payments_data_manager.h"
 #include "components/autofill/core/browser/personal_data_manager.h"
 #include "components/autofill/core/browser/ui/autofill_resource_utils.h"
-#include "components/autofill/core/browser/validation.h"
 #include "components/autofill/core/common/autofill_clock.h"
 #include "components/autofill/core/common/autofill_constants.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
@@ -345,8 +345,8 @@ PersonalDataManagerAndroid::GetShippingAddressLabelForPaymentRequest(
 
 ScopedJavaLocalRef<jobjectArray>
 PersonalDataManagerAndroid::GetCreditCardGUIDsForSettings(JNIEnv* env) {
-  return GetCreditCardGUIDs(
-      env, personal_data_manager_->payments_data_manager().GetCreditCards());
+  return GetCreditCardGUIDs(env, personal_data_manager_->payments_data_manager()
+                                     .GetCreditCards());
 }
 
 ScopedJavaLocalRef<jobjectArray>
@@ -660,8 +660,9 @@ ScopedJavaLocalRef<jobjectArray> PersonalDataManagerAndroid::GetProfileGUIDs(
 
 ScopedJavaLocalRef<jobjectArray> PersonalDataManagerAndroid::GetCreditCardGUIDs(
     JNIEnv* env,
-    const std::vector<CreditCard*>& credit_cards) {
+    const std::vector<const CreditCard*>& credit_cards) {
   std::vector<std::u16string> guids;
+  guids.reserve(credit_cards.size());
   for (const CreditCard* credit_card : credit_cards) {
     guids.push_back(base::UTF8ToUTF16(credit_card->guid()));
   }

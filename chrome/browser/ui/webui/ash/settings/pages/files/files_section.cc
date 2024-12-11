@@ -30,7 +30,6 @@
 namespace ash::settings {
 
 namespace mojom {
-using ::chromeos::settings::mojom::kFilesSectionPath;
 using ::chromeos::settings::mojom::kGoogleDriveSubpagePath;
 using ::chromeos::settings::mojom::kNetworkFileSharesSubpagePath;
 using ::chromeos::settings::mojom::kOfficeFilesSubpagePath;
@@ -248,7 +247,7 @@ void FilesSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
       {"alwaysMoveToOneDrivePreferenceLabel",
        IDS_SETTINGS_ALWAYS_MOVE_OFFICE_TO_ONEDRIVE_PREFERENCE_LABEL},
       {"smbSharesTitleDescription",
-       IDS_OS_SETTINGS_REVAMP_DOWNLOADS_SMB_SHARES_DESCRIPTION},
+       IDS_OS_SETTINGS_DOWNLOADS_SMB_SHARES_DESCRIPTION},
       {"googleDriveFileSyncSectionTitle",
        IDS_SETTINGS_GOOGLE_DRIVE_FILE_SYNC_SECTION_TITLE},
       {"googleDriveMirrorSyncLabel",

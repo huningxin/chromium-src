@@ -132,8 +132,8 @@ using FeatureType = A11yFeatureType;
 struct FeatureData {
   FeatureType type;
   const char* pref;
-  // This field is not a raw_ptr<> because it was filtered by the rewriter
-  // for: #global-scope
+  // This field is not a raw_ptr<> because it only ever points to statically-
+  // allocated data which is never freed, and hence cannot dangle.
   RAW_PTR_EXCLUSION const gfx::VectorIcon* icon;
   const int name_resource_id;
   bool toggleable_in_quicksettings = true;
@@ -3525,6 +3525,7 @@ void AccessibilityController::SetVirtualKeyboardVisible(bool is_visible) {
 void AccessibilityController::ToggleMouseKeys() {
   if (::features::IsAccessibilityMouseKeysEnabled() && mouse_keys().enabled()) {
     Shell::Get()->mouse_keys_controller()->Toggle();
+    NotifyAccessibilityStatusChanged();
   }
 }
 

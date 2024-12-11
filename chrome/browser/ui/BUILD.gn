@@ -1239,6 +1239,8 @@ static_library("ui") {
       "tabs/organization/trigger_observer.h",
       "tabs/organization/trigger_policies.cc",
       "tabs/organization/trigger_policies.h",
+      "tabs/saved_tab_groups/collaboration_messaging_tab_data.cc",
+      "tabs/saved_tab_groups/collaboration_messaging_tab_data.h",
       "tabs/saved_tab_groups/local_tab_group_listener.cc",
       "tabs/saved_tab_groups/local_tab_group_listener.h",
       "tabs/saved_tab_groups/saved_tab_group_controller.h",
@@ -1888,6 +1890,9 @@ static_library("ui") {
       # //c/b/ui/tabs/tab_strip_model.h, which is still part of
       # //c/b/ui.
       "//chrome/browser/ui/tabs:tab_strip_model_observer_impl",
+
+      # TODO(crbug.com/382237520): Remove this once NTP code is modularized.
+      "//chrome/browser/ui/lens:impl",
 
       "//chrome/browser/ui/signin:impl",
       "//chrome/browser/ui/webui/commerce:impl",
@@ -2987,6 +2992,7 @@ static_library("ui") {
       "//chrome/browser/themes",
       "//chrome/browser/ui/autofill/payments",
       "//chrome/browser/ui/lens",
+      "//chrome/browser/ui/lens:impl",
       "//components/lens/proto/server:proto",
       "//third_party/lens_server_proto:lens_overlay_proto",
       "//third_party/omnibox_proto",
@@ -4744,6 +4750,8 @@ static_library("ui") {
       "views/tabs/window_finder.h",
       "views/tabs/z_orderable_tab_container_element.cc",
       "views/tabs/z_orderable_tab_container_element.h",
+      "views/task_manager_search_bar_view.cc",
+      "views/task_manager_search_bar_view.h",
       "views/task_manager_view.cc",
       "views/task_manager_view.h",
       "views/theme_copying_widget.cc",

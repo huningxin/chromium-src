@@ -323,8 +323,6 @@ void SetRuntimeFeaturesFromChromiumFeatures() {
           {wf::EnableWebXRSpecParity,
            raw_ref(device::features::kWebXrIncubations)},
 #endif
-          {wf::EnableServiceWorkerStaticRouter,
-           raw_ref(features::kServiceWorkerStaticRouter)},
           {wf::EnablePermissions, raw_ref(features::kWebPermissionsApi),
            kSetOnlyIfOverridden},
       };
@@ -478,8 +476,6 @@ void SetRuntimeFeaturesFromCommandLine(const base::CommandLine& command_line) {
        blink::switches::kKeyboardFocusableScrollersOptOut, false},
       {wrf::EnableStandardizedBrowserZoom,
        blink::switches::kDisableStandardizedBrowserZoom, false},
-      {wrf::EnableCSSCustomStateDeprecatedSyntax,
-       blink::switches::kCSSCustomStateDeprecatedSyntaxEnabled, true},
       {wrf::EnableSelectParserRelaxation,
        blink::switches::kDisableSelectParserRelaxation, false},
       {wrf::EnableTextFragmentIdentifiers,

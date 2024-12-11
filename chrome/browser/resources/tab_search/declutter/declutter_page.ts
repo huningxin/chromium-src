@@ -37,16 +37,20 @@ export class DeclutterPageElement extends CrLitElement {
       showBackButton: {type: Boolean},
       staleTabDatas_: {type: Array},
       duplicateTabDatas_: {type: Array},
-      dedupeEnabled_: {type: Boolean},
+
+      dedupeEnabled: {
+        type: Boolean,
+        reflect: true,
+      },
     };
   }
 
   availableHeight: number = 0;
   showBackButton: boolean = false;
+  dedupeEnabled: boolean = loadTimeData.getBoolean('dedupeEnabled');
 
   protected staleTabDatas_: TabData[] = [];
   protected duplicateTabDatas_: TabData[] = [];
-  protected dedupeEnabled_: boolean = loadTimeData.getBoolean('dedupeEnabled');
   private apiProxy_: TabSearchApiProxy = TabSearchApiProxyImpl.getInstance();
   private listenerIds_: number[] = [];
   private visibilityChangedListener_: () => void;
@@ -160,7 +164,10 @@ export class DeclutterPageElement extends CrLitElement {
 
   protected getBackButtonAriaLabel_(): string {
     return loadTimeData.getStringF(
-        'backButtonAriaLabel', loadTimeData.getString('declutterTitle'));
+        'backButtonAriaLabel',
+        loadTimeData.getString(
+            this.dedupeEnabled ? 'declutterTitle' :
+                                 'declutterInactiveTitleNoDedupe'));
   }
 
   protected getCloseButtonAriaLabel_(tabData: TabData): string {
@@ -267,8 +274,14 @@ export class DeclutterPageElement extends CrLitElement {
       const urlTabs = tabs[url]!;
       if (urlTabs.length > 0) {
         const tabData: TabData = this.tabDataFromTab_(urlTabs[0]!);
-        tabData.tab.title = url;
-        tabData.tab.lastActiveElapsedText = urlTabs.length.toString();
+        const duplicateCount = urlTabs.length - 1;
+        if (duplicateCount === 1) {
+          tabData.tab.title =
+              loadTimeData.getStringF('duplicateItemTitleSingle', url);
+        } else {
+          tabData.tab.title = loadTimeData.getStringF(
+              'duplicateItemTitleMulti', url, duplicateCount);
+        }
         this.duplicateTabDatas_.push(tabData);
       }
     }

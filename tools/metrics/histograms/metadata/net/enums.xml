@@ -2659,6 +2659,7 @@ Called by update_net_trust_anchors.py.-->
   <int value="0" label="ALPN not used"/>
   <int value="1" label="HTTP/1.1 negotiated via ALPN"/>
   <int value="2" label="HTTP/2 negotiated via ALPN"/>
+  <int value="3" label="HTTP/3 (QUIC) negotiated via ALPN"/>
 </enum>
 
 <enum name="SSLOrQUICVersion">
@@ -2670,6 +2671,14 @@ Called by update_net_trust_anchors.py.-->
   <int value="5" label="TLS 1.2"/>
   <int value="6" label="TLS 1.3"/>
   <int value="7" label="QUIC"/>
+</enum>
+
+<enum name="StorageAccessRedirectKind">
+  <int value="0" label="No Storage Access override"/>
+  <int value="1" label="Same-origin redirect with storage access override"/>
+  <int value="2"
+      label="Cross-origin, same-site redirect with storage access override"/>
+  <int value="3" label="Cross-site redirect with storage access override"/>
 </enum>
 
 <enum name="StreamCloseReason">

@@ -30,6 +30,7 @@ source_set("model") {
     "//components/dom_distiller/core",
     "//components/history/core/browser",
     "//components/invalidation/impl",
+    "//components/keyed_service/ios",
     "//components/network_time",
     "//components/password_manager/core/browser",
     "//components/password_manager/core/browser/sharing",
@@ -116,8 +117,6 @@ source_set("device_info_sync_service_factory") {
     ":data_type_store_service_factory",
     ":sync_invalidations_service_factory",
     "//base",
-    "//components/keyed_service/core",
-    "//components/keyed_service/ios",
     "//components/send_tab_to_self",
     "//components/signin/public/base",
     "//components/sync/invalidations",
@@ -128,6 +127,7 @@ source_set("device_info_sync_service_factory") {
     "//ios/chrome/browser/push_notification/model:push_notification_settings_util_header",
     "//ios/chrome/browser/shared/model/application_context",
     "//ios/chrome/browser/shared/model/profile",
+    "//ios/chrome/browser/shared/model/profile:profile_keyed_service_factory",
     "//ios/chrome/browser/signin/model",
     "//ios/chrome/common",
   ]
@@ -147,6 +147,7 @@ source_set("sync_invalidations_service_factory") {
     "//ios/chrome/browser/gcm/model",
     "//ios/chrome/browser/gcm/model/instance_id",
     "//ios/chrome/browser/shared/model/profile",
+    "//ios/chrome/browser/shared/model/profile:profile_keyed_service_factory",
   ]
 }
 
@@ -199,8 +200,6 @@ source_set("test_support") {
     ":model",
     "//base",
     "//components/consent_auditor:test_support",
-    "//components/keyed_service/core",
-    "//components/keyed_service/ios",
     "//components/sync",
     "//components/sync:test_support",
     "//ios/chrome/common",

@@ -58,6 +58,7 @@
 #include "third_party/blink/public/mojom/frame/color_scheme.mojom-blink.h"
 #include "third_party/blink/renderer/bindings/core/v8/idl_types.h"
 #include "third_party/blink/renderer/bindings/core/v8/native_value_traits_impl.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_text_cluster_options.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_union_object_objectarray_string.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_begin_layer_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_canvas_2d_gpu_transfer_option.h"
@@ -2020,10 +2021,10 @@ void BaseRenderingContext2D::placeElement(Element* element,
                                           double x,
                                           double y,
                                           ExceptionState& exception_state) {
-  HTMLCanvasElement* canvas = HostAsHTMLCanvasElement();
-  DCHECK(canvas);
+  HTMLCanvasElement* canvas_element = HostAsHTMLCanvasElement();
+  DCHECK(canvas_element);
 
-  if (element->parentElement() != canvas) {
+  if (element->parentElement() != canvas_element) {
     exception_state.ThrowTypeError(
         "Only immediate children of the <canvas> element can be used with "
         "placeElement().");
@@ -2036,15 +2037,20 @@ void BaseRenderingContext2D::placeElement(Element* element,
     return;
   }
 
+  cc::PaintCanvas* paint_canvas = GetOrCreatePaintCanvas();
+  if (!paint_canvas) {
+    return;
+  }
+
   // TODO(crbug.com/380277045): Only taint for x-origin content.
   SetOriginTaintedByContent();
 
-  if (!canvas->HasPlacedElements()) {
+  if (!canvas_element->HasPlacedElements()) {
     // If this is the first time placeElement() is called, its possible that the
     // canvas contains fallback content that has been ignored and needs to be
     // laid out.
-    canvas->SetForceReattachLayoutTree();
-    canvas->SetNeedsStyleRecalc(
+    canvas_element->SetForceReattachLayoutTree();
+    canvas_element->SetNeedsStyleRecalc(
         StyleChangeType::kLocalStyleChange,
         StyleChangeReasonForTracing::Create("placeElement"));
   }
@@ -2074,7 +2080,7 @@ void BaseRenderingContext2D::placeElement(Element* element,
   WillDraw(SkIRect::MakeXYWH(0, 0, Width(), Height()),
            CanvasPerformanceMonitor::DrawType::kOther);
 
-  GetOrCreatePaintCanvas()->drawImage(paint_image, x, y);
+  paint_canvas->drawImage(paint_image, x, y);
 }
 
 void BaseRenderingContext2D::drawImage(const V8CanvasImageSource* image_source,
@@ -3052,8 +3058,7 @@ void BaseRenderingContext2D::putImageData(ImageData* data,
   // WritePixels (called by PutByteArray) requires that the source and
   // destination pixel formats have the same bytes per pixel.
   if (auto* host = GetCanvasRenderingContextHost()) {
-    SkColorType dest_color_type =
-        host->GetRenderingContextSkColorInfo().colorType();
+    SkColorType dest_color_type = host->GetRenderingContextSkColorType();
     if (SkColorTypeBytesPerPixel(dest_color_type) !=
         SkColorTypeBytesPerPixel(data_pixmap.colorType())) {
       SkImageInfo converted_info =
@@ -3176,11 +3181,6 @@ String BaseRenderingContext2D::wordSpacing() const {
 
 V8CanvasTextRendering BaseRenderingContext2D::textRendering() const {
   return GetState().GetTextRendering();
-}
-
-float BaseRenderingContext2D::GetFontBaseline(
-    const SimpleFontData& font_data) const {
-  return TextMetrics::GetFontBaseline(GetState().GetTextBaseline(), font_data);
 }
 
 String BaseRenderingContext2D::textAlign() const {
@@ -3446,37 +3446,75 @@ void BaseRenderingContext2D::setDirection(const String& direction_string) {
 }
 
 void BaseRenderingContext2D::fillText(const String& text, double x, double y) {
-  DrawTextInternal(text, x, y, CanvasRenderingContext2DState::kFillPaintType);
+  CanvasRenderingContext2DState& state = GetState();
+  DrawTextInternal(text, x, y, CanvasRenderingContext2DState::kFillPaintType,
+                   state.GetTextAlign(), state.GetTextBaseline(), 0,
+                   text.length());
 }
 
 void BaseRenderingContext2D::fillText(const String& text,
                                       double x,
                                       double y,
                                       double max_width) {
+  CanvasRenderingContext2DState& state = GetState();
   DrawTextInternal(text, x, y, CanvasRenderingContext2DState::kFillPaintType,
-                   &max_width);
+                   state.GetTextAlign(), state.GetTextBaseline(), 0,
+                   text.length(), &max_width);
 }
 
 void BaseRenderingContext2D::fillTextCluster(const TextCluster* text_cluster,
                                              double x,
                                              double y) {
-  DrawTextInternal(
-      text_cluster->text(), text_cluster->x() + x, text_cluster->y() + y,
-      CanvasRenderingContext2DState::kFillPaintType, nullptr, text_cluster);
+  fillTextCluster(text_cluster, x, y, /*cluster_options=*/nullptr);
+}
+
+void BaseRenderingContext2D::fillTextCluster(
+    const TextCluster* text_cluster,
+    double x,
+    double y,
+    const TextClusterOptions* cluster_options) {
+  DCHECK(text_cluster);
+  TextAlign align = text_cluster->GetTextAlign();
+  TextBaseline baseline = text_cluster->GetTextBaseline();
+  double cluster_x = text_cluster->x();
+  double cluster_y = text_cluster->y();
+  if (cluster_options != nullptr) {
+    if (cluster_options->hasX()) {
+      cluster_x = cluster_options->x();
+    }
+    if (cluster_options->hasY()) {
+      cluster_y = cluster_options->y();
+    }
+    if (cluster_options->hasAlign()) {
+      ParseTextAlign(cluster_options->align(), align);
+    }
+    if (cluster_options->hasBaseline()) {
+      ParseTextBaseline(cluster_options->baseline(), baseline);
+    }
+  }
+  DrawTextInternal(text_cluster->text(), cluster_x + x, cluster_y + y,
+                   CanvasRenderingContext2DState::kFillPaintType, align,
+                   baseline, text_cluster->begin(), text_cluster->end(),
+                   nullptr, &text_cluster->textMetrics()->GetFont());
 }
 
 void BaseRenderingContext2D::strokeText(const String& text,
                                         double x,
                                         double y) {
-  DrawTextInternal(text, x, y, CanvasRenderingContext2DState::kStrokePaintType);
+  CanvasRenderingContext2DState& state = GetState();
+  DrawTextInternal(text, x, y, CanvasRenderingContext2DState::kStrokePaintType,
+                   state.GetTextAlign(), state.GetTextBaseline(), 0,
+                   text.length());
 }
 
 void BaseRenderingContext2D::strokeText(const String& text,
                                         double x,
                                         double y,
                                         double max_width) {
+  CanvasRenderingContext2DState& state = GetState();
   DrawTextInternal(text, x, y, CanvasRenderingContext2DState::kStrokePaintType,
-                   &max_width);
+                   state.GetTextAlign(), state.GetTextBaseline(), 0,
+                   text.length(), &max_width);
 }
 
 const Font& BaseRenderingContext2D::AccessFont(HTMLCanvasElement* canvas) {
@@ -3495,8 +3533,12 @@ void BaseRenderingContext2D::DrawTextInternal(
     double x,
     double y,
     CanvasRenderingContext2DState::PaintType paint_type,
+    TextAlign align,
+    TextBaseline baseline,
+    unsigned run_start,
+    unsigned run_end,
     double* max_width,
-    const TextCluster* text_cluster) {
+    const Font* cluster_font) {
   HTMLCanvasElement* canvas = HostAsHTMLCanvasElement();
   if (canvas) {
     // The style resolution required for fonts is not available in frame-less
@@ -3525,6 +3567,7 @@ void BaseRenderingContext2D::DrawTextInternal(
     return;
   }
 
+  // TODO(crbug.com/40191831): Remove once identifiability study is removed.
   if (identifiability_study_helper_.ShouldUpdateBuilder()) [[unlikely]] {
     identifiability_study_helper_.UpdateBuilder(
         paint_type == CanvasRenderingContext2DState::kFillPaintType
@@ -3535,12 +3578,8 @@ void BaseRenderingContext2D::DrawTextInternal(
     identifiability_study_helper_.set_encountered_sensitive_ops();
   }
 
-  // If rendering a TextCluster that contains a TextMetrics object, use the font
-  // stored on that object to recreate the text accurately.
   const Font& font =
-      (text_cluster != nullptr && text_cluster->textMetrics() != nullptr)
-          ? text_cluster->textMetrics()->GetFont()
-          : AccessFont(canvas);
+      (cluster_font != nullptr) ? *cluster_font : AccessFont(canvas);
   const SimpleFontData* font_data = font.PrimaryFont();
   DCHECK(font_data);
   if (!font_data) {
@@ -3563,22 +3602,15 @@ void BaseRenderingContext2D::DrawTextInternal(
   gfx::PointF location(ClampTo<float>(x), ClampTo<float>(y));
   gfx::RectF bounds;
   double font_width = 0;
-  unsigned run_start = 0, run_end = 0;
-  if (text_cluster == nullptr) [[likely]] {
-    run_start = 0;
-    run_end = text.length();
+  if (run_start == 0 && run_end == text.length()) [[likely]] {
     font_width = font.Width(text_run, &bounds);
   } else {
-    run_start = text_cluster->begin();
-    run_end = text_cluster->end();
     font_width = font.SubRunWidth(text_run, run_start, run_end, &bounds);
   }
 
   bool use_max_width = (max_width && *max_width < font_width);
   double width = use_max_width ? *max_width : font_width;
 
-  TextAlign align = (text_cluster == nullptr) ? state.GetTextAlign()
-                                              : text_cluster->GetTextAlign();
   if (align == kStartTextAlign) {
     align = is_rtl ? kRightTextAlign : kLeftTextAlign;
   } else if (align == kEndTextAlign) {
@@ -3596,14 +3628,7 @@ void BaseRenderingContext2D::DrawTextInternal(
       break;
   }
 
-  if (text_cluster == nullptr) [[likely]] {
-    // Use the current ctx baseline.
-    location.Offset(0, GetFontBaseline(*font_data));
-  } else {
-    // Use the baseline passed in the TextCluster.
-    location.Offset(0, TextMetrics::GetFontBaseline(
-                           text_cluster->GetTextBaseline(), *font_data));
-  }
+  location.Offset(0, TextMetrics::GetFontBaseline(baseline, *font_data));
 
   bounds.Offset(location.x(), location.y());
   if (paint_type == CanvasRenderingContext2DState::kStrokePaintType) {
@@ -3838,8 +3863,7 @@ V8GPUTextureFormat BaseRenderingContext2D::getTextureFormat() const {
   std::optional<V8GPUTextureFormat> format;
   if (const CanvasRenderingContextHost* host =
           GetCanvasRenderingContextHost()) {
-    format = FromDawnEnum(
-        AsDawnType(host->GetRenderingContextSkColorInfo().colorType()));
+    format = FromDawnEnum(AsDawnType(host->GetRenderingContextSkColorType()));
   }
 
   // If that did not work (e.g., the canvas host does not yet exist), we can

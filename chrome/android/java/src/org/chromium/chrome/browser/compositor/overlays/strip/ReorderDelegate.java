@@ -102,7 +102,7 @@ public class ReorderDelegate {
     private ReorderStrategy mActiveStrategy;
     private final TabReorderStrategy mTabStrategy = new TabReorderStrategy();
     private final GroupReorderStrategy mGroupStrategy = new GroupReorderStrategy();
-    @Nullable private DragDropReorderStrategy mDragDropStrategy;
+    @Nullable private SourceViewDragDropReorderStrategy mDragDropStrategy;
 
     // Auto-scroll State.
     private long mLastReorderScrollTime;
@@ -224,7 +224,7 @@ public class ReorderDelegate {
         mModel = mTabGroupModelFilter.getTabModel();
 
         if (tabDragSource != null) {
-            mDragDropStrategy = new DragDropReorderStrategy(tabDragSource);
+            mDragDropStrategy = new SourceViewDragDropReorderStrategy(tabDragSource);
         }
         mInitialized = true;
     }
@@ -807,7 +807,7 @@ public class ReorderDelegate {
     }
 
     // ============================================================================================
-    // Drag and drop reorder helpers
+    // Drag and drop reorder - drag external view onto / out of and within strip.
     // ============================================================================================
 
     void onReorderingForTabDrop() {
@@ -817,7 +817,12 @@ public class ReorderDelegate {
         mActiveStrategy = mTabStrategy;
     }
 
-    private class DragDropReorderStrategy implements ReorderStrategy {
+    // ============================================================================================
+    // Drag and drop reorder - start dragging strip view. Subsequently drag out of,
+    // within and back onto strip.
+    // ============================================================================================
+
+    private class SourceViewDragDropReorderStrategy implements ReorderStrategy {
         // Drag helpers
         private final TabDragSource mTabDragSource;
 
@@ -827,7 +832,7 @@ public class ReorderDelegate {
         // back onto strip.
         private float mLastOffsetX;
 
-        public DragDropReorderStrategy(@NonNull TabDragSource tabDragSource) {
+        public SourceViewDragDropReorderStrategy(@NonNull TabDragSource tabDragSource) {
             mTabDragSource = tabDragSource;
         }
 
@@ -851,6 +856,9 @@ public class ReorderDelegate {
             if (dragStarted) {
                 mViewBeingDragged = interactingView;
                 mLastOffsetX = 0.f;
+                // Set active strategy to null since current impl falls back to TabStrategy.
+                // TODO(crbug.com/381285152): Remove once updateReorder() is implemented.
+                mActiveStrategy = null;
             } else {
                 // Drag did not start. Stop this strategy to reset state.
                 // TODO(crbug.com/381285152): Call ReorderDelegate#stopReorderMode instead to

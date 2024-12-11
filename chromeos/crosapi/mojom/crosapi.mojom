@@ -78,7 +78,6 @@ import "chromeos/crosapi/mojom/one_drive_integration_service.mojom";
 import "chromeos/crosapi/mojom/power.mojom";
 import "chromeos/crosapi/mojom/parent_access.mojom";
 import "chromeos/crosapi/mojom/passkeys.mojom";
-import "chromeos/crosapi/mojom/prefs.mojom";
 import "chromeos/crosapi/mojom/nonclosable_app_toast_service.mojom";
 import "chromeos/crosapi/mojom/print_preview_cros.mojom";
 import "chromeos/crosapi/mojom/printing_metrics.mojom";
@@ -122,26 +121,6 @@ import "services/device/public/mojom/hid.mojom";
 import "services/media_session/public/mojom/audio_focus.mojom";
 import "services/media_session/public/mojom/media_controller.mojom";
 import "chromeos/crosapi/mojom/embedded_accessibility_helper.mojom";
-
-// BrowserInfo is a set of parameters passed to ash from browser (such as
-// lacros-chrome) upon its startup, which contains the browser information
-// such as version, etc.
-[RenamedFrom="crosapi.mojom.LacrosInfo"]
-struct BrowserInfo {
-  // Version of the browser displayed to user in feedback report, etc.
-  // It includes both browser version and channel in the format of:
-  // {browser version} {channel}
-  // For example, "87.0.0.1 dev", "86.0.4240.38 beta".
-  string browser_version@0;
-
-  // Lacros publishes the set of workarounds it has implemented. This is needed
-  // to cherry-picks of lacros bug fixes to older branches. See
-  // `ash_workarounds` for more details.
-  [MinVersion=1]
-  array<string>? lacros_workarounds@1;
-
-  // TODO(crbug.com/40145693): Add more parameters later.
-};
 
 // Crosapi defines the APIs that live in ash-chrome and are accessed from
 // client applications (such as lacros-chrome). When adding a major new API
@@ -531,9 +510,7 @@ interface Crosapi {
   [MinVersion=56] BindPolicyService@60(
       pending_receiver<PolicyService> receiver);
 
-  // Binds the prefs service which allows get, set, and notify update of prefs.
-  // Added in M89.
-  [MinVersion=11] BindPrefs@16(pending_receiver<Prefs> receiver);
+  // BindPrefs@16 was removed.
 
   // Binds the prevent close service which can be used to provide user feedback
   // about nonclosable web apps.

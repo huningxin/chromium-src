@@ -268,8 +268,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS) BASE_DECLARE_FEATURE(kFastPairDebugMetadata);
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kFastPairHandshakeLongTermRefactor);
 COMPONENT_EXPORT(ASH_CONSTANTS)
-BASE_DECLARE_FEATURE(kFastPairHID);
-COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kFastPairKeyboards);
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kFastPairSavedDevicesNicknames);
@@ -397,6 +395,7 @@ BASE_DECLARE_FEATURE(kGraduationUseEmbeddedTransferEndpoint);
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kFeatureManagementGrowthFramework);
 COMPONENT_EXPORT(ASH_CONSTANTS) BASE_DECLARE_FEATURE(kFlexFirmwareUpdate);
+COMPONENT_EXPORT(ASH_CONSTANTS) BASE_DECLARE_FEATURE(kAndroidVpnAppsOnFlex);
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kGrowthFramework);
 COMPONENT_EXPORT(ASH_CONSTANTS)
@@ -566,8 +565,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kLanguagePacksInOobe);
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kLanguagePacksInSettings);
-COMPONENT_EXPORT(ASH_CONSTANTS)
-BASE_DECLARE_FEATURE(kLacrosExtensionPrinting);
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kLauncherContinueSectionWithRecents);
 COMPONENT_EXPORT(ASH_CONSTANTS)
@@ -1054,8 +1051,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS) bool IsCaptureModeEducationEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsCaptureModeEducationBypassLimitsEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS)
-bool IsChangePasswordFactorSetupEnabled();
-COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsCheckPasswordsAgainstCryptohomeHelperEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsClipboardHistoryLongpressEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsClipboardHistoryUrlTitlesEnabled();
@@ -1103,7 +1098,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFastPairDebugMetadataEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFastPairHandshakeRefactorEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsFastPairHandshakeLongTermRefactorEnabled();
-COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFastPairHIDEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFastPairKeyboardsEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFastPairSavedDevicesNicknamesEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFastPairPwaCompanionEnabled();
@@ -1146,6 +1140,7 @@ bool AreEphemeralNetworkPoliciesEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool CanEphemeralNetworkPoliciesBeEnabledByPolicy();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFlexFirmwareUpdateEnabled();
+COMPONENT_EXPORT(ASH_CONSTANTS) bool IsAndroidVpnAppsOnFlexEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFullscreenAfterUnlockAllowed();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsFullscreenAlertBubbleEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsBlockFwupdClientEnabled();
@@ -1216,7 +1211,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsKeyboardBacklightControlInSettingsEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsKeyboardRewriterFixEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsLanguagePacksInOobeEnabled();
-COMPONENT_EXPORT(ASH_CONSTANTS) bool IsLacrosExtensionPrintingEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsLauncherContinueSectionWithRecentsEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsLauncherNudgeShortIntervalEnabled();

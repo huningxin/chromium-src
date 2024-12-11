@@ -256,20 +256,6 @@ void MaybeRegisterChromeFeaturePromos(
                     .SetMetadata(115, "vykochko@chromium.org",
                                  "Triggered after autofill popup appears.")));
 
-  // kIPHAutofillManualFallbackFeature:
-  registry.RegisterFeature(std::move(
-      FeaturePromoSpecification::CreateForToastPromo(
-          feature_engagement::kIPHAutofillManualFallbackFeature,
-          kAutofillManualFallbackElementId, IDS_AUTOFILL_IPH_MANUAL_FALLBACK,
-          IDS_AUTOFILL_IPH_MANUAL_FALLBACK_SCREENREADER,
-          FeaturePromoSpecification::AcceleratorInfo())
-          .SetBubbleArrow(HelpBubbleArrow::kTopRight)
-          .SetMetadata(
-              123, "theocristea@chromium.org",
-              "User focuses a field, but autofill cannot be triggered "
-              "automatically because the field has autocomplete=garbage. In "
-              "this case, autofill can be triggered from the context menu.")));
-
   // kIPHAutofillPredictionImprovementsFeature:
   registry.RegisterFeature(std::move(
       FeaturePromoSpecification::CreateForCustomAction(
@@ -284,8 +270,8 @@ void MaybeRegisterChromeFeaturePromos(
                 if (!browser) {
                   return;
                 }
-                chrome::ShowSettingsSubPage(
-                    browser, chrome::kAutofillPredictionImprovementsSubPage);
+                chrome::ShowSettingsSubPage(browser,
+                                            chrome::kAutofillAiSubPage);
               }))
           .SetBubbleTitleText(IDS_AUTOFILL_PREDICTION_IMPROVEMENTS_IPH_TITLE)
           .SetBubbleArrow(HelpBubbleArrow::kTopRight)

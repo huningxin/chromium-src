@@ -589,6 +589,8 @@ class TabListMediator implements TabListNotificationHandler {
                         // Changing URL will result in a thumbnail invalidation if the on-disk
                         // thumbnail doesn't match.
                         updateThumbnailFetcher(model, tab.getId());
+                        // Changing URL should also invalidate the favicon.
+                        updateFaviconForTab(model, tab, null, null);
                     }
                 }
             };
@@ -1322,7 +1324,7 @@ class TabListMediator implements TabListNotificationHandler {
         // switcher.
         if (mMode == TabListMode.GRID
                 && mTabActionState != TabActionState.SELECTABLE
-                && PriceTrackingFeatures.isPriceTrackingEnabled(originalProfile)) {
+                && PriceTrackingFeatures.isPriceAnnotationsEnabled(originalProfile)) {
             mListObserver =
                     new ListObserver<Void>() {
                         @Override
@@ -2329,7 +2331,7 @@ class TabListMediator implements TabListNotificationHandler {
                 || mCurrentTabGroupModelFilterSupplier.get().isIncognitoBranded()
                 || !mActionsOnAllRelatedTabs
                 || mOriginalProfile == null
-                || !PriceTrackingFeatures.isPriceTrackingEligible(mOriginalProfile)) {
+                || !PriceTrackingFeatures.isPriceAnnotationsEligible(mOriginalProfile)) {
             return;
         }
         SharedPreferencesManager preferencesManager = ChromeSharedPreferences.getInstance();

@@ -762,6 +762,10 @@ class HoldingSpaceKeyedServiceWithExperimentalFeatureForGuestTest
   }
 
   void TearDown() override {
+    // Drop user pref service reference before `profile_` is released. This is
+    // needed because `profile_` is owned by the test not `TestProfileManager`.
+    ash_test_helper()->prefs_provider()->ClearUnownedUserPrefs(
+        AccountId::FromUserEmail(profile_->GetProfileUserName()));
     profile_.reset();
     HoldingSpaceKeyedServiceWithExperimentalFeatureTest::TearDown();
   }
@@ -2603,8 +2607,7 @@ TEST_P(HoldingSpaceKeyedServiceWithExperimentalFeatureTest, RemoveAll) {
       {file_manager::util::GetFileManagerFileSystemContext(profile)
            ->CrackURLInFirstPartyContext(
                holding_space_util::ResolveFileSystemUrl(profile,
-                                                        pinned_file_path))},
-      holding_space_metrics::EventSource::kTest);
+                                                        pinned_file_path))});
 
   ASSERT_EQ(2u, model->items().size());
   service->RemoveAll();
@@ -2823,8 +2826,7 @@ class HoldingSpaceKeyedServiceAddAndRemoveItemTest
             {file_manager::util::GetFileManagerFileSystemContext(profile)
                  ->CrackURLInFirstPartyContext(
                      holding_space_util::ResolveFileSystemUrl(profile,
-                                                              file_path))},
-            holding_space_metrics::EventSource::kTest);
+                                                              file_path))});
         break;
       case HoldingSpaceItem::Type::kPhoneHubCameraRoll:
         EXPECT_EQ(

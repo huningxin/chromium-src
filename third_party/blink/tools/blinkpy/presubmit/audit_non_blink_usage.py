@@ -281,6 +281,9 @@ _CONFIG = [
             'base::StrAppend',
             'base::StrCat',
 
+            # //base/strings/string_split.h.
+            'base::SplitStringOnce',
+
             # Debugging helpers from //base/debug are allowed everywhere.
             'base::debug::.+',
 
@@ -955,11 +958,17 @@ _CONFIG = [
     {
         'paths': [
             'third_party/blink/renderer/core/animation_frame',
+            'third_party/blink/renderer/core/exported/test_web_frame_content_dumper.cc',
+            'third_party/blink/renderer/core/exported/web_page_popup_impl',
+            'third_party/blink/renderer/core/frame/animation_frame_timing_monitor',
+            'third_party/blink/renderer/core/frame/web_frame_widget_impl',
+            'third_party/blink/renderer/core/html/canvas',
             'third_party/blink/renderer/core/offscreencanvas',
-            'third_party/blink/renderer/core/html/canvas'
+            'third_party/blink/renderer/core/timing/window_performance',
         ],
         'allowed': [
             'viz::BeginFrameArgs',
+            'viz::BeginFrameId',
         ],
     },
     {
@@ -1261,6 +1270,14 @@ _CONFIG = [
         ],
         'allowed': [
             'ui::mojom::MenuSourceType',
+        ],
+    },
+    {
+        'paths': [
+            'third_party/blink/public/platform/web_content_security_policy_struct.h',
+        ],
+        'allowed': [
+            'network::mojom::IntegrityAlgorithm',
         ],
     },
     {
@@ -2293,6 +2310,14 @@ _CONFIG = [
         ],
         'allowed': [
             'url::Origin',
+        ]
+    },
+    {
+        'paths': [
+            'third_party/blink/public/common/privacy_budget/identifiable_token.h',
+        ],
+        'allowed': [
+            'internal::DigestOfObjectRepresentation',
         ]
     },
     {

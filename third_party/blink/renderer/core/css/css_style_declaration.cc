@@ -196,11 +196,7 @@ NamedPropertySetterResult CSSStyleDeclaration::AnonymousNamedSetter(
   // [RaisesException] to the IDL causes the bindings layer to expensively
   // create a std::string to set the ExceptionState's |property_name| argument,
   // while we can use CSSProperty::GetPropertyName() here (see bug 829408).
-  ExceptionState exception_state(
-      script_state->GetIsolate(), v8::ExceptionContext::kAttributeSet,
-      "CSSStyleDeclaration",
-      CSSProperty::Get(ResolveCSSPropertyID(unresolved_property))
-          .GetPropertyName());
+  ExceptionState exception_state(script_state->GetIsolate());
   // TODO(crbug.com/1499981): This should be removed once synchronized scrolling
   // impact is understood.
   SyncScrollAttemptHeuristic::DidSetStyle();
@@ -228,9 +224,10 @@ NamedPropertySetterResult CSSStyleDeclaration::AnonymousNamedSetter(
     if (length <= 128 && string->IsOneByte()) {
       LChar buffer[128];
       string->WriteOneByteV2(script_state->GetIsolate(), 0, length, buffer);
-      SetPropertyInternal(
-          unresolved_property, String(), StringView(buffer, length), false,
-          execution_context->GetSecureContextMode(), exception_state);
+      SetPropertyInternal(unresolved_property, String(),
+                          StringView(base::span(buffer).first(length)), false,
+                          execution_context->GetSecureContextMode(),
+                          exception_state);
       if (exception_state.HadException()) {
         return NamedPropertySetterResult::kIntercepted;
       }

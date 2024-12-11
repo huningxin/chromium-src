@@ -99,15 +99,6 @@ BASE_FEATURE(kAutofillEnableAddressFieldParserNG,
              "AutofillEnableAddressFieldParserNG",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// When enabled, autofill displays an IPH informing users about using autofill
-// from the context menu. The IPH will be attached to address fields with
-// autocomplete="garbage".
-// TODO(crbug.com/313587343) Remove once manual fallback IPH feature is
-// launched.
-BASE_FEATURE(kAutofillEnableManualFallbackIPH,
-             "AutofillEnableManualFallbackIPH",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Controls if the heuristic field parsing utilizes shared labels.
 // TODO(crbug.com/40741721): Remove once shared labels are launched.
 BASE_FEATURE(kAutofillEnableSupportForParsingWithSharedLabels,
@@ -310,6 +301,7 @@ BASE_FEATURE(kAutofillFixFormTracking,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Uses AutofillAgent::GetSubmittedForm() in HTML submissions.
+// See `AutofillAgent::GetSubmittedForm()` for more documentation.
 // TODO(crbug.com/40281981): Remove when launched.
 BASE_FEATURE(kAutofillUseSubmittedFormInHtmlSubmission,
              "AutofillUseSubmittedFormInHtmlSubmission",
@@ -317,7 +309,8 @@ BASE_FEATURE(kAutofillUseSubmittedFormInHtmlSubmission,
 
 // Replaces blink::WebFormElementObserver usage in FormTracker by updated logic
 // for tracking the disappearance of forms as well as other submission
-// triggering events.
+// triggering events. See `AutofillAgent::GetSubmittedForm()` for more
+// documentation.
 // TODO(crbug.com/40281981): Remove when launched.
 BASE_FEATURE(kAutofillPreferSavedFormAsSubmittedForm,
              "AutofillPreferSavedFormAsSubmittedForm",
@@ -683,6 +676,17 @@ BASE_FEATURE(kAutofillGreekRegexes,
 COMPONENT_EXPORT(AUTOFILL)
 BASE_FEATURE(kAutofillInferLabelFromDefaultSelectText,
              "AutofillInferLabelFromDefaultSelectText",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// When enabled, votes are uploaded already when the AutofillDriver becomes
+// inactive, i.e., the underlying frame enters the bfcache. Otherwise, a
+// bfcached AutofillDriver and its votes may stay around until the WebContents
+// is destroyed, by which time it's too late to send the votes because of its
+// asynchronicity.
+// TODO(crbug.com/374086145): Remove when launched.
+COMPONENT_EXPORT(AUTOFILL)
+BASE_FEATURE(kAutofillVoteWhenInactive,
+             "AutofillVoteWhenInactive",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // When enabled, a HaTS survey is shown after the successful first time creation

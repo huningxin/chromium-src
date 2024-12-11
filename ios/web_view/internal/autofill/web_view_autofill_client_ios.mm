@@ -118,10 +118,24 @@ AutofillCrowdsourcingManager&
 WebViewAutofillClientIOS::GetCrowdsourcingManager() {
   if (!crowdsourcing_manager_) {
     // Lazy initialization to avoid virtual function calls in the constructor.
-    crowdsourcing_manager_ = std::make_unique<AutofillCrowdsourcingManager>(
-        this, GetChannel(), GetLogManager());
+    crowdsourcing_manager_ =
+        std::make_unique<AutofillCrowdsourcingManager>(this, GetChannel());
   }
   return *crowdsourcing_manager_;
+}
+
+VotesUploader& WebViewAutofillClientIOS::GetVotesUploader() {
+  if (!votes_uploader_) {
+    // We need to do lazy evaluation because AutofillDriverIOSFactory is created
+    // only after WebViewAutofillClientIOS. This is OK because only
+    // BrowserAutofillManager, which is owned by AutofillClientIOS and thus
+    // instantiated after AutofillDriverIOSFactory, calls GetVotesUploader().
+    //
+    // TODO(crbug.com/355907668): Make AutofillDriverIOSFactory owned by
+    // WebViewAutofillClientIOS and initialize  `votes_uploader_` non-lazily.
+    votes_uploader_ = std::make_unique<VotesUploader>(this);
+  }
+  return *votes_uploader_;
 }
 
 PersonalDataManager& WebViewAutofillClientIOS::GetPersonalDataManager() {

@@ -33,7 +33,7 @@ using OnProfileSwitchCompletion = base::OnceCallback<void(bool success)>;
 - (instancetype)init NS_UNAVAILABLE;
 
 // Cancels any outstanding work and dismisses an alert view (if shown) using
-// animation if `animated` is true.
+// animation if `animated` is true. Calls `completion` synchronously.
 - (void)interruptWithAction:(SigninCoordinatorInterrupt)action
                  completion:(ProceduralBlock)completion;
 
@@ -65,7 +65,8 @@ using OnProfileSwitchCompletion = base::OnceCallback<void(bool success)>;
 - (void)showManagedConfirmationForHostedDomain:(NSString*)hostedDomain
                                      userEmail:(NSString*)userEmail
                                 viewController:(UIViewController*)viewController
-                                       browser:(Browser*)browser;
+                                       browser:(Browser*)browser
+                     skipBrowsingDataMigration:(BOOL)skipBrowsingDataMigration;
 
 // Completes the post-signin actions. In most cases the action is showing a
 // snackbar confirming sign-in with `identity` and an undo button to sign out

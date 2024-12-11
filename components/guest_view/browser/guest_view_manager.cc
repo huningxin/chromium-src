@@ -10,7 +10,6 @@
 #include "base/containers/contains.h"
 #include "base/memory/ptr_util.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/crash/core/common/crash_key.h"
 #include "components/guest_view/browser/bad_message.h"
 #include "components/guest_view/browser/guest_view_base.h"
@@ -58,7 +57,7 @@ class GuestViewManager::EmbedderRenderProcessHostObserver
       RenderProcessHost* host,
       const content::ChildProcessTerminationInfo& info) override {
     if (guest_view_manager_)
-      guest_view_manager_->EmbedderProcessDestroyed(host->GetID());
+      guest_view_manager_->EmbedderProcessDestroyed(host->GetDeprecatedID());
   }
 
   void RenderProcessHostDestroyed(RenderProcessHost* host) override {
@@ -78,7 +77,7 @@ GuestViewManager::GuestViewManager(
 GuestViewManager::~GuestViewManager() {
   // It seems that ChromeOS OTR profiles may still have RenderProcessHosts at
   // this point. See https://crbug.com/828479
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
   DCHECK(view_destruction_callback_map_.empty());
 #endif
 }
@@ -213,7 +212,7 @@ void GuestViewManager::ManageOwnership(std::unique_ptr<GuestViewBase> guest) {
   RenderProcessHost* owner_process = guest->owner_rfh()->GetProcess();
   DCHECK(owner_process);
   ObserveEmbedderLifetime(owner_process);
-  owned_guests_.insert({owner_process->GetID(), std::move(guest)});
+  owned_guests_.insert({owner_process->GetDeprecatedID(), std::move(guest)});
 }
 
 std::unique_ptr<content::WebContents>
@@ -570,8 +569,8 @@ void GuestViewManager::RegisterViewDestructionCallback(
 
 void GuestViewManager::ObserveEmbedderLifetime(
     RenderProcessHost* embedder_process) {
-  if (!embedders_observed_.count(embedder_process->GetID())) {
-    embedders_observed_.insert(embedder_process->GetID());
+  if (!embedders_observed_.count(embedder_process->GetDeprecatedID())) {
+    embedders_observed_.insert(embedder_process->GetDeprecatedID());
     // EmbedderRenderProcessHostObserver owns itself.
     new EmbedderRenderProcessHostObserver(weak_ptr_factory_.GetWeakPtr(),
                                           embedder_process);
@@ -651,8 +650,11 @@ bool GuestViewManager::CanEmbedderAccessInstanceID(
   // to run in the main frame or its local subframes.
   const int allowed_embedder_render_process_id =
       guest_view->CanBeEmbeddedInsideCrossProcessFrames()
-          ? guest_view->owner_rfh()->GetProcess()->GetID()
-          : guest_view->owner_rfh()->GetMainFrame()->GetProcess()->GetID();
+          ? guest_view->owner_rfh()->GetProcess()->GetDeprecatedID()
+          : guest_view->owner_rfh()
+                ->GetMainFrame()
+                ->GetProcess()
+                ->GetDeprecatedID();
 
   if (embedder_render_process_id != allowed_embedder_render_process_id) {
     bad_access_key.Set("Bad embedder process");

@@ -473,50 +473,6 @@ ci.thin_tester(
     list_view = "chromium.gpu.experimental",
 )
 
-ci.thin_tester(
-    name = "Android FYI Release (Motorola Moto G Power 5G)",
-    description_html = "Runs GPU tests on Motorola Moto G Power 5G phones",
-    triggered_by = ["GPU FYI Android arm64 Builder"],
-    builder_spec = builder_config.builder_spec(
-        execution_mode = builder_config.execution_mode.TEST,
-        gclient_config = builder_config.gclient_config(
-            config = "chromium",
-            apply_configs = [
-                "android",
-            ],
-        ),
-        chromium_config = builder_config.chromium_config(
-            config = "android",
-            target_platform = builder_config.target_platform.ANDROID,
-        ),
-        android_config = builder_config.android_config(
-            config = "arm64_builder_rel_mb",
-        ),
-        run_tests_serially = True,
-    ),
-    targets = targets.bundle(
-        targets = [
-            "gpu_noop_sleep_telemetry_test",
-        ],
-        mixins = [
-            "has_native_resultdb_integration",
-            "motorola_moto_g_power_5g",
-            "limited_capacity_bot",
-        ],
-    ),
-    targets_settings = targets.settings(
-        browser_config = targets.browser_config.ANDROID_CHROMIUM,
-        os_type = targets.os_type.ANDROID,
-        use_android_merge_script_by_default = False,
-    ),
-    # Uncomment this entry when this experimental tester is actually in use.
-    # console_view_entry = consoles.console_view_entry(
-    #     category = "Android|T64|IMG",
-    #     short_name = "MGP",
-    # ),
-    list_view = "chromium.gpu.experimental",
-)
-
 # TODO(crbug.com/40282670): Add a trybot for this builder when there's capacity.
 ci.thin_tester(
     name = "Android FYI Release (Samsung A13)",
@@ -2353,6 +2309,27 @@ ci.thin_tester(
             "tab_capture_end2end_tests": targets.remove(
                 reason = "Run these only on Release bots.",
             ),
+            # TODO(crbug.com/380431384): Re-enable when fixed
+            "webgl_conformance_vulkan_passthrough_tests": targets.remove(
+                reason = [
+                    "crbug.com/380431384 flaky crashes in random tests",
+                ],
+            ),
+            "pixel_skia_gold_passthrough_test": targets.per_test_modification(
+                mixins = targets.mixin(
+                    args = [
+                        # TODO(crbug.com/382422293): Remove when fixed
+                        "--jobs=1",
+                    ],
+                ),
+                replacements = targets.replacements(
+                    args = {
+                        # Magic substitution happens after regular replacement, so remove it
+                        # now since we are manually applying the number of jobs above.
+                        targets.magic_args.GPU_PARALLEL_JOBS: None,
+                    },
+                ),
+            ),
         },
     ),
     targets_settings = targets.settings(
@@ -2601,6 +2578,36 @@ ci.thin_tester(
                     "crbug.com/380431384 flaky crashes in random tests",
                 ],
             ),
+            "pixel_skia_gold_passthrough_test": targets.per_test_modification(
+                mixins = targets.mixin(
+                    args = [
+                        # TODO(crbug.com/382422293): Remove when fixed
+                        "--jobs=1",
+                    ],
+                ),
+                replacements = targets.replacements(
+                    args = {
+                        # Magic substitution happens after regular replacement, so remove it
+                        # now since we are manually applying the number of jobs above.
+                        targets.magic_args.GPU_PARALLEL_JOBS: None,
+                    },
+                ),
+            ),
+            "pixel_skia_gold_passthrough_graphite_test": targets.per_test_modification(
+                mixins = targets.mixin(
+                    args = [
+                        # TODO(crbug.com/382422293): Remove when fixed
+                        "--jobs=1",
+                    ],
+                ),
+                replacements = targets.replacements(
+                    args = {
+                        # Magic substitution happens after regular replacement, so remove it
+                        # now since we are manually applying the number of jobs above.
+                        targets.magic_args.GPU_PARALLEL_JOBS: None,
+                    },
+                ),
+            ),
         },
     ),
     targets_settings = targets.settings(
@@ -2825,6 +2832,27 @@ ci.thin_tester(
                     "Graphite does not currently work properly on Win/NVIDIA ",
                 ],
             ),
+            # TODO(crbug.com/380431384): Re-enable when fixed
+            "webgl_conformance_vulkan_passthrough_tests": targets.remove(
+                reason = [
+                    "crbug.com/380431384 flaky crashes in random tests",
+                ],
+            ),
+            "pixel_skia_gold_passthrough_test": targets.per_test_modification(
+                mixins = targets.mixin(
+                    args = [
+                        # TODO(crbug.com/382422293): Remove when fixed
+                        "--jobs=1",
+                    ],
+                ),
+                replacements = targets.replacements(
+                    args = {
+                        # Magic substitution happens after regular replacement, so remove it
+                        # now since we are manually applying the number of jobs above.
+                        targets.magic_args.GPU_PARALLEL_JOBS: None,
+                    },
+                ),
+            ),
         },
     ),
     targets_settings = targets.settings(
@@ -2973,6 +3001,27 @@ ci.thin_tester(
                 reason = [
                     "Graphite does not currently work properly on Win/NVIDIA ",
                 ],
+            ),
+            # TODO(crbug.com/380431384): Re-enable when fixed
+            "webgl_conformance_vulkan_passthrough_tests": targets.remove(
+                reason = [
+                    "crbug.com/380431384 flaky crashes in random tests",
+                ],
+            ),
+            "pixel_skia_gold_passthrough_test": targets.per_test_modification(
+                mixins = targets.mixin(
+                    args = [
+                        # TODO(crbug.com/382422293): Remove when fixed
+                        "--jobs=1",
+                    ],
+                ),
+                replacements = targets.replacements(
+                    args = {
+                        # Magic substitution happens after regular replacement, so remove it
+                        # now since we are manually applying the number of jobs above.
+                        targets.magic_args.GPU_PARALLEL_JOBS: None,
+                    },
+                ),
             ),
         },
     ),
@@ -3148,7 +3197,6 @@ gpu_fyi_windows_builder(
         category = "Windows|Builder|Release",
         short_name = "x86",
     ),
-    siso_remote_jobs = siso.remote_jobs.LOW_JOBS_FOR_CI,
 )
 
 gpu_fyi_windows_builder(
@@ -3184,7 +3232,6 @@ gpu_fyi_windows_builder(
         category = "Windows|Builder|Release",
         short_name = "x64",
     ),
-    siso_remote_jobs = siso.remote_jobs.LOW_JOBS_FOR_CI,
 )
 
 gpu_fyi_windows_builder(
@@ -3217,7 +3264,6 @@ gpu_fyi_windows_builder(
         category = "Windows|Builder|Debug",
         short_name = "x64",
     ),
-    siso_remote_jobs = siso.remote_jobs.LOW_JOBS_FOR_CI,
 )
 
 gpu_fyi_windows_builder(
@@ -3252,7 +3298,6 @@ gpu_fyi_windows_builder(
         category = "Windows|Builder|dx12vk",
         short_name = "rel",
     ),
-    siso_remote_jobs = siso.remote_jobs.LOW_JOBS_FOR_CI,
 )
 
 gpu_fyi_windows_builder(
@@ -3286,7 +3331,6 @@ gpu_fyi_windows_builder(
         category = "Windows|Builder|dx12vk",
         short_name = "dbg",
     ),
-    siso_remote_jobs = siso.remote_jobs.LOW_JOBS_FOR_CI,
 )
 
 gpu_fyi_windows_builder(
@@ -3326,5 +3370,4 @@ gpu_fyi_windows_builder(
         category = "Windows|Builder|XR",
         short_name = "x64",
     ),
-    siso_remote_jobs = siso.remote_jobs.LOW_JOBS_FOR_CI,
 )

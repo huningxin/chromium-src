@@ -11,6 +11,7 @@
 #include "ui/base/accelerators/accelerator.h"
 
 class PrefRegistrySimple;
+namespace glic {
 
 // This class observes and reports changes to glic prefs such as the
 // enabled/disabled state, and the hotkey for launching the UI. Owned by
@@ -23,6 +24,9 @@ class GlicConfiguration {
     virtual void OnGlobalHotkeyChanged(ui::Accelerator hotkey) {}
   };
 
+  static constexpr char kHotkeyKeyCode[] = "keycode";
+  static constexpr char kHotkeyModifiers[] = "modifiers";
+
   explicit GlicConfiguration(Observer* manager);
   ~GlicConfiguration();
 
@@ -30,12 +34,16 @@ class GlicConfiguration {
 
   bool IsEnabled();
 
+  ui::Accelerator GetGlobalHotkey();
+
  private:
   void OnEnabledPrefChanged();
+  void OnGlobalHotkeyPrefChanged();
 
   PrefChangeRegistrar pref_registrar_;
 
   raw_ptr<Observer> manager_;
 };
+}  // namespace glic
 
 #endif  // CHROME_BROWSER_GLIC_LAUNCHER_GLIC_CONFIGURATION_H_

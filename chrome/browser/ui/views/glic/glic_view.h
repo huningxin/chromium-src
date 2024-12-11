@@ -23,10 +23,6 @@ class WebView;
 
 class Profile;
 
-namespace {
-class WindowEventObserver;
-}
-
 namespace glic {
 
 class GlicView : public views::View {
@@ -42,28 +38,15 @@ class GlicView : public views::View {
       Profile* profile,
       const gfx::Rect& initial_bounds);
 
-  // views::View
-  void AddedToWidget() override;
-
-  void DragFromPoint(gfx::Vector2d mouse_location);
-
   views::WebView* web_view() { return web_view_; }
 
  private:
-  // Used to monitor key and mouse events from native window.
-  std::unique_ptr<WindowEventObserver> window_event_observer_;
-  // True while RunMoveLoop() has been called on a widget.
-  bool in_move_loop_ = false;
   raw_ptr<GlicWebView> web_view_;
 
   // Ensures that the profile associated with this view isn't destroyed while
   // it is visible, and nor is the browser process.
   std::unique_ptr<ScopedProfileKeepAlive> profile_keep_alive_;
   std::unique_ptr<ScopedKeepAlive> keep_alive_;
-
-  // If the mouse is in snapping distance of a browser's glic button, it snaps
-  // glic to the top right of the browser's glic button.
-  void SnapToBrowserIfInBounds(gfx::Vector2d mouse_location);
 };
 
 }  // namespace glic

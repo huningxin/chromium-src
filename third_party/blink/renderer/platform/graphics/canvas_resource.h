@@ -192,6 +192,11 @@ class PLATFORM_EXPORT CanvasResource
   // Returns true if the resource is backed by memory such that it can be used
   // for direct scanout by the display.
   virtual bool IsOverlayCandidate() const { return false; }
+  virtual gfx::HDRMetadata GetHDRMetadata() const { return gfx::HDRMetadata(); }
+  virtual viz::TransferableResource::ResourceSource
+  GetTransferableResourceSource() const {
+    return viz::TransferableResource::ResourceSource::kCanvas;
+  }
 
   gpu::InterfaceBase* InterfaceBase() const;
   gpu::gles2::GLES2Interface* ContextGL() const;
@@ -446,8 +451,9 @@ class PLATFORM_EXPORT ExternalCanvasResource final : public CanvasResource {
   //   override UsesClientSharedImage() to return true
   static scoped_refptr<ExternalCanvasResource> Create(
       scoped_refptr<gpu::ClientSharedImage> client_si,
-      const viz::TransferableResource& transferable_resource,
-      bool is_overlay_candidate,
+      const gpu::SyncToken& sync_token,
+      viz::TransferableResource::ResourceSource resource_source,
+      gfx::HDRMetadata hdr_metadata,
       viz::ReleaseCallback release_callback,
       base::WeakPtr<WebGraphicsContext3DProviderWrapper>,
       base::WeakPtr<CanvasResourceProvider>);
@@ -470,6 +476,11 @@ class PLATFORM_EXPORT ExternalCanvasResource final : public CanvasResource {
 
  private:
   bool IsOverlayCandidate() const final { return is_overlay_candidate_; }
+  gfx::HDRMetadata GetHDRMetadata() const final { return hdr_metadata_; }
+  viz::TransferableResource::ResourceSource GetTransferableResourceSource()
+      const final {
+    return resource_source_;
+  }
   bool UsesAcceleratedRaster() const final { return true; }
   const gpu::SyncToken GetSyncTokenWithOptionalVerification(
       bool needs_verified_token) override;
@@ -479,17 +490,21 @@ class PLATFORM_EXPORT ExternalCanvasResource final : public CanvasResource {
       viz::TransferableResource* out_resource) override;
   void GenOrFlushSyncToken();
 
-  ExternalCanvasResource(scoped_refptr<gpu::ClientSharedImage> client_si,
-                         const viz::TransferableResource& transferable_resource,
-                         bool is_overlay_candidate,
-                         viz::ReleaseCallback out_callback,
-                         base::WeakPtr<WebGraphicsContext3DProviderWrapper>,
-                         base::WeakPtr<CanvasResourceProvider>);
+  ExternalCanvasResource(
+      scoped_refptr<gpu::ClientSharedImage> client_si,
+      const gpu::SyncToken& sync_token,
+      viz::TransferableResource::ResourceSource resource_source,
+      gfx::HDRMetadata hdr_metadata,
+      viz::ReleaseCallback out_callback,
+      base::WeakPtr<WebGraphicsContext3DProviderWrapper>,
+      base::WeakPtr<CanvasResourceProvider>);
 
   scoped_refptr<gpu::ClientSharedImage> client_si_;
   const base::WeakPtr<WebGraphicsContext3DProviderWrapper>
       context_provider_wrapper_;
-  viz::TransferableResource transferable_resource_;
+  gpu::SyncToken sync_token_;
+  viz::TransferableResource::ResourceSource resource_source_;
+  gfx::HDRMetadata hdr_metadata_;
   bool is_overlay_candidate_ = false;
   viz::ReleaseCallback release_callback_;
   bool is_origin_clean_ = true;

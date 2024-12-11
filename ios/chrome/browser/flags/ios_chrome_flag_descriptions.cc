@@ -533,6 +533,20 @@ const char kInProductHelpDemoModeDescription[] =
     "an individual promotion causes that promotion but no other promotions to "
     "occur.";
 
+const char kIOSInterruptibleCoordinatorAlwaysDismissedName[] =
+    "InterruptibleChromeCoordinator dismisses all views.";
+const char kIOSInterruptibleCoordinatorAlwaysDismissedDescription[] =
+    "When enabled, the interruptible coordinator’s interrupt methods always "
+    "dismiss their view. Requires "
+    "IOSInterruptibleCoordinatorStoppedSynchronously "
+    "to be enabled.";
+
+const char kIOSInterruptibleCoordinatorStoppedSynchronouslyName[] =
+    "Stop interruptible coordinators synchronously";
+const char kIOSInterruptibleCoordinatorStoppedSynchronouslyDescription[] =
+    "When enabled, the interruptible coordinator’s completion method are "
+    "called synchronously during interrupt.";
+
 const char kIOSBrowserEditMenuMetricsName[] = "Browser edit menu metrics";
 const char kIOSBrowserEditMenuMetricsDescription[] =
     "Collect metrics for edit menu usage.";
@@ -553,11 +567,6 @@ const char kIOSDockingPromoName[] = "Docking Promo";
 const char kIOSDockingPromoDescription[] =
     "When enabled, the user will be presented an animated, instructional "
     "promo showing how to move Chrome to their native iOS dock.";
-
-extern const char kIOSEditMenuHideSearchWebName[] =
-    "Hides Search Web in edit menu";
-extern const char kIOSEditMenuHideSearchWebDescription[] =
-    "Hides the Search Web entry in edit menu.";
 
 const char kIOSKeyboardAccessoryUpgradeName[] =
     "Enable the keyboard accessory upgrade on iOS";
@@ -1147,6 +1156,11 @@ const char kEnableLensViewFinderUnifiedExperienceName[] =
     "Enable LVF Unified Experience";
 const char kEnableLensViewFinderUnifiedExperienceDescription[] =
     "Enables Lens View Finder unified experience";
+
+const char kEnableLensContextMenuUnifiedExperienceName[] =
+    "Enable Lens Context Menu Unified Experience";
+const char kEnableLensContextMenuUnifiedExperienceDescription[] =
+    "Enables unified native experience for Lens Context Menu";
 
 const char kTabGridNewTransitionsName[] = "Enable new TabGrid transitions";
 const char kTabGridNewTransitionsDescription[] =

@@ -140,7 +140,7 @@ targets.bundle(
 )
 
 targets.bundle(
-    name = "android_14_device_fyi_gtests",
+    name = "android_14_device_ci_only_gtests",
     targets = [
         "system_webview_shell_instrumentation_tests",
         targets.bundle(
@@ -151,6 +151,9 @@ targets.bundle(
             ],
         ),
         "webview_ui_instrumentation_tests",
+    ],
+    mixins = [
+        "ci_only",
     ],
 )
 
@@ -221,7 +224,7 @@ targets.bundle(
                 "WEBVIEW_TRICHROME_INSTANT_CTS_TESTS",
             ],
         ),
-        "webview_trichrome_64_cts_tests_no_field_trial_suite",
+        "android_ci_only_fieldtrial_webview_tests",
     ],
 )
 
@@ -374,7 +377,6 @@ targets.bundle(
             swarming = targets.swarming(
                 shards = 2,
             ),
-            experiment_percentage = 100,
         ),
         "android_browsertests": targets.mixin(
             swarming = targets.swarming(
@@ -5951,6 +5953,12 @@ targets.bundle(
     ],
     per_test_modifications = {
         "updater_tests_system": [
+            targets.mixin(
+                swarming = targets.swarming(
+                    shards = 2,
+                    hard_timeout_sec = 7200,
+                ),
+            ),
             "integrity_high",
             "updater-win-uac-pool",
         ],

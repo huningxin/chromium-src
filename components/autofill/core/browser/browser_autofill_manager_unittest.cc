@@ -48,6 +48,9 @@
 #include "components/autofill/core/browser/data_model/autofill_profile_test_api.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
 #include "components/autofill/core/browser/data_model/iban.h"
+#include "components/autofill/core/browser/data_quality/addresses/profile_token_quality.h"
+#include "components/autofill/core/browser/data_quality/addresses/profile_token_quality_test_api.h"
+#include "components/autofill/core/browser/data_quality/validation.h"
 #include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/browser/filling_product.h"
 #include "components/autofill/core/browser/form_import/form_data_importer_test_api.h"
@@ -69,8 +72,6 @@
 #include "components/autofill/core/browser/payments/test_payments_network_interface.h"
 #include "components/autofill/core/browser/payments_data_manager.h"
 #include "components/autofill/core/browser/personal_data_manager.h"
-#include "components/autofill/core/browser/profile_token_quality.h"
-#include "components/autofill/core/browser/profile_token_quality_test_api.h"
 #include "components/autofill/core/browser/strike_databases/payments/test_credit_card_save_strike_database.h"
 #include "components/autofill/core/browser/suggestions/addresses/address_suggestion_generator.h"
 #include "components/autofill/core/browser/suggestions/payments/payments_suggestion_generator.h"
@@ -85,7 +86,6 @@
 #include "components/autofill/core/browser/ui/suggestion.h"
 #include "components/autofill/core/browser/ui/suggestion_test_helpers.h"
 #include "components/autofill/core/browser/ui/suggestion_type.h"
-#include "components/autofill/core/browser/validation.h"
 #include "components/autofill/core/common/autocomplete_parsing_util.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
@@ -1131,8 +1131,9 @@ class BrowserAutofillManagerTest : public testing::Test {
     } else if (const CreditCard* card =
                    personal_data().payments_data_manager().GetCreditCardByGUID(
                        guid)) {
-      manager().AuthenticateThenFillCreditCardForm(form, field.global_id(),
-                                                   *card, trigger_source);
+      manager().FillOrPreviewCreditCardForm(mojom::ActionPersistence::kFill,
+                                            form, field.global_id(), *card,
+                                            trigger_source);
     }
   }
 
@@ -1223,9 +1224,9 @@ class BrowserAutofillManagerTest : public testing::Test {
     card.SetNetworkForMaskedCard(kVisaCard);
 
     EXPECT_CALL(driver(), ApplyFormAction).Times(AtLeast(1));
-    manager().AuthenticateThenFillCreditCardForm(
-        *form, form->fields()[0].global_id(), card,
-        AutofillTriggerSource::kPopup);
+    manager().FillOrPreviewCreditCardForm(mojom::ActionPersistence::kFill,
+                                          *form, form->fields()[0].global_id(),
+                                          card, AutofillTriggerSource::kPopup);
   }
 
   void OnDidGetRealPan(
@@ -4596,7 +4597,7 @@ TEST_F(BrowserAutofillManagerTest, FormSubmittedWithDifferentFields) {
 
   // Simulate form submission.
   FormSubmitted(form);
-  EXPECT_EQ(signature, manager().votes_uploader().submitted_form_signature());
+  EXPECT_EQ(signature, client().GetVotesUploader().submitted_form_signature());
 }
 
 // Test that we do not save form data when submitted fields contain default
@@ -4765,7 +4766,8 @@ TEST_F(BrowserAutofillManagerTest,
     test_api(form).field(i).set_value(expected_values[i]);
   }
 
-  manager().votes_uploader().set_expected_submitted_field_types(expected_types);
+  client().GetVotesUploader().set_expected_submitted_field_types(
+      expected_types);
   FormSubmitted(form);
 }
 
@@ -4813,8 +4815,9 @@ TEST_F(BrowserAutofillManagerTest, OnTextFieldDidChangeAndUnfocus_Upload) {
 
   // We will expect these types in the upload and no observed submission (the
   // callback initiated by WaitForAsyncUploadProcess checks these expectations.)
-  manager().votes_uploader().set_expected_submitted_field_types(expected_types);
-  manager().votes_uploader().set_expected_observed_submission(false);
+  client().GetVotesUploader().set_expected_submitted_field_types(
+      expected_types);
+  client().GetVotesUploader().set_expected_observed_submission(false);
 
   // The fields are edited after calling FormsSeen on them. This is because
   // default values are not used for upload comparisons.
@@ -4863,8 +4866,9 @@ TEST_F(BrowserAutofillManagerTest, OnTextFieldDidChangeAndNavigation_Upload) {
 
   // We will expect these types in the upload and no observed submission. (the
   // callback initiated by WaitForAsyncUploadProcess checks these expectations.)
-  manager().votes_uploader().set_expected_submitted_field_types(expected_types);
-  manager().votes_uploader().set_expected_observed_submission(false);
+  client().GetVotesUploader().set_expected_submitted_field_types(
+      expected_types);
+  client().GetVotesUploader().set_expected_observed_submission(false);
 
   // The fields are edited after calling FormsSeen on them. This is because
   // default values are not used for upload comparisons.
@@ -4914,8 +4918,9 @@ TEST_F(BrowserAutofillManagerTest, OnDidFillAutofillFormDataAndUnfocus_Upload) {
 
   // We will expect these types in the upload and no observed submission. (the
   // callback initiated by WaitForAsyncUploadProcess checks these expectations.)
-  manager().votes_uploader().set_expected_submitted_field_types(expected_types);
-  manager().votes_uploader().set_expected_observed_submission(false);
+  client().GetVotesUploader().set_expected_submitted_field_types(
+      expected_types);
+  client().GetVotesUploader().set_expected_observed_submission(false);
 
   // Form was autofilled with user data.
   test_api(form).field(0).set_value(u"Elvis");
@@ -6596,9 +6601,8 @@ TEST_F(BrowserAutofillManagerTest, ShowAutofillAiSuggestions) {
       .WillOnce(Return(std::vector<Suggestion>{
           Suggestion(u"Autocomplete", SuggestionType::kRetrieveAutofillAi)}));
 
-  OnAskForValuesToFill(
-      form, form.fields().front(),
-      AutofillSuggestionTriggerSource::kPredictionImprovements);
+  OnAskForValuesToFill(form, form.fields().front(),
+                       AutofillSuggestionTriggerSource::kAutofillAi);
   EXPECT_THAT(external_delegate()->suggestions(),
               ElementsAre(Field(&Suggestion::type,
                                 Eq(SuggestionType::kRetrieveAutofillAi))));
@@ -6618,9 +6622,8 @@ TEST_F(BrowserAutofillManagerTest, ShowAutofillAiIPH) {
               ShowAutofillFieldIphForFeature(
                   _, AutofillClient::IphFeature::kPredictionImprovements));
 
-  OnAskForValuesToFill(
-      form, form.fields().front(),
-      AutofillSuggestionTriggerSource::kPredictionImprovements);
+  OnAskForValuesToFill(form, form.fields().front(),
+                       AutofillSuggestionTriggerSource::kAutofillAi);
 }
 
 // Tests that an Autofill profile is not imported into the address data manager
@@ -7427,10 +7430,15 @@ TEST_F(BrowserAutofillManagerTest,
   OnAskForValuesToFill(form, form.fields()[0]);
 
   EXPECT_TRUE(external_delegate()->on_suggestions_returned_seen());
-  EXPECT_THAT(
-      external_delegate()->suggestions(),
-      ElementsAre(EqualsSuggestion(SuggestionType::kAddressEntryOnTyping,
-                                   address_home_line1, /*is_primary=*/false)));
+  const std::vector<Suggestion>& suggestions =
+      external_delegate()->suggestions();
+  ASSERT_TRUE(suggestions.size() > 0);
+  // Assert that the first suggestion is of type
+  // `SuggestionType::kAddressEntryOnTyping` and its text is the profile value
+  // for `ADDRESS_HOME_LINE1`.
+  EXPECT_THAT(suggestions[0],
+              EqualsSuggestion(SuggestionType::kAddressEntryOnTyping,
+                               address_home_line1));
 }
 
 class BrowserAutofillManagerPlusAddressTest

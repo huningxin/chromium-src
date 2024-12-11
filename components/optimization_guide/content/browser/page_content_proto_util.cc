@@ -25,12 +25,27 @@ optimization_guide::proto::ContentAttributeType ConvertAttributeType(
       return optimization_guide::proto::CONTENT_ATTRIBUTE_PARAGRAPH;
     case blink::mojom::AIPageContentAttributeType::kHeading:
       return optimization_guide::proto::CONTENT_ATTRIBUTE_HEADING;
-    case blink::mojom::AIPageContentAttributeType::kList:
-      return optimization_guide::proto::CONTENT_ATTRIBUTE_LIST;
+    case blink::mojom::AIPageContentAttributeType::kOrderedList:
+      return optimization_guide::proto::CONTENT_ATTRIBUTE_ORDERED_LIST;
+    case blink::mojom::AIPageContentAttributeType::kUnorderedList:
+      return optimization_guide::proto::CONTENT_ATTRIBUTE_UNORDERED_LIST;
     case blink::mojom::AIPageContentAttributeType::kForm:
       return optimization_guide::proto::CONTENT_ATTRIBUTE_FORM;
     case blink::mojom::AIPageContentAttributeType::kFigure:
-      // TODO(khushalsagar): Add this type to the proto.
+    case blink::mojom::AIPageContentAttributeType::kHeader:
+    case blink::mojom::AIPageContentAttributeType::kNav:
+    case blink::mojom::AIPageContentAttributeType::kSearch:
+    case blink::mojom::AIPageContentAttributeType::kMain:
+    case blink::mojom::AIPageContentAttributeType::kArticle:
+    case blink::mojom::AIPageContentAttributeType::kSection:
+    case blink::mojom::AIPageContentAttributeType::kAside:
+    case blink::mojom::AIPageContentAttributeType::kFooter:
+      // TODO(crbug.com/382083796): Add this type to the proto.
+      return optimization_guide::proto::CONTENT_ATTRIBUTE_UNKNOWN;
+    case blink::mojom::AIPageContentAttributeType::kTable:
+      return optimization_guide::proto::CONTENT_ATTRIBUTE_TABLE;
+    case blink::mojom::AIPageContentAttributeType::kTableCell:
+      // TODO(crbug.com/382083796): Add this type to the proto.
       return optimization_guide::proto::CONTENT_ATTRIBUTE_UNKNOWN;
   }
 

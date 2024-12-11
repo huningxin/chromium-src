@@ -15,6 +15,7 @@
 #import "ios/chrome/browser/signin/model/authentication_service_factory.h"
 #import "ios/chrome/browser/signin/model/trusted_vault_client_backend.h"
 #import "ios/chrome/browser/signin/model/trusted_vault_client_backend_factory.h"
+#import "ios/chrome/browser/ui/authentication/signin/interruptible_chrome_coordinator.h"
 #import "ios/chrome/browser/ui/authentication/signin/signin_coordinator+protected.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util.h"
@@ -81,6 +82,9 @@ using l10n_util::GetNSStringF;
   };
   switch (action) {
     case SigninCoordinatorInterrupt::UIShutdownNoDismiss:
+      CHECK(!base::FeatureList::IsEnabled(
+                kIOSInterruptibleCoordinatorAlwaysDismissed),
+            base::NotFatalUntil::M136);
       // TrustedVaultClientBackend doesn't support no dismiss. Therefore there
       // is nothing to do. It will be just deallocated when the service will
       // be shutdown.
@@ -100,8 +104,20 @@ using l10n_util::GetNSStringF;
     CHECK(!self.errorAlertCoordinator.noInteractionAction);
     self.errorAlertCoordinator.noInteractionAction = cancelCompletion;
     [self stopErrorAlertCoordinator];
+    // Checks that `cancelCompletion` is executed synchronously.
+    CHECK(!self.signinCompletion, base::NotFatalUntil::M126);
+  } else if (base::FeatureList::IsEnabled(
+                 kIOSInterruptibleCoordinatorStoppedSynchronously)) {
+    std::move(_dialogCancelCallback).Run(animated, nil);
+    cancelCompletion();
   } else {
-    std::move(_dialogCancelCallback).Run(animated, cancelCompletion);
+    if (base::FeatureList::IsEnabled(
+            kIOSInterruptibleCoordinatorStoppedSynchronously)) {
+      std::move(_dialogCancelCallback).Run(animated, nil);
+      cancelCompletion();
+    } else {
+      std::move(_dialogCancelCallback).Run(animated, cancelCompletion);
+    }
   }
 }
 

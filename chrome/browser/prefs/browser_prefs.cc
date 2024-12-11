@@ -277,6 +277,7 @@
 #include "chrome/browser/nearby_sharing/common/nearby_share_prefs.h"
 #include "chrome/browser/new_tab_page/modules/file_suggestion/drive_service.h"
 #include "chrome/browser/new_tab_page/modules/safe_browsing/safe_browsing_handler.h"
+#include "chrome/browser/new_tab_page/modules/v2/authentication/microsoft_auth_page_handler.h"
 #include "chrome/browser/new_tab_page/modules/v2/calendar/google_calendar_page_handler.h"
 #include "chrome/browser/new_tab_page/modules/v2/most_relevant_tab_resumption/most_relevant_tab_resumption_page_handler.h"
 #include "chrome/browser/new_tab_page/promos/promo_service.h"
@@ -1149,6 +1150,26 @@ inline constexpr char kDeleteTimePeriodV2[] =
 inline constexpr char kDeleteTimePeriodV2Basic[] =
     "browser.clear_data.time_period_v2_basic";
 
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+// Deprecated 12/2024
+const char kCryptAuthDeviceSyncIsRecoveringFromFailure[] =
+    "cryptauth.device_sync.is_recovering_from_failure";
+const char kCryptAuthDeviceSyncLastSyncTimeSeconds[] =
+    "cryptauth.device_sync.last_device_sync_time_seconds";
+const char kCryptAuthDeviceSyncReason[] = "cryptauth.device_sync.reason";
+const char kCryptAuthDeviceSyncUnlockKeys[] =
+    "cryptauth.device_sync.unlock_keys";
+const char kCryptAuthEnrollmentIsRecoveringFromFailure[] =
+    "cryptauth.enrollment.is_recovering_from_failure";
+const char kCryptAuthEnrollmentLastEnrollmentTimeSeconds[] =
+    "cryptauth.enrollment.last_enrollment_time_seconds";
+const char kCryptAuthEnrollmentReason[] = "cryptauth.enrollment.reason";
+const char kCryptAuthEnrollmentUserPublicKey[] =
+    "cryptauth.enrollment.user_public_key";
+const char kCryptAuthEnrollmentUserPrivateKey[] =
+    "cryptauth.enrollment.user_private_key";
+#endif
+
 // Register local state used only for migration (clearing or moving to a new
 // key).
 void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
@@ -1620,6 +1641,26 @@ void RegisterProfilePrefsForMigration(
   // Deprecated 12/2024.
   registry->RegisterIntegerPref(kDeleteTimePeriodV2, -1);
   registry->RegisterIntegerPref(kDeleteTimePeriodV2Basic, -1);
+
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  // Deprecated 12/2024
+  registry->RegisterDoublePref(kCryptAuthDeviceSyncLastSyncTimeSeconds, 0.0);
+  registry->RegisterBooleanPref(kCryptAuthDeviceSyncIsRecoveringFromFailure,
+                                false);
+  registry->RegisterIntegerPref(kCryptAuthDeviceSyncReason,
+                                cryptauth::INVOCATION_REASON_UNKNOWN);
+  registry->RegisterListPref(kCryptAuthDeviceSyncUnlockKeys);
+  registry->RegisterBooleanPref(kCryptAuthEnrollmentIsRecoveringFromFailure,
+                                false);
+  registry->RegisterDoublePref(kCryptAuthEnrollmentLastEnrollmentTimeSeconds,
+                               0.0);
+  registry->RegisterIntegerPref(kCryptAuthEnrollmentReason,
+                                cryptauth::INVOCATION_REASON_UNKNOWN);
+  registry->RegisterStringPref(kCryptAuthEnrollmentUserPublicKey,
+                               std::string());
+  registry->RegisterStringPref(kCryptAuthEnrollmentUserPrivateKey,
+                               std::string());
+#endif
 }
 
 }  // namespace
@@ -1943,7 +1984,7 @@ void RegisterLocalState(PrefRegistrySimple* registry) {
   registry->RegisterIntegerPref(prefs::kChromeDataRegionSetting, 0);
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
-  GlicConfiguration::RegisterPrefs(registry);
+  glic::GlicConfiguration::RegisterPrefs(registry);
 #endif
 
   // This is intentionally last.
@@ -2132,6 +2173,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   NtpCustomBackgroundService::RegisterProfilePrefs(registry);
   media_router::RegisterAccessCodeProfilePrefs(registry);
   media_router::RegisterProfilePrefs(registry);
+  MicrosoftAuthPageHandler::RegisterProfilePrefs(registry);
   NewTabPageHandler::RegisterProfilePrefs(registry);
   NewTabPageUI::RegisterProfilePrefs(registry);
   ntp::SafeBrowsingHandler::RegisterProfilePrefs(registry);
@@ -2939,6 +2981,19 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   // Added 12/2024.
   profile_prefs->ClearPref(kDeleteTimePeriodV2);
   profile_prefs->ClearPref(kDeleteTimePeriodV2Basic);
+
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  // Deprecated 12/2024
+  profile_prefs->ClearPref(kCryptAuthDeviceSyncLastSyncTimeSeconds);
+  profile_prefs->ClearPref(kCryptAuthDeviceSyncIsRecoveringFromFailure);
+  profile_prefs->ClearPref(kCryptAuthDeviceSyncReason);
+  profile_prefs->ClearPref(kCryptAuthDeviceSyncUnlockKeys);
+  profile_prefs->ClearPref(kCryptAuthEnrollmentIsRecoveringFromFailure);
+  profile_prefs->ClearPref(kCryptAuthEnrollmentLastEnrollmentTimeSeconds);
+  profile_prefs->ClearPref(kCryptAuthEnrollmentReason);
+  profile_prefs->ClearPref(kCryptAuthEnrollmentUserPublicKey);
+  profile_prefs->ClearPref(kCryptAuthEnrollmentUserPrivateKey);
+#endif
 
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_PROFILE_PREFS

@@ -72,7 +72,9 @@ import org.chromium.components.collaboration.messaging.EitherId.EitherGroupId;
 import org.chromium.components.collaboration.messaging.MessagingBackendService;
 import org.chromium.components.collaboration.messaging.MessagingBackendService.PersistentMessageObserver;
 import org.chromium.components.collaboration.messaging.PersistentMessage;
+import org.chromium.components.collaboration.messaging.PersistentNotificationType;
 import org.chromium.components.data_sharing.DataSharingService;
+import org.chromium.components.data_sharing.GroupMember;
 import org.chromium.components.embedder_support.util.UrlConstants;
 import org.chromium.components.tab_group_sync.LocalTabGroupId;
 import org.chromium.components.tab_group_sync.TabGroupSyncService;
@@ -187,6 +189,7 @@ public class TabGridDialogMediator
     private final ValueChangedCallback<TabGroupModelFilter> mOnTabGroupModelFilterChanged =
             new ValueChangedCallback<>(this::onTabGroupModelFilterChanged);
     private final Callback<Integer> mOnGroupSharedStateChanged = this::onGroupSharedStateChanged;
+    private final Callback<List<GroupMember>> mOnGroupMembersChanged = this::onGroupMembersChanged;
     private final Callback<String> mOnCollaborationIdChanged = this::onCollaborationIdChanged;
     private final Activity mActivity;
     private final DialogController mDialogController;
@@ -276,6 +279,9 @@ public class TabGridDialogMediator
             mTransitiveSharedGroupObserver
                     .getGroupSharedStateSupplier()
                     .addObserver(mOnGroupSharedStateChanged);
+            mTransitiveSharedGroupObserver
+                    .getGroupMembersSupplier()
+                    .addObserver(mOnGroupMembersChanged);
             mTransitiveSharedGroupObserver
                     .getCollaborationIdSupplier()
                     .addObserver(mOnCollaborationIdChanged);
@@ -649,6 +655,9 @@ public class TabGridDialogMediator
             mTransitiveSharedGroupObserver
                     .getGroupSharedStateSupplier()
                     .removeObserver(mOnGroupSharedStateChanged);
+            mTransitiveSharedGroupObserver
+                    .getGroupMembersSupplier()
+                    .removeObserver(mOnGroupMembersChanged);
             mTransitiveSharedGroupObserver
                     .getCollaborationIdSupplier()
                     .removeObserver(mOnCollaborationIdChanged);
@@ -1043,18 +1052,23 @@ public class TabGridDialogMediator
         mTransitiveSharedGroupObserver.setTabGroupId(tab.getTabGroupId());
     }
 
+    private void onGroupMembersChanged(@Nullable List<GroupMember> members) {
+        if (mSharedImageTilesCoordinator == null) return;
+
+        @Nullable
+        String collaborationId = mTransitiveSharedGroupObserver.getCollaborationIdSupplier().get();
+        if (members != null && TabShareUtils.isCollaborationIdValid(collaborationId)) {
+            mSharedImageTilesCoordinator.onGroupMembersChanged(collaborationId, members);
+        } else {
+            mSharedImageTilesCoordinator.onGroupMembersChanged(
+                    /* collaborationId= */ null, /* members= */ null);
+        }
+    }
+
     private void onCollaborationIdChanged(@Nullable String collaborationId) {
         if (TabShareUtils.isCollaborationIdValid(collaborationId)) {
             showOrUpdateCollaborationActivityMessageCard();
-
-            assert mSharedImageTilesCoordinator != null;
-            mSharedImageTilesCoordinator.updateCollaborationId(collaborationId);
         } else {
-            if (mSharedImageTilesCoordinator != null) {
-                // Remove any images left in the shared image tiles component so they don't waste
-                // memory.
-                mSharedImageTilesCoordinator.updateCollaborationId(/* collaborationId= */ null);
-            }
             removeCollaborationActivityMessageCard();
         }
     }
@@ -1300,7 +1314,8 @@ public class TabGridDialogMediator
                 EitherGroupId.createLocalId(new LocalTabGroupId(currentTabGroupId));
         List<PersistentMessage> messages =
                 mMessagingBackendService.getMessagesForGroup(
-                        eitherGroupId, /* type= */ Optional.empty());
+                        eitherGroupId,
+                        /* type= */ Optional.of(PersistentNotificationType.DIRTY_TAB));
         Map<Integer, Integer> collaborationEventCounts = new HashMap<>();
         for (PersistentMessage message : messages) {
             collaborationEventCounts.merge(message.collaborationEvent, 1, Integer::sum);

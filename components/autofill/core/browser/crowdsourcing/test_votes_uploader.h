@@ -16,6 +16,7 @@
 #include "base/run_loop.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/time/time.h"
+#include "components/autofill/core/browser/autofill_client.h"
 #include "components/autofill/core/browser/crowdsourcing/votes_uploader.h"
 #include "components/autofill/core/browser/form_structure.h"
 #include "components/autofill/core/common/language_code.h"
@@ -24,13 +25,11 @@
 
 namespace autofill {
 
-class BrowserAutofillManager;
-
 // Turns the asynchronous VotesUploader operations into synchronous ones and
 // validates expectations.
 class TestVotesUploader : public VotesUploader {
  public:
-  explicit TestVotesUploader(BrowserAutofillManager* owner);
+  explicit TestVotesUploader(AutofillClient* client);
   TestVotesUploader(const TestVotesUploader&) = delete;
   TestVotesUploader& operator=(const TestVotesUploader&) = delete;
   ~TestVotesUploader() override;
@@ -41,15 +40,14 @@ class TestVotesUploader : public VotesUploader {
       bool observed_submission,
       LanguageCode current_page_language,
       base::TimeTicks initial_interaction_timestamp,
+      const std::u16string& last_unlocked_credit_card_cvc,
       ukm::SourceId ukm_source_id) override;
 
-  void QueueVote(FormSignature form_signature,
-                 base::OnceClosure callback) override;
-
   void UploadVote(std::unique_ptr<FormStructure> submitted_form,
-                  base::TimeTicks interaction_time,
-                  base::TimeTicks submission_time,
+                  base::TimeTicks initial_interaction_timestamp,
+                  base::TimeTicks submission_timestamp,
                   bool observed_submission,
+                  const std::u16string& last_unlocked_credit_card_cvc,
                   const ukm::SourceId source_id) override;
 
   const std::string& submitted_form_signature() {
@@ -68,7 +66,6 @@ class TestVotesUploader : public VotesUploader {
  private:
   friend class TestBrowserAutofillManager;
 
-  std::unique_ptr<base::RunLoop> run_loop_;
   std::string submitted_form_signature_;
   std::optional<bool> expected_observed_submission_;
   std::vector<FieldTypeSet> expected_submitted_field_types_;

@@ -217,6 +217,12 @@ notes = """
 https://github.com/rust-lang/rfcs/blob/master/text/2582-raw-reference-mir-operator.md
 """
 
+[[audits.anyhow]]
+who = "Dustin J. Mitchell <djmitche@chromium.org>"
+criteria = ["safe-to-run", "does-not-implement-crypto"]
+delta = "1.0.93 -> 1.0.94"
+notes = "No behavioral changes"
+
 [[audits.autocfg]]
 who = "Lukasz Anforowicz <lukasza@chromium.org>"
 criteria = ["ub-risk-0", "safe-to-deploy", "does-not-implement-crypto"]
@@ -485,6 +491,12 @@ who = "Liza Burakova <liza@chromium.org>"
 criteria = ["safe-to-run", "does-not-implement-crypto"]
 delta = "1.7.2 -> 1.8.0"
 notes = "smol change, does not add unsafe code, majority of change is new tests"
+
+[[audits.bytes]]
+who = "Dustin J. Mitchell <djmitche@chromium.org>"
+criteria = ["safe-to-run", "does-not-implement-crypto"]
+delta = "1.8.0 -> 1.9.0"
+notes = "Reviewed in https://crrev.com/c/6072366."
 
 [[audits.cfg-if]]
 who = "Lukasz Anforowicz <lukasza@chromium.org>"
@@ -1038,6 +1050,11 @@ criteria = ["safe-to-deploy", "does-not-implement-crypto", "ub-risk-0"]
 delta = "0.3.5 -> 0.3.6"
 notes = "No unsafe, no crypto, mysterious tables replaced with const expressions"
 
+[[audits.fdeflate]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = ["safe-to-deploy", "does-not-implement-crypto", "ub-risk-0"]
+delta = "0.3.6 -> 0.3.7"
+
 [[audits.fend-core]]
 who = "jiwan@chromium.org"
 criteria = ["safe-to-deploy", "does-not-implement-crypto", "ub-risk-0"]
@@ -1478,6 +1495,11 @@ can be found at go/image-crate-chromium-security-review.
 who = "Lukasz Anforowicz <lukasza@chromium.org>"
 criteria = ["safe-to-deploy", "does-not-implement-crypto", "ub-risk-0"]
 delta = "0.17.13 -> 0.17.14"
+
+[[audits.png]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = ["safe-to-deploy", "does-not-implement-crypto", "ub-risk-0"]
+delta = "0.17.14 -> 0.17.15"
 
 [[audits.ppv-lite86]]
 who = "danakj@chromium.org"

@@ -204,11 +204,6 @@ BASE_FEATURE(kFledgeLimitNumAuctions,
 const base::FeatureParam<int> kFledgeLimitNumAuctionsParam{
     &kFledgeLimitNumAuctions, "max_auctions_per_page", 8};
 
-// Enables caching when loading interest groups for a bidder in an auction.
-BASE_FEATURE(kFledgeUseInterestGroupCache,
-             "FledgeUseInterestGroupCache",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables a delay for the post-auction interest group update to avoid
 // immediately invalidating cached values.
 BASE_FEATURE(kFledgeDelayPostAuctionInterestGroupUpdate,
@@ -266,15 +261,6 @@ BASE_FEATURE(kFrameRoutingCache,
              base::FEATURE_ENABLED_BY_DEFAULT);
 const base::FeatureParam<int> kFrameRoutingCacheResponseSize{
     &kFrameRoutingCache, "responseSize", 4};
-
-// Adds "/prefetch:8" (which is the "other" category of process - i.e. not
-// browser, gpu, crashpad, etc.) to the info collection GPU process' command
-// line, in order to keep from polluting the GPU prefetch history.
-#if BUILDFLAG(IS_WIN)
-BASE_FEATURE(kGpuInfoCollectionSeparatePrefetch,
-             "GpuInfoCollectionSeparatePrefetch",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-#endif
 
 // Group network isolation key(NIK) by storage interest group joining origin to
 // improve privacy and performance -- IGs of the same joining origin can reuse

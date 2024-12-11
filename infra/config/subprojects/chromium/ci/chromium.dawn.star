@@ -2653,6 +2653,8 @@ ci.thin_tester(
         category = "ToT|Windows|x64|Intel",
         short_name = "770",
     ),
+    # Can hit the default build timeout if no tasks end up being deduped.
+    execution_timeout = 4 * time.hour,
 )
 
 ci.thin_tester(
@@ -2731,10 +2733,6 @@ ci.thin_tester(
             "gpu_dawn_isolated_scripts",
         ],
         mixins = [
-            # TODO(crbug.com/40888390): The swarming dimensions for
-            # webgpu_blink_web_tests and webgpu_cts_tests on
-            # win10-code-coverage, in test_suite_exceptions.pyl, must be kept
-            # manually in sync with this configuration.
             "win10_nvidia_gtx_1660_stable",
         ],
     ),

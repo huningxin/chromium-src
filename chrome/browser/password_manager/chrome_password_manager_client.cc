@@ -148,7 +148,6 @@
 #include "chrome/browser/password_manager/android/password_manager_launcher_android.h"
 #include "chrome/browser/password_manager/android/password_manager_ui_util_android.h"
 #include "chrome/browser/password_manager/android/password_manager_util_bridge.h"
-#include "chrome/browser/password_manager/android/password_migration_warning_startup_launcher.h"
 #include "chrome/browser/touch_to_fill/password_manager/password_generation/android/touch_to_fill_password_generation_controller.h"
 #include "chrome/browser/touch_to_fill/password_manager/touch_to_fill_controller.h"
 #include "chrome/browser/touch_to_fill/password_manager/touch_to_fill_controller_autofill_delegate.h"
@@ -742,15 +741,10 @@ void ChromePasswordManagerClient::NotifyStorePasswordCalled() {
   was_store_ever_called_ = true;
 }
 
-#if BUILDFLAG(IS_ANDROID)
-void ChromePasswordManagerClient::StartSubmissionTrackingAfterTouchToFill(
-    const std::u16string& filled_username) {
-  username_filled_by_touch_to_fill_ =
-      std::make_pair(filled_username, base::Time::Now());
-}
 
 void ChromePasswordManagerClient::NotifyOnSuccessfulLogin(
     const std::u16string& submitted_username) {
+#if BUILDFLAG(IS_ANDROID)
   if (!username_filled_by_touch_to_fill_) {
     return;
   }
@@ -773,6 +767,22 @@ void ChromePasswordManagerClient::NotifyOnSuccessfulLogin(
   } else {
     ResetSubmissionTrackingAfterTouchToFill();
   }
+#else
+  ChromePasswordChangeService* password_change_service =
+      PasswordChangeServiceFactory::GetForProfile(profile_);
+  if (password_change_service &&
+      password_change_service->GetPasswordChangeDelegate(web_contents())) {
+    password_change_service->GetPasswordChangeDelegate(web_contents())
+        ->SuccessfulSubmissionDetected(web_contents());
+  }
+#endif  // BUILDFLAG(IS_ANDROID)
+}
+
+#if BUILDFLAG(IS_ANDROID)
+void ChromePasswordManagerClient::StartSubmissionTrackingAfterTouchToFill(
+    const std::u16string& filled_username) {
+  username_filled_by_touch_to_fill_ =
+      std::make_pair(filled_username, base::Time::Now());
 }
 
 void ChromePasswordManagerClient::ResetSubmissionTrackingAfterTouchToFill() {
@@ -1337,6 +1347,7 @@ ChromePasswordManagerClient::ShowCrossDomainConfirmationPopup(
     base::i18n::TextDirection text_direction,
     const GURL& domain,
     const std::u16string& password_hostname,
+    bool show_warning_text,
     base::OnceClosure confirmation_callback) {
 #if BUILDFLAG(IS_ANDROID)
   auto controller =
@@ -1371,7 +1382,8 @@ ChromePasswordManagerClient::ShowCrossDomainConfirmationPopup(
                 web_contents());
 
   controller->Show(element_bounds_in_screen_space, text_direction, domain,
-                   password_hostname, std::move(confirmation_callback));
+                   password_hostname, std::move(confirmation_callback),
+                   show_warning_text);
 
   return controller;
 #endif  // BUILDFLAG(IS_ANDROID)
@@ -1800,13 +1812,6 @@ ChromePasswordManagerClient::ChromePasswordManagerClient(
                         InitializationPolicy::kObservePreexistingManagers);
 
 #if BUILDFLAG(IS_ANDROID)
-  // `this` is tab-scoped, however the local passwords migration warning
-  // should only be launched on startup.
-  static bool tried_launching_warning_on_startup = false;
-  if (!tried_launching_warning_on_startup) {
-    tried_launching_warning_on_startup = true;
-    TryToShowLocalPasswordMigrationWarning();
-  }
   // This prevents the post migration sheet from trying to show on opening new
   // tabs after the initial attempt to show the sheet on startup.
   static bool tried_launching_post_migration_sheet_on_startup = false;
@@ -2067,20 +2072,6 @@ gfx::RectF ChromePasswordManagerClient::TransformToRootCoordinates(
 #if BUILDFLAG(IS_ANDROID)
 void ChromePasswordManagerClient::ResetErrorMessageDelegate() {
   password_manager_error_message_delegate_.reset();
-}
-
-void ChromePasswordManagerClient::TryToShowLocalPasswordMigrationWarning() {
-  password_manager::PasswordStoreInterface* profile_password_store =
-      GetProfilePasswordStore();
-  if (profile_password_store == nullptr) {
-    return;
-  }
-  password_migration_warning_startup_launcher_ =
-      std::make_unique<PasswordMigrationWarningStartupLauncher>(
-          web_contents(), profile_,
-          base::BindOnce(&local_password_migration::ShowWarning));
-  password_migration_warning_startup_launcher_
-      ->MaybeFetchPasswordsAndShowWarning(profile_password_store);
 }
 
 void ChromePasswordManagerClient::TryToShowPostPasswordMigrationSheet() {

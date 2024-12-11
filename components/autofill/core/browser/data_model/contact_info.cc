@@ -14,13 +14,13 @@
 #include "base/notreached.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "components/autofill/core/browser/autofill_data_util.h"
 #include "components/autofill/core/browser/autofill_type.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/autofill_structured_address_component.h"
 #include "components/autofill/core/browser/data_model/autofill_structured_address_name.h"
 #include "components/autofill/core/browser/data_model/autofill_structured_address_utils.h"
 #include "components/autofill/core/browser/data_model/form_group.h"
+#include "components/autofill/core/browser/data_quality/autofill_data_util.h"
 #include "components/autofill/core/browser/field_type_utils.h"
 #include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/common/autofill_features.h"
@@ -88,7 +88,9 @@ bool NameInfo::FinalizeAfterImport() {
   name_->MigrateLegacyStructure();
   if (base::FeatureList::IsEnabled(
           features::kAutofillSupportPhoneticNameForJP)) {
-    return name_->CompleteFullTree() && alternative_name_->CompleteFullTree();
+    bool result = name_->CompleteFullTree();
+    result &= alternative_name_->CompleteFullTree();
+    return result;
   }
   return name_->CompleteFullTree();
 }

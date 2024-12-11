@@ -123,6 +123,10 @@ const char kAndroidBrowserControlsInVizDescription[] =
     "to top controls.";
 
 #if BUILDFLAG(IS_CHROMEOS)
+const char kAndroidVpnAppsOnFlexName[] = "Enable Android VPN Apps on Flex";
+const char kAndroidVpnAppsOnFlexDescription[] =
+    "Enables support for Android VPN Apps on Flex devices.";
+
 const char kAnnotatorModeName[] = "Enable annotator tool";
 const char kAnnotatorModeDescription[] =
     "Enables the tool for annotating across the OS.";
@@ -2410,12 +2414,6 @@ const char kExtractRelatedSearchesFromPrefetchedZPSResponseDescription[] =
     "Enables page annotation logic to source related searches data from "
     "prefetched ZPS responses";
 
-const char kLacrosExtensionPrintingName[] =
-    "Enable lacros extension printing on ash";
-const char kLacrosExtensionPrintingDescription[] =
-    "When enabled, lacros's extension printers will be used on ash when lacros "
-    "is enabled.";
-
 const char kLanguageDetectionAPIName[] = "Language detection web platform API";
 const char kLanguageDetectionAPIDescription[] =
     "When enabled, JS can use the web platform's language detection API";
@@ -3139,6 +3137,12 @@ const char kPrivacySandboxAdsAPIsOverrideDescription[] =
     "Fenced Frames, Shared Storage, Private Aggregation, and their associated "
     "features.";
 
+const char kPrivacySandboxAdsApiUxEnhancementsName[] =
+    "Privacy Sandbox Ads API UX Enhancements";
+const char kPrivacySandboxAdsApiUxEnhancementsDescription[] =
+    "Enables UI and text updates to the Privacy Sandbox Ads APIs Notice and "
+    "Consent UX, and settings pages to improve user comprehension";
+
 const char kPrivacySandboxEnrollmentOverridesName[] =
     "Privacy Sandbox Enrollment Overrides";
 const char kPrivacySandboxEnrollmentOverridesDescription[] =
@@ -3505,6 +3509,12 @@ const char kShowOverdrawFeedbackName[] = "Show overdraw feedback";
 const char kShowOverdrawFeedbackDescription[] =
     "Visualize overdraw by color-coding elements based on if they have other "
     "elements drawn underneath.";
+
+#if !BUILDFLAG(IS_CHROMEOS)
+const char kFeedbackIncludeVariationsName[] = "Feedback include variations";
+const char kFeedbackIncludeVariationsDescription[] =
+    "In Chrome feedback report, include commandline variations.";
+#endif
 
 const char kSidePanelResizingFlagId[] = "side-panel-resizing";
 const char kSidePanelResizingName[] = "Side Panel Resizing";
@@ -4530,6 +4540,12 @@ const char kEnablePixDetectionOnDomContentLoadedDescription[] =
     "websites when `WebContentsObserver::DOMContentLoaded` is fired instead of "
     "`WebContentsObserver::DidFinishLoad`.";
 
+const char kEnableClipboardDataControlsAndroidName[] =
+    "Enable enterprise data controls.";
+const char kEnableClipboardDataControlsAndroidDescription[] =
+    "Enables the enterprise data controls on Android for restricting copy and "
+    "paste actions for the clipboard.";
+
 const char kEwalletPaymentsName[] = "Enable eWallet payments";
 const char kEwalletPaymentsDescription[] =
     "When enabled, Chrome will offer to pay with eWallet accounts if a payment "
@@ -4736,10 +4752,6 @@ const char kReaderModeHeuristicsAllArticles[] = "All articles";
 const char kReaderModeHeuristicsAlwaysOff[] = "Never";
 const char kReaderModeHeuristicsAlwaysOn[] = "Always";
 
-const char kReaderModeInCCTName[] = "Reader Mode in CCT";
-const char kReaderModeInCCTDescription[] =
-    "Open Reader Mode in Chrome Custom Tabs.";
-
 const char kReengagementNotificationName[] =
     "Enable re-engagement notifications";
 const char kReengagementNotificationDescription[] =
@@ -4832,13 +4844,6 @@ const char kSupportMultipleServerRequestsForPixPaymentsName[] =
 const char kSupportMultipleServerRequestsForPixPaymentsDescription[] =
     "When enabled, the network interface with Google Payments supports "
     "handling multiple concurrent requests for Pix flows.";
-
-const char kTabletToolbarReorderingAndroidName[] =
-    "Tablet Toolbar Reordering Android.";
-const char kTabletToolbarReorderingAndroidDescription[] =
-    "Enable Tablet Toolbar Reordering on Android - Reorder the toolbar by "
-    "placing the Home button from 1st to the 4th position after the Refresh"
-    "button to match the Desktop toolbar";
 
 const char kCrossDeviceTabPaneAndroidName[] = "Cross Device Tab Pane Android";
 const char kCrossDeviceTabPaneAndroidDescription[] =
@@ -5754,11 +5759,6 @@ const char kLinkCrossDeviceInternalsDescription[] =
     "Improves debugging of Cross-Device features by recording more verbose "
     "logs and attaching these logs to filed Feedback reports.";
 
-const char kAllowFpmcuBetaFirmwareName[] =
-    "Allow using beta firmware for the FPMCU";
-const char kAllowFpmcuBetaFirmwareDescription[] =
-    "Allow using beta firmware for the Fingerprint MCU if available";
-
 const char kAllowScrollSettingsName[] =
     "Allow changes to scroll acceleration/sensitivity for mice.";
 const char kAllowScrollSettingsDescription[] =
@@ -6315,10 +6315,6 @@ const char kFastPairHandshakeLongTermRefactorDescription[] =
     "Enables long term refactored handshake logic for Google Fast Pair "
     "service.";
 
-const char kFastPairHIDName[] = "Enable Fast Pair HID";
-const char kFastPairHIDDescription[] =
-    "Enables prototype support for Fast Pair HID (non-keyboard).";
-
 const char kFastPairKeyboardsName[] = "Enable Fast Pair Keyboards";
 const char kFastPairKeyboardsDescription[] =
     "Enables prototype support for Fast Pair for keyboards.";
@@ -6356,13 +6352,6 @@ const char kDoubleTapToZoomInTabletModeName[] =
 const char kDoubleTapToZoomInTabletModeDescription[] =
     "If Enabled, double tapping in webpages while in tablet mode will zoom the "
     "page.";
-
-const char kQuickSettingsPWANotificationsName[] =
-    "Enable setting of PWA notification permissions in quick settings ";
-const char kQuickSettingsPWANotificationsDescription[] =
-    "Replace website notification permissions with PWA notification "
-    "permissions in the quick settings menu. Website notification permissions "
-    "settings will be migrated to the lacros - chrome browser.";
 
 const char kDriveFsMirroringName[] = "Enable local to Drive mirror sync";
 const char kDriveFsMirroringDescription[] =
@@ -8186,6 +8175,13 @@ const char kEnableCertManagementV2UIWriteDescription[] =
     "would be written to the platform cert store. The UI is accessible at "
     "chrome://certificate-manager";
 #endif  // BUILDFLAG(CHROME_ROOT_STORE_CERT_MANAGEMENT_UI)
+
+#if !BUILDFLAG(IS_ANDROID)
+const char kEnablePolicyPromotionBannerName[] =
+    "Enable Policy Promotion Banner";
+const char kEnablePolicyPromotionBannerDescription[] =
+    "Enables showing the policy promotion banner on chrome://policy page.";
+#endif  // !BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(IS_CHROMEOS)
 const char kOverlayScrollbarsOSSettingsName[] = "Overlay Scrollbar OS Settings";

@@ -19,6 +19,7 @@
 #include "chrome/browser/buildflags.h"
 #include "chrome/browser/dom_distiller/dom_distiller_service_factory.h"
 #include "chrome/browser/history_clusters/history_clusters_service_factory.h"
+#include "chrome/browser/history_embeddings/history_embeddings_utils.h"
 #include "chrome/browser/media/media_engagement_score_details.mojom.h"
 #include "chrome/browser/navigation_predictor/navigation_predictor.h"
 #include "chrome/browser/optimization_guide/optimization_guide_internals_ui.h"
@@ -70,7 +71,6 @@
 #include "components/history_clusters/core/features.h"
 #include "components/history_clusters/core/history_clusters_service.h"
 #include "components/history_clusters/history_clusters_internals/webui/history_clusters_internals_ui.h"
-#include "components/history_embeddings/history_embeddings_features.h"
 #include "components/language_detection/content/common/language_detection.mojom.h"
 #include "components/lens/lens_features.h"
 #include "components/live_caption/caption_util.h"
@@ -151,6 +151,7 @@
 #else
 #include "chrome/browser/badging/badge_manager.h"
 #include "chrome/browser/new_tab_page/modules/file_suggestion/drive_suggestion.mojom.h"
+#include "chrome/browser/new_tab_page/modules/v2/authentication/microsoft_auth.mojom.h"
 #include "chrome/browser/new_tab_page/modules/v2/calendar/google_calendar.mojom.h"
 #include "chrome/browser/new_tab_page/modules/v2/calendar/outlook_calendar.mojom.h"
 #include "chrome/browser/new_tab_page/modules/v2/most_relevant_tab_resumption/most_relevant_tab_resumption.mojom.h"
@@ -486,11 +487,6 @@
 #include "components/signin/public/base/signin_switches.h"
 #endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
 
-#if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
-#include "chrome/browser/on_device_translation/translation_manager_impl.h"
-#include "third_party/blink/public/mojom/on_device_translation/translation_manager.mojom.h"
-#endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
-
 #if BUILDFLAG(ENABLE_GLIC)
 #include "chrome/browser/glic/glic_enabling.h"
 #include "chrome/browser/ui/webui/glic/glic_ui.h"
@@ -791,8 +787,17 @@ void PopulateChromeFrameBinders(
 
   map->Add<translate::mojom::ContentTranslateDriver>(
       base::BindRepeating(&translate::BindContentTranslateDriver));
-  map->Add<language_detection::mojom::ContentLanguageDetectionDriver>(
-      base::BindRepeating(&translate::BindContentLanguageDetectionDriver));
+
+  if (!base::FeatureList::IsEnabled(blink::features::kLanguageDetectionAPI)) {
+    // When the feature is enabled, the driver is bound by
+    // browser_interface_binders.cc to make it available to JS execution
+    // contexts. When the feature is disabled, we bind it here for Chrome's
+    // page-translation feature.
+    //
+    // TODO(https://crbug.com/354069716): Remove this when the flag is removed.
+    map->Add<language_detection::mojom::ContentLanguageDetectionDriver>(
+        base::BindRepeating(&translate::BindContentLanguageDetectionDriver));
+  }
 
   map->Add<blink::mojom::CredentialManager>(
       base::BindRepeating(&ChromePasswordManagerClient::BindCredentialManager));
@@ -903,13 +908,6 @@ void PopulateChromeFrameBinders(
 #if BUILDFLAG(ENABLE_PRINT_PREVIEW)
   map->Add<blink::mojom::WebPrintingService>(
       base::BindRepeating(&printing::CreateWebPrintingServiceForFrame));
-#endif
-
-#if BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
-  if (base::FeatureList::IsEnabled(blink::features::kTranslationAPI)) {
-    map->Add<blink::mojom::TranslationManager>(base::BindRepeating(
-        &on_device_translation::TranslationManagerImpl::Create));
-  }
 #endif
 
 #if BUILDFLAG(IS_ANDROID)
@@ -1058,7 +1056,7 @@ void PopulateChromeWebUIFrameBinders(
                                            HistoryUI,
                                            HistoryClustersSidePanelUI>(map);
   }
-  if (history_embeddings::IsHistoryEmbeddingsEnabled()) {
+  if (history_embeddings::IsHistoryEmbeddingsFeatureEnabled()) {
     if (history_clusters_service &&
         history_clusters_service->is_journeys_feature_flag_enabled()) {
       RegisterWebUIControllerInterfaceBinder<
@@ -1148,6 +1146,13 @@ void PopulateChromeWebUIFrameBinders(
   if (base::FeatureList::IsEnabled(ntp_features::kNtpOutlookCalendarModule)) {
     RegisterWebUIControllerInterfaceBinder<
         ntp::calendar::mojom::OutlookCalendarPageHandler, NewTabPageUI>(map);
+  }
+
+  if (base::FeatureList::IsEnabled(
+          ntp_features::kNtpMicrosoftAuthenticationModule)) {
+    RegisterWebUIControllerInterfaceBinder<
+        ntp::authentication::mojom::MicrosoftAuthPageHandler, NewTabPageUI>(
+        map);
   }
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)

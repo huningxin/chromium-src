@@ -482,7 +482,7 @@ public class TabListMediatorUnitTest {
 
         mModelList = new TabListModel();
         TemplateUrlServiceFactory.setInstanceForTesting(mTemplateUrlService);
-        PriceTrackingFeatures.setPriceTrackingEnabledForTesting(false);
+        PriceTrackingFeatures.setPriceAnnotationsEnabledForTesting(false);
 
         setUpTabListMediator(TabListMediatorType.TAB_SWITCHER, TabListMode.GRID);
 
@@ -2924,13 +2924,16 @@ public class TabListMediatorUnitTest {
 
         doReturn(new GURL(NEW_URL)).when(mTab1).getUrl();
 
-        var oldFetcher = mModelList.get(POSITION1).model.get(TabProperties.THUMBNAIL_FETCHER);
+        PropertyModel model1 = mModelList.get(POSITION1).model;
+        var oldThumbnailFetcher = model1.get(TabProperties.THUMBNAIL_FETCHER);
+        // Set to null to see if an update happens.
+        model1.set(TabProperties.FAVICON_FETCHER, null);
         mTabObserverCaptor.getValue().onUrlUpdated(mTab1);
 
-        assertEquals(mNewDomain, mModelList.get(POSITION1).model.get(TabProperties.URL_DOMAIN));
+        assertEquals(mNewDomain, model1.get(TabProperties.URL_DOMAIN));
         assertEquals(mTab2Domain, mModelList.get(POSITION2).model.get(TabProperties.URL_DOMAIN));
-        assertNotEquals(
-                oldFetcher, mModelList.get(POSITION1).model.get(TabProperties.THUMBNAIL_FETCHER));
+        assertNotEquals(oldThumbnailFetcher, model1.get(TabProperties.THUMBNAIL_FETCHER));
+        assertNotNull(model1.get(TabProperties.FAVICON_FETCHER));
     }
 
     @Test
@@ -4982,7 +4985,7 @@ public class TabListMediatorUnitTest {
                 String.valueOf(value));
         FeatureList.mergeTestValues(testValues, /* replace= */ true);
 
-        PriceTrackingFeatures.setPriceTrackingEnabledForTesting(value);
+        PriceTrackingFeatures.setPriceAnnotationsEnabledForTesting(value);
     }
 
     private void assertAllUnset(PropertyModel model, List<PropertyKey> keys) {

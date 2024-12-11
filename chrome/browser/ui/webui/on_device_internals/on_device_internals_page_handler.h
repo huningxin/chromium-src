@@ -11,6 +11,7 @@
 #include "mojo/public/cpp/bindings/remote.h"
 #include "services/on_device_model/public/cpp/buildflags.h"
 #include "services/on_device_model/public/cpp/model_assets.h"
+#include "services/on_device_model/public/mojom/on_device_model.mojom.h"
 #include "services/on_device_model/public/mojom/on_device_model_service.mojom.h"
 
 class OptimizationGuideKeyedService;
@@ -54,6 +55,8 @@ class OnDeviceInternalsPageHandler : public mojom::OnDeviceInternalsPageHandler,
       GetEstimatedPerformanceClassCallback callback) override;
   void GetOnDeviceInternalsData(
       GetOnDeviceInternalsDataCallback callback) override;
+  void DecodeBitmap(mojo_base::BigBuffer image_buffer,
+                    DecodeBitmapCallback callback) override;
 
   // optimization_guide::OptimizationGuideLogger::Observer:
   void OnLogMessageAdded(base::Time event_time,

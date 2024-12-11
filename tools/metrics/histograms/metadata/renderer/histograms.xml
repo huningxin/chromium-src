@@ -390,7 +390,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Renderer.PaintPreview.Capture.MainFrameSuccess"
-    enum="BooleanSuccess" expires_after="2025-03-02">
+    enum="BooleanSuccess" expires_after="2025-06-08">
   <owner>ckitagawa@chromium.org</owner>
   <owner>fredmello@chromium.org</owner>
   <owner>chrome-fdt@google.com</owner>
@@ -435,7 +435,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Renderer.Preload.UnusedResource2{Trigger}" enum="ResourceType"
-    expires_after="2025-04-06">
+    expires_after="2025-06-08">
   <owner>sisidovski@chromium.org</owner>
   <owner>chrome-loading@google.com</owner>
   <summary>
@@ -464,7 +464,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Renderer.ProcessLifetime3{RendererHostedContentType}"
-    units="ms" expires_after="2025-04-06">
+    units="ms" expires_after="2025-06-08">
   <owner>fdoray@chromium.org</owner>
   <owner>olivierli@chromium.org</owner>
   <owner>catan-team@chromium.org</owner>
@@ -490,7 +490,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Renderer.RenderThreadImpl.Init" units="ms"
-    expires_after="2025-03-30">
+    expires_after="2025-06-08">
   <owner>jam@chromium.org</owner>
   <owner>sky@chromium.org</owner>
   <summary>
@@ -500,7 +500,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Renderer.Unresponsive.Reason{WidgetVisibility}"
-    enum="RendererIsUnresponsiveReason" expires_after="2025-04-06">
+    enum="RendererIsUnresponsiveReason" expires_after="2025-06-08">
   <owner>pmonette@chromium.org</owner>
   <owner>catan-team@chromium.org</owner>
   <summary>
@@ -526,7 +526,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Renderer.Unresponsive.{UIElementVisible}.RenderProcessHostPriority"
-    enum="RenderProcessHostPriority" expires_after="2025-04-06">
+    enum="RenderProcessHostPriority" expires_after="2025-06-08">
   <owner>pmonette@chromium.org</owner>
   <owner>catan-team@chromium.org</owner>
   <summary>
@@ -569,7 +569,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="RendererScheduler.RendererMainThreadLoad5" units="%"
-    expires_after="2025-04-06">
+    expires_after="2025-06-08">
   <owner>altimin@chromium.org</owner>
   <summary>
     Renderer main thread load (percentage of time spent in tasks), reported in
