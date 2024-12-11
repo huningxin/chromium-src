@@ -276,11 +276,11 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling V8
   # and whatever else without interference from each other.
-  'src_internal_revision': '25404c8405ef94bf5e586e9a3f2fdba824c70dda',
+  'src_internal_revision': '6e9fdcd32faa48f91f677a673a41ae960b532c6d',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling Skia
   # and whatever else without interference from each other.
-  'skia_revision': '854eb19c722e2bf32f6faa7c7731f846622e05d7',
+  'skia_revision': '830bc24e0b98cfd447620f4afc43bc30c06938c9',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling V8
   # and whatever else without interference from each other.
@@ -288,7 +288,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling ANGLE
   # and whatever else without interference from each other.
-  'angle_revision': 'a137d70233e75d944ff45e6b720e4d4beda270ab',
+  'angle_revision': 'e45a0420b75774fbfedbd2a0a38da2ea23fea8e7',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling SwiftShader
   # and whatever else without interference from each other.
@@ -352,7 +352,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling chromium_variations
   # and whatever else without interference from each other.
-  'chromium_variations_revision': 'c0dd2538099200b5e7bf156536642e97470e1b4d',
+  'chromium_variations_revision': '3685049e6f230a69c0b2054fb84fb23f333075d9',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling CrossBench
   # and whatever else without interference from each other.
@@ -1304,7 +1304,7 @@ deps = {
 
   'src/clank': {
     'url': Var('chrome_git') + '/clank/internal/apps.git' + '@' +
-    'eed1238cfa78ccf790145b535963df727b9d9011',
+    'f60fe277eee43d2e49bfa7faba670ac046965596',
     'condition': 'checkout_android and checkout_src_internal',
   },
 
@@ -2280,7 +2280,7 @@ deps = {
     Var('chromium_git') + '/external/github.com/cisco/openh264' + '@' + '478e5ab3eca30e600006d5a0a08b176fd34d3bd1',
 
   'src/third_party/openscreen/src':
-    Var('chromium_git') + '/openscreen' + '@' + '6b69ff0c0eb4ac177ea2971088e756b6be3391b2',
+    Var('chromium_git') + '/openscreen' + '@' + 'd5c1d66fb0a853b2297377ad66dae4f9d2c10d2b',
 
   'src/third_party/openxr/src': {
     'url': Var('chromium_git') + '/external/github.com/KhronosGroup/OpenXR-SDK' + '@' + '781f2eab3698d653c804ecbd11e0aed47eaad1c6',
@@ -2668,7 +2668,7 @@ deps = {
     Var('chromium_git') + '/external/khronosgroup/webgl.git' + '@' + '450cceb587613ac1469c5a131fac15935c99e0e7',
 
   'src/third_party/webgpu-cts/src':
-    Var('chromium_git') + '/external/github.com/gpuweb/cts.git' + '@' + '58d51090746647c523ddda207a5ecd5cc3cc1d58',
+    Var('chromium_git') + '/external/github.com/gpuweb/cts.git' + '@' + 'a7274c9035492494fe2db16131463fb6dd2cf0a6',
 
   'src/third_party/webpagereplay':
     Var('chromium_git') + '/webpagereplay.git' + '@' + Var('webpagereplay_revision'),
@@ -4414,7 +4414,7 @@ deps = {
 
   'src/components/optimization_guide/internal': {
       'url': Var('chrome_git') + '/chrome/components/optimization_guide.git' + '@' +
-        'd53d6d646f35e1f960c944b1bde61ebabd045985',
+        'a3d804c914572bf36003da7571604ffb4e189b11',
       'condition': 'checkout_src_internal',
   },
 
@@ -4480,7 +4480,7 @@ deps = {
 
   'src/ios_internal':  {
       'url': Var('chrome_git') + '/chrome/ios_internal.git' + '@' +
-        'f2eb82dfb51b4548885a8b7044033c95191ebd6f',
+        'b366f946adc45d9183f3dd8380ecc02d593c3d46',
       'condition': 'checkout_ios and checkout_src_internal',
   },
 
