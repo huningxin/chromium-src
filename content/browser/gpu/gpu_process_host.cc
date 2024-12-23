@@ -254,6 +254,7 @@ static const char* const kSwitchNames[] = {
     switches::kDisableHighResTimer,
     switches::kRaiseTimerFrequency,
     switches::kUseRedistributableDirectML,
+    switches::kUseRedistributableONNXRuntime,
 #endif  // BUILDFLAG(IS_WIN)
     switches::kEnableANGLEFeatures,
     switches::kDelegatedInkRenderer,
