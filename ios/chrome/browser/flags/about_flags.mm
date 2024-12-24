@@ -27,6 +27,7 @@
 #import "components/autofill/ios/common/features.h"
 #import "components/bookmarks/common/bookmark_features.h"
 #import "components/browser_sync/browser_sync_switches.h"
+#import "components/collaboration/public/features.h"
 #import "components/commerce/core/commerce_feature_list.h"
 #import "components/commerce/core/flag_descriptions.h"
 #import "components/content_settings/core/common/features.h"
@@ -45,8 +46,8 @@
 #import "components/invalidation/impl/invalidation_switches.h"
 #import "components/ntp_tiles/features.h"
 #import "components/ntp_tiles/switches.h"
-#import "components/omnibox/browser/omnibox_feature_configs.h"
 #import "components/omnibox/browser/omnibox_field_trial.h"
+#import "components/omnibox/common/omnibox_feature_configs.h"
 #import "components/omnibox/common/omnibox_features.h"
 #import "components/optimization_guide/core/optimization_guide_features.h"
 #import "components/optimization_guide/core/optimization_guide_switches.h"
@@ -97,6 +98,7 @@
 #import "ios/chrome/browser/screen_time/model/screen_time_buildflags.h"
 #import "ios/chrome/browser/settings/ui_bundled/clear_browsing_data/features.h"
 #import "ios/chrome/browser/settings/ui_bundled/google_services/features.h"
+#import "ios/chrome/browser/settings/ui_bundled/password/password_manager_ui_features.h"
 #import "ios/chrome/browser/settings/ui_bundled/privacy/privacy_guide/features.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/public/features/system_flags.h"
@@ -1133,39 +1135,19 @@ const FeatureEntry::FeatureParam kNewFeedPositioningArm2[] = {
     {kNewFeedPositioningCombinedMVTForHighEngaged, "true"},
     {kNewFeedPositioningCombinedMVTForMidEngaged, "false"},
     {kNewFeedPositioningCombinedMVTForLowEngaged, "false"},
-    {kNewFeedPositioningHomestackOnForAll, "true"},
 };
 
 const FeatureEntry::FeatureParam kNewFeedPositioningArm3[] = {
     {kNewFeedPositioningCombinedMVTForHighEngaged, "true"},
     {kNewFeedPositioningCombinedMVTForMidEngaged, "true"},
     {kNewFeedPositioningCombinedMVTForLowEngaged, "false"},
-    {kNewFeedPositioningHomestackOnForAll, "true"},
-};
-
-const FeatureEntry::FeatureParam kNewFeedPositioningArm4[] = {
-    {kNewFeedPositioningCombinedMVTForHighEngaged, "true"},
-    {kNewFeedPositioningCombinedMVTForMidEngaged, "false"},
-    {kNewFeedPositioningCombinedMVTForLowEngaged, "false"},
-    {kNewFeedPositioningHomestackOnForAll, "false"},
-};
-
-const FeatureEntry::FeatureParam kNewFeedPositioningArm5[] = {
-    {kNewFeedPositioningCombinedMVTForHighEngaged, "true"},
-    {kNewFeedPositioningCombinedMVTForMidEngaged, "true"},
-    {kNewFeedPositioningCombinedMVTForLowEngaged, "false"},
-    {kNewFeedPositioningHomestackOnForAll, "false"},
 };
 
 const FeatureEntry::FeatureVariation kNewFeedPositioningVariations[] = {
-    {"- Treatment 2", kNewFeedPositioningArm2,
+    {"- update for high feed engagement", kNewFeedPositioningArm2,
      std::size(kNewFeedPositioningArm2), nullptr},
-    {"- Treatment 3", kNewFeedPositioningArm3,
+    {"- update for high and mid feed engagement", kNewFeedPositioningArm3,
      std::size(kNewFeedPositioningArm3), nullptr},
-    {"- Treatment 4", kNewFeedPositioningArm4,
-     std::size(kNewFeedPositioningArm4), nullptr},
-    {"- Treatment 5", kNewFeedPositioningArm5,
-     std::size(kNewFeedPositioningArm5), nullptr},
 };
 
 const FeatureEntry::FeatureParam
@@ -1202,6 +1184,21 @@ const FeatureEntry::FeatureVariation kSetUpListInFirstRunVariations[] = {
      std::size(kSetUpListInFirstRunArm2), nullptr},
     {" - Variation 3", kSetUpListInFirstRunArm3,
      std::size(kSetUpListInFirstRunArm3), nullptr}};
+
+const FeatureEntry::FeatureParam kSetUpListDuration3Days[] = {
+    {set_up_list::kSetUpListDurationParam, "2"}};
+const FeatureEntry::FeatureParam kSetUpListDuration5Days[] = {
+    {set_up_list::kSetUpListDurationParam, "4"}};
+const FeatureEntry::FeatureParam kSetUpListDuration7Days[] = {
+    {set_up_list::kSetUpListDurationParam, "6"}};
+
+const FeatureEntry::FeatureVariation kSetUpListDurationVariations[] = {
+    {" - 3 Days", kSetUpListDuration3Days, std::size(kSetUpListDuration3Days),
+     nullptr},
+    {" - 5 Days", kSetUpListDuration5Days, std::size(kSetUpListDuration5Days),
+     nullptr},
+    {" - 7 Days", kSetUpListDuration7Days, std::size(kSetUpListDuration7Days),
+     nullptr}};
 
 // To add a new entry, add to the end of kFeatureEntries. There are four
 // distinct types of entries:
@@ -1321,6 +1318,12 @@ const flags_ui::FeatureEntry kFeatureEntries[] = {
      FEATURE_WITH_PARAMS_VALUE_TYPE(kModernTabStrip,
                                     kModernTabStripVariations,
                                     "ModernTabStrip")},
+    {"ios-enable-delete-all-saved-credentials",
+     flag_descriptions::kIOSEnableDeleteAllSavedCredentialsName,
+     flag_descriptions::kIOSEnableDeleteAllSavedCredentialsDescription,
+     flags_ui::kOsIos,
+     FEATURE_VALUE_TYPE(
+         password_manager::features::kIOSEnableDeleteAllSavedCredentials)},
     {"ios-shared-highlighting-color-change",
      flag_descriptions::kIOSSharedHighlightingColorChangeName,
      flag_descriptions::kIOSSharedHighlightingColorChangeDescription,
@@ -1446,9 +1449,6 @@ const flags_ui::FeatureEntry kFeatureEntries[] = {
     {"intents-on-measurements", flag_descriptions::kMeasurementsName,
      flag_descriptions::kMeasurementsDescription, flags_ui::kOsIos,
      FEATURE_VALUE_TYPE(web::features::kEnableMeasurements)},
-    {"intents-on-viewport", flag_descriptions::kEnableViewportIntentsName,
-     flag_descriptions::kEnableViewportIntentsDescription, flags_ui::kOsIos,
-     FEATURE_VALUE_TYPE(web::features::kEnableViewportIntents)},
     {"improve-parcel-detection",
      flag_descriptions::kEnableNewParcelTrackingNumberDetectionName,
      flag_descriptions::kEnableNewParcelTrackingNumberDetectionDescription,
@@ -1780,12 +1780,6 @@ const flags_ui::FeatureEntry kFeatureEntries[] = {
     {"disable-lens-camera", flag_descriptions::kDisableLensCameraName,
      flag_descriptions::kDisableLensCameraDescription, flags_ui::kOsIos,
      FEATURE_VALUE_TYPE(kDisableLensCamera)},
-    {"enable-color-lens-and-voice-icons-in-home-screen-widget",
-     flag_descriptions::kEnableColorLensAndVoiceIconsInHomeScreenWidgetName,
-     flag_descriptions::
-         kEnableColorLensAndVoiceIconsInHomeScreenWidgetDescription,
-     flags_ui::kOsIos,
-     FEATURE_VALUE_TYPE(kEnableColorLensAndVoiceIconsInHomeScreenWidget)},
     {"autofill-enable-card-benefits-for-american-express",
      flag_descriptions::kAutofillEnableCardBenefitsForAmericanExpressName,
      flag_descriptions::
@@ -2248,6 +2242,36 @@ const flags_ui::FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kLensClearcutLoggerFastQosEnabledName,
      flag_descriptions::kLensClearcutLoggerFastQosEnabledDescription,
      flags_ui::kOsIos, FEATURE_VALUE_TYPE(kLensClearcutLoggerFastQosEnabled)},
+    {"set-up-list-shortened-duration",
+     flag_descriptions::kSetUpListShortenedDurationName,
+     flag_descriptions::kSetUpListShortenedDurationDescription,
+     flags_ui::kOsIos,
+     FEATURE_WITH_PARAMS_VALUE_TYPE(set_up_list::kSetUpListShortenedDuration,
+                                    kSetUpListDurationVariations,
+                                    "SetUpListShortenedDuration")},
+    // TODO(crbug.com/359325090): Update value type to include params needed for
+    // the multi-arm experiment.
+    {"ios-new-following-feed-entry-points",
+     flag_descriptions::kIOSNewFollowingFeedEntryPointsName,
+     flag_descriptions::kIOSNewFollowingFeedEntryPointsDescription,
+     flags_ui::kOsIos, FEATURE_VALUE_TYPE(kIOSNewFollowingFeedEntryPoints)},
+    {"enable-lens-overlay-price-insights-counterfactual",
+     flag_descriptions::kLensOverlayPriceInsightsCounterfactualName,
+     flag_descriptions::kLensOverlayPriceInsightsCounterfactualDescription,
+     flags_ui::kOsIos,
+     FEATURE_VALUE_TYPE(kLensOverlayPriceInsightsCounterfactual)},
+    {"collaboration-messaging", flag_descriptions::kCollaborationMessagingName,
+     flag_descriptions::kCollaborationMessagingDescription, flags_ui::kOsIos,
+     FEATURE_VALUE_TYPE(collaboration::messaging::kCollaborationMessaging)},
+    {"lens-single-tap-text-selection-disabled",
+     flag_descriptions::kLensSingleTapTextSelectionDisabledName,
+     flag_descriptions::kLensSingleTapTextSelectionDisabledDescription,
+     flags_ui::kOsIos, FEATURE_VALUE_TYPE(kLensSingleTapTextSelectionDisabled)},
+    {"lens-overlay-enable-location-bar-entrypoint-on-srp",
+     flag_descriptions::kLensOverlayEnableLocationBarEntrypointOnSRPName,
+     flag_descriptions::kLensOverlayEnableLocationBarEntrypointOnSRPDescription,
+     flags_ui::kOsIos,
+     FEATURE_VALUE_TYPE(kLensOverlayEnableLocationBarEntrypointOnSRP)},
 };
 
 bool SkipConditionalFeatureEntry(const flags_ui::FeatureEntry& entry) {

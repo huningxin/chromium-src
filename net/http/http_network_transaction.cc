@@ -981,6 +981,12 @@ int HttpNetworkTransaction::DoCreateStreamComplete(int result) {
              (IsGoogleHostWithAlpnH3(url_.host()) ? "GoogleHost." : ""),
              NegotiatedProtocolToHistogramSuffix(negotiated_protocol_)}),
         base::TimeTicks::Now() - create_stream_start_time_);
+    if (!reset_connection_and_request_for_resend_start_time_.is_null()) {
+      base::UmaHistogramTimes(
+          "Net.NetworkTransaction.ResetConnectionAndResendRequestTime",
+          base::TimeTicks::Now() -
+              reset_connection_and_request_for_resend_start_time_);
+    }
   } else if (result == ERR_HTTP_1_1_REQUIRED ||
              result == ERR_PROXY_HTTP_1_1_REQUIRED) {
     return HandleHttp11Required(result);
@@ -2044,6 +2050,8 @@ bool HttpNetworkTransaction::CheckMaxRestarts() {
 
 void HttpNetworkTransaction::ResetConnectionAndRequestForResend(
     RetryReason retry_reason) {
+  reset_connection_and_request_for_resend_start_time_ = base::TimeTicks::Now();
+
   // TODO:(crbug.com/1495705): Remove this CHECK after fixing the bug.
   CHECK(request_);
   base::UmaHistogramEnumeration(
@@ -2211,7 +2219,7 @@ void HttpNetworkTransaction::RecordStreamRequestResult(int result) {
   if (num_restarts_ == 0) {
     base::TimeDelta elapsed = base::TimeTicks::Now() - start_timeticks_;
     base::UmaHistogramTimes(
-        base::StrCat({"Net.NetworkTransaction.StreamRequestCompleteTime",
+        base::StrCat({"Net.NetworkTransaction.StreamRequestCompleteTime.",
                       IsGoogleHostWithAlpnH3(url_.host()) ? "GoogleHost." : "",
                       result == OK ? "Success" : "Failure"}),
         elapsed);
@@ -2220,7 +2228,7 @@ void HttpNetworkTransaction::RecordStreamRequestResult(int result) {
   if (result == OK) {
     base::UmaHistogramEnumeration(
         base::StrCat({
-            "Net.NetworkTransaction.NegotiatedProtocol",
+            "Net.NetworkTransaction.NegotiatedProtocol.",
             IsGoogleHostWithAlpnH3(url_.host()) ? "GoogleHost." : "",
         }),
         negotiated_protocol_);

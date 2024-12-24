@@ -44,13 +44,14 @@ class TaskManagerView : public TableViewDelegate,
                         public views::TableGrouper,
                         public views::TableViewObserver,
                         public views::ContextMenuController,
-                        public ui::SimpleMenuModel::Delegate {
+                        public ui::SimpleMenuModel::Delegate,
+                        public TaskManagerSearchBarView::Delegate {
   METADATA_HEADER(TaskManagerView, views::DialogDelegateView)
 
  public:
   struct FilterTab {
-    int title_id;
     DisplayCategory associated_category;
+    int title_id;
     raw_ptr<const gfx::VectorIcon> icon;
   };
 
@@ -108,7 +109,13 @@ class TaskManagerView : public TableViewDelegate,
   void ExecuteCommand(int id, int event_flags) override;
   void MenuClosed(ui::SimpleMenuModel* source) override;
 
+  // TaskManagerSearchBarView::Delegate:
+  void SearchBarOnInputChanged(const std::u16string& text) override;
+
   views::TableView* tab_table_for_testing() { return tab_table_; }
+
+  // TaskManagerSearchBarView::Delegate:
+  void SearchBarOnHoverChange(const bool is_hover_on) override;
 
   static TaskManagerView* GetInstanceForTests();
 
@@ -141,7 +148,11 @@ class TaskManagerView : public TableViewDelegate,
   void PerformFilter(DisplayCategory category);
 
   // Creates all corresponding subcomponents for the header.
-  std::unique_ptr<views::View> CreateTabbedPane();
+  std::unique_ptr<views::TabbedPaneTabStrip> CreateTabbedPane(
+      const gfx::Insets& tab_strip_margin,
+      const gfx::Insets& title_margin,
+      const gfx::Insets& icon_margin,
+      int spacing_between_tabs);
   std::unique_ptr<views::View> CreateSearchBar(
       const ChromeLayoutProvider* provider);
   std::unique_ptr<views::MdTextButton> CreateEndProcessButton(
@@ -187,12 +198,25 @@ class TaskManagerView : public TableViewDelegate,
   // all possible columns, not necessarily visible.
   std::vector<ui::TableColumn> columns_;
 
+  // The tabs which holds different task categories which is not null if task
+  // manager refresh is enabled.
+  raw_ptr<views::TabbedPaneTabStrip> tabs_ = nullptr;
+
+  // The container which holds search bar icon, textfield and clear button.
+  raw_ptr<views::View> search_bar_ = nullptr;
+
   // This button is not the same as the dialog button. It is only non-null if
   // task manager refresh is enabled.
   raw_ptr<views::MdTextButton> end_process_btn_;
 
   // The first time this instance of the task manager was initialized.
   const base::TimeTicks start_time_ = base::TimeTicks::Now();
+
+  // The last time a process was ended by the user.
+  base::TimeTicks latest_end_process_time_ = base::TimeTicks::Now();
+
+  // The number of times a process has been ended in this session.
+  size_t end_process_count_ = 0;
 
   // True when the Task Manager window should be shown on top of other windows.
   bool is_always_on_top_;

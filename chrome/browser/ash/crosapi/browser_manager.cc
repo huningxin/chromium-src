@@ -38,8 +38,6 @@
 #include "base/logging.h"
 #include "base/memory/ptr_util.h"
 #include "base/memory/weak_ptr.h"
-#include "base/metrics/histogram_functions.h"
-#include "base/metrics/histogram_macros.h"
 #include "base/notreached.h"
 #include "base/path_service.h"
 #include "base/posix/eintr_wrapper.h"
@@ -56,7 +54,6 @@
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_factory.h"
-#include "chrome/browser/ash/crosapi/browser_loader.h"
 #include "chrome/browser/ash/crosapi/browser_util.h"
 #include "chrome/browser/ash/crosapi/crosapi_ash.h"
 #include "chrome/browser/ash/crosapi/crosapi_manager.h"
@@ -73,9 +70,7 @@
 #include "chrome/common/chrome_paths.h"
 #include "chromeos/ash/components/browser_context_helper/browser_context_helper.h"
 #include "chromeos/ash/components/standalone_browser/channel_util.h"
-#include "chromeos/ash/components/standalone_browser/lacros_selection.h"
 #include "chromeos/crosapi/cpp/crosapi_constants.h"
-#include "chromeos/crosapi/cpp/lacros_startup_state.h"
 #include "chromeos/crosapi/mojom/crosapi.mojom-shared.h"
 #include "components/account_id/account_id.h"
 #include "components/component_updater/ash/component_manager_ash.h"
@@ -106,15 +101,6 @@ namespace crosapi {
 
 namespace {
 
-// The names of the UMA metrics to track Daily LaunchMode changes.
-const char kLacrosLaunchModeDaily[] = "Ash.Lacros.Launch.Mode.Daily";
-const char kLacrosLaunchModeAndSourceDaily[] =
-    "Ash.Lacros.Launch.ModeAndSource.Daily";
-
-// The interval at which the daily UMA reporting function should be
-// called. De-duping of events will be happening on the server side.
-constexpr base::TimeDelta kDailyLaunchModeTimeDelta = base::Minutes(30);
-
 // Pointer to the global instance of BrowserManager.
 BrowserManager* g_instance = nullptr;
 
@@ -132,15 +118,7 @@ BrowserManager* BrowserManager::Get() {
   return g_instance;
 }
 
-BrowserManager::BrowserManager(
-    scoped_refptr<component_updater::ComponentManagerAsh> manager)
-    : BrowserManager(std::make_unique<BrowserLoader>(manager),
-                     g_browser_process->component_updater()) {}
-
-BrowserManager::BrowserManager(
-    std::unique_ptr<BrowserLoader> browser_loader,
-    component_updater::ComponentUpdateService* update_service)
-    : browser_loader_(std::move(browser_loader)) {
+BrowserManager::BrowserManager() {
   DCHECK(!g_instance);
   g_instance = this;
 
@@ -173,17 +151,8 @@ void BrowserManager::InitializeAndStartIfNeeded() {
   // Ensure this isn't run multiple times.
   session_manager::SessionManager::Get()->RemoveObserver(this);
 
-  // Perform the UMA recording for the current Lacros launch mode.
-  RecordLacrosLaunchMode();
-
-  crosapi::lacros_startup_state::SetLacrosStartupState(false);
   SetState(State::UNAVAILABLE);
-  browser_loader_->Unload();
   ClearLacrosData();
-}
-
-void BrowserManager::Shutdown() {
-  shutdown_requested_ = true;
 }
 
 void BrowserManager::SetState(State state) {
@@ -232,11 +201,6 @@ void BrowserManager::OnLacrosUserDataDirRemoved(bool cleared) {
     CHECK_IS_TEST();
     return;
   }
-  PrefService* pref_service = user_prefs::UserPrefs::Get(context);
-
-  // Clear prefs set by Lacros and stored in
-  // 'standalone_browser_preferences.json' if Lacros is disabled.
-  pref_service->RemoveAllStandaloneBrowserPrefs();
 
   // Do a one time clearing of `kUserUninstalledPreinstalledWebAppPref`. This is
   // because some users who had Lacros enabled before M114 had this pref set by
@@ -245,6 +209,7 @@ void BrowserManager::OnLacrosUserDataDirRemoved(bool cleared) {
   // uninstalled (and cannot easily be reinstalled). Note that this means that
   // some users who intentionally uninstalled these apps on Lacros will find
   // these apps reappear until they unistall them again.
+  PrefService* pref_service = user_prefs::UserPrefs::Get(context);
   web_app::UserUninstalledPreinstalledWebAppPrefs(pref_service).ClearAllApps();
 }
 
@@ -261,80 +226,6 @@ void BrowserManager::OnSessionStateChanged() {
   if (state_ == State::NOT_INITIALIZED) {
     InitializeAndStartIfNeeded();
   }
-}
-
-void BrowserManager::SetLacrosLaunchMode() {
-  LacrosLaunchMode lacros_mode;
-  LacrosLaunchModeAndSource lacros_mode_and_source;
-
-  if (!browser_util::IsAshWebBrowserEnabled()) {
-    // As Ash is disabled, Lacros is the only available browser.
-    lacros_mode = LacrosLaunchMode::kLacrosOnly;
-    lacros_mode_and_source =
-        LacrosLaunchModeAndSource::kPossiblySetByUserLacrosOnly;
-  } else {
-    lacros_mode = LacrosLaunchMode::kLacrosDisabled;
-    lacros_mode_and_source =
-        LacrosLaunchModeAndSource::kPossiblySetByUserLacrosDisabled;
-  }
-
-  crosapi::browser_util::LacrosLaunchSwitchSource source =
-      crosapi::browser_util::GetLacrosLaunchSwitchSource();
-
-  // Make sure we have always the policy loaded before we get here.
-  DCHECK(source != crosapi::browser_util::LacrosLaunchSwitchSource::kUnknown);
-
-  LacrosLaunchModeAndSource source_offset;
-  if (source ==
-      crosapi::browser_util::LacrosLaunchSwitchSource::kPossiblySetByUser) {
-    source_offset = LacrosLaunchModeAndSource::kPossiblySetByUserLacrosDisabled;
-  } else if (source ==
-             crosapi::browser_util::LacrosLaunchSwitchSource::kForcedByUser) {
-    source_offset = LacrosLaunchModeAndSource::kForcedByUserLacrosDisabled;
-  } else {
-    source_offset = LacrosLaunchModeAndSource::kForcedByPolicyLacrosDisabled;
-  }
-
-  // The states are comprised of the basic four Lacros options and the
-  // source of the mode selection (By user, by Policy, by System). These
-  // combinations are "nibbled together" here in one status value.
-  lacros_mode_and_source = static_cast<LacrosLaunchModeAndSource>(
-      static_cast<int>(source_offset) +
-      static_cast<int>(lacros_mode_and_source));
-
-  LOG(WARNING) << "Using LacrosLaunchModeAndSource "
-               << static_cast<int>(lacros_mode_and_source);
-
-  if (!lacros_mode_.has_value() || !lacros_mode_and_source_.has_value() ||
-      lacros_mode != *lacros_mode_ ||
-      lacros_mode_and_source != *lacros_mode_and_source_) {
-    // Remember new values.
-    lacros_mode_ = lacros_mode;
-    lacros_mode_and_source_ = lacros_mode_and_source;
-  }
-}
-
-void BrowserManager::RecordLacrosLaunchMode() {
-  SetLacrosLaunchMode();
-
-  base::UmaHistogramEnumeration("Ash.Lacros.Launch.Mode", *lacros_mode_);
-  base::UmaHistogramEnumeration("Ash.Lacros.Launch.ModeAndSource",
-                                *lacros_mode_and_source_);
-
-  // Call our Daily reporting once now to make sure we have an event. If it's a
-  // dupe, the server will de-dupe.
-  OnDailyLaunchModeTimer();
-  if (!daily_event_timer_.IsRunning()) {
-    daily_event_timer_.Start(FROM_HERE, kDailyLaunchModeTimeDelta, this,
-                             &BrowserManager::OnDailyLaunchModeTimer);
-  }
-}
-
-// Callback called when the daily event happens.
-void BrowserManager::OnDailyLaunchModeTimer() {
-  base::UmaHistogramEnumeration(kLacrosLaunchModeDaily, *lacros_mode_);
-  base::UmaHistogramEnumeration(kLacrosLaunchModeAndSourceDaily,
-                                *lacros_mode_and_source_);
 }
 
 }  // namespace crosapi

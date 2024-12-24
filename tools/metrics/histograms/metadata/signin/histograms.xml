@@ -22,6 +22,28 @@ chromium-metrics-reviews@google.com.
 
 <histograms>
 
+<!-- LINT.IfChange(SigninPromoAccessPoint) -->
+
+<variants name="SigninPromoAccessPoint">
+  <variant name="Bookmarks" summary="bookmark page"/>
+  <variant name="Ntp" summary="new tab page"/>
+  <variant name="RecentTabs" summary="recent tabs page"/>
+  <variant name="Settings" summary="settings page"/>
+</variants>
+
+<!-- LINT.ThenChange(/chrome/browser/signin/services/android/java/src/org/chromium/chrome/browser/signin/services/SigninPreferencesManager.java:SigninPromoAccessPointId) -->
+
+<!-- LINT.IfChange(SigninPromoAction) -->
+
+<variants name="SigninPromoAction">
+  <variant name="Continued"
+      summary="the user presses on any button (except the dismiss cross) on"/>
+  <variant name="Dismissed" summary="the user dismisses"/>
+  <variant name="Shown" summary="Chrome shows"/>
+</variants>
+
+<!-- LINT.ThenChange(/chrome/browser/ui/android/signin/java/src/org/chromium/chrome/browser/ui/signin/signin_promo/SigninPromoMediator.java:Event) -->
+
 <histogram name="Signin.AccountCapabilities.FetchLatency" units="ms"
     expires_after="2025-05-11">
   <owner>tju@google.com</owner>
@@ -550,7 +572,7 @@ prefs when the profile is loaded.  -->
 </histogram>
 
 <histogram base="true" name="Signin.AndroidGetAccountsTime" units="ms"
-    expires_after="2025-04-13">
+    expires_after="2025-06-15">
   <owner>alexilin@chromium.org</owner>
   <owner>bsazonov@chromium.org</owner>
   <summary>
@@ -979,7 +1001,7 @@ prefs when the profile is loaded.  -->
 </histogram>
 
 <histogram name="Signin.CctAccountMismatchNoticeSuppressed"
-    enum="SuppressedReason" expires_after="2025-04-13">
+    enum="SuppressedReason" expires_after="2025-06-15">
   <owner>samarchehade@google.com</owner>
   <owner>chrome-signin-team@google.com</owner>
   <summary>
@@ -1924,9 +1946,9 @@ the browser and content area. -->
   <owner>droger@chromium.org</owner>
   <owner>chrome-signin-team@google.com</owner>
   <summary>
-    Records an encryption failure that occured during OAuth2MintToken API fetch
-    with a bound refresh token. Recorded after the response is processed and
-    only if the fetch failed due to such an error. Desktop only.
+    Records an encryption failure (or lack of any) that occured during
+    OAuth2MintToken API fetch with a bound refresh token. Recorded after the
+    response is processed. Desktop only.
   </summary>
 </histogram>
 
@@ -1960,9 +1982,9 @@ tokens and is needed for as long as Chrome is fetching access tokens. -->
   <owner>alexilin@chromium.org</owner>
   <owner>chrome-signin-team@google.com</owner>
   <summary>
-    Records an encryption failure that occured during OAuthMultilogin API fetch
-    with a bound refresh token. Recorded while the response is being processed.
-    Desktop only.
+    Records an encryption failure (or lack of any) that occured during
+    OAuthMultilogin API fetch. Recorded once per cookie while the response is
+    being processed.
   </summary>
 </histogram>
 
@@ -2717,18 +2739,8 @@ kept as long as profile signout is possible -->
     the current one) across all access points when {Action} the {AccessPoint}
     sync promo (Android Only).
   </summary>
-  <token key="Action">
-    <variant name="Continued"
-        summary="the user presses on any button (except the dismiss cross) on"/>
-    <variant name="Dismissed" summary="the user dismisses"/>
-    <variant name="Shown" summary="Chrome shows"/>
-  </token>
-  <token key="AccessPoint">
-    <variant name="Bookmarks" summary="bookmark page"/>
-    <variant name="Ntp" summary="new tab page"/>
-    <variant name="RecentTabs" summary="recent tabs page"/>
-    <variant name="Settings" summary="settings page"/>
-  </token>
+  <token key="Action" variants="SigninPromoAction"/>
+  <token key="AccessPoint" variants="SigninPromoAccessPoint"/>
 </histogram>
 
 <histogram name="Signin.SyncTurnOff.Completed" enum="SigninSignoutProfile"
@@ -2740,6 +2752,28 @@ kept as long as profile signout is possible -->
     Records that the user turned off sync, and logs the original access point
     associated with this event.
   </summary>
+</histogram>
+
+<histogram name="Signin.Timestamps.Android.Fullscreen.{Event}" units="ms"
+    expires_after="2025-12-11">
+  <owner>samarchehade@google.com</owner>
+  <owner>chrome-signin-team@google.com</owner>
+  <summary>
+    Analogous to MobileFre.FromLaunch.{Event}. The amount of time between when
+    the fullscreen signin and history sync promo activity was started and when
+    {Event}. Android only.
+  </summary>
+  <token key="Event">
+    <variant name="ActivityInflated"
+        summary="the activity is ready to be drawn, although likely empty"/>
+    <variant name="LoadCompleted"
+        summary="the native code, policies and child account status are
+                 loaded"/>
+    <variant name="NativeInitialized" summary="the native code is initialized"/>
+    <variant name="PoliciesLoaded" summary="policies are loaded"/>
+    <variant name="TriggerLayoutInflation"
+        summary="layout inflation is triggered"/>
+  </token>
 </histogram>
 
 <histogram name="Signin.TokenBinding.BoundTokenPrevalence"

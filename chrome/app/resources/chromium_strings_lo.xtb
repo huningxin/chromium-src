@@ -19,7 +19,6 @@
 <translation id="1185134272377778587">ກ່ຽວ​ກັບ Chromium</translation>
 <translation id="1188705220418984327">ເພື່ອແບ່ງປັນໜ້າຈໍຂອງທ່ານ, ໃຫ້ອະນຸຍາດການບັນທຶກໜ້າຈໍສຳລັບ Chromium ໃນຄ່າກຳນົດຂອງລະບົບ.</translation>
 <translation id="1203500561924088507">ຂໍຂອບໃຈສຳລັບການຕິດຕັ້ງ. ທ່ານຈະຕ້ອງຣີສະຕາດໂປຣແກຣມທ່ອງເວັບຂອງທ່ານກ່ອນການໃຊ້ <ph name="BUNDLE_NAME" />.</translation>
-<translation id="1235768345431527125">ທ່ານສາມາດເຂົ້າສູ່ລະບົບເພື່ອຮັບເອົາສິ່ງຂອງຂອງທ່ານ ຫຼື ໃຊ້ Chromium ໂດຍບໍ່ຕ້ອງມີບັນຊີໄດ້</translation>
 <translation id="1262876892872089030">ໃນຂະນະທີ່ແຖບນີ້ບໍ່ມີການນຳໃຊ້, ລະບົບຈະເພີ່ມພື້ນທີ່ຫວ່າງໃນໜ່ວຍຄວາມຈຳເພື່ອໃຫ້ໃຊ້ Chromium ໄດ້ຢ່າງວ່ອງໄວຢູ່ຕະຫຼອດ. ທ່ານສາມາດເລືອກຍົກເວັ້ນໃຫ້ເວັບໄຊນີ້ເຮັດວຽກຕະຫຼອດເວລາໄດ້.</translation>
 <translation id="1265577313130862557">Chromium ບລັອກການດາວໂຫຼດນີ້ ເນື່ອງຈາກໄຟລ໌ເປັນອັນຕະລາຍ</translation>
 <translation id="126567311906253476">ເມື່ອເຂົ້າສູ່ລະບົບບໍລິການຕ່າງໆຂອງ Google ເຊັ່ນ: Gmail ຫຼື YouTube ດ້ວຍ <ph name="USER_EMAIL" />, ທ່ານສາມາດເຂົ້າສູ່ລະບົບ Chromium ດ້ວຍບັນຊີດຽວກັນໄດ້ໂດຍອັດຕະໂນມັດ</translation>
@@ -60,6 +59,7 @@
 <translation id="1779356040007214683">ເພື່ອເຮັດໃຫ້ Chromium ປອດໄພຂຶ້ນ, ພວກເຮົາປິດໃຊ້ງານບາງສ່ວນຂະຫຍາຍທີ່ບໍ່ໄດ້ມີລາຍຊື່ຢູ່ໃນ <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> ແລະອາດຈະຖືກເພີ່ມເຂົ້າໂດຍທີ່ທ່ານບໍ່ຮູ້ຈັກ.</translation>
 <translation id="1808667845054772817">ຕິດຕັ້ງ Chromium ຄືນໃໝ່</translation>
 <translation id="1820835682567584003">Chromium ກຳລັງພະຍາຍາມໃຊ້ <ph name="AUTHENTICATION_PURPOSE" /></translation>
+<translation id="1838374766361614909">ລຶບ​ການ​ຊອກ​ຫາ</translation>
 <translation id="18552579716432081">ເພື່ອລຶບຂໍ້ມູນການທ່ອງເວັບໃນອຸປະກອນນີ້ເທົ່ານັ້ນ, ແຕ່ຍັງຮັກສາຂໍ້ມູນດັ່ງກ່າວໄວ້ໃນບັນຊີ Google ຂອງທ່ານ, ໃຫ້ <ph name="BEGIN_LINK" />ອອກຈາກລະບົບ Chromium<ph name="END_LINK" />.</translation>
 <translation id="185970820835152459">ທ່ານສາມາດຈັດການບັນຊີ Google ທີ່ເຂົ້າສູ່ລະບົບແລ້ວຂອງທ່ານໄດ້. ບັນຊີ Google ຂອງທ່ານແມ່ນໃຊ້ສຳລັບໂປຣແກຣມທ່ອງເວັບ Chromium, Play Store, Gmail ແລະ ອື່ນໆ. ຫາກທ່ານຕ້ອງການເພີ່ມບັນຊີໃຫ້ຄົນອື່ນ ເຊັ່ນ: ສະມາຊິກຄອບຄົວ, ໃຫ້ເພີ່ມຄົນໃໝ່ໃສ່ <ph name="DEVICE_TYPE" /> ຂອງທ່ານແທນ. <ph name="LINK_BEGIN" />ສຶກສາເພີ່ມເຕີມ<ph name="LINK_END" /></translation>
 <translation id="1862852878885210965">ຊອກຫາດ້ວຍການຊອກຫາຮູບ</translation>
@@ -69,6 +69,7 @@
 <translation id="1896836275755235458">Chromium ຈະຊ່ວຍປະຢັດພະລັງງານແບັດເຕີຣີໂດຍການຈຳກັດກິດຈະກຳຢູ່ພື້ນຫຼັງ ແລະ ເອັບເຟັກພາບ ເຊັ່ນ: ການເລື່ອນທີ່ນຸ້ມນວນ ແລະ ອັດຕາເຟຣມວິດີໂອ. <ph name="BEGIN_LINK" />ສຶກສາເພີ່ມເຕີມກ່ຽວກັບຕົວປະຢັດພະລັງງານ<ph name="END_LINK" /></translation>
 <translation id="1900969832270057921">ບໍລິການ Chromium Updater</translation>
 <translation id="1911763535808217981">ໂດຍການປິດສິ່ງນີ້, ທ່ານສາມາດເຂົ້າສູ່ລະບົບເວັບໄຊຂອງ Google ເຊັ່ນ: Gmail ໄດ້ໂດຍບໍ່ຕ້ອງເຂົ້າສູ່ລະບົບ Chromium</translation>
+<translation id="1916451563296275579">ລຶບຂໍ້ມູນແອັບນີ້ອອກຈາກ Chromium</translation>
 <translation id="1929939181775079593">Chromium ບໍ່ຕອບຮັບ. ເລີ່ມເປີດໃຊ້ໃໝ່ດຽວນີ້ບໍ?</translation>
 <translation id="1933341829955786215">ອົງກອນຂອງທ່ານ, <ph name="MANAGER" />, ກຳນົດໃຫ້ທ່ານເຂົ້າສູ່ລະບົບ Chromium</translation>
 <translation id="193439633299369377">ຈຳເປັນຕ້ອງຣີສະຕາດ ChromiumOS ເພື່ອນຳໃຊ້ການອັບເດດ.</translation>
@@ -113,6 +114,7 @@
 <translation id="2483889755041906834">ໃນ Chromium</translation>
 <translation id="2485422356828889247">ຖອນ​ຕິດ​ຕັ້ງ</translation>
 <translation id="2513154137948333830">ຕ້ອງປິດເປີດໃໝ່: <ph name="INSTALL_SUCCESS" /></translation>
+<translation id="2522009821193247726">ເພື່ອສືບຕໍ່, ທ່ານຈະຕ້ອງເຂົ້າສູ່ລະບົບ Chromium ດ້ວຍ <ph name="EMAIL" />. ສິ່ງນີ້ເພື່ອໃຫ້ໝັ້ນໃຈວ່າເປັນການປະຕິບັດຕາມນະໂຍບາຍຂອງອົງກອນຂອງທ່ານ.</translation>
 <translation id="2542968102051442371">ເລືອກຂໍ້ຄວາມດ້ວຍການຊອກຫາຮູບ</translation>
 <translation id="2554739539410784893">Chromium ກຳລັງພະຍາຍາມປ່ຽນແທນລະຫັດຜ່ານທີ່ມີຢູ່. ພິມລະຫັດຜ່ານ Windows ຂອງທ່ານໃສ່ເພື່ອອະນຸຍາດສິ່ງນີ້.</translation>
 <translation id="2560420686485554789">Chromium ຕ້ອງການເຂົ້າເຖິງບ່ອນເກັບຂໍ້ມູນເພື່ອດາວໂຫຼດໄຟລ໌</translation>
@@ -207,7 +209,6 @@
 <translation id="3802055581630249637">Chromium ໂຫຼດໜ້າເວັບທີ່ທ່ານອາດຈະເຂົ້າເບິ່ງໄວ້ກ່ອນລ່ວງໜ້າ, ເພື່ອໃຫ້ພວກມັນໂຫຼດໄວຂຶ້ນເມື່ອທ່ານເຂົ້າເບິ່ງ</translation>
 <translation id="3830894615770080216">ລະບົບ ChromiumOS</translation>
 <translation id="3848258323044014972"><ph name="PAGE_TITLE" /> - Chromium</translation>
-<translation id="386822487697155367">ຂໍຄວາມຊ່ວຍເຫຼືອກັບ ChromiumOS</translation>
 <translation id="3871664619793219264">ເຂົ້າເຖິງຂໍ້ມູນໂປຣແກຣມທ່ອງເວັບ Chromium ຂອງທ່ານຈາກ <ph name="ACCOUNT_EMAIL" /></translation>
 <translation id="3885770153807205175">ຕົວເລືອກພາສາ</translation>
 <translation id="388648406173476553">ປັບແຕ່ງ ແລະ ຄວບຄຸມ Chromium. ມີບາງຢ່າງທີ່ທ່ານຕ້ອງດຳເນີນການ - ຄລິກສຳລັບລາຍລະອຽດ.</translation>
@@ -407,6 +408,7 @@
 <translation id="6455857529632101747">ຍິນດີຕ້ອນຮັບສູ່ໂປຣໄຟລ໌ Chromium</translation>
 <translation id="6466344609055215035">ລຶບບັນຊີອອກຈາກ Chromium</translation>
 <translation id="6475912303565314141">ມັນຍັງຄວບຄຸມວ່າຈະໃຫ້ສະແດງໜ້າໃດຂຶ້ນ ເມື່ອທ່ານເລີ່ມຕົ້ນເປີດ Chromium.</translation>
+<translation id="648062525172759633">ໜ້າເຫຼົ່ານີ້ມີໄວ້ສຳລັບນັກພັດທະນາ Chromium ເທົ່ານັ້ນ ແລະ ອາດບໍ່ໄດ້ຮັບການບຳລຸງຮັກສາ ຫຼື ທົດສອບຢ່າງສະໝ່ຳສະເໝີ. ເພື່ອເປີດການນຳໃຊ້, ໃຫ້ເຂົ້າໄປ <ph name="BEGIN_LINK" />chrome://chrome-urls<ph name="LINK_END" />, ຄລິກປຸ່ມເພື່ອເປີດການນຳໃຊ້ໜ້າດີບັກ, ຈາກນັ້ນນຳທາງໄປຫາໜ້ານີ້ອີກຄັ້ງ.</translation>
 <translation id="648319183876919572">Safe Browsing ທີ່ປັບປຸງດີຂຶ້ນຊ່ວຍປົກປ້ອງທ່ານຈາກເວັບໄຊ ແລະ ການດາວໂຫຼດທີ່ອັນຕະລາຍ</translation>
 <translation id="6510925080656968729">ຖອນ​ຕິດ​ຕັ້ງ Chromium</translation>
 <translation id="651535675648445253">ເປີດທາງລັດໃນ Chromium</translation>
@@ -515,6 +517,7 @@ Chromium ບໍ່ສາມາດກູ້ການຕັ້ງຄ່າຂອ�
 <translation id="7877292582355102282"><ph name="BEGIN_BOLD" />ທ່ານສາມາດຈັດການຂໍ້ມູນຂອງທ່ານໄດ້ແນວໃດ:<ph name="END_BOLD" /> ເພື່ອປົກປ້ອງຄວາມເປັນສ່ວນຕົວຂອງທ່ານ, ພວກເຮົາຈະລຶບຄວາມສົນໃຈຂອງທ່ານທີ່ເກົ່າກວ່າ 4 ອາທິດອອກໂດຍອັດຕະໂນມັດ. ໃນເວລາທີ່ທ່ານສືບຕໍ່ການທ່ອງເວັບ, ຄວາມສົນໃຈອາດປາກົດຢູ່ລາຍຊື່ຄືນໃໝ່. ຫຼື ທ່ານສາມາດລຶບຄວາມສົນໃຈອອກໄດ້ຫາກທ່ານບໍ່ຕ້ອງການໃຫ້ Chromium ພິຈາລະນາ.</translation>
 <translation id="7888981273428720788">ຕັ້ງ Chromium ເປັນຄ່າເລີ່ມຕົ້ນຂອງທ່ານ</translation>
 <translation id="7934340546140346950">Chromium ອັບເກຣດການເຊື່ອມຕໍ່ທີ່ບໍ່ປອດໄພເປັນ HTTPS ໂດຍອັດຕະໂນມັດຫາກເປັນໄປໄດ້</translation>
+<translation id="7935734571048689933">Chromium ໄດ້ຮັບການຈັດການ</translation>
 <translation id="7937630085815544518">ທ່ານ​ໄດ້ລົງຊື່ເຂົ້າໃຊ້ Chromium ເປັນ <ph name="USER_EMAIL_ADDRESS" />. ກະ​ລຸ​ນາ​​ໃຊ້​ບັນ​ຊີ​ດຽວ​ກັນ​ ເພື່ອລົງຊື່ເຂົ້າໃຊ້ອີກ.</translation>
 <translation id="7975919845073681630">ນີ້ແມ່ນການຕິດຕັ້ງສຳຮອງຂອງ Chromium ແລະ ບໍ່ສາມາດຖືກຕັ້ງເປັນໂປຣແກຣມທ່ອງເວັບເລີ່ມຕົ້ນໄດ້.</translation>
 <translation id="7997934263947464652">ສ່ວນຂະຫຍາຍ, ແອັບ ແລະ ຮູບແບບສີສັນຈາກແຫຼ່ງຂໍ້ມູນທີ່ບໍ່ຮູ້ຈັກອາດເປັນອັນຕະລາຍກັບອຸປະກອນຂອງທ່ານໄດ້. Chromium ແນະນຳໃຫ້ຕິດຕັ້ງພວກມັນຈາກ <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> ເທົ່ານັ້ນ</translation>

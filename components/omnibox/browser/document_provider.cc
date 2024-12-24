@@ -41,10 +41,10 @@
 #include "components/omnibox/browser/autocomplete_provider_listener.h"
 #include "components/omnibox/browser/document_suggestions_service.h"
 #include "components/omnibox/browser/in_memory_url_index_types.h"
-#include "components/omnibox/browser/omnibox_feature_configs.h"
 #include "components/omnibox/browser/omnibox_field_trial.h"
 #include "components/omnibox/browser/remote_suggestions_service.h"
 #include "components/omnibox/browser/search_suggestion_parser.h"
+#include "components/omnibox/common/omnibox_feature_configs.h"
 #include "components/omnibox/common/omnibox_features.h"
 #include "components/search/search.h"
 #include "components/search_engines/search_engine_type.h"
@@ -69,7 +69,7 @@ const size_t kMaxQueryLength = 200;
 // numeric values should never be reused.
 //
 // Keep up to date with DocumentProviderAllowedReason in
-// //tools/metrics/histograms/enums.xml.
+// //tools/metrics/histograms/metadata/omnibox/enums.xml.
 enum class DocumentProviderAllowedReason : int {
   kAllowed = 0,
   kUnknown = 1,
@@ -84,7 +84,8 @@ enum class DocumentProviderAllowedReason : int {
   kInputOnFocusOrEmpty = 10,
   kInputTooShort = 11,
   kInputLooksLikeUrl = 12,
-  kMaxValue = kInputLooksLikeUrl
+  kNotEnterpriseEligible = 13,
+  kMaxValue = kNotEnterpriseEligible
 };
 
 void LogOmniboxDocumentRequest(RemoteRequestEvent request_event) {
@@ -361,10 +362,35 @@ bool DocumentProvider::IsDocumentProviderAllowed(
     return false;
   }
 
-  // Must be logged in.
-  if (!client_->IsAuthenticated()) {
+  // Must be authenticated.
+  const bool is_authenticated =
+      base::FeatureList::IsEnabled(
+          omnibox::kDocumentProviderPrimaryAccountRequirement)
+          ? client_->GetDocumentSuggestionsService()->HasPrimaryAccount()
+          : client_->IsAuthenticated();
+  if (!is_authenticated) {
     base::UmaHistogramEnumeration("Omnibox.DocumentSuggest.ProviderAllowed",
                                   DocumentProviderAllowedReason::kNotLoggedIn);
+    return false;
+  }
+
+  // Must be enterprise eligibile (if the feature is enabled).
+  bool is_enterprise_eligible = true;
+  if (base::FeatureList::IsEnabled(
+          omnibox::kDocumentProviderEnterpriseEligibility)) {
+    const auto& entrprise_account_state =
+        client_->GetDocumentSuggestionsService()
+            ->account_is_subject_to_enterprise_policies();
+    is_enterprise_eligible =
+        base::FeatureList::IsEnabled(
+            omnibox::kDocumentProviderEnterpriseEligibilityWhenUnknown)
+            ? entrprise_account_state != signin::Tribool::kFalse
+            : entrprise_account_state == signin::Tribool::kTrue;
+  }
+  if (!is_enterprise_eligible) {
+    base::UmaHistogramEnumeration(
+        "Omnibox.DocumentSuggest.ProviderAllowed",
+        DocumentProviderAllowedReason::kNotEnterpriseEligible);
     return false;
   }
 
@@ -759,8 +785,7 @@ ACMatches DocumentProvider::ParseDocumentSearchResults(
     // `matches_cache_`.
     match.stripped_destination_url = AutocompleteMatch::GURLToStrippedGURL(
         GURL(short_url), input_, client_->GetTemplateURLService(),
-        std::u16string(), /*keep_search_intent_params=*/false,
-        /*normalize_search_terms=*/false);
+        std::u16string(), /*keep_search_intent_params=*/false);
 
     match.contents =
         AutocompleteMatch::SanitizeString(base::UTF8ToUTF16(title));

@@ -870,8 +870,6 @@ component("platform") {
     "graphics/box_reflection.h",
     "graphics/canvas_2d_layer_bridge.cc",
     "graphics/canvas_2d_layer_bridge.h",
-    "graphics/canvas_color_params.cc",
-    "graphics/canvas_color_params.h",
     "graphics/canvas_deferred_paint_record.cc",
     "graphics/canvas_deferred_paint_record.h",
     "graphics/canvas_hibernation_handler.cc",
@@ -1257,6 +1255,8 @@ component("platform") {
     "media/media_player_client.h",
     "media/media_player_util.cc",
     "media/media_player_util.h",
+    "media/player_id_generator.cc",
+    "media/player_id_generator.h",
     "media/remote_playback_client.h",
     "media/web_audio_source_provider_client.h",
     "media/web_audio_source_provider_impl.cc",
@@ -1765,6 +1765,7 @@ component("platform") {
     "//cc/ipc",
     "//cc/mojo_embedder",
     "//components/language_detection/content/common",
+    "//components/language_detection/content/common:common_blink",
     "//components/language_detection/content/renderer",
     "//components/language_detection/core",
     "//components/paint_preview/common",
@@ -2975,7 +2976,6 @@ source_set("unit_tests") {
   visibility = [ "//third_party/blink/renderer/*" ]
   sources = [
     "graphics/animation_worklet_mutator_dispatcher_impl_test.cc",
-    "graphics/canvas_color_params_test.cc",
     "graphics/canvas_hibernation_handler_test.cc",
     "graphics/canvas_resource_dispatcher_test.cc",
     "graphics/canvas_resource_host_test.cc",

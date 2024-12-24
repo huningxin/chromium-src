@@ -185,6 +185,7 @@
 #include "content/public/browser/document_ref.h"
 #include "content/public/browser/document_service_internal.h"
 #include "content/public/browser/download_manager.h"
+#include "content/public/browser/feature_observer_client.h"
 #include "content/public/browser/global_routing_id.h"
 #include "content/public/browser/media_device_id.h"
 #include "content/public/browser/network_service_util.h"
@@ -329,9 +330,6 @@
 #endif
 
 namespace features {
-BASE_FEATURE(kDisableFrameNameUpdateOnNonCurrentRenderFrameHost,
-             "DisableFrameNameUpdateOnNonCurrentRenderFrameHost",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Evict when accessibility events occur while in back/forward cache.
 // Disabling on all platforms since https://crbug.com/1341507 has been addressed
@@ -865,19 +863,6 @@ enum class RendererLoadType {
   kBackForward,
   kReload,
   kReplaceCurrentItem,
-};
-
-// These values are persisted to logs. Entries should not be renumbered and
-// numeric values should never be reused.
-// Used to log whether the call to SSLManager::DidStartResourceResponse()
-// resulted in a no-op or if the exceptions were cleared out when a good
-// certificate was seen. Matches histogram enum (SSLSubresourceResponseType).
-enum class SSLSubresourceResponseType {
-  // Includes cases when call resulted in a no-op.
-  kIgnored = 0,
-  // Includes cases when exceptions were cleared after seeing a good cert.
-  kProcessed = 1,
-  kMaxValue = kProcessed,
 };
 
 bool ValidateCSPAttribute(const std::string& value) {
@@ -1474,6 +1459,10 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
                             base::Unretained(this)));
   }
 
+  void SimulateKeepAliveTimeoutForTesting() {
+    keep_alive_timeout_for_testing_ = true;
+  }
+
  private:
   // A task that attempts to shutdown the render process for the case where only
   // discarded frames remain.
@@ -1507,15 +1496,32 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
           }
         });
 
-    // Attempt shutdown without running unload handlers, the discard operation
-    // has been acknowledged by the render process at this point.
-    if (discarded_widgets.size() > 0 && only_discarded_frames &&
-        (retries_ * kProcessShutdownRetryDelay <=
-         RenderProcessHostImpl::kKeepAliveHandleFactoryTimeout) &&
-        !host_->FastShutdownIfPossible(
+    // Attempt a shutdown if the the renderer is hosting only discarded frames.
+    if (discarded_widgets.empty() || !only_discarded_frames) {
+      return;
+    }
+
+    // If shutdown re-attempts have exceeded the kKeepAliveHandleFactoryTimeout
+    // then attempt a final shutdown ignoring any active keep-alive refs.
+    if (keep_alive_timeout_for_testing_ ||
+        retries_ * kProcessShutdownRetryDelay >=
+            RenderProcessHostImpl::kKeepAliveHandleFactoryTimeout) {
+      host_->FastShutdownIfPossible(
+          /*page_count=*/discarded_widgets.size(),
+          /*skip_unload_handlers=*/true,
+          /*ignore_workers=*/true,
+          /*ignore_keep_alive=*/true);
+      return;
+    }
+
+    // If re-attempts have not yet reached kKeepAliveHandleFactoryTimeout
+    // attempt a shutdown honoring any existing keep-alive refs. Schedule a
+    // retry if fast shutdown is blocked.
+    if (!host_->FastShutdownIfPossible(
             /*page_count=*/discarded_widgets.size(),
             /*skip_unload_handlers=*/true,
-            /*ignore_workers=*/true)) {
+            /*ignore_workers=*/true,
+            /*ignore_keep_alive=*/false)) {
       retries_++;
       shutdown_attempt_timer_.Start(
           FROM_HERE, kProcessShutdownRetryDelay,
@@ -1532,6 +1538,8 @@ class DiscardedRFHProcessHelper : public base::SupportsUserData::Data,
 
   // Owns this.
   const raw_ptr<RenderProcessHost> host_;
+
+  bool keep_alive_timeout_for_testing_ = false;
 };
 
 }  // namespace
@@ -3738,8 +3746,7 @@ void RenderFrameHostImpl::RenderProcessGone(
 
   ++renderer_exit_count_;
 
-  if (base::FeatureList::IsEnabled(features::kCrashReporting))
-    MaybeGenerateCrashReport(info.status, info.exit_code);
+  MaybeGenerateCrashReport(info.status, info.exit_code);
 
   // Reporting API: Send any queued reports and mark the reporting source as
   // expired so that the reporting configuration in the network service can be
@@ -5473,6 +5480,22 @@ BackForwardCacheDisablingFeatureHandle::BackForwardCacheDisablingFeatureHandle(
   render_frame_host_->OnBackForwardCacheDisablingFeatureUsed(feature_);
 }
 
+BackForwardCacheDisablingFeatureHandle::
+    ~BackForwardCacheDisablingFeatureHandle() {
+  Reset();
+}
+
+bool BackForwardCacheDisablingFeatureHandle::IsValid() const {
+  return render_frame_host_.get();
+}
+
+void BackForwardCacheDisablingFeatureHandle::Reset() {
+  if (render_frame_host_) {
+    render_frame_host_->OnBackForwardCacheDisablingFeatureRemoved(feature_);
+  }
+  render_frame_host_ = nullptr;
+}
+
 void RenderFrameHostImpl::RecordBackForwardCacheDisablingReason(
     BackForwardCacheDisablingFeature feature) {
   ++browser_reported_bfcache_disabling_features_counts_[feature];
@@ -5539,9 +5562,74 @@ RenderFrameHostImpl::RegisterBackForwardCacheDisablingNonStickyFeature(
   return BackForwardCacheDisablingFeatureHandle(this, feature);
 }
 
+using HoldingBlockingIDBLockHandle =
+    RenderFrameHostImpl::HoldingBlockingIDBLockHandle;
+
+HoldingBlockingIDBLockHandle::HoldingBlockingIDBLockHandle() = default;
+
+HoldingBlockingIDBLockHandle::HoldingBlockingIDBLockHandle(
+    HoldingBlockingIDBLockHandle&& other) = default;
+
+HoldingBlockingIDBLockHandle::HoldingBlockingIDBLockHandle(
+    RenderFrameHostImpl* render_frame_host)
+    : render_frame_host_(render_frame_host->GetWeakPtr()) {
+  CHECK(render_frame_host_);
+  render_frame_host_->OnStartHoldingBlockingIDBLock();
+}
+
+HoldingBlockingIDBLockHandle::~HoldingBlockingIDBLockHandle() {
+  Reset();
+}
+
+bool HoldingBlockingIDBLockHandle::IsValid() const {
+  return render_frame_host_.get();
+}
+
+void HoldingBlockingIDBLockHandle::Reset() {
+  if (render_frame_host_) {
+    render_frame_host_->OnStopHoldingBlockingIDBLock();
+  }
+  render_frame_host_ = nullptr;
+}
+
+HoldingBlockingIDBLockHandle
+RenderFrameHostImpl::RegisterHoldingBlockingIDBLockHandle() {
+  return HoldingBlockingIDBLockHandle(this);
+}
+
+void RenderFrameHostImpl::OnStartHoldingBlockingIDBLock() {
+  CHECK_GE(holding_blocking_idb_lock_count_, 0);
+  if (++holding_blocking_idb_lock_count_ != 1) {
+    return;
+  }
+
+  if (auto* client =
+          GetContentClient()->browser()->GetFeatureObserverClient()) {
+    client->OnStartUsing(
+        GetGlobalId(),
+        blink::mojom::ObservedFeatureType::kBlockingIndexedDBLock);
+  }
+}
+
+void RenderFrameHostImpl::OnStopHoldingBlockingIDBLock() {
+  CHECK_GT(holding_blocking_idb_lock_count_, 0);
+  if (--holding_blocking_idb_lock_count_ != 0) {
+    return;
+  }
+
+  if (auto* client =
+          GetContentClient()->browser()->GetFeatureObserverClient()) {
+    client->OnStopUsing(
+        GetGlobalId(),
+        blink::mojom::ObservedFeatureType::kBlockingIndexedDBLock);
+  }
+}
+
 bool RenderFrameHostImpl::IsFrozen() {
-  // TODO(crbug.com/40691610): Account for non-bfcache freezing here as well.
-  return lifecycle_state() == LifecycleStateImpl::kInBackForwardCache;
+  auto state = render_view_host()
+                   ->GetPageLifecycleStateManager()
+                   ->CalculatePageLifecycleState();
+  return state->is_frozen;
 }
 
 void RenderFrameHostImpl::DidCommitProvisionalLoad(
@@ -5902,7 +5990,8 @@ void RenderFrameHostImpl::Unload(RenderFrameProxyHost* proxy, bool is_loading) {
           is_loading,
           proxy->frame_tree_node()->current_replication_state().Clone(),
           proxy->GetFrameToken(), proxy->CreateAndBindRemoteFrameInterfaces(),
-          proxy->CreateAndBindRemoteMainFrameInterfaces());
+          proxy->CreateAndBindRemoteMainFrameInterfaces(),
+          /*devtools_frame_token=*/std::nullopt);
       // Remember that a `blink::RemoteFrame` was created as part of processing
       // the Unload message above.
       proxy->SetRenderFrameProxyCreated(true);
@@ -5990,12 +6079,26 @@ void RenderFrameHostImpl::MaybeDispatchDOMContentLoadedOnPrerenderActivation() {
   MaybeResetBoostRenderProcessForLoading();
 }
 
-void RenderFrameHostImpl::SwapOuterDelegateFrame(RenderFrameProxyHost* proxy) {
+void RenderFrameHostImpl::SwapOuterDelegateFrame(
+    RenderFrameProxyHost* proxy,
+    const base::UnguessableToken& devtools_frame_token) {
+  // Note: At this point the placeholder iframe for embedding the guest has
+  // been initialized with a devtools_frame_token that is different from the
+  // guest's main frame (that is about to be attached to it). When we swap
+  // the LocalFrame with a RemoteFrame below; we also update its
+  // devtools_frame_token to the guest main frame's devtools_frame_token (i.e.
+  // `devtools_frame_token`) to indicate to DevTools clients that the guest has
+  // been attached to this placeholder iframe.
+  const bool should_swap_devtools_frame_token =
+      base::FeatureList::IsEnabled(features::kGuestViewMPArch);
   GetMojomFrameInRenderer()->Unload(
       /*is_loading=*/false,
       browsing_context_state_->current_replication_state().Clone(),
       proxy->GetFrameToken(), proxy->CreateAndBindRemoteFrameInterfaces(),
-      proxy->CreateAndBindRemoteMainFrameInterfaces());
+      proxy->CreateAndBindRemoteMainFrameInterfaces(),
+      should_swap_devtools_frame_token
+          ? std::make_optional(devtools_frame_token)
+          : std::nullopt);
 }
 
 void RenderFrameHostImpl::DetachFromProxy() {
@@ -6284,6 +6387,11 @@ void RenderFrameHostImpl::DisableUnloadTimerForTesting() {
 
 bool RenderFrameHostImpl::ShouldPartitionAsPopin() const {
   return !IsNestedWithinFencedFrame() && delegate_->IsPartitionedPopin();
+}
+
+void RenderFrameHostImpl::SimulateDiscardShutdownKeepAliveTimeoutForTesting() {
+  DiscardedRFHProcessHelper::GetForRenderProcessHost(GetProcess())
+      ->SimulateKeepAliveTimeoutForTesting();
 }
 
 bool RenderFrameHostImpl::IsBackForwardCacheEvictionTimeRunningForTesting()
@@ -6689,9 +6797,7 @@ void RenderFrameHostImpl::DeactivateFocusSourceUserActivation() {
 bool RenderFrameHostImpl::HasStickyUserActivationForHistoryIntervention()
     const {
   DCHECK(is_main_frame());
-  if (!base::FeatureList::IsEnabled(
-          features::kHistoryInterventionSameDocumentFix) ||
-      honor_sticky_activation_for_history_intervention_) {
+  if (honor_sticky_activation_for_history_intervention_) {
     return HasStickyUserActivation();
   }
   return false;
@@ -7327,9 +7433,7 @@ void RenderFrameHostImpl::DidChangeName(const std::string& name,
   // now occur in RenderFrameHostImpl (and by extension, BrowsingContextState),
   // ensure that invalid updates (i.e. when in the BackForwardCache or in a
   // pending deletion state) are not applied.
-  if ((IsInBackForwardCache() || IsPendingDeletion()) &&
-      base::FeatureList::IsEnabled(
-          features::kDisableFrameNameUpdateOnNonCurrentRenderFrameHost)) {
+  if (IsInBackForwardCache() || IsPendingDeletion()) {
     return;
   }
   if (GetParent() != nullptr) {
@@ -9625,14 +9729,6 @@ void RenderFrameHostImpl::SendFencedFrameReportingBeacon(
 void RenderFrameHostImpl::SendFencedFrameReportingBeaconToCustomURL(
     const GURL& destination_url,
     bool cross_origin_exposed) {
-  if (!base::FeatureList::IsEnabled(
-          blink::features::kAdAuctionReportingWithMacroApi)) {
-    mojo::ReportBadMessage(
-        "SendFencedFrameReportingBeaconToCustomURL() received while "
-        "AdAuctionReportingWithMacroApi not enabled.");
-    return;
-  }
-
   if (!destination_url.is_valid() ||
       !destination_url.SchemeIs(url::kHttpsScheme)) {
     mojo::ReportBadMessage(
@@ -10484,13 +10580,8 @@ void RenderFrameHostImpl::SubresourceResponseStarted(
   OPTIONAL_TRACE_EVENT1("content",
                         "RenderFrameHostImpl::SubresourceResponseStarted",
                         "url", final_response_url.GetURL());
-  bool was_processed =
-      frame_tree_->controller().ssl_manager()->DidStartResourceResponse(
-          final_response_url, cert_status);
-  UMA_HISTOGRAM_ENUMERATION("SSL.Experimental.SubresourceResponse",
-                            was_processed
-                                ? SSLSubresourceResponseType::kProcessed
-                                : SSLSubresourceResponseType::kIgnored);
+  frame_tree_->controller().ssl_manager()->DidStartResourceResponse(
+      final_response_url, cert_status);
 }
 void RenderFrameHostImpl::ResourceLoadComplete(
     blink::mojom::ResourceLoadInfoPtr resource_load_info) {
@@ -12146,15 +12237,12 @@ void RenderFrameHostImpl::SetWebUI(NavigationRequest& request) {
   // navigation. In that case, the initial RFH needs to lock its process now and
   // also mark the process as used. The AllowBindings() call below requires that
   // the process is properly locked to WebUI.
-  if (base::FeatureList::IsEnabled(
-          features::kReuseInitialRenderFrameHostForWebUI)) {
-    if (!GetSiteInstance()->HasSite()) {
-      // WebUI URLs should also require assigning a site.
-      CHECK(SiteInstanceImpl::ShouldAssignSiteForUrlInfo(request.GetUrlInfo()));
-      GetSiteInstance()->ConvertToDefaultOrSetSite(request.GetUrlInfo());
-    }
-    GetProcess()->SetIsUsed();
+  if (!GetSiteInstance()->HasSite()) {
+    // WebUI URLs should also require assigning a site.
+    CHECK(SiteInstanceImpl::ShouldAssignSiteForUrlInfo(request.GetUrlInfo()));
+    GetSiteInstance()->ConvertToDefaultOrSetSite(request.GetUrlInfo());
   }
+  GetProcess()->SetIsUsed();
 
   WebUI::TypeID new_web_ui_type =
       WebUIControllerFactoryRegistry::GetInstance()->GetWebUIType(
@@ -13541,17 +13629,6 @@ void RenderFrameHostImpl::BindTrustTokenQueryAnswerer(
     return;
   }
 
-  // Both flags are enforced in benign renderers by the
-  // RuntimeEnabled=PrivateStateTokens IDL attribute (the base::Feature's value
-  // is tied to the RuntimeEnabledFeature's).
-  if (!base::FeatureList::IsEnabled(network::features::kPrivateStateTokens) &&
-      !base::FeatureList::IsEnabled(network::features::kFledgePst)) {
-    mojo::ReportBadMessage(
-        "Attempted to get a TrustTokenQueryAnswerer with Private State Tokens "
-        "disabled.");
-    return;
-  }
-
   // TODO(crbug.com/40729410): Document.hasPrivateToken is restricted to
   // secure contexts, so we could additionally add a check verifying that the
   // bind request "is coming from a secure context"---but there's currently no
@@ -14871,6 +14948,7 @@ void RenderFrameHostImpl::DidCommitNewDocument(
 
   renderer_reported_bfcache_blocking_details_.clear();
   browser_reported_bfcache_disabling_features_counts_.clear();
+  holding_blocking_idb_lock_count_ = 0;
 
   TakeNewDocumentPropertiesFromNavigation(navigation_request);
 
@@ -15447,6 +15525,8 @@ void RenderFrameHostImpl::DidCommitNavigation(
     mojom::DidCommitProvisionalLoadParamsPtr params,
     mojom::DidCommitProvisionalLoadInterfaceParamsPtr interface_params) {
   DCHECK(params);
+  TRACE_EVENT("navigation", "RenderFrameHostImpl::DidCommitNavigation",
+              ChromeTrackEvent::kRenderFrameHost, this, "params", params);
 
   // BackForwardCacheImpl::CanStoreRenderFrameHost prevents placing the pages
   // with in-flight navigation requests in the back-forward cache and it's not
@@ -15494,9 +15574,6 @@ void RenderFrameHostImpl::DidCommitNavigation(
 
   ScopedCommitStateResetter commit_state_resetter(this);
   RenderProcessHost* process = GetProcess();
-
-  TRACE_EVENT("navigation", "RenderFrameHostImpl::DidCommitProvisionalLoad",
-              ChromeTrackEvent::kRenderFrameHost, this, "params", params);
 
   // If we're waiting for a cross-site beforeunload completion callback from
   // this renderer and we receive a Navigate message from the main frame, then

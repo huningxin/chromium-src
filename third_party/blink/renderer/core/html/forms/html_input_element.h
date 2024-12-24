@@ -324,7 +324,7 @@ class CORE_EXPORT HTMLInputElement
 
   bool MatchesReadOnlyPseudoClass() const final;
   bool MatchesReadWritePseudoClass() const final;
-  ControlPart AutoAppearance() const;
+  AppearanceValue AutoAppearance() const;
 
   void setRangeText(const String& replacement, ExceptionState&) final;
   void setRangeText(const String& replacement,
@@ -373,6 +373,7 @@ class CORE_EXPORT HTMLInputElement
 
   bool isMutable();
   void showPicker(ExceptionState&);
+  bool IsPickerVisible() const;
 
   ShadowRoot* EnsureShadowSubtree();
 

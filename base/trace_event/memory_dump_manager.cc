@@ -39,10 +39,6 @@
 #if BUILDFLAG(IS_ANDROID)
 #include "base/trace_event/java_heap_dump_provider_android.h"
 
-#if BUILDFLAG(CAN_UNWIND_WITH_CFI_TABLE)
-#include "base/trace_event/cfi_backtrace_android.h"
-#endif
-
 #endif  // BUILDFLAG(IS_ANDROID)
 
 #if PA_BUILDFLAG(USE_PARTITION_ALLOC_AS_MALLOC)
@@ -340,10 +336,6 @@ void MemoryDumpManager::CreateProcessDump(const MemoryDumpRequestArgs& args,
 void MemoryDumpManager::ContinueAsyncProcessDump(
     ProcessMemoryDumpAsyncState* owned_pmd_async_state) {
   HEAP_PROFILER_SCOPED_IGNORE;
-  // Initalizes the ThreadLocalEventBuffer to guarantee that the TRACE_EVENTs
-  // in the PostTask below don't end up registering their own dump providers
-  // (for discounting trace memory overhead) while holding the |lock_|.
-  TraceLog::GetInstance()->InitializeThreadLocalEventBufferIfSupported();
 
   // In theory |owned_pmd_async_state| should be a unique_ptr. The only reason
   // why it isn't is because of the corner case logic of |did_post_task|

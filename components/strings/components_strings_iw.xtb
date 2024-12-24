@@ -59,6 +59,7 @@
 <translation id="1099928364755383720">הפעלה אוטומטית של 'תמונה בתוך תמונה'</translation>
 <translation id="1100782917270858593">‏הלחצן להמשך התהליך, מקישים על Enter כדי להמשיך בתהליך ולהציג את הפעילות הרלוונטית בהיסטוריה ב-Chrome</translation>
 <translation id="1101672080107056897">פעולת שגיאה</translation>
+<translation id="1101902632743388185">טבלאות ההשוואה שלך</translation>
 <translation id="1104409666019087579">יש כמה שדות חובה ריקים. עליך למלא אותם לפני השמירה.</translation>
 <translation id="1104860668737945357">‏הלחצן לניהול סיסמאות, מפעילים אותו כדי להציג ולנהל את הסיסמאות בהגדרות Chrome</translation>
 <translation id="1108464073729874771">A3x4</translation>
@@ -362,6 +363,7 @@
 <translation id="1615402009686901181">בהתאם למדיניות מנהל המערכת, צילום המסך מושבת כשמוצג תוכן סודי</translation>
 <translation id="1617276713587758852">רכבי קרוסאובר</translation>
 <translation id="1619007254056372606">ניהול נתונים מאתרים במכשיר</translation>
+<translation id="1619648179761984213">כרטיסייה הוסרה על ידי <ph name="USER_DISPLAY_NAME" /></translation>
 <translation id="1620510694547887537">מצלמה</translation>
 <translation id="1622966923835127638">פיננסים עסקיים</translation>
 <translation id="1623104350909869708">אני רוצה למנוע מהדף זה ליצור תיבות דו-שיח נוספות</translation>
@@ -369,6 +371,7 @@
 <translation id="1633137413609266904">{0,plural, =1{בהתאם למדיניות האדמין, פתיחת הקובץ הזה נחסמה}one{בהתאם למדיניות האדמין, הפתיחה של # קבצים נחסמה}two{בהתאם למדיניות האדמין, הפתיחה של # קבצים נחסמה}other{בהתאם למדיניות האדמין, הפתיחה של # קבצים נחסמה}}</translation>
 <translation id="1633941398432788136">תכנון אירועים</translation>
 <translation id="1634828734222219955">סך הכל</translation>
+<translation id="1637407510758033366">‫<ph name="USER_DISPLAY_NAME" /> הצטרפ/ה לקבוצה</translation>
 <translation id="163826442096818926">קיצור</translation>
 <translation id="1639239467298939599">בטעינה</translation>
 <translation id="1640180200866533862">מדיניות משתמשים</translation>
@@ -581,6 +584,7 @@
 <translation id="2025186561304664664">‏שרת Proxy נקבע למוגדר אוטומטית.</translation>
 <translation id="2025891858974379949">תוכן לא מאובטח</translation>
 <translation id="2027465737841872819">Plastic</translation>
+<translation id="2027707238798802149">הכרטיס לא זמין</translation>
 <translation id="2029735183873159415">חקר יוחסין וגניאלוגיה</translation>
 <translation id="2032962459168915086">‏<ph name="BEGIN_LINK" />לבדוק את שרת ה-Proxy ואת חומת האש<ph name="END_LINK" /></translation>
 <translation id="2033900728810589426">קיצור הדרך לא יכול להיות זהה למילת המפתח של ספק החיפוש שהוגדרה כברירת המחדל על ידי <ph name="DEFAULT_SEARCH_PROVIDER_KEYWORD_POLICY_NAME" />:‏ <ph name="SHORTCUT_NAME" /></translation>
@@ -807,7 +811,6 @@
 <translation id="2399868464369312507">‏Google Chrome מנסה לערוך את אמצעי התשלום.</translation>
 <translation id="2400600116338235695">האתר יכול לבקש הרשאה להתחבר ליציאות טוריות</translation>
 <translation id="2404884497378469141">רוצה לנסות שוב להעתיק את הקבצים?</translation>
-<translation id="2412310121876768057">למלא אוטומטית את פרטי הכרטיס בפעם הבאה?</translation>
 <translation id="2413155254802890957">ישנה</translation>
 <translation id="2413528052993050574">השרת הזה לא הצליח להוכיח שהוא <ph name="DOMAIN" />. ייתכן שאישור האבטחה שלו בוטל. הסיבה לכך עשויה להיות הגדרה שגויה או תוקף המיירט את החיבור שלך.</translation>
 <translation id="2414886740292270097">כהה</translation>
@@ -865,6 +868,7 @@
 <translation id="2514548229949738417">בית וגן</translation>
 <translation id="2515629240566999685">לבדוק את האות באזור שלך</translation>
 <translation id="2515761554693942801">‏בחרת לבצע אימות באמצעות Touch ID באתרים שמשתמשים ב-<ph name="PROVIDER_ORIGIN" />. יכול להיות שהספק הזה אחסן מידע על אמצעי התשלום שלך, שאותו אפשר <ph name="LINK_TEXT" />.</translation>
+<translation id="2518584823165598232">הכרטיס הזה לא זמין. עליך לפנות לספק הכרטיס שלך.</translation>
 <translation id="2521385132275182522">סיכת הידוק בפינה הימנית התחתונה</translation>
 <translation id="2521736961081452453">יצירת טופס</translation>
 <translation id="2523886232349826891">הכרטיס יישמר רק במכשיר הזה</translation>
@@ -905,6 +909,7 @@
 <translation id="2571488850200220306">כדי לשמור על האבטחה, יש לאדמין אפשרות לראות גם את מערכת ההפעלה של המכשיר, גרסת הדפדפן והתוכנה שמותקנת בו</translation>
 <translation id="2573170131138724450">טלוויזיות</translation>
 <translation id="257674075312929031">קבוצה</translation>
+<translation id="258135245577667916">כרטיסייה נוספה על ידי <ph name="USER_DISPLAY_NAME" /></translation>
 <translation id="2586657967955657006">לוח</translation>
 <translation id="2587841377698384444">‏מזהה Directory API:</translation>
 <translation id="2594318783181750337">תצוגה מהירה באינטרנט:</translation>
@@ -927,6 +932,7 @@
 <translation id="2628224721443278970">‏כניסה ל-Microsoft OneDrive</translation>
 <translation id="2634124572758952069">‏לא ניתן היה למצוא את כתובת ה-IP של השרת של <ph name="HOST_NAME" />.</translation>
 <translation id="2639739919103226564">סטטוס:</translation>
+<translation id="2645435784669275700">ChromeOS</translation>
 <translation id="2647086987482648627">Fabric (Semi-Gloss)</translation>
 <translation id="264810637653812429">לא נמצאו מכשירים תואמים.</translation>
 <translation id="2649204054376361687"><ph name="CITY" />, <ph name="COUNTRY" /></translation>
@@ -1141,6 +1147,7 @@
 <translation id="306573536155379004">המשחק התחיל.</translation>
 <translation id="3067505415088964188">המחיר נמוך</translation>
 <translation id="3068118691172921711">העלאת הקבצים אל <ph name="CLOUD_PROVIDER" /> תתחיל בעוד דקה</translation>
+<translation id="3074671422612537810">{ITEMS,plural, =1{פריט אחד ({ITEMS})}one{‫{ITEMS} פריטים}two{‫{ITEMS} פריטים}other{‫{ITEMS} פריטים}}</translation>
 <translation id="3076865167425975822">מערכות הפעלה</translation>
 <translation id="3080254622891793721">גרפיקה</translation>
 <translation id="3082007635241601060">‏רוצה ש-Google תשתמש בעגלות הקניות כדי למצוא הנחות זמינות בהתאמה אישית?</translation>
@@ -1305,7 +1312,6 @@
 <translation id="3354508510846323339">ציטוט <ph name="CURRENT_CITATION" /> מתוך <ph name="MAX_CITATIONS" />, <ph name="PRODUCT_NAME" />, <ph name="URL" /></translation>
 <translation id="3355823806454867987">‏שינוי הגדרות שרת Proxy...</translation>
 <translation id="335809815767823">הייצוא בוצע</translation>
-<translation id="3359387651158939842">‏אפשר למלא באופן אוטומטי את פרטי הכרטיס לביצוע רכישות עתידיות כששומרים אותו לשימוש ב-Google Pay</translation>
 <translation id="3359565626472459400">נישואים</translation>
 <translation id="3360103848165129075">גיליון פרטי התשלום</translation>
 <translation id="3360306038446926262">חלונות</translation>
@@ -1361,7 +1367,7 @@
 <translation id="3440783957068352691">ריבוע</translation>
 <translation id="3441653493275994384">מסך</translation>
 <translation id="3443504041532578451">Optical Disc (Satin)</translation>
-<translation id="344449859752187052">‏קובצי cookie של צד שלישי חסומים</translation>
+<translation id="344449859752187052">‏קובצי Cookie של צד שלישי נחסמו</translation>
 <translation id="3447644283769633681">‏חסימת כל קובצי ה-Cookie של צד שלישי</translation>
 <translation id="3447661539832366887">הבעלים של המכשיר הזה כיבה את משחק הדינוזאורים.</translation>
 <translation id="3447884698081792621">הצגת אישור (נופק על-ידי <ph name="ISSUER" />)</translation>
@@ -1401,6 +1407,7 @@
 <translation id="351522771072578657">נכנסת לתפריט</translation>
 <translation id="3517264445792388751">מערכת הקבצים הושבתה על ידי האדמין שלך</translation>
 <translation id="3518941727116570328">טיפול באובייקטים מרובים</translation>
+<translation id="3519670528214225835">אפשר לשאול את <ph name="KEYWORD_SUFFIX" /></translation>
 <translation id="3525130752944427905">‏10x14 אינץ'</translation>
 <translation id="3525435918300186947">‏לאפשר לשלוט במכשירי ה-MIDI ולתכנת אותם מחדש?</translation>
 <translation id="3527181387426738155">מוזיקה ואודיו</translation>
@@ -1458,7 +1465,6 @@
 <translation id="3605899229568538311">‏5x5 אינץ'</translation>
 <translation id="3606917451836803637">תוכניות וסדרות טלוויזיה</translation>
 <translation id="3608932978122581043">כיוון הזנה</translation>
-<translation id="3610142117915544498">‏כדי לשלם מהר יותר בפעם הבאה, אפשר לשמור את פרטי הכרטיס, השם והכתובת לחיוב בחשבון Google</translation>
 <translation id="3612660594051121194">אוטובוסים ורכבות למרחקים ארוכים</translation>
 <translation id="3614001939154393113">יכול להיות שתוקפים מנסים לגנוב את המידע שלך מ-<ph name="BEGIN_BOLD" /><ph name="SITE" /><ph name="END_BOLD" /> (לדוגמה: סיסמאות, הודעות או פרטי כרטיסי אשראי). <ph name="BEGIN_LEARN_MORE_LINK" />מידע נוסף על האזהרה הזו<ph name="END_LEARN_MORE_LINK" /></translation>
 <translation id="3614103345592970299">גודל 2</translation>
@@ -1956,6 +1962,7 @@
 <translation id="4451684391620232683">הטקסט המוצג למשתמש:</translation>
 <translation id="4452328064229197696">‏הסיסמה שבה השתמשת עכשיו אותרה בפרצה באבטחת מידע. כדי להגן על החשבונות שלך, לפי מנהל הסיסמאות של Google, מומלץ לבדוק את הסיסמאות השמורות שלך.</translation>
 <translation id="4456937135469235202">טיולי הרפתקאות</translation>
+<translation id="4458013283022578512">כאן כותבים את השאלה</translation>
 <translation id="4464826014807964867">אתרים שקיבלו פרטים מהארגון שלך</translation>
 <translation id="4466576951214254884">הלוואות לסטודנטים ומימון השכלה גבוהה</translation>
 <translation id="4467821340016922962">כדי לצאת מהמסך המלא ולראות את מה שהורדת, צריך ללחוץ על |<ph name="ACCELERATOR" />|</translation>
@@ -2172,7 +2179,6 @@ Del</translation>
 <translation id="4881695831933465202">פתיחה</translation>
 <translation id="4881808915112408168">‏24x31.5 אינץ'</translation>
 <translation id="4882314601499260499">לא הוחלה מדיניות משתמש. הארגון שלך צריך <ph name="LINK_BEGIN" />לאמת את הדומיין<ph name="LINK_END" /> כדי להוסיף מדיניות משתמש.</translation>
-<translation id="4883911187498618061">צריך להזין שאלה או הנחיה</translation>
 <translation id="4885030148564729407">ירח דבש וחופשות רומנטיות</translation>
 <translation id="4885256590493466218">תשלום בקופה עם <ph name="CARD_DETAIL" /></translation>
 <translation id="4887406273302438710">‏הגנה על סיסמאות באמצעות Windows Hello</translation>
@@ -2182,7 +2188,6 @@ Del</translation>
 <translation id="4895877746940133817"><ph name="TYPE_1" />, <ph name="TYPE_2" />, <ph name="TYPE_3" /></translation>
 <translation id="4896809202198625921">אולימפיאדה</translation>
 <translation id="4898742041545089450">בוטלה חסימת הנושא הזה ויכול להיות שהוא יהיה פעיל, בהתאם להיסטוריית הגלישה שלך</translation>
-<translation id="4899379435492347481">‏אפשר לשמור את הכרטיס הזה כדי להשתמש בו אונליין באמצעות Google Pay לביצוע רכישות בכל המכשירים שלך</translation>
 <translation id="4900217275619098670">הגליל התשיעי</translation>
 <translation id="4901052769830245369">Labels (Semi-Gloss)</translation>
 <translation id="4901162432287938633">היגיינה ותמרוקים</translation>
@@ -2205,7 +2210,6 @@ Del</translation>
 <translation id="4930153903256238152">קיבולת גבוהה</translation>
 <translation id="4930714375720679147">הפעלה</translation>
 <translation id="4932035752129140860">‏טקסט שמדביקים או מצרפים בקובץ נשלח ל-Google Cloud או לצדדים שלישיים לצורך ניתוח. לדוגמה, יכול להיות שהטקסט יעבור סריקה כדי לאתר מידע אישי רגיש, וייתכן שהוא יאוחסן בהתאם למדיניות החברה ויהיה גלוי לאדמין שלך.</translation>
-<translation id="4933468175699107356">אפשר ללחוץ לחיצה ימנית כדי למלא באופן אוטומטי את המידע ששמרת, כמו השם או הכתובת שלך, בכל טופס</translation>
 <translation id="4933788293078559286">‏תשלום באמצעות Pix</translation>
 <translation id="4934780484581617878">ניהול החלונות</translation>
 <translation id="4936134414789135531">הערך <ph name="VALUE_NAME" /> שהוזן לא נמצא.</translation>
@@ -2408,6 +2412,7 @@ Del</translation>
 <translation id="5300589172476337783">הצגה</translation>
 <translation id="5305716236436927587">פרסום ושיווק</translation>
 <translation id="5306593769196050043">שני הגיליונות</translation>
+<translation id="5307109011461144709">הצבע של הקבוצה השתנה על ידי <ph name="USER_DISPLAY_NAME" /></translation>
 <translation id="5307166000025436103">תקין</translation>
 <translation id="5308380583665731573">התחברות</translation>
 <translation id="5308689395849655368">דיווח קריסות מושבת.</translation>
@@ -2439,6 +2444,7 @@ Del</translation>
 <translation id="5363309033720083897">יציאה טורית שאושרה על ידי מנהל המערכת</translation>
 <translation id="5363532265530011914">גרביים ולבנים</translation>
 <translation id="5371425731340848620">עדכון כרטיס</translation>
+<translation id="537425196847960924">כרטיסייה שונתה על ידי <ph name="USER_DISPLAY_NAME" /></translation>
 <translation id="5375686690914744327">SRA1</translation>
 <translation id="5377026284221673050">‏"השעון מאחר", "השעון מקדים" או "&lt;span class="error-code"&gt;NET::ERR_CERT_DATE_INVALID&lt;/span&gt;"</translation>
 <translation id="5379618281582508161">כדי לקבל את הסיסמה הזו בכל המכשירים, עליך לאמת את הזהות שלך</translation>
@@ -2453,6 +2459,7 @@ Del</translation>
 <translation id="5392506727170022660">Metal (Semi-Gloss)</translation>
 <translation id="5394069166371280357">תוכניות טלוויזיה לכל המשפחה</translation>
 <translation id="5396631636586785122">הידוק קצוות בצד ימין</translation>
+<translation id="5397794290049113714">את/ה</translation>
 <translation id="5398772614898833570">מודעות חסומות</translation>
 <translation id="5400836586163650660">אפור</translation>
 <translation id="5401344472773249513">חדשות בידור וידוענים</translation>
@@ -2839,7 +2846,9 @@ Del</translation>
 <translation id="6105460996796456817">יצירת אתר</translation>
 <translation id="6106989379647458772">ייתכן שדף האינטרנט בכתובת <ph name="PAGE" /> אינו פעיל זמנית, או שהוא הועבר לכתובת אינטרנט קבועה אחרת.</translation>
 <translation id="6107012941649240045">מונפק ל</translation>
+<translation id="6107864469867367783">שם הקבוצה שונה על ידי <ph name="USER_DISPLAY_NAME" /></translation>
 <translation id="6107924765192360631">כדי לקבל הצעות לכתיבה, פשוט צריך להתחיל עם כמה מילים או טיוטה ראשונית.</translation>
+<translation id="6108508372809181847">השוואה למוצר <ph name="TABLE_NAME" /></translation>
 <translation id="6108580855199168381">פרטי אישור</translation>
 <translation id="6108702513636120202">‏מנוע החיפוש שלך ב-Chromium</translation>
 <translation id="6108849843016142864">זוחלים ודו-חיים</translation>
@@ -3247,7 +3256,6 @@ Del</translation>
 <translation id="6831043979455480757">תרגום</translation>
 <translation id="683108308100148227">הסתרת הפריט</translation>
 <translation id="6832753933931306326">הטופס מולא</translation>
-<translation id="6837361937093656245">צריך להיכנס לחשבון</translation>
 <translation id="6841864657731852591">Gravure Cylinder</translation>
 <translation id="6842196666980060516">‏184x260 מ"מ</translation>
 <translation id="6844998850832008753">יש הרשאה חד-פעמית למעקב אחר תנועות הידיים</translation>
@@ -3342,6 +3350,7 @@ Del</translation>
 <translation id="7003322000677139268">חלקי חילוף ואביזרים לרכב</translation>
 <translation id="7004499039102548441">כרטיסיות אחרונות</translation>
 <translation id="7006930604109697472">לשליחה בכל זאת</translation>
+<translation id="7009364359744329733">הכרטיס הזה לא זמין כרגע. אפשר לנסות שוב אחר כך.</translation>
 <translation id="7010658264061801199">אוכל ומשקאות</translation>
 <translation id="7012363358306927923">China UnionPay</translation>
 <translation id="7013835112918108252">אתרים יכולים לבקש לנעול את העכבר ולהשתמש בו</translation>
@@ -3500,6 +3509,7 @@ Del</translation>
 <translation id="7304030187361489308">גבוה</translation>
 <translation id="7304562222803846232">‏ניהול הגדרות הפרטיות בחשבון Google</translation>
 <translation id="7305756307268530424">התחלה איטית יותר</translation>
+<translation id="7307063504147610123">הכתובת נשמרה במכשיר הזה</translation>
 <translation id="7308436126008021607">סנכרון ברקע</translation>
 <translation id="7309058266849426521">‏לרשותך מידע נוסף על ניהול הפרטיות בפרסום ב-Chrome.</translation>
 <translation id="7310392214323165548">המכשיר יופעל מחדש בקרוב</translation>
@@ -3549,6 +3559,7 @@ Del</translation>
 <translation id="7388594495505979117">{0,plural, =1{המכשיר יופעל מחדש בתוך דקה}one{המכשיר יופעל מחדש בתוך # דקות}two{המכשיר יופעל מחדש בתוך # דקות}other{המכשיר יופעל מחדש בתוך # דקות}}</translation>
 <translation id="7393161616326137353">משחקי הרפתקאות</translation>
 <translation id="7393475648162498734">הצגת הפרסים וההטבות שזמינים לכרטיסים שלך בקופה</translation>
+<translation id="7393971683644170444">מתבצעת התחברות לספק הכרטיס…</translation>
 <translation id="739728382607845710">‏סמל רכיב ה-handler של התשלומים</translation>
 <translation id="7399616692258236448">בקשות המיקום חסומות באופן אוטומטי בכל האתרים, מלבד האתרים שאישרת</translation>
 <translation id="7400418766976504921">כתובת אתר</translation>
@@ -3722,6 +3733,7 @@ Del</translation>
 <translation id="7660456820368115565">משחקים רבי-משתתפים</translation>
 <translation id="7661591871037163355">טבלת ההשוואה מלאה. כדי להוסיף עמודות חדשות, צריך להסיר עמודות קיימות.</translation>
 <translation id="7662298039739062396">ההגדרה נשלטת על-ידי תוסף</translation>
+<translation id="7662911501613893058">‫<ph name="USER_DISPLAY_NAME" /> עזב/ה את הקבוצה</translation>
 <translation id="7663736086183791259">אישור <ph name="CERTIFICATE_VALIDITY" /></translation>
 <translation id="7666397036351755929">אין הרשאה במצב אנונימי</translation>
 <translation id="7667346355482952095">טוקן המדיניות שהוחזר הוא ריק או שאינו תואם לטוקן הנוכחי</translation>
@@ -4177,6 +4189,7 @@ Del</translation>
 <translation id="8473626140772740486">‏300x450 מ"מ</translation>
 <translation id="8473863474539038330">כתובות ועוד</translation>
 <translation id="8474910779563686872">הצגת פרטי המפתח</translation>
+<translation id="8476959635632921417">כדי לשמור את הכתובת הזו ולהשתמש בה בכל המכשירים, עליך לאמת את הזהות שלך</translation>
 <translation id="8479754468255770962">סיכת הידוק בפינה השמאלית התחתונה</translation>
 <translation id="8483229036294884935">‏הכתובת הזו תימחק מחשבון Google שלך, <ph name="ACCOUNT" /></translation>
 <translation id="8488350697529856933">חלה על</translation>

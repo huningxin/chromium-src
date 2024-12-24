@@ -19,14 +19,6 @@ FeatureParameters& GetFeatureParametersMutable() {
 
 }  // namespace
 
-// These are the kill switches for the launched history embeddings features.
-BASE_FEATURE(kLaunchedHistoryEmbeddings,
-             "LaunchedHistoryEmbeddings",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-BASE_FEATURE(kLaunchedHistoryEmbeddingsAnswers,
-             "LaunchedHistoryEmbeddingsAnswers",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // This is the main feature switch for history embeddings search, and when it is
 // disabled, answering functionality will not be available either. This feature
 // is client-side launched on desktop platforms in US only, so it remains
@@ -95,6 +87,11 @@ const base::FeatureParam<double> kSearchScoreThreshold(&kHistoryEmbeddings,
                                                        "SearchScoreThreshold",
                                                        -1);
 
+const base::FeatureParam<double> kSearchWordMatchScoreThreshold(
+    &kHistoryEmbeddings,
+    "SearchWordMatchScoreThreshold",
+    0.4);
+
 // This one defaults true because we generally want it whenever v2 is enabled
 // and it will only be used if applicable.
 const base::FeatureParam<bool> kEnableIntentClassifier(&kHistoryEmbeddings,
@@ -131,11 +128,6 @@ const base::FeatureParam<int> kMockAnswererDelayMS(&kHistoryEmbeddings,
 const base::FeatureParam<int> kMockAnswererStatus(&kHistoryEmbeddings,
                                                   "MockAnswererStatus",
                                                   2);
-
-const base::FeatureParam<bool> kForceAnswererUseAllowed(
-    &kHistoryEmbeddings,
-    "ForceAnswererUseAllowed",
-    false);
 
 const base::FeatureParam<bool> kEnableImagesForResults(&kHistoryEmbeddings,
                                                        "EnableImagesForResults",
@@ -238,6 +230,15 @@ const base::FeatureParam<bool> kEraseNonAsciiCharacters(
     "EraseNonAsciiCharacters",
     false);
 
+const base::FeatureParam<bool> kWordMatchSearchNonAsciiPassages(
+    &kHistoryEmbeddings,
+    "WordMatchSearchNonAsciiPassages",
+    false);
+
+const base::FeatureParam<bool> kInsertTitlePassage(&kHistoryEmbeddings,
+                                                   "InsertTitlePassage",
+                                                   false);
+
 FeatureParameters::FeatureParameters(bool load_finch) {
   if (!load_finch) {
     return;
@@ -253,6 +254,7 @@ FeatureParameters::FeatureParameters(bool load_finch) {
   at_keyword_acceleration = kAtKeywordAcceleration.Get();
   content_visibility_threshold = kContentVisibilityThreshold.Get();
   search_score_threshold = kSearchScoreThreshold.Get();
+  search_word_match_score_threshold = kSearchWordMatchScoreThreshold.Get();
   enable_intent_classifier = kEnableIntentClassifier.Get();
   use_ml_intent_classifier = kUseMlIntentClassifier.Get();
   enable_ml_intent_classifier_score = kEnableMlIntentClassifierScore.Get();
@@ -261,7 +263,6 @@ FeatureParameters::FeatureParameters(bool load_finch) {
   ml_answerer_min_score = kMlAnswererMinScore.Get();
   mock_answerer_delay_ms = kMockAnswererDelayMS.Get();
   mock_answerer_status = kMockAnswererStatus.Get();
-  force_answerer_use_allowed = kForceAnswererUseAllowed.Get();
   enable_images_for_results = kEnableImagesForResults.Get();
   omnibox_scoped = kOmniboxScoped.Get();
   omnibox_unscoped = kOmniboxUnscoped.Get();
@@ -286,6 +287,8 @@ FeatureParameters::FeatureParameters(bool load_finch) {
   word_match_required_term_ratio = kWordMatchRequiredTermRatio.Get();
   scroll_tags_enabled = kScrollTagsEnabled.Get();
   erase_non_ascii_characters = kEraseNonAsciiCharacters.Get();
+  word_match_search_non_ascii_passages = kWordMatchSearchNonAsciiPassages.Get();
+  insert_title_passage = kInsertTitlePassage.Get();
 }
 
 FeatureParameters::FeatureParameters(const FeatureParameters&) = default;

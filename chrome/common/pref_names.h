@@ -5,6 +5,8 @@
 #ifndef CHROME_COMMON_PREF_NAMES_H_
 #define CHROME_COMMON_PREF_NAMES_H_
 
+#include <stddef.h>
+
 #include <iterator>
 
 #include "build/branding_buildflags.h"
@@ -73,6 +75,15 @@ inline constexpr char kDownloadAppVerificationPromptTimestamps[] =
 // If set to true profiles are created in ephemeral mode and do not store their
 // data in the profile folder on disk but only in memory.
 inline constexpr char kForceEphemeralProfiles[] = "profile.ephemeral_mode";
+
+#if BUILDFLAG(ENABLE_GLIC)
+// Boolean pref that enables or disables microphone access for Glic.
+inline constexpr char kGlicMicrophoneEnabled[] = "glic.microphone_enabled";
+// Boolean pref that enables or disables geolocation access for Glic.
+inline constexpr char kGlicGeolocationEnabled[] = "glic.geolocation_enabled";
+// Boolean pref that enables or disables tab context for Glic.
+inline constexpr char kGlicTabContextEnabled[] = "glic.tab_context_enabled";
+#endif  // BUILDFLAG(ENABLE_GLIC)
 
 // A boolean specifying whether the New Tab page is the home page or not.
 inline constexpr char kHomePageIsNewTabPage[] = "homepage_is_newtabpage";
@@ -525,6 +536,11 @@ inline constexpr char kLanguagePreviousInputMethod[] =
 // "AllowedInputMethods").
 inline constexpr char kLanguageAllowedInputMethods[] =
     "settings.language.allowed_input_methods";
+
+// A boolean pref that enforces allowed input methods to be enabled (see policy
+// "AllowedInputMethodsForceEnabled").
+inline constexpr char kLanguageAllowedInputMethodsForceEnabled[] =
+    "settings.language.allowed_input_methods_force_enabled";
 
 // A string pref (comma-separated list) set to the preloaded (active) input
 // method IDs (ex. "pinyin,mozc").
@@ -1863,6 +1879,10 @@ inline constexpr char kToolbarIconSurfacingBubbleLastShowTime[] =
 // Define the IP handling policy override that WebRTC should follow. When not
 // set, it defaults to "default".
 inline constexpr char kWebRTCIPHandlingPolicy[] = "webrtc.ip_handling_policy";
+// Define the IP handling policy override per URL that WebRTC should follow.
+// When no URL pattern matches, WebRTC will default to the policy
+// WebRTCIPHandlingPolicy above.
+inline constexpr char kWebRTCIPHandlingUrl[] = "webrtc.ip_handling_url";
 // Define range of UDP ports allowed to be used by WebRTC PeerConnections.
 inline constexpr char kWebRTCUDPPortRange[] = "webrtc.udp_port_range";
 // Whether WebRTC event log collection by Google domains is allowed.
@@ -3242,18 +3262,8 @@ inline constexpr char kFeatureNotificationsEnabled[] =
 
 inline constexpr char kInternalOnlyUisEnabled[] = "internal_only_uis_enabled";
 
-#if BUILDFLAG(ENABLE_GLIC)
-inline constexpr char kGlicLauncherEnabled[] = "glic.launcher_enabled";
-// Boolean pref that enables or disables microphone access for Glic.
-inline constexpr char kGlicMicrophoneEnabled[] = "glic.microphone_enabled";
-// Boolean pref that enables or disables geolocation access for Glic.
-inline constexpr char kGlicGeolocationEnabled[] = "glic.geolocation_enabled";
-// Boolean pref that enables or disables tab context for Glic.
-inline constexpr char kGlicTabContextEnabled[] = "glic.tab_context_enabled";
-// Dictionary pref that keeps track of the registered hotkey for Glic.
-inline constexpr char kGlicLauncherGlobalHotkey[] =
-    "glic.launcher_global_hotkey";
-#endif  // BUILDFLAG(ENABLE_GLIC)
+// An enum that controls what level of toasts we show to the user.
+inline constexpr char kToastAlertLevel[] = "settings.toast.alert_level";
 
 // *************** SERVICE PREFS ***************
 // These are attached to the service process.
@@ -3947,24 +3957,6 @@ inline constexpr char kShowCaretBrowsingDialog[] =
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-// Enum pref indicating how to launch the Lacros browser. It is managed by
-// LacrosAvailability policy and can have one of the following values:
-// 0: User choice (default value).
-// 1: Lacros is disallowed.
-// 4: Lacros is the only available browser.
-// Values 2 and 3 were removed and should not be reused.
-inline constexpr char kLacrosLaunchSwitch[] = "lacros_launch_switch";
-
-// Enum pref indicating which Lacros browser to launch: rootfs or stateful. It
-// is managed by LacrosSelection policy and can have one of the following
-// values:
-// 0: User choice (default value).
-// 1: Always load rootfs Lacros.
-// 2: Always load stateful Lacros.
-inline constexpr char kLacrosSelection[] = "lacros_selection";
-#endif
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
 // String enum pref determining what should happen when a user who authenticates
 // via a security token is removing this token. "IGNORE" - nothing happens
 // (default). "LOGOUT" - The user is logged out. "LOCK" - The session is locked.
@@ -4253,20 +4245,22 @@ inline constexpr char kNSSCertsMigratedToServerCertDb[] =
 inline constexpr char kEnterpriseBadgingTemporarySetting[] =
     "temporary_setting.enterpise_badging";
 
-// Url to an image representing the enterprise logo.
-inline constexpr char kEnterpriseLogoUrl[] = "enterprise_logo.url";
+// Url to an image representing the enterprise logo for the browser.
+// This is saved to local state, and so used for browser policies only.
+inline constexpr char kEnterpriseLogoUrlForBrowser[] =
+    "enterprise_logo.url.for_browser";
 
-// Url to an image representing the enterprise logo for ta profile.
+// Url to an image representing the enterprise logo for a profile.
 // This is used for cloud user policies only.
 inline constexpr char kEnterpriseLogoUrlForProfile[] =
     "enterprise_logo.url.for_profile";
 
-// String value of the custom label for the entity managing the profile.
-inline constexpr char kEnterpriseCustomLabel[] =
-    "enterprise_label.custom_value";
+// String value of the custom label for the entity managing the browser.
+// This is saved to local state, and so used for browser policies only.
+inline constexpr char kEnterpriseCustomLabelForBrowser[] =
+    "enterprise_label.custom_value.for_browser";
 
-// String value of the enterprise label for the entity managing the profile
-// only.
+// String value of the enterprise label for the entity managing the profile.
 // This is used for cloud user policies only.
 inline constexpr char kEnterpriseCustomLabelForProfile[] =
     "enterprise_label.custom_value.for_profile";

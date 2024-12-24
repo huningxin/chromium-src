@@ -19,14 +19,15 @@
 #import "base/strings/string_util.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/strings/utf_string_conversions.h"
-#import "components/autofill/core/browser/autofill_plus_address_delegate.h"
 #import "components/autofill/core/browser/crowdsourcing/votes_uploader.h"
 #import "components/autofill/core/browser/form_import/addresses/autofill_save_update_address_profile_delegate_ios.h"
 #import "components/autofill/core/browser/form_import/form_data_importer.h"
+#import "components/autofill/core/browser/integrators/autofill_plus_address_delegate.h"
 #import "components/autofill/core/browser/logging/log_manager.h"
+#import "components/autofill/core/browser/logging/log_router.h"
 #import "components/autofill/core/browser/payments/payments_network_interface.h"
-#import "components/autofill/core/browser/single_field_fill_router.h"
-#import "components/autofill/core/browser/ui/suggestion_type.h"
+#import "components/autofill/core/browser/single_field_fillers/single_field_fill_router.h"
+#import "components/autofill/core/browser/suggestions/suggestion_type.h"
 #import "components/autofill/core/common/autofill_features.h"
 #import "components/autofill/core/common/autofill_prefs.h"
 #import "components/autofill/ios/browser/autofill_driver_ios_factory.h"
@@ -83,7 +84,7 @@ ChromeAutofillClientIOS::ChromeAutofillClientIOS(
     ProfileIOS* profile,
     web::WebState* web_state,
     infobars::InfoBarManager* infobar_manager,
-    id<AutofillClientIOSBridge> bridge)
+    id<AutofillClientIOSBridge, AutofillDriverIOSBridge> bridge)
     : pref_service_(profile->GetPrefs()),
       sync_service_(SyncServiceFactory::GetForProfile(profile)),
       personal_data_manager_(PersonalDataManagerFactory::GetForProfile(
@@ -96,13 +97,10 @@ ChromeAutofillClientIOS::ChromeAutofillClientIOS(
       identity_manager_(
           IdentityManagerFactory::GetForProfile(profile->GetOriginalProfile())),
       infobar_manager_(infobar_manager),
-      // TODO(crbug.com/40612524): Replace the closure with a callback to the
-      // renderer that indicates if log messages should be sent from the
-      // renderer.
-      log_manager_(
-          LogManager::Create(AutofillLogRouterFactory::GetForProfile(profile),
-                             base::RepeatingClosure())),
-      ablation_study_(GetApplicationContext()->GetLocalState()) {}
+      log_router_(AutofillLogRouterFactory::GetForProfile(profile_)),
+      ablation_study_(GetApplicationContext()->GetLocalState()) {
+  AutofillDriverIOSFactory::CreateForWebState(web_state, this, bridge);
+}
 
 ChromeAutofillClientIOS::~ChromeAutofillClientIOS() {
   HideAutofillSuggestions(SuggestionHidingReason::kTabGone);
@@ -406,7 +404,13 @@ ChromeAutofillClientIOS::GetCurrentFormInteractionsFlowId() {
   return {};
 }
 
-LogManager* ChromeAutofillClientIOS::GetLogManager() const {
+LogManager* ChromeAutofillClientIOS::GetCurrentLogManager() {
+  if (!log_manager_ && log_router_ && log_router_->HasReceivers()) {
+    // TODO(crbug.com/40612524): Replace the closure with a callback to the
+    // renderer that indicates if log messages should be sent from the
+    // renderer.
+    log_manager_ = LogManager::Create(log_router_, base::RepeatingClosure());
+  }
   return log_manager_.get();
 }
 

@@ -133,7 +133,7 @@ class CONTENT_EXPORT RenderProcessHost : public IPC::Sender,
   ADVANCED_MEMORY_SAFETY_CHECKS();
 
  public:
-  using iterator = base::IDMap<RenderProcessHost*>::iterator;
+  using iterator = base::IDMap<RenderProcessHost*, ChildProcessId>::iterator;
 
   // Crash reporting mode for ShutdownForBadMessage.
   enum class CrashReportMode {
@@ -267,9 +267,14 @@ class CONTENT_EXPORT RenderProcessHost : public IPC::Sender,
   // If |ignore_workers| is false and this renderer has any workers, then this
   // function does nothing. Otherwise, the function will ignore checking for
   // worker references.
+  // If |ignore_keep_alive| is false and this renderer has any keep-alive ref
+  // counts, then this function does nothing. Otherwise, the function will
+  // ignore checking for keep-alive references. This can be removed once
+  // keep-alive migration has landed (see crbug.com/40236167).
   virtual bool FastShutdownIfPossible(size_t page_count = 0,
                                       bool skip_unload_handlers = false,
-                                      bool ignore_workers = false) = 0;
+                                      bool ignore_workers = false,
+                                      bool ignore_keep_alive = false) = 0;
 
   // Returns true if fast shutdown was started for the renderer.
   virtual bool FastShutdownStarted() = 0;
@@ -740,7 +745,7 @@ class CONTENT_EXPORT RenderProcessHost : public IPC::Sender,
   virtual void DumpProfilingData(base::OnceClosure callback) {}
 #endif
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   // Reinitializes the child process's logging with the given settings. This
   // is needed on Chrome OS, which switches to a log file in the user's home
   // directory once they log in.

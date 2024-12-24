@@ -32,13 +32,13 @@ export interface SettingsRoutes {
   DOWNLOADS: Route;
   EDIT_DICTIONARY: Route;
   FONTS: Route;
+  GLIC: Route;
   HISTORY_SEARCH: Route;
   INCOMPATIBLE_APPLICATIONS: Route;
   LANGUAGES: Route;
   MANAGE_PROFILE: Route;
   OFFER_WRITING_HELP: Route;
   ON_STARTUP: Route;
-  PAGE_CONTENT: Route;
   PASSKEYS: Route;
   PAYMENTS: Route;
   PEOPLE: Route;

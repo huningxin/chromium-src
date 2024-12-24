@@ -238,12 +238,12 @@ void WorkerNodeImpl::OnInitializingEdges() {
   process_node_->AddWorker(this);
 }
 
-void WorkerNodeImpl::OnUninitializing() {
+void WorkerNodeImpl::OnUninitializingEdges() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   process_node_->RemoveWorker(this);
 }
 
-void WorkerNodeImpl::RemoveNodeAttachedData() {
+void WorkerNodeImpl::CleanUpNodeState() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DestroyNodeInlineDataStorage();
 }

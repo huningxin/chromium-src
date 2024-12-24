@@ -63,11 +63,10 @@ class AccountSelectionModalViewTest : public DialogBrowserTest,
             kDefaultDisclosureFields,
             /*has_login_status_mismatch=*/false)) {
     test_shared_url_loader_factory_ =
-      base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-          &test_url_loader_factory_);
+        base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
+            &test_url_loader_factory_);
   }
-  AccountSelectionModalViewTest(const AccountSelectionModalViewTest&) =
-      delete;
+  AccountSelectionModalViewTest(const AccountSelectionModalViewTest&) = delete;
   AccountSelectionModalViewTest& operator=(
       const AccountSelectionModalViewTest&) = delete;
   ~AccountSelectionModalViewTest() override = default;
@@ -95,9 +94,7 @@ class AccountSelectionModalViewTest : public DialogBrowserTest,
   }
 
  protected:
-  void CreateAccountSelectionModal() {
-    ShowUi("");
-  }
+  void CreateAccountSelectionModal() { ShowUi(""); }
 
   void CreateAndShowSingleAccountPicker(
       bool show_back_button,
@@ -262,9 +259,6 @@ class AccountSelectionModalViewTest : public DialogBrowserTest,
     views::Label* title_view = static_cast<views::Label*>(header_children[1]);
     ASSERT_TRUE(title_view);
     EXPECT_EQ(title_view->GetText(), kTitleSignIn);
-    if (should_focus_title_) {
-      EXPECT_EQ(dialog()->GetInitiallyFocusedView(), title_view);
-    }
 
     if (!is_loading_dialog) {
       // Check body text.
@@ -273,10 +267,6 @@ class AccountSelectionModalViewTest : public DialogBrowserTest,
       EXPECT_EQ(body_view->GetText(), kBodySignIn);
       EXPECT_EQ(body_view->GetVisible(), expect_visible_body_label_);
     }
-
-    // After the first header check, the consecutive header checks do not
-    // necessarily have to focus on the title.
-    should_focus_title_ = false;
   }
 
   void CheckButtonRow(views::View* button_row,
@@ -677,7 +667,6 @@ class AccountSelectionModalViewTest : public DialogBrowserTest,
 
  private:
   bool expect_visible_body_label_{true};
-  bool should_focus_title_{true};
   ui::ImageModel idp_brand_icon_;
   scoped_refptr<network::SharedURLLoaderFactory>
       test_shared_url_loader_factory_;

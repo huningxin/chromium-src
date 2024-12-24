@@ -17,9 +17,9 @@
 #include "base/test/task_environment.h"
 #include "base/time/time.h"
 #include "base/types/expected.h"
-#include "components/autofill/core/browser/autofill_test_utils.h"
+#include "components/autofill/core/browser/data_manager/payments/test_payments_data_manager.h"
 #include "components/autofill/core/browser/data_model/bank_account.h"
-#include "components/autofill/core/browser/test_payments_data_manager.h"
+#include "components/autofill/core/browser/test_utils/autofill_test_utils.h"
 #include "components/autofill/core/common/autofill_prefs.h"
 #include "components/facilitated_payments/core/browser/ewallet_manager.h"
 #include "components/facilitated_payments/core/browser/facilitated_payments_client.h"
@@ -263,7 +263,7 @@ TEST_F(FacilitatedPaymentsManagerTest, PayflowExitedReason_RiskDataEmpty) {
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kRiskDataNotAvailable,
+      /*sample=*/PixFlowExitedReason::kRiskDataNotAvailable,
       /*expected_bucket_count=*/1);
 }
 
@@ -321,7 +321,7 @@ TEST_F(FacilitatedPaymentsManagerTest,
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kClientTokenNotAvailable,
+      /*sample=*/PixFlowExitedReason::kClientTokenNotAvailable,
       /*expected_bucket_count=*/1);
 }
 
@@ -510,7 +510,7 @@ TEST_F(FacilitatedPaymentsManagerTest, PayflowExitedReason_InvalidCode) {
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kInvalidCode,
+      /*sample=*/PixFlowExitedReason::kInvalidCode,
       /*expected_bucket_count=*/1);
 }
 
@@ -528,7 +528,7 @@ TEST_F(FacilitatedPaymentsManagerTest, PayflowExitedReason_UserOptedOut) {
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kUserOptedOut,
+      /*sample=*/PixFlowExitedReason::kUserOptedOut,
       /*expected_bucket_count=*/1);
 }
 
@@ -543,7 +543,7 @@ TEST_F(FacilitatedPaymentsManagerTest, PayflowExitedReason_NoLinkedAccount) {
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kNoLinkedAccount,
+      /*sample=*/PixFlowExitedReason::kNoLinkedAccount,
       /*expected_bucket_count=*/1);
 }
 
@@ -577,7 +577,7 @@ TEST_F(FacilitatedPaymentsManagerTest,
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kCodeValidatorFailed,
+      /*sample=*/PixFlowExitedReason::kCodeValidatorFailed,
       /*expected_bucket_count=*/1);
 }
 
@@ -662,7 +662,7 @@ TEST_F(FacilitatedPaymentsManagerTest,
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kInitiatePaymentFailed,
+      /*sample=*/PixFlowExitedReason::kInitiatePaymentFailed,
       /*expected_bucket_count=*/1);
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.InitiatePayment.Failure.Latency",
@@ -696,7 +696,7 @@ TEST_F(FacilitatedPaymentsManagerTest,
       /*expected_bucket_count=*/1);
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kActionTokenNotAvailable,
+      /*sample=*/PixFlowExitedReason::kActionTokenNotAvailable,
       /*expected_bucket_count=*/1);
 }
 
@@ -727,7 +727,7 @@ TEST_F(FacilitatedPaymentsManagerTest,
       /*expected_bucket_count=*/1);
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kUserLoggedOut,
+      /*sample=*/PixFlowExitedReason::kUserLoggedOut,
       /*expected_bucket_count=*/1);
 }
 
@@ -758,7 +758,7 @@ TEST_F(FacilitatedPaymentsManagerTest,
       /*expected_bucket_count=*/1);
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kUserLoggedOut,
+      /*sample=*/PixFlowExitedReason::kUserLoggedOut,
       /*expected_bucket_count=*/1);
 }
 
@@ -821,22 +821,46 @@ TEST_F(FacilitatedPaymentsManagerTest,
 
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kApiClientNotAvailable,
+      /*sample=*/PixFlowExitedReason::kApiClientNotAvailable,
       /*expected_bucket_count=*/1);
 }
 
-// Test that when a purchase action result is received, the UI prompt is
-// dismissed.
+// Test that when Chrome fails to invoke purchase action, the error screen is
+// shown.
 TEST_F(FacilitatedPaymentsManagerTest,
-       OnPurchaseActionResult_UiPromptDismissed) {
-  // `DismissPrompt` is called once whenever a purchase action result is
-  // received, and again when the test fixture destroys the `manager_`.
-  EXPECT_CALL(*client_, DismissPrompt()).Times(3);
+       OnPurchaseActionResult_CouldNotInvoke_ErrorScreenShown) {
+  base::HistogramTester histogram_tester;
 
-  for (PurchaseActionResult result : {PurchaseActionResult::kResultOk,
-                                      PurchaseActionResult::kResultCanceled}) {
-    manager_->OnPurchaseActionResult(result);
-  }
+  EXPECT_CALL(*client_, ShowErrorScreen);
+
+  manager_->OnPurchaseActionResult(PurchaseActionResult::kCouldNotInvoke);
+
+  histogram_tester.ExpectUniqueSample(
+      "FacilitatedPayments.Pix.PayflowExitedReason",
+      /*sample=*/PixFlowExitedReason::kPurchaseActionCouldNotBeInvoked,
+      /*expected_bucket_count=*/1);
+}
+
+// Test that when Chrome is successful in invoking the purchase action, the UI
+// screen is dismissed.
+TEST_F(FacilitatedPaymentsManagerTest,
+       OnPurchaseActionResult_ResultOk_UiScreenDismissed) {
+  // `DismissPrompt` is called once when the purchase action result is
+  // received, and again when the test fixture destroys the `manager_`.
+  EXPECT_CALL(*client_, DismissPrompt).Times(2);
+
+  manager_->OnPurchaseActionResult(PurchaseActionResult::kResultOk);
+}
+
+// Test that when Chrome is successful in invoking the purchase action, the UI
+// screen is dismissed.
+TEST_F(FacilitatedPaymentsManagerTest,
+       OnPurchaseActionResult_ResultCanceled_UiScreenDismissed) {
+  // `DismissPrompt` is called once when the purchase action result is
+  // received, and again when the test fixture destroys the `manager_`.
+  EXPECT_CALL(*client_, DismissPrompt).Times(2);
+
+  manager_->OnPurchaseActionResult(PurchaseActionResult::kResultCanceled);
 }
 
 // Test that when an InitiatePurchaseAction request is sent, the attempt is
@@ -883,10 +907,21 @@ TEST_F(FacilitatedPaymentsManagerTest,
     FastForwardBy(base::Seconds(2));
     manager_->OnPurchaseActionResult(result);
 
+    std::string result_string;
+    switch (result) {
+      case PurchaseActionResult::kResultOk:
+        result_string = "Succeeded";
+        break;
+      case PurchaseActionResult::kCouldNotInvoke:
+        result_string = "Failed";
+        break;
+      case PurchaseActionResult::kResultCanceled:
+        result_string = "Abandoned";
+        break;
+    }
     histogram_tester.ExpectBucketCount(
         base::StrCat({"FacilitatedPayments.Pix.InitiatePurchaseAction.",
-                      manager_->GetInitiatePurchaseActionResultString(result),
-                      ".Latency"}),
+                      result_string, ".Latency"}),
         /*sample=*/2000,
         /*expected_count=*/1);
     auto ukm_entries = ukm_recorder_.GetEntries(
@@ -986,7 +1021,7 @@ TEST_P(FacilitatedPaymentsManagerTestInLandscapeMode,
   // disabled, Pix payment is not offered, and a histogram should be logged.
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kLandscapeScreenOrientation,
+      /*sample=*/PixFlowExitedReason::kLandscapeScreenOrientation,
       /*expected_bucket_count=*/IsPaymentEnabledInLandscapeMode() ? 0 : 1);
 }
 
@@ -1074,6 +1109,59 @@ TEST_F(FacilitatedPaymentsManagerTest, PixFopSelectorShown_HistogramsLogged) {
   EXPECT_EQ(ukm_entries[0].metrics.at("Shown"), true);
 }
 
+TEST_F(FacilitatedPaymentsManagerTest,
+       ProgressScreenAutoDismissedAfterInvokingPurchaseAction) {
+  // When purchase action is invoked, the progress screen would be showing.
+  manager_->ShowProgressScreen();
+  ON_CALL(*client_, GetCoreAccountInfo)
+      .WillByDefault(testing::Return(CreateLoggedInAccountInfo()));
+
+  EXPECT_CALL(GetApiClient(), InvokePurchaseAction);
+
+  auto response_details =
+      std::make_unique<FacilitatedPaymentsInitiatePaymentResponseDetails>();
+  response_details->action_token_ =
+      std::vector<uint8_t>{'t', 'o', 'k', 'e', 'n'};
+  manager_->OnInitiatePaymentResponseReceived(
+      autofill::payments::PaymentsAutofillClient::PaymentsRpcResult::kSuccess,
+      std::move(response_details));
+
+  // The progress screen is persisted for a short duration after invoking the
+  // purchase action for a smooth transition to the platform screen.
+  EXPECT_EQ(manager_->ui_state_, UiState::kProgressScreen);
+
+  FastForwardBy(base::Seconds(1));
+
+  // The progress screen should be dismissed after a short delay.
+  EXPECT_EQ(manager_->ui_state_, UiState::kHidden);
+}
+
+TEST_F(FacilitatedPaymentsManagerTest,
+       ErrorScreenNotAutoDismissedAfterInvokingPurchaseAction) {
+  // When purchase action is invoked, the progress screen would be showing.
+  manager_->ShowProgressScreen();
+  ON_CALL(*client_, GetCoreAccountInfo)
+      .WillByDefault(testing::Return(CreateLoggedInAccountInfo()));
+
+  EXPECT_CALL(GetApiClient(), InvokePurchaseAction);
+
+  auto response_details =
+      std::make_unique<FacilitatedPaymentsInitiatePaymentResponseDetails>();
+  response_details->action_token_ =
+      std::vector<uint8_t>{'t', 'o', 'k', 'e', 'n'};
+  manager_->OnInitiatePaymentResponseReceived(
+      autofill::payments::PaymentsAutofillClient::PaymentsRpcResult::kSuccess,
+      std::move(response_details));
+
+  // If the purchase action could not be invoked, the `PurchaseActionResult` is
+  // returned immediately. The error screen is shown.
+  manager_->OnPurchaseActionResult(PurchaseActionResult::kCouldNotInvoke);
+  FastForwardBy(base::Seconds(1));
+
+  // The error screen shouldn't be auto-dismissed.
+  EXPECT_EQ(manager_->ui_state_, UiState::kErrorScreen);
+}
+
 class FacilitatedPaymentsManagerTestForUiScreens
     : public FacilitatedPaymentsManagerTest,
       public testing::WithParamInterface<UiState> {
@@ -1147,7 +1235,7 @@ TEST_P(FacilitatedPaymentsManagerTestForUiScreens, NewScreenCouldNotBeShown) {
   // Verify that the payflow exited histogram is logged.
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kFopSelectorClosedNotByUser,
+      /*sample=*/PixFlowExitedReason::kFopSelectorClosedNotByUser,
       /*expected_bucket_count=*/ui_state() == UiState::kFopSelector ? 1 : 0);
 }
 
@@ -1166,7 +1254,7 @@ TEST_P(FacilitatedPaymentsManagerTestForUiScreens, ScreenClosedNotByUser) {
   // Verify that the payflow exited histogram is logged.
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kFopSelectorClosedNotByUser,
+      /*sample=*/PixFlowExitedReason::kFopSelectorClosedNotByUser,
       /*expected_bucket_count=*/ui_state() == UiState::kFopSelector ? 1 : 0);
 }
 
@@ -1185,7 +1273,7 @@ TEST_P(FacilitatedPaymentsManagerTestForUiScreens, ScreenClosedByUser) {
   // Verify that the payflow exited histogram is logged.
   histogram_tester.ExpectUniqueSample(
       "FacilitatedPayments.Pix.PayflowExitedReason",
-      /*sample=*/PayflowExitedReason::kFopSelectorClosedByUser,
+      /*sample=*/PixFlowExitedReason::kFopSelectorClosedByUser,
       /*expected_bucket_count=*/ui_state() == UiState::kFopSelector ? 1 : 0);
   if (ui_state() == UiState::kFopSelector) {
     auto ukm_entries = ukm_recorder_.GetEntries(

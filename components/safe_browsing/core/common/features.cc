@@ -17,6 +17,7 @@
 #include "build/build_config.h"
 #include "build/buildflag.h"
 #include "components/safe_browsing/buildflags.h"
+#include "features.h"
 
 namespace safe_browsing {
 // Please define any new SafeBrowsing related features in this file, and add
@@ -28,6 +29,12 @@ namespace safe_browsing {
 BASE_FEATURE(kAdSamplerTriggerFeature,
              "SafeBrowsingAdSamplerTrigger",
              base::FEATURE_DISABLED_BY_DEFAULT);
+
+#if BUILDFLAG(IS_ANDROID)
+BASE_FEATURE(kAddReferringAppInfoToProtegoPings,
+             "AddReferringAppInfoToProtegoPings",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+#endif
 
 BASE_FEATURE(kAddWarningShownTSToClientSafeBrowsingReport,
              "AddWarningShownTSToClientSafeBrowsingReport",
@@ -59,6 +66,10 @@ BASE_FEATURE(kClientSideDetectionNotificationPrompt,
 
 BASE_FEATURE(kClientSideDetectionSamplePing,
              "ClientSideDetectionSamplePing",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kClientSideDetectionShowScamVerdictWarning,
+             "ClientSideDetectionShowScamVerdictWarning",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kClientSideDetectionVibrationApi,
@@ -173,14 +184,6 @@ constexpr base::FeatureParam<int>
         &kExtensionTelemetryForEnterprise, "EnterpriseReportingIntervalSeconds",
         /*default_value=*/300};
 
-BASE_FEATURE(kExtensionTelemetryReportContactedHosts,
-             "SafeBrowsingExtensionTelemetryReportContactedHosts",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-BASE_FEATURE(kExtensionTelemetryReportHostsContactedViaWebSocket,
-             "SafeBrowsingExtensionTelemetryReportHostsContactedViaWebsocket",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(
     kExtensionTelemetryInterceptRemoteHostsContactedInRenderer,
     "SafeBrowsingExtensionTelmetryInterceptRemoteHostsContactedInRenderer",
@@ -188,10 +191,6 @@ BASE_FEATURE(
 
 BASE_FEATURE(kExtensionTelemetryTabsExecuteScriptSignal,
              "SafeBrowsingExtensionTelemetryTabsExecuteScriptSignal",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-BASE_FEATURE(kExtensionTelemetryDisableOffstoreExtensions,
-             "SafeBrowsingExtensionTelemetryDisableOffstoreExtensions",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kExternalAppRedirectTelemetry,
@@ -230,10 +229,6 @@ constexpr base::FeatureParam<int> kHashPrefixRealTimeLookupsSampleRate{
 
 BASE_FEATURE(kLocalListsUseSBv5,
              "SafeBrowsingLocalListsUseSBv5",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-BASE_FEATURE(kLogAccountEnhancedProtectionStateInProtegoPings,
-             "TailoredSecurityLogAccountEnhancedProtectionStateInProtegoPings",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kOnDeviceNotificationContentDetectionModel,
@@ -286,10 +281,6 @@ BASE_FEATURE(kSafeBrowsingPhishingClassificationESBThreshold,
              "SafeBrowsingPhishingClassificationESBThreshold",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kSafeBrowsingReferrerChainWithCopyPasteNavigation,
-             "SafeBrowsingReferrerChainWithCopyPasteNavigation",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kSafeBrowsingRemoveCookiesInAuthRequests,
              "SafeBrowsingRemoveCookiesInAuthRequests",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -308,6 +299,16 @@ BASE_FEATURE(kSavePasswordHashFromProfilePicker,
              "SavePasswordHashFromProfilePicker",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+BASE_FEATURE(kShowWarningsForSuspiciousNotifications,
+             "ShowWarningsForSuspiciousNotifications",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+constexpr base::FeatureParam<int>
+    kShowWarningsForSuspiciousNotificationsScoreThreshold{
+        &kShowWarningsForSuspiciousNotifications,
+        "ShowWarningsForSuspiciousNotificationsScoreThreshold",
+        /*default_value=*/100};
+
 BASE_FEATURE(kSimplifiedUrlDisplay,
              "SimplifiedUrlDisplay",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -315,12 +316,6 @@ BASE_FEATURE(kSimplifiedUrlDisplay,
 BASE_FEATURE(kSuspiciousSiteTriggerQuotaFeature,
              "SafeBrowsingSuspiciousSiteTriggerQuota",
              base::FEATURE_ENABLED_BY_DEFAULT);
-
-#if BUILDFLAG(IS_ANDROID)
-BASE_FEATURE(kTailoredSecurityObserverRetries,
-             "TailoredSecurityObserverRetries",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-#endif
 
 BASE_FEATURE(kTailoredSecurityIntegration,
              "TailoredSecurityIntegration",
@@ -354,21 +349,18 @@ base::Value::List GetFeatureStatusList() {
       &kEnterprisePasswordReuseUiRefresh,
       &kEnterpriseRealTimeUrlCheckOnAndroid,
       &kExtensionTelemetryDeclarativeNetRequestActionSignal,
-      &kExtensionTelemetryDisableOffstoreExtensions,
       &kExtensionTelemetryForEnterprise,
       &kExtensionTelemetryInterceptRemoteHostsContactedInRenderer,
-      &kExtensionTelemetryReportContactedHosts,
-      &kExtensionTelemetryReportHostsContactedViaWebSocket,
       &kExtensionTelemetryTabsExecuteScriptSignal,
       &kExternalAppRedirectTelemetry,
       &kHashPrefixRealTimeLookups,
       &kHashPrefixRealTimeLookupsFasterOhttpKeyRotation,
       &kLocalListsUseSBv5,
-      &kLogAccountEnhancedProtectionStateInProtegoPings,
       &kOnDeviceNotificationContentDetectionModel,
       &kSafeBrowsingAsyncRealTimeCheck,
       &kSafeBrowsingRemoveCookiesInAuthRequests,
       &kSafetyHubAbusiveNotificationRevocation,
+      &kShowWarningsForSuspiciousNotifications,
       &kSimplifiedUrlDisplay,
       &kSuspiciousSiteTriggerQuotaFeature,
       &kTailoredSecurityIntegration,

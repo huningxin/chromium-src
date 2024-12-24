@@ -50,8 +50,10 @@ import static org.chromium.content.browser.accessibility.AccessibilityContentShe
 import static org.chromium.content.browser.accessibility.AccessibilityContentShellTestUtils.sRangeInfoMatcher;
 import static org.chromium.content.browser.accessibility.AccessibilityContentShellTestUtils.sTextMatcher;
 import static org.chromium.content.browser.accessibility.AccessibilityContentShellTestUtils.sViewIdResourceNameMatcher;
+import static org.chromium.content.browser.accessibility.AccessibilityHistogramRecorder.ACCESSIBILITY_CREATE_ACCESSIBILITY_NODE_INFO_TOTAL_TIME;
 import static org.chromium.content.browser.accessibility.AccessibilityHistogramRecorder.ACCESSIBILITY_INLINE_TEXT_BOXES_BUNDLE;
 import static org.chromium.content.browser.accessibility.AccessibilityHistogramRecorder.ACCESSIBILITY_INLINE_TEXT_BOXES_COUNT;
+import static org.chromium.content.browser.accessibility.AccessibilityHistogramRecorder.ACCESSIBILITY_TIME_UNTIL_FIRST_ACCESSIBILITY_FOCUS;
 import static org.chromium.content.browser.accessibility.AccessibilityHistogramRecorder.AUTO_DISABLE_ACCESSIBILITY_DISABLED_TIME_INITIAL;
 import static org.chromium.content.browser.accessibility.AccessibilityHistogramRecorder.AUTO_DISABLE_ACCESSIBILITY_DISABLED_TIME_SUCCESSIVE;
 import static org.chromium.content.browser.accessibility.AccessibilityHistogramRecorder.AUTO_DISABLE_ACCESSIBILITY_DISABLE_METHOD_CALLED_INITIAL;
@@ -82,12 +84,14 @@ import static org.chromium.content.browser.accessibility.AccessibilityNodeInfoBu
 import static org.chromium.content.browser.accessibility.AccessibilityNodeInfoBuilder.EXTRAS_KEY_UNCLIPPED_TOP;
 import static org.chromium.ui.accessibility.AccessibilityState.EVENT_TYPE_MASK_NONE;
 import static org.chromium.ui.accessibility.AccessibilityState.StateIdentifierForTesting.EVENT_TYPE_MASK;
+import static org.chromium.ui.accessibility.AccessibilityState.TALKBACK_SERVICE_ID;
 
 import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.Spannable;
@@ -107,6 +111,7 @@ import org.chromium.base.FeatureList;
 import org.chromium.base.ThreadUtils;
 import org.chromium.base.test.util.Criteria;
 import org.chromium.base.test.util.CriteriaHelper;
+import org.chromium.base.test.util.DisableIf;
 import org.chromium.base.test.util.DisabledTest;
 import org.chromium.base.test.util.HistogramWatcher;
 import org.chromium.base.test.util.Restriction;
@@ -738,7 +743,7 @@ public class WebContentsAccessibilityTest {
         int paragraphId = waitForNodeMatching(sTextMatcher, "This is a test");
         mNodeInfo = createAccessibilityNodeInfo(paragraphId);
         Assert.assertNotNull(NODE_TIMEOUT_ERROR, mNodeInfo);
-        Assert.assertEquals(NODE_TIMEOUT_ERROR, "This is a test", mNodeInfo.getText());
+        Assert.assertEquals(NODE_TIMEOUT_ERROR, "This is a test", mNodeInfo.getText().toString());
 
         // Set the relevant features and accessibility state.
         ThreadUtils.runOnUiThreadBlocking(
@@ -754,6 +759,85 @@ public class WebContentsAccessibilityTest {
                         .build();
 
         performActionOnUiThread(paragraphId, ACTION_ACCESSIBILITY_FOCUS, new Bundle());
+
+        // Send end of test signal.
+        mActivityTestRule.sendEndOfTestSignal();
+
+        // Assert that we recorded histograms and there was a count present.
+        histogramWatcher.assertExpected();
+    }
+
+    /**
+     * Test that UMA histograms are recorded for the total time an instance spends construction
+     * nodes in the createAccessibilityNodeInfo method.
+     */
+    @Test
+    @SmallTest
+    public void testUMAHistograms_createAccessibilityNodeInfoTotalTime() throws Throwable {
+        setupTestWithHTML("<p>This is a test</p><input type='text'/><div>Generic node</div>");
+
+        int paragraphId = waitForNodeMatching(sTextMatcher, "This is a test");
+        int inputId = waitForNodeMatching(sInputTypeMatcher, InputType.TYPE_CLASS_TEXT);
+        int divId = waitForNodeMatching(sTextMatcher, "Generic node");
+        mNodeInfo = createAccessibilityNodeInfo(paragraphId);
+        Assert.assertNotNull(NODE_TIMEOUT_ERROR, mNodeInfo);
+        Assert.assertEquals(NODE_TIMEOUT_ERROR, "This is a test", mNodeInfo.getText().toString());
+
+        // Set the relevant features and accessibility state.
+        ThreadUtils.runOnUiThreadBlocking(
+                () -> {
+                    AccessibilityState.setIsScreenReaderEnabledForTesting(true);
+                    AccessibilityState.setIsOnlyPasswordManagersEnabledForTesting(false);
+                });
+
+        var histogramWatcher =
+                HistogramWatcher.newBuilder()
+                        .expectAnyRecordTimes(
+                                ACCESSIBILITY_CREATE_ACCESSIBILITY_NODE_INFO_TOTAL_TIME, 1)
+                        .build();
+
+        mNodeInfo = createAccessibilityNodeInfo(paragraphId);
+        mNodeInfo = createAccessibilityNodeInfo(inputId);
+        mNodeInfo = createAccessibilityNodeInfo(divId);
+
+        // Send end of test signal.
+        mActivityTestRule.sendEndOfTestSignal();
+
+        mActivityTestRule.mWcax
+                .forceRecordCreateAccessibilityNodeInfoTotalTimeHistogramsForTesting();
+
+        // Assert that we recorded histograms and there was a count present.
+        histogramWatcher.assertExpected();
+    }
+
+    /**
+     * Test that UMA histograms are recorded for the time it takes for a node to receive
+     * accessibility focus.
+     */
+    @Test
+    @SmallTest
+    public void testUMAHistograms_timeToFirstAccessibilityFocus() throws Throwable {
+        setupTestWithHTML("<p>This is a test</p>");
+
+        int paragraphId = waitForNodeMatching(sTextMatcher, "This is a test");
+        mNodeInfo = createAccessibilityNodeInfo(paragraphId);
+        Assert.assertNotNull(NODE_TIMEOUT_ERROR, mNodeInfo);
+        Assert.assertEquals(NODE_TIMEOUT_ERROR, "This is a test", mNodeInfo.getText().toString());
+
+        // Set the relevant features and accessibility state.
+        ThreadUtils.runOnUiThreadBlocking(
+                () -> {
+                    AccessibilityState.setIsScreenReaderEnabledForTesting(true);
+                    AccessibilityState.setIsOnlyPasswordManagersEnabledForTesting(false);
+                    AccessibilityState.setServiceIdsForTesting(TALKBACK_SERVICE_ID);
+                });
+
+        var histogramWatcher =
+                HistogramWatcher.newBuilder()
+                        .expectAnyRecordTimes(ACCESSIBILITY_TIME_UNTIL_FIRST_ACCESSIBILITY_FOCUS, 1)
+                        .build();
+
+        focusNode(paragraphId);
 
         // Send end of test signal.
         mActivityTestRule.sendEndOfTestSignal();
@@ -933,7 +1017,7 @@ public class WebContentsAccessibilityTest {
         int vvIdDiv = waitForNodeMatching(sViewIdResourceNameMatcher, "test");
         mNodeInfo = createAccessibilityNodeInfo(vvIdDiv);
         Assert.assertNotNull(NODE_TIMEOUT_ERROR, mNodeInfo);
-        Assert.assertEquals(NODE_TIMEOUT_ERROR, "Example text 1", mNodeInfo.getText());
+        Assert.assertEquals(NODE_TIMEOUT_ERROR, "Example text 1", mNodeInfo.getText().toString());
 
         // Focus the encompassing node.
         focusNode(vvIdDiv);
@@ -946,12 +1030,12 @@ public class WebContentsAccessibilityTest {
 
         // Check whether the text of the encompassing node has been updated.
         mNodeInfo = createAccessibilityNodeInfo(vvIdDiv);
-        Assert.assertEquals(CACHING_ERROR, "Example text 2", mNodeInfo.getText());
+        Assert.assertEquals(CACHING_ERROR, "Example text 2", mNodeInfo.getText().toString());
     }
 
     /**
-     * Test our internal cache of |AccessibilityNodeInfo| objects for updates to the
-     * bounding boxes of nodes during window resizes.
+     * Test our internal cache of |AccessibilityNodeInfo| objects for updates to the bounding boxes
+     * of nodes during window resizes.
      */
     @Test
     @SmallTest
@@ -972,7 +1056,7 @@ public class WebContentsAccessibilityTest {
         int buttonvvId = waitForNodeMatching(sClassNameMatcher, "android.widget.Button");
         mNodeInfo = createAccessibilityNodeInfo(buttonvvId);
         Assert.assertNotNull(NODE_TIMEOUT_ERROR, mNodeInfo);
-        Assert.assertEquals(NODE_TIMEOUT_ERROR, "Next", mNodeInfo.getText());
+        Assert.assertEquals(NODE_TIMEOUT_ERROR, "Next", mNodeInfo.getText().toString());
 
         Rect beforeBounds = new Rect();
         mNodeInfo.getBoundsInScreen(beforeBounds);
@@ -2056,6 +2140,11 @@ public class WebContentsAccessibilityTest {
     /** Test that the performAction for ACTION_CUT works properly with accessibility. */
     @Test
     @SmallTest
+    @DisableIf.Build(sdk_equals = Build.VERSION_CODES.S, message = "crbug.com/40213937")
+    @DisableIf.Build(sdk_equals = Build.VERSION_CODES.S_V2, message = "crbug.com/40213937")
+    @DisableIf.Build(
+            sdk_is_greater_than = Build.VERSION_CODES.TIRAMISU,
+            message = "crbug.com/40213937")
     public void testPerformAction_cut() throws Throwable {
         // Build a simple web page with an input field.
         setupTestWithHTML("<input type='text' value='test text'>");
@@ -2112,6 +2201,11 @@ public class WebContentsAccessibilityTest {
     /** Test that the performAction for ACTION_COPY works properly with accessibility. */
     @Test
     @SmallTest
+    @DisableIf.Build(sdk_equals = Build.VERSION_CODES.S, message = "crbug.com/40213937")
+    @DisableIf.Build(sdk_equals = Build.VERSION_CODES.S_V2, message = "crbug.com/40213937")
+    @DisableIf.Build(
+            sdk_is_greater_than = Build.VERSION_CODES.TIRAMISU,
+            message = "crbug.com/40213937")
     public void testPerformAction_copy() throws Throwable {
         // Build a simple web page with an input field.
         setupTestWithHTML("<input type='text' value='test text'>");
@@ -2168,6 +2262,7 @@ public class WebContentsAccessibilityTest {
     /** Test that the performAction for ACTION_PASTE works properly with accessibility. */
     @Test
     @SmallTest
+    @DisabledTest(message = "crbug.com/40213937")
     public void testPerformAction_paste() throws Throwable {
         // Build a simple web page with an input field.
         setupTestWithHTML("<input type='text'>");

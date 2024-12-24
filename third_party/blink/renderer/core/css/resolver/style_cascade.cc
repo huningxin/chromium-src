@@ -1202,13 +1202,13 @@ const CSSValue* StyleCascade::ResolvePendingSubstitution(
 
   unsigned parsed_properties_count = parsed_properties.size();
   for (unsigned i = 0; i < parsed_properties_count; ++i) {
-    const CSSProperty& longhand = CSSProperty::Get(parsed_properties[i].Id());
-    const CSSValue* parsed = parsed_properties[i].Value();
+    const CSSProperty& longhand =
+        CSSProperty::Get(parsed_properties[i].PropertyID());
 
     // When using var() in a css-logical shorthand (e.g. margin-inline),
     // the longhands here will also be logical.
     if (unvisited_property == &ResolveSurrogate(longhand)) {
-      return parsed;
+      return &parsed_properties[i].Value();
     }
   }
 
@@ -1445,6 +1445,8 @@ bool StyleCascade::ResolveVarInto(CSSParserTokenStream& stream,
     //
     // TODO(sesse): Do we need the token range here anymore?
     if (!ValidateFallback(property, fallback.OriginalText())) {
+      // TODO(crbug.com/372475301): We should not validate the fallback.
+      CountUse(WebFeature::kVarFallbackValidation);
       return false;
     }
     if (!data) {

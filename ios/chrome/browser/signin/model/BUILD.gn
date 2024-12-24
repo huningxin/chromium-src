@@ -62,7 +62,6 @@ source_set("model") {
     "//components/content_settings/core/browser",
     "//components/image_fetcher/core",
     "//components/image_fetcher/ios",
-    "//components/keyed_service/ios",
     "//components/metrics",
     "//components/policy/core/common:common_constants",
     "//components/pref_registry",
@@ -148,6 +147,7 @@ source_set("authentication_service") {
     "//ios/chrome/browser/shared/public/features",
     "//ios/chrome/browser/shared/public/features:system_flags",
     "//ios/chrome/browser/ui/authentication/signin:signin_headers",
+    "//ios/chrome/common/app_group",
   ]
 }
 

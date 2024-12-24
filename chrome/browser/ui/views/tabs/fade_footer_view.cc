@@ -59,8 +59,8 @@ FooterRow<T>::FooterRow(bool is_fade_out_view)
                                views::MinimumFlexSizeRule::kScaleToZero,
                                views::MaximumFlexSizeRule::kUnbounded, true));
 
-    footer_label_->SetEnabledColorId(kColorTabHoverCardSecondaryText);
-    footer_label_->SetTextStyle(views::style::STYLE_BODY_4);
+  footer_label_->SetEnabledColorId(kColorTabHoverCardSecondaryText);
+  footer_label_->SetTextStyle(views::style::STYLE_BODY_4);
 
   // Vertically align the icon to the top line of the label
   const int offset = (footer_label_->GetLineHeight() -
@@ -192,9 +192,9 @@ void FadeCollaborationMessagingFooterRow::SetData(
     return;
   }
 
-  if (data_.avatar.has_value()) {
+  if (!data_.avatar.IsEmpty()) {
     // Use avatar, if supplied.
-    SetContent(*data_.avatar, data_.text);
+    SetContent(data_.avatar, data_.text);
     return;
   }
 

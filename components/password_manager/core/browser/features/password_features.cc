@@ -64,6 +64,10 @@ BASE_FEATURE(kIosDetectUsernameInUff,
              "IosSaveUsernameInUff",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+BASE_FEATURE(kIOSImprovePasswordFieldDetectionForFilling,
+             "IOSImprovePasswordFieldDetectionForFilling",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 BASE_FEATURE(kIOSPasswordBottomSheetV2,
              "IOSPasswordBottomSheetV2",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -119,11 +123,11 @@ BASE_FEATURE(kRestartToGainAccessToKeychain,
 #endif
 #endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 BASE_FEATURE(kBiometricsAuthForPwdFill,
              "BiometricsAuthForPwdFill",
              base::FEATURE_DISABLED_BY_DEFAULT);
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 BASE_FEATURE(kSkipUndecryptablePasswords,
              "SkipUndecryptablePasswords",
@@ -156,13 +160,9 @@ BASE_FEATURE(kLoginDbDeprecationAndroid,
              base::FEATURE_DISABLED_BY_DEFAULT);
 #endif
 
-BASE_FEATURE(kUsernameFirstFlowFallbackCrowdsourcing,
-             "UsernameFirstFlowFallbackCrowdsourcing",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 BASE_FEATURE(kUsernameFirstFlowWithIntermediateValuesPredictions,
              "UsernameFirstFlowWithIntermediateValuesPredictions",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kUsernameFirstFlowWithIntermediateValuesVoting,
              "UsernameFirstFlowWithIntermediateValuesVoting",

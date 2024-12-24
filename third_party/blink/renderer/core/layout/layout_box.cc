@@ -1211,7 +1211,8 @@ LayoutUnit LayoutBox::DefaultIntrinsicContentInlineSize() const {
 
   const bool apply_fixed_size = StyleRef().ApplyControlFixedSize(&element);
   const auto* select = DynamicTo<HTMLSelectElement>(element);
-  if (select && select->UsesMenuList() && !select->IsAppearanceBaseButton())
+  if (select && select->UsesMenuList() &&
+      StyleRef().EffectiveAppearance() != AppearanceValue::kBaseSelect)
       [[unlikely]] {
     return apply_fixed_size ? MenuListIntrinsicInlineSize(*select, *this)
                             : kIndefiniteSize;
@@ -1229,11 +1230,11 @@ LayoutUnit LayoutBox::DefaultIntrinsicContentInlineSize() const {
       return SliderIntrinsicInlineSize(*this);
     }
     auto effective_appearance = StyleRef().EffectiveAppearance();
-    if (effective_appearance == kCheckboxPart) {
+    if (effective_appearance == AppearanceValue::kCheckbox) {
       return ThemePartIntrinsicSize(*this, WebThemeEngine::kPartCheckbox)
           .inline_size;
     }
-    if (effective_appearance == kRadioPart) {
+    if (effective_appearance == AppearanceValue::kRadio) {
       return ThemePartIntrinsicSize(*this, WebThemeEngine::kPartRadio)
           .inline_size;
     }
@@ -1253,11 +1254,11 @@ LayoutUnit LayoutBox::DefaultIntrinsicContentBlockSize() const {
   NOT_DESTROYED();
 
   auto effective_appearance = StyleRef().EffectiveAppearance();
-  if (effective_appearance == kCheckboxPart) {
+  if (effective_appearance == AppearanceValue::kCheckbox) {
     return ThemePartIntrinsicSize(*this, WebThemeEngine::kPartCheckbox)
         .block_size;
   }
-  if (effective_appearance == kRadioPart) {
+  if (effective_appearance == AppearanceValue::kRadio) {
     return ThemePartIntrinsicSize(*this, WebThemeEngine::kPartRadio).block_size;
   }
 
@@ -1265,12 +1266,11 @@ LayoutUnit LayoutBox::DefaultIntrinsicContentBlockSize() const {
     return kIndefiniteSize;
   }
   if (const auto* select = DynamicTo<HTMLSelectElement>(GetNode())) {
-    if (!select->IsAppearanceBaseButton()) {
-      if (select->UsesMenuList()) {
-        return MenuListIntrinsicBlockSize(*select, *this);
-      }
+    if (!select->UsesMenuList()) {
       return ListBoxItemBlockSize(*select, *this) * select->ListBoxSize() -
              ComputeLogicalScrollbars().BlockSum();
+    } else if (effective_appearance != AppearanceValue::kBaseSelect) {
+      return MenuListIntrinsicBlockSize(*select, *this);
     }
   }
   if (IsTextField()) {
@@ -2697,8 +2697,6 @@ void LayoutBox::FinalizeLayoutResults() {
 
 void LayoutBox::RebuildFragmentTreeSpine() {
   DCHECK(PhysicalFragmentCount());
-  SCOPED_BLINK_UMA_HISTOGRAM_TIMER_HIGHRES(
-      "Blink.Layout.RebuildFragmentTreeSpine");
   // If this box has an associated layout-result, rebuild the spine of the
   // fragment-tree to ensure consistency.
   LayoutBox* container = this;
@@ -4298,7 +4296,7 @@ const LayoutObject* LayoutBox::AcceptableImplicitAnchor() const {
   // Go through the already built PhysicalAnchorQuery to avoid tree traversal.
   bool is_acceptable_anchor = false;
   auto validate_anchor = [&](const PhysicalAnchorQuery& anchor_query) {
-    if (anchor_query.AnchorLayoutObject(*this, anchor_layout_object)) {
+    if (anchor_query.AnchorLayoutObject(*this, anchor_element)) {
       is_acceptable_anchor = true;
     }
   };

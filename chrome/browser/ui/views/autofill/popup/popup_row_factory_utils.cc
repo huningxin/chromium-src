@@ -36,11 +36,11 @@
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/chrome_typography.h"
 #include "chrome/browser/user_education/user_education_service.h"
-#include "components/autofill/core/browser/filling_product.h"
+#include "components/autofill/core/browser/filling/filling_product.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
-#include "components/autofill/core/browser/ui/suggestion.h"
+#include "components/autofill/core/browser/suggestions/suggestion.h"
+#include "components/autofill/core/browser/suggestions/suggestion_type.h"
 #include "components/autofill/core/browser/ui/suggestion_button_action.h"
-#include "components/autofill/core/browser/ui/suggestion_type.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
 #include "components/compose/core/browser/compose_features.h"
@@ -142,7 +142,6 @@ void FormatLabel(views::Label& label,
       label.SetMaximumWidthSingleLine(maximum_width_single_line);
       break;
     case FillingProduct::kCreditCard:
-    case FillingProduct::kStandaloneCvc:
       if (text.should_truncate.value()) {
         // should_truncate should only be set to true iff the experiments are
         // enabled.

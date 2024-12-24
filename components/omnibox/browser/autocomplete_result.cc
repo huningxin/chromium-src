@@ -40,12 +40,12 @@
 #include "components/omnibox/browser/autocomplete_provider_client.h"
 #include "components/omnibox/browser/base_search_provider.h"
 #include "components/omnibox/browser/intranet_redirector_state.h"
-#include "components/omnibox/browser/omnibox_feature_configs.h"
 #include "components/omnibox/browser/omnibox_field_trial.h"
 #include "components/omnibox/browser/omnibox_prefs.h"
 #include "components/omnibox/browser/page_classification_functions.h"
 #include "components/omnibox/browser/suggestion_group_util.h"
 #include "components/omnibox/browser/tab_matcher.h"
+#include "components/omnibox/common/omnibox_feature_configs.h"
 #include "components/omnibox/common/omnibox_features.h"
 #include "components/search_engines/template_url_service.h"
 #include "components/strings/grit/components_strings.h"
@@ -1115,9 +1115,14 @@ void AutocompleteResult::ClearMatches() {
 #endif
 }
 
+AutocompleteResult::SessionData::SessionData() = default;
+
+AutocompleteResult::SessionData::~SessionData() = default;
+
 void AutocompleteResult::SessionData::Reset() {
   zero_prefix_enabled_ = false;
   num_zero_prefix_suggestions_shown_ = 0u;
+  gws_event_id_hashes_.clear();
 }
 
 void AutocompleteResult::SwapMatchesWith(AutocompleteResult* other) {

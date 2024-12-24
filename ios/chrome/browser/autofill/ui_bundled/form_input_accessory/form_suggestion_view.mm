@@ -10,8 +10,8 @@
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/user_metrics.h"
 #import "base/strings/strcat.h"
-#import "components/autofill/core/browser/filling_product.h"
-#import "components/autofill/core/browser/ui/suggestion_type.h"
+#import "components/autofill/core/browser/filling/filling_product.h"
+#import "components/autofill/core/browser/suggestions/suggestion_type.h"
 #import "components/autofill/ios/browser/form_suggestion.h"
 #import "ios/chrome/browser/autofill/model/form_suggestion_client.h"
 #import "ios/chrome/browser/autofill/model/form_suggestion_constants.h"
@@ -61,7 +61,6 @@ void LogSelectedSuggestionIndexMetric(SuggestionType suggestion_type,
   switch (filling_product) {
     case FillingProduct::kCreditCard:
     case FillingProduct::kIban:
-    case FillingProduct::kStandaloneCvc:
     case FillingProduct::kAddress:
     case FillingProduct::kPlusAddresses:
     case FillingProduct::kPassword:

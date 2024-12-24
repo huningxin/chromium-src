@@ -21,7 +21,6 @@
 #include "base/values.h"
 #include "build/build_config.h"
 #include "build/buildflag.h"
-#include "build/chromeos_buildflags.h"
 #include "components/language_detection/content/browser/content_language_detection_driver.h"
 #include "components/language_detection/content/common/language_detection.mojom.h"
 #include "components/language_detection/core/browser/language_detection_model_provider.h"
@@ -249,8 +248,9 @@ ContentBrowserClient::DetermineAddressSpaceFromURL(const GURL& url) {
   return network::mojom::IPAddressSpace::kUnknown;
 }
 
-bool ContentBrowserClient::LogWebUIUrl(const GURL& web_ui_url) {
-  return false;
+void ContentBrowserClient::LogWebUIUsage(
+    std::variant<WebUI*, GURL> webui_variant) {
+  return;
 }
 
 bool ContentBrowserClient::IsWebUIAllowedToMakeNetworkRequests(
@@ -802,7 +802,7 @@ ContentBrowserClient::CreateSpeechRecognitionManagerDelegate() {
   return nullptr;
 }
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 TtsControllerDelegate* ContentBrowserClient::GetTtsControllerDelegate() {
   return nullptr;
 }
@@ -1882,6 +1882,12 @@ bool ContentBrowserClient::ShouldDispatchPagehideDuringCommit(
     BrowserContext* browser_context,
     const GURL& destination_url) {
   return true;
+}
+
+std::unique_ptr<WebUIController> ContentBrowserClient::OverrideForInternalWebUI(
+    WebUI* web_ui,
+    const GURL& url) {
+  return nullptr;
 }
 
 }  // namespace content

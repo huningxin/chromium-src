@@ -227,7 +227,6 @@ data/accessibility/accname/name-img-label-alt-title.html
 data/accessibility/accname/name-img-label-expected-blink.txt
 data/accessibility/accname/name-img-label.html
 data/accessibility/accname/name-img-labelledby-inputs-expected-blink.txt
-data/accessibility/accname/name-img-labelledby-inputs-tree-expected-blink.txt
 data/accessibility/accname/name-img-labelledby-inputs.html
 data/accessibility/accname/name-img-labelledby-self-and-input-expected-blink.txt
 data/accessibility/accname/name-img-labelledby-self-and-input.html
@@ -1876,9 +1875,6 @@ data/accessibility/aria/label-with-selected-option-expected-blink.txt
 data/accessibility/aria/label-with-selected-option.html
 data/accessibility/aria/missing-relation-targets-added-later-expected-blink.txt
 data/accessibility/aria/missing-relation-targets-added-later.html
-data/accessibility/aria/option-label-expected-blink.txt
-data/accessibility/aria/option-label-expected-mac.txt
-data/accessibility/aria/option-label.html
 data/accessibility/aria/presentational-expected-android-assist-data.txt
 data/accessibility/aria/presentational-expected-android-external.txt
 data/accessibility/aria/presentational-expected-android.txt
@@ -2080,18 +2076,18 @@ data/accessibility/css/pseudo-element-check-mark-override-content.html
 data/accessibility/css/pseudo-element-check-mark.html
 data/accessibility/css/pseudo-element-highlight-expected-blink.txt
 data/accessibility/css/pseudo-element-highlight.html
-data/accessibility/css/pseudo-element-positioned-expected-android-assist-data.txt
-data/accessibility/css/pseudo-element-positioned-expected-android-external.txt
-data/accessibility/css/pseudo-element-positioned-expected-android.txt
-data/accessibility/css/pseudo-element-positioned-expected-blink.txt
-data/accessibility/css/pseudo-element-positioned-expected-mac.txt
-data/accessibility/css/pseudo-element-positioned.html
 data/accessibility/css/pseudo-element-picker-icon-expected-blink.txt
 data/accessibility/css/pseudo-element-picker-icon-override-content-alternative-text-expected-blink.txt
 data/accessibility/css/pseudo-element-picker-icon-override-content-alternative-text.html
 data/accessibility/css/pseudo-element-picker-icon-override-content-expected-blink.txt
 data/accessibility/css/pseudo-element-picker-icon-override-content.html
 data/accessibility/css/pseudo-element-picker-icon.html
+data/accessibility/css/pseudo-element-positioned-expected-android-assist-data.txt
+data/accessibility/css/pseudo-element-positioned-expected-android-external.txt
+data/accessibility/css/pseudo-element-positioned-expected-android.txt
+data/accessibility/css/pseudo-element-positioned-expected-blink.txt
+data/accessibility/css/pseudo-element-positioned-expected-mac.txt
+data/accessibility/css/pseudo-element-positioned.html
 data/accessibility/css/pseudo-elements-expected-android-assist-data.txt
 data/accessibility/css/pseudo-elements-expected-android-external.txt
 data/accessibility/css/pseudo-elements-expected-android.txt
@@ -3348,6 +3344,9 @@ data/accessibility/html/custom-select-expected-blink.txt
 data/accessibility/html/custom-select-expected-mac.txt
 data/accessibility/html/custom-select-expected-uia-win.txt
 data/accessibility/html/custom-select-expected-win.txt
+data/accessibility/html/custom-select-mixed-options-expected-auralinux.txt
+data/accessibility/html/custom-select-mixed-options-expected-blink.txt
+data/accessibility/html/custom-select-mixed-options.html
 data/accessibility/html/custom-select-open-expected-android-assist-data.txt
 data/accessibility/html/custom-select-open-expected-android-external.txt
 data/accessibility/html/custom-select-open-expected-android.txt
@@ -4586,6 +4585,8 @@ data/accessibility/html/move-child-hypertext-expected-win.txt
 data/accessibility/html/move-child-hypertext.html
 data/accessibility/html/name-calc-focusable-expected-blink.txt
 data/accessibility/html/name-calc-focusable.html
+data/accessibility/html/name-img-labelledby-inputs-tree-expected-blink.txt
+data/accessibility/html/name-img-labelledby-inputs-tree.html
 data/accessibility/html/navigation-expected-android-assist-data.txt
 data/accessibility/html/navigation-expected-android-external.txt
 data/accessibility/html/navigation-expected-android.txt
@@ -6092,6 +6093,7 @@ data/attribution_reporting/interop/dedup_key_report_window_ordering.json
 data/attribution_reporting/interop/deduplication_sequence.json
 data/attribution_reporting/interop/default_config.json
 data/attribution_reporting/interop/destination_limit.json
+data/attribution_reporting/interop/destination_public_suffix.json
 data/attribution_reporting/interop/destination_rate_limit.json
 data/attribution_reporting/interop/destination_validation.json
 data/attribution_reporting/interop/event_level_attribution_rate_limit_replacement.json
@@ -6506,6 +6508,7 @@ data/fedcm/accounts_endpoint.json
 data/fedcm/client_metadata_endpoint.json
 data/fedcm/eval_worker.js
 data/fedcm/id_assertion_endpoint.json
+data/fedcm/sd_jwt.html
 data/fenced_frames/ad_that_leaves_interest_group.html
 data/fenced_frames/ad_that_leaves_interest_group.html.mock-http-headers
 data/fenced_frames/ad_with_3pat_macro_reporting.html
@@ -7017,7 +7020,6 @@ data/gtk_key_bindings_test_gtkrc
 data/gzip-content.svgz
 data/gzip-content.svgz.mock-http-headers
 data/hang_before_unload.html
-data/has-ua-visual-transition.html
 data/hello.html
 data/hello.html.mock-http-headers
 data/https_upgrade_cross_site.html
@@ -7297,7 +7299,7 @@ data/link_rel_prefetch_disable_network.html
 data/link_rel_prefetch_disable_network.html.mock-http-headers
 data/link_rel_prefetch_referrer_policy.html
 data/links.html
-data/lite_js_test.mojom
+data/lite_js_test.test-mojom
 data/loader/async_resource_handler.html
 data/loader/blank.html
 data/loader/change_title.js
@@ -7465,9 +7467,10 @@ data/mixed-content/non-redundant-cert-error-in-iframe.html
 data/mixed-content/redundant-cert-error-in-iframe.html
 data/mojo_bindings_web_test.test-mojom
 data/mojo_bindings_web_test_types.test-mojom
-data/mojo_web_test_helper_test.mojom
+data/mojo_web_test_helper.test-mojom
 data/navigate_on_load.html
 data/navigate_opener.html
+data/navigate-has-ua-visual-transition.html
 data/navigation_controller/beforeunload_dialog.html
 data/navigation_controller/beforeunload_replacestate_1.html
 data/navigation_controller/beforeunload_replacestate_2.html
@@ -7606,6 +7609,7 @@ data/permissions-policy4.html
 data/plain.txt
 data/plain.txt.mock-http-headers
 data/pointerlock_on_dropped_elem.html
+data/popstate-has-ua-visual-transition.html
 data/popup.html
 data/post_message.html
 data/post_message2.html

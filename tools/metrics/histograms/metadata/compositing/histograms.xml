@@ -74,6 +74,7 @@ chromium-metrics-reviews@google.com.
 <variants name="SmoothnessThread">
   <variant name="CompositorThread."/>
   <variant name="MainThread."/>
+  <variant name="RasterThread."/>
 </variants>
 
 <variants name="TileManagerProcessType">
@@ -1187,6 +1188,24 @@ chromium-metrics-reviews@google.com.
     Reported for clients with high-resolution clocks.
 
     Please note that no value is reported if a frame is discarded by Exo.
+  </summary>
+</histogram>
+
+<histogram name="Graphics.Paint.UI.NormalizedInvalidatedArea" units="%"
+    expires_after="2025-10-16">
+  <owner>zoraiznaeem@chromium.org</owner>
+  <owner>cros-sw-perf@google.com</owner>
+  <owner>chrome-gpu-metric-alerts@chromium.org</owner>
+  <summary>
+    Tracks the total invalidated area (i.e repainted area) per frame. It is
+    normalized by a frame's output size.
+
+    Frames with zero invalidated area are not reported in the histogram.
+
+    The paint metric is only tracked for nat UI compositor, meaning that
+    invalidated area of renderers are not taken into account.
+
+    Note: the metric is logged as `invalidated_area * 100,000`.
   </summary>
 </histogram>
 

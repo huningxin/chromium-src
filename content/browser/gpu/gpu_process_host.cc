@@ -34,7 +34,6 @@
 #include "base/threading/thread.h"
 #include "base/trace_event/trace_event.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/discardable_memory/service/discardable_shared_memory_manager.h"
 #include "components/tracing/common/tracing_switches.h"
 #include "components/viz/common/features.h"
@@ -323,11 +322,6 @@ static const char* const kSwitchNames[] = {
 #endif
 #if BUILDFLAG(USE_CHROMEOS_MEDIA_ACCELERATION)
     switches::kHardwareVideoDecodeFrameRate,
-#endif
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-    switches::kLacrosEnablePlatformHevc,
-    switches::kLacrosUseChromeosProtectedMedia,
-    switches::kLacrosUseChromeosProtectedAv1,
 #endif
 #if BUILDFLAG(WEBNN_USE_TFLITE)
     switches::kWebNNTfliteDumpModel,
@@ -721,9 +715,7 @@ GpuProcessHost::GpuProcessHost(int host_id, GpuProcessKind kind)
     in_process_ = true;
   }
 #if !BUILDFLAG(IS_ANDROID)
-  if (!in_process_ && kind != GPU_PROCESS_KIND_INFO_COLLECTION &&
-      base::FeatureList::IsEnabled(
-          features::kForwardMemoryPressureEventsToGpuProcess)) {
+  if (!in_process_ && kind != GPU_PROCESS_KIND_INFO_COLLECTION) {
     memory_pressure_listener_ = std::make_unique<base::MemoryPressureListener>(
         FROM_HERE, base::BindRepeating(&GpuProcessHost::OnMemoryPressure,
                                        base::Unretained(this)));
@@ -1162,7 +1154,7 @@ bool GpuProcessHost::GpuAccessAllowed() const {
 }
 
 void GpuProcessHost::DisableGpuCompositing() {
-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS)
   DLOG(ERROR) << "Can't disable GPU compositing";
 #else
   // TODO(crbug.com/40565996): The switch from GPU to software compositing

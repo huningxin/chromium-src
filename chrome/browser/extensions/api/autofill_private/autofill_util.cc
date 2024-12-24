@@ -18,15 +18,15 @@
 #include "chrome/common/extensions/api/autofill_private.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/grit/branded_strings.h"
-#include "components/autofill/core/browser/address_data_manager.h"
 #include "components/autofill/core/browser/autofill_type.h"
+#include "components/autofill/core/browser/data_manager/addresses/address_data_manager.h"
+#include "components/autofill/core/browser/data_manager/payments/payments_data_manager.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
 #include "components/autofill/core/browser/data_model/iban.h"
 #include "components/autofill/core/browser/field_type_utils.h"
 #include "components/autofill/core/browser/field_types.h"
 #include "components/autofill/core/browser/geo/autofill_country.h"
-#include "components/autofill/core/browser/payments_data_manager.h"
 #include "components/autofill/core/browser/ui/country_combobox_model.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
 #include "components/autofill/core/common/autofill_prefs.h"
@@ -190,12 +190,13 @@ AddressEntryList GenerateAddressList(
     const autofill::PersonalDataManager& personal_data) {
   const std::vector<const autofill::AutofillProfile*>& profiles =
       personal_data.address_data_manager().GetProfilesForSettings();
-  std::vector<std::u16string> labels;
   // TODO(crbug.com/40283168): Replace by `profiles`.
-  autofill::AutofillProfile::CreateDifferentiatingLabels(
-      std::vector<raw_ptr<const autofill::AutofillProfile, VectorExperimental>>(
-          profiles.begin(), profiles.end()),
-      ExtensionsBrowserClient::Get()->GetApplicationLocale(), &labels);
+  std::vector<std::u16string> labels =
+      autofill::AutofillProfile::CreateDifferentiatingLabels(
+          std::vector<
+              raw_ptr<const autofill::AutofillProfile, VectorExperimental>>(
+              profiles.begin(), profiles.end()),
+          ExtensionsBrowserClient::Get()->GetApplicationLocale());
   DCHECK_EQ(labels.size(), profiles.size());
 
   AddressEntryList list;
@@ -317,7 +318,7 @@ autofill_private::CreditCardEntry CreditCardToCreditCardEntry(
   if (!credit_card.nickname().empty()) {
     card.nickname = base::UTF16ToUTF8(credit_card.nickname());
   }
-  gfx::Image* card_art_image = nullptr;
+  const gfx::Image* card_art_image = nullptr;
   if (base::FeatureList::IsEnabled(
           autofill::features::kAutofillEnableCardArtImage)) {
     card_art_image =

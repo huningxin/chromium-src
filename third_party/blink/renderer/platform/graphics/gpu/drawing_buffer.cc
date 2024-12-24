@@ -807,19 +807,6 @@ scoped_refptr<CanvasResource> DrawingBuffer::ExportLowLatencyCanvasResource(
 
   scoped_refptr<ColorBuffer> color_buffer =
       using_swap_chain_ ? front_color_buffer_ : back_color_buffer_;
-  viz::TransferableResource resource;
-
-  resource.set_mailbox(color_buffer->shared_image->mailbox());
-  resource.set_texture_target(color_buffer->shared_image->GetTextureTarget());
-  resource.size = color_buffer->shared_image->size();
-  resource.format = color_buffer->shared_image->format();
-  resource.is_overlay_candidate =
-      color_buffer->shared_image->usage().Has(gpu::SHARED_IMAGE_USAGE_SCANOUT);
-  resource.color_space = color_buffer->shared_image->color_space();
-  resource.origin = color_buffer->shared_image->surface_origin();
-  resource.hdr_metadata = hdr_metadata_;
-  resource.resource_source =
-      viz::TransferableResource::ResourceSource::kDrawingBuffer;
 
   if (contents_changed_ && !using_swap_chain_) {
     // Restart SharedImage access on the single SharedImage to ensure a write
@@ -831,9 +818,10 @@ scoped_refptr<CanvasResource> DrawingBuffer::ExportLowLatencyCanvasResource(
   }
 
   return ExternalCanvasResource::Create(
-      color_buffer->shared_image, resource.sync_token(),
-      resource.resource_source, resource.hdr_metadata, viz::ReleaseCallback(),
-      context_provider_->GetWeakPtr(), resource_provider);
+      color_buffer->shared_image, gpu::SyncToken(),
+      viz::TransferableResource::ResourceSource::kDrawingBuffer, hdr_metadata_,
+      viz::ReleaseCallback(), context_provider_->GetWeakPtr(),
+      resource_provider);
 }
 
 scoped_refptr<CanvasResource> DrawingBuffer::ExportCanvasResource() {
@@ -1955,7 +1943,6 @@ scoped_refptr<DrawingBuffer::ColorBuffer> DrawingBuffer::CreateColorBuffer(
   // Set only when using swap chains.
   scoped_refptr<gpu::ClientSharedImage> front_buffer_shared_image;
   GLenum texture_target = GL_TEXTURE_2D;
-  bool created_mappable_si = false;
 
   // The SharedImages created here are read to and written from by WebGL. They
   // may also be read via the raster interface for WebGL->video and/or
@@ -1996,6 +1983,8 @@ scoped_refptr<DrawingBuffer::ColorBuffer> DrawingBuffer::CreateColorBuffer(
     back_buffer_shared_image = std::move(shared_images.back_buffer);
     front_buffer_shared_image = std::move(shared_images.front_buffer);
   } else {
+    // First see if creating a SharedImage that can be used as an overlay is
+    // feasible.
     if (ShouldUseChromiumImage()) {
 #if !BUILDFLAG(IS_ANDROID)
       // Android's SharedImage backing for ChromiumImage does not support BGRX.
@@ -2021,51 +2010,36 @@ scoped_refptr<DrawingBuffer::ColorBuffer> DrawingBuffer::CreateColorBuffer(
       }
 #endif  // !BUILDFLAG(IS_ANDROID)
 
-      // TODO(crbug.com/911176): When RGB emulation is not needed, we should use
-      // the non-GMB CreateSharedImage with gpu::SHARED_IMAGE_USAGE_SCANOUT in
-      // order to allocate the GMB service-side and avoid a synchronous
-      // round-trip to the browser process here.
-      gpu::SharedImageUsageSet additional_usage_flags =
-          gpu::SHARED_IMAGE_USAGE_SCANOUT;
-      if (low_latency_enabled()) {
-        additional_usage_flags |= gpu::SHARED_IMAGE_USAGE_CONCURRENT_READ_WRITE;
-      }
-
       if (gpu::IsImageFromGpuMemoryBufferFormatSupported(
               viz::SinglePlaneSharedImageFormatToBufferFormat(
                   color_buffer_format_),
               ContextProvider()->GetCapabilities())) {
-        auto client_shared_image = sii->CreateSharedImage(
-            {color_buffer_format_, size, color_space_, origin,
-             back_buffer_alpha_type,
-             gpu::SharedImageUsageSet(usage | additional_usage_flags),
-             "WebGLDrawingBuffer"},
-            gpu::kNullSurfaceHandle);
-        if (client_shared_image) {
-          created_mappable_si = true;
-          back_buffer_shared_image = std::move(client_shared_image);
-          texture_target = back_buffer_shared_image->GetTextureTarget();
+        usage = usage | gpu::SHARED_IMAGE_USAGE_SCANOUT;
+        if (low_latency_enabled()) {
+          usage = usage | gpu::SHARED_IMAGE_USAGE_CONCURRENT_READ_WRITE;
         }
       }
     }
 
-    // Create a normal SharedImage if Mappable SharedImage is not needed or the
-    // allocation above failed.
-    if (!created_mappable_si) {
-      // We want to set the correct SkAlphaType on the new shared image but in
-      // the case of ShouldUseChromiumImage() we instead keep this buffer
-      // premultiplied, draw to |premultiplied_alpha_false_mailbox_|, and
-      // convert during copy.
-      if (requested_alpha_type_ == kUnpremul_SkAlphaType) {
-        back_buffer_alpha_type = kUnpremul_SkAlphaType;
-      }
+    // Set the correct SkAlphaType on the new shared image if not using as an
+    // overlay (note that in the case of creating a SharedImage that can be
+    // used as an overlay we instead keep this buffer premultiplied, draw to
+    // |premultiplied_alpha_false_mailbox_|, and convert during copy).
+    if (requested_alpha_type_ == kUnpremul_SkAlphaType &&
+        !usage.Has(gpu::SHARED_IMAGE_USAGE_SCANOUT)) {
+      back_buffer_alpha_type = kUnpremul_SkAlphaType;
+    }
 
-      back_buffer_shared_image = sii->CreateSharedImage(
-          {color_buffer_format_, size, color_space_, origin,
-           back_buffer_alpha_type, gpu::SharedImageUsageSet(usage),
-           "WebGLDrawingBuffer"},
-          gpu::kNullSurfaceHandle);
-      CHECK(back_buffer_shared_image);
+    back_buffer_shared_image = sii->CreateSharedImage(
+        {color_buffer_format_, size, color_space_, origin,
+         back_buffer_alpha_type, usage, "WebGLDrawingBuffer"},
+        gpu::kNullSurfaceHandle);
+
+    if (usage.Has(gpu::SHARED_IMAGE_USAGE_SCANOUT)) {
+      // On Mac the texture target for SharedImages with SCANOUT usage (which
+      // get backed by IOSurfaces) is the "native" texture target for
+      // IOSurfaces, which is not necessarily GL_TEXTURE_2D.
+      texture_target = back_buffer_shared_image->GetTextureTarget();
     }
   }
 

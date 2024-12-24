@@ -290,7 +290,7 @@ class BASE_EXPORT HangWatcher : public DelegateSimpleThread::Delegate {
    public:
     struct WatchStateCopy {
       base::TimeTicks deadline;
-      base::PlatformThreadId thread_id;
+      uint64_t thread_id;
     };
 
     WatchStateSnapShot();
@@ -634,6 +634,7 @@ class BASE_EXPORT HangWatchState {
 #endif
 
   PlatformThreadId GetThreadID() const;
+  uint64_t GetSystemWideThreadID() const;
 
   // Retrieve the current hang watch deadline directly. For testing only.
   HangWatchDeadline* GetHangWatchDeadlineForTesting();
@@ -650,6 +651,12 @@ class BASE_EXPORT HangWatchState {
   // Returns the type of the thread under watch.
   HangWatcher::ThreadType thread_type() const { return thread_type_; }
 
+  // Functions used to coordinate capture of the trace event per hung thread.
+  // These functions need to evolve if HangWatcher starts logging more than one
+  // trace event per hung thread.
+  bool TraceEventStarted() const;
+  void MarkTraceEventStarted(bool capturing);
+
  private:
   // The thread that creates the instance should be the class that updates
   // the deadline.
@@ -665,11 +672,21 @@ class BASE_EXPORT HangWatchState {
   // only.
   PlatformThreadId thread_id_;
 
+#if BUILDFLAG(IS_MAC)
+  // TODO(crbug.com/40187449): Remove this once macOS uses system-wide ids.
+  // On macOS the thread ids used by CrashPad are not the same as the ones
+  // provided by PlatformThread. Make sure to use the same for correct
+  // attribution.
+  uint64_t system_wide_thread_id_;
+#endif
+
   // Number of active HangWatchScopeEnables on this thread.
   int nesting_level_ = 0;
 
   // The type of the thread under watch.
   const HangWatcher::ThreadType thread_type_;
+
+  bool trace_event_started_ = false;
 
 #if DCHECK_IS_ON()
   // Used to keep track of the current WatchHangsInScope and detect improper

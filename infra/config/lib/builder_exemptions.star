@@ -346,7 +346,6 @@ exempted_from_description_builders = {
         "ios-angle-builder",
         "ios-angle-intel",
         "ios-blink-dbg-fyi",
-        "ios-m1-simulator",
         "ios-simulator-code-coverage",
         "ios-webkit-tot",
         "ios-wpt-fyi-rel",
@@ -673,7 +672,6 @@ exempted_from_description_builders = {
         "ios-catalyst",
         "ios-device",
         "ios-fieldtrial-rel",
-        "ios-m1-simulator",
         "ios-simulator",
         "ios-simulator-code-coverage",
         "ios-simulator-compilator",
@@ -1135,7 +1133,6 @@ exempted_from_contact_builders = {
         "ios-catalyst",
         "ios-device",
         "ios-fieldtrial-rel",
-        "ios-m1-simulator",
         "ios-simulator",
         "ios-simulator-code-coverage",
         "ios-simulator-compilator",
@@ -1426,8 +1423,6 @@ exempted_from_contact_builders = {
 }
 
 mega_cq_excluded_builders = [
-    # TODO(crbug.com/383368160): Remove the GPU bot when pool outage is fixed.
-    "Linux Release (NVIDIA)",
     # TODO(crbug.com/343505108): Remove the following libfuzzer
     # builders as trybots are created for them.
     "Centipede High End Upload Linux ASan",

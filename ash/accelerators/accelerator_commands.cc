@@ -117,6 +117,7 @@
 #include "ui/display/screen.h"
 #include "ui/display/util/display_util.h"
 #include "ui/gfx/geometry/point.h"
+#include "ui/message_center/message_center.h"
 #include "ui/strings/grit/ui_strings.h"
 #include "ui/views/widget/widget.h"
 #include "ui/wm/core/window_animations.h"
@@ -1385,7 +1386,9 @@ void ToggleAssistant() {
       // No need to show toast.
       return;
     case AssistantAllowedState::DISALLOWED_BY_NEW_ENTRY_POINT:
-      // No need to show toast.
+      // Showing new entry point instead.
+      AssistantUiController::Get()->ShowUi(
+          assistant::AssistantEntryPoint::kHotkey);
       return;
     case AssistantAllowedState::ALLOWED:
       // Nothing need to do if allowed.
@@ -1444,6 +1447,14 @@ void ToggleClipboardHistory(bool is_plain_text_paste) {
   DCHECK(Shell::Get()->clipboard_history_controller());
   Shell::Get()->clipboard_history_controller()->ToggleMenuShownByAccelerator(
       is_plain_text_paste);
+}
+
+void ToggleDoNotDisturb() {
+  message_center::MessageCenter* message_center =
+      message_center::MessageCenter::Get();
+  CHECK(message_center);
+  const bool is_quiet_mode = message_center->IsQuietMode();
+  message_center->SetQuietMode(!is_quiet_mode);
 }
 
 void ToggleQuickInsert(base::TimeTicks accelerator_timestamp) {

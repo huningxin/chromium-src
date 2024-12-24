@@ -27,8 +27,8 @@
 #include "chrome/browser/signin/chrome_signin_pref_names.h"
 #include "chrome/browser/signin/signin_ui_util.h"
 #include "chrome/browser/signin/signin_util.h"
+#include "components/autofill/core/browser/data_manager/personal_data_manager.h"
 #include "components/autofill/core/browser/data_quality/addresses/profile_requirement_utils.h"
-#include "components/autofill/core/browser/personal_data_manager.h"
 
 namespace {
 
@@ -39,61 +39,13 @@ constexpr int kSigninPromoDismissedThreshold = 2;
 
 enum class AutofillSignInPromoType { kPassword, kAddress };
 
-}  // namespace
-#endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
-
-#if !BUILDFLAG(IS_ANDROID)
-namespace {
-
-// Performs base checks for whether the sync/sign in promos should be shown.
+// Performs base checks for whether the sign in promos should be shown.
 // Needs additional checks depending on the type of the promo (see
-// ShouldShowSyncPromo and ShouldShowSignInPromo). |profile| is the profile of
-// the tab the promo would be shown on.
-bool ShouldShowPromoCommon(Profile& profile) {
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  // There's no need to show the sign in promo on cros since cros users are
-  // already logged in.
-  return false;
-#else
-
-  // Don't bother if we don't have any kind of network connection.
-  if (net::NetworkChangeNotifier::IsOffline()) {
-    return false;
-  }
-
-  // Consider original profile even if an off-the-record profile was
-  // passed to this method as sign-in state is only defined for the
-  // primary profile.
-  Profile* original_profile = profile.GetOriginalProfile();
-
-  // Don't show for supervised child profiles.
-  if (original_profile->IsChild()) {
-    return false;
-  }
-
-  // Don't show if sign in is not allowed.
-  if (!original_profile->GetPrefs()->GetBoolean(prefs::kSigninAllowed)) {
-    return false;
-  }
-
-  signin::IdentityManager* identity_manager =
-      IdentityManagerFactory::GetForProfile(original_profile);
-
-  // No promo if the user is already syncing.
-  if (identity_manager->HasPrimaryAccount(signin::ConsentLevel::kSync)) {
-    return false;
-  }
-
-  // Verified the base checks. Depending on whether the promo should be for sync
-  // or signin, additional checks are necessary.
-  return true;
-#endif
-}
-
-#if BUILDFLAG(ENABLE_DICE_SUPPORT)
+// `ShouldShowAddressSignInPromo` and `ShouldShowPasswordSignInPromo`).
+// `profile` is the profile of the tab the promo would be shown on.
 bool ShouldShowSignInPromoCommon(Profile& profile) {
-  // Don't show the promo if it does not pass the base checks.
-  if (!ShouldShowPromoCommon(profile)) {
+  // Don't show the promo if it does not pass the sync base checks.
+  if (!signin::ShouldShowSyncPromo(profile)) {
     return false;
   }
 
@@ -161,7 +113,7 @@ bool ShouldShowPromoBasedOnImpressionCount(Profile& profile,
   switch (type) {
     case AutofillSignInPromoType::kAddress:
       show_count =
-          account.IsEmpty()
+          account.gaia.empty()
               ? profile.GetPrefs()->GetInteger(
                     prefs::kAddressSignInPromoShownCountPerProfile)
               : SigninPrefs(*profile.GetPrefs())
@@ -169,7 +121,7 @@ bool ShouldShowPromoBasedOnImpressionCount(Profile& profile,
       break;
     case AutofillSignInPromoType::kPassword:
       show_count =
-          account.IsEmpty()
+          account.gaia.empty()
               ? profile.GetPrefs()->GetInteger(
                     prefs::kPasswordSignInPromoShownCountPerProfile)
               : SigninPrefs(*profile.GetPrefs())
@@ -178,17 +130,45 @@ bool ShouldShowPromoBasedOnImpressionCount(Profile& profile,
 
   return show_count < kSigninPromoShownThreshold;
 }
-#endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
 
 }  // namespace
-#endif  // !BUILDFLAG(IS_ANDROID)
+#endif  // BUILDFLAG(ENABLE_DICE_SUPPORT)
 
 namespace signin {
 
 #if !BUILDFLAG(IS_ANDROID)
 bool ShouldShowSyncPromo(Profile& profile) {
-  // Don't show the promo if it does not pass the base checks.
-  if (!ShouldShowPromoCommon(profile)) {
+#if BUILDFLAG(IS_CHROMEOS)
+  // There's no need to show the sign in promo on cros since cros users are
+  // already logged in.
+  return false;
+#else
+
+  // Don't bother if we don't have any kind of network connection.
+  if (net::NetworkChangeNotifier::IsOffline()) {
+    return false;
+  }
+
+  // Consider original profile even if an off-the-record profile was
+  // passed to this method as sign-in state is only defined for the
+  // primary profile.
+  Profile* original_profile = profile.GetOriginalProfile();
+
+  // Don't show for supervised child profiles.
+  if (original_profile->IsChild()) {
+    return false;
+  }
+
+  // Don't show if sign in is not allowed.
+  if (!original_profile->GetPrefs()->GetBoolean(prefs::kSigninAllowed)) {
+    return false;
+  }
+
+  signin::IdentityManager* identity_manager =
+      IdentityManagerFactory::GetForProfile(original_profile);
+
+  // No promo if the user is already syncing.
+  if (identity_manager->HasPrimaryAccount(signin::ConsentLevel::kSync)) {
     return false;
   }
 
@@ -199,7 +179,10 @@ bool ShouldShowSyncPromo(Profile& profile) {
     return false;
   }
 
+  // Verified the base checks. Depending on whether the promo should be for sync
+  // or signin, additional checks are necessary.
   return true;
+#endif
 }
 #endif  // !BUILDFLAG(IS_ANDROID)
 

@@ -2,11 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-// TODO(crbug.com/351564777): Remove this and convert code to safer constructs.
-#pragma allow_unsafe_buffers
-#endif
-
 #include "third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.h"
 
 #include <algorithm>
@@ -2650,11 +2645,10 @@ Mesh2DIndexBuffer* BaseRenderingContext2D::createMesh2DIndexBuffer(
         "uints.");
     return nullptr;
   }
-
+  auto data = array->AsSpan();
   return MakeGarbageCollected<Mesh2DIndexBuffer>(
       base::MakeRefCounted<cc::RefCountedBuffer<uint16_t>>(
-          std::vector<uint16_t>(array->Data(),
-                                array->Data() + array->length())));
+          std::vector<uint16_t>(data.begin(), data.end())));
 }
 
 void BaseRenderingContext2D::drawMesh(
@@ -3393,8 +3387,15 @@ static inline TextDirection ToTextDirection(
     *computed_style = style;
   }
   switch (direction) {
-    case CanvasRenderingContext2DState::kDirectionInherit:
+    case CanvasRenderingContext2DState::kDirectionInherit: {
+      if (canvas && style) {
+        if (canvas->CachedDirectionality() != style->Direction()) {
+          UseCounter::Count(canvas->GetDocument(),
+                            WebFeature::kCanvasTextDirectionConflict);
+        }
+      }
       return style ? style->Direction() : TextDirection::kLtr;
+    }
     case CanvasRenderingContext2DState::kDirectionRTL:
       return TextDirection::kRtl;
     case CanvasRenderingContext2DState::kDirectionLTR:

@@ -35,9 +35,9 @@ enum class AccidentalClickType {
 };
 // LINT.ThenChange(//tools/metrics/histograms/metadata/tab/enums.xml:AccidentalClickType)
 
+constexpr int kButtonGapNoBackground = 14;
 constexpr int kSeparatorBorderRadius = 2;
 constexpr int kSeparatorWidth = 2;
-constexpr int kSeparatorWidthNoBackground = 1;
 constexpr int kSeparatorHeight = 16;
 constexpr base::TimeDelta kAccidentalClickThreshold = base::Seconds(1);
 constexpr char kNewTabButtonAccidentalClickName[] =
@@ -48,13 +48,16 @@ constexpr char kTabSearchAccidentalClickName[] =
 
 TabStripComboButton::TabStripComboButton(BrowserWindowInterface* browser,
                                          TabStrip* tab_strip) {
+  Edge new_tab_button_flat_edge = Edge::kNone;
+  if (features::HasTabstripComboButtonWithBackground()) {
+    new_tab_button_flat_edge = base::i18n::IsRTL() ? Edge::kLeft : Edge::kRight;
+  }
   std::unique_ptr<TabStripControlButton> new_tab_button =
       std::make_unique<TabStripControlButton>(
           tab_strip->controller(),
           base::BindRepeating(&TabStrip::NewTabButtonPressed,
                               base::Unretained(tab_strip)),
-          vector_icons::kAddIcon,
-          base::i18n::IsRTL() ? Edge::kLeft : Edge::kRight);
+          vector_icons::kAddIcon, new_tab_button_flat_edge);
   new_tab_button->SetProperty(views::kElementIdentifierKey,
                               kNewTabButtonElementId);
 
@@ -67,6 +70,10 @@ TabStripComboButton::TabStripComboButton(BrowserWindowInterface* browser,
         kColorNewTabButtonCRBackgroundFrameActive);
     new_tab_button->SetBackgroundFrameInactiveColorId(
         kColorNewTabButtonCRBackgroundFrameInactive);
+  } else {
+    // Add a gap between the new tab button and tab search container.
+    new_tab_button->SetProperty(
+        views::kMarginsKey, gfx::Insets::TLBR(0, 0, 0, kButtonGapNoBackground));
   }
 
   new_tab_button->SetTooltipText(
@@ -90,10 +97,7 @@ TabStripComboButton::TabStripComboButton(BrowserWindowInterface* browser,
                            : kColorTabStripComboButtonSeparatorOnHeader;
   separator->SetColorId(color_id);
   separator->SetBorderRadius(kSeparatorBorderRadius);
-  const int separator_width = features::HasTabstripComboButtonWithBackground()
-                                  ? kSeparatorWidth
-                                  : kSeparatorWidthNoBackground;
-  separator->SetPreferredSize(gfx::Size(separator_width, kSeparatorHeight));
+  separator->SetPreferredSize(gfx::Size(kSeparatorWidth, kSeparatorHeight));
 
   std::unique_ptr<TabSearchContainer> tab_search_container =
       std::make_unique<TabSearchContainer>(
@@ -166,11 +170,14 @@ void TabStripComboButton::UpdateSeparatorVisibility() {
       new_tab_button_->GetState();
   const views::Button::ButtonState tab_search_button_state =
       tab_search_container_->tab_search_button()->GetState();
-  separator_->SetVisible(
-      new_tab_button_state != views::Button::STATE_HOVERED &&
-      new_tab_button_state != views::Button::STATE_PRESSED &&
-      tab_search_button_state != views::Button::STATE_HOVERED &&
-      tab_search_button_state != views::Button::STATE_PRESSED);
+  const bool is_visible =
+      features::HasTabstripComboButtonWithBackground()
+          ? new_tab_button_state != views::Button::STATE_HOVERED &&
+                new_tab_button_state != views::Button::STATE_PRESSED &&
+                tab_search_button_state != views::Button::STATE_HOVERED &&
+                tab_search_button_state != views::Button::STATE_PRESSED
+          : true;
+  separator_->SetVisible(is_visible);
 }
 
 BEGIN_METADATA(TabStripComboButton)

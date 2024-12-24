@@ -1036,8 +1036,7 @@ void ChromeBrowserMainPartsAsh::PreProfileInit() {
   // it can do cleanup work if needed. Initialized in PreProfileInit because the
   // profile-keyed service AppService can call into it.
   crosapi_manager_ = std::make_unique<crosapi::CrosapiManager>();
-  browser_manager_ = std::make_unique<crosapi::BrowserManager>(
-      g_browser_process->platform_part()->component_manager_ash());
+  browser_manager_ = std::make_unique<crosapi::BrowserManager>();
 
   chromeos::machine_learning::ServiceConnection::GetInstance()->Initialize();
 
@@ -1304,6 +1303,22 @@ void ChromeBrowserMainPartsAsh::PostProfileInit(Profile* profile,
                        shill::kUseLegacyDHCPCDProperty));
 
     ash::ShillManagerClient::Get()->SetProperty(
+        shill::kEnableSingleCACertVerificationPhase1Property,
+        base::Value(base::FeatureList::IsEnabled(
+            features::kSingleCaCertVerificationPhase1)),
+        base::DoNothing(),
+        base::BindOnce(ShillSetPropertyErrorCallback,
+                       shill::kEnableSingleCACertVerificationPhase1Property));
+
+    ash::ShillManagerClient::Get()->SetProperty(
+        shill::kEnableSingleCACertVerificationPhase2Property,
+        base::Value(base::FeatureList::IsEnabled(
+            features::kSingleCaCertVerificationPhase2)),
+        base::DoNothing(),
+        base::BindOnce(ShillSetPropertyErrorCallback,
+                       shill::kEnableSingleCACertVerificationPhase2Property));
+
+    ash::ShillManagerClient::Get()->SetProperty(
         shill::kDisconnectWiFiOnEthernetProperty,
         base::Value(base::FeatureList::IsEnabled(
                         features::kDisconnectWiFiOnEthernetConnected)
@@ -1378,10 +1393,7 @@ void ChromeBrowserMainPartsAsh::PostBrowserStart() {
       accessibility_event_rewriter_delegate_.get());
   // `ShortcutInputHandler` and `ModifierKeyComboRecorder` are dependent on
   // `EventRewriterController`'s initialization.
-  if (ash::features::IsPeripheralCustomizationEnabled() ||
-      ::features::IsShortcutCustomizationEnabled()) {
-    Shell::Get()->shortcut_input_handler()->Initialize();
-  }
+  Shell::Get()->shortcut_input_handler()->Initialize();
   Shell::Get()->modifier_key_combo_recorder()->Initialize();
   Shell::Get()->rapid_key_sequence_recorder()->Initialize();
 
@@ -1400,11 +1412,8 @@ void ChromeBrowserMainPartsAsh::PostBrowserStart() {
 
   smart_charging_manager_ = power::SmartChargingManager::CreateInstance();
 
-  if (base::FeatureList::IsEnabled(
-          ::features::kAdaptiveScreenBrightnessLogging)) {
-    adaptive_screen_brightness_manager_ =
-        power::ml::AdaptiveScreenBrightnessManager::CreateInstance();
-  }
+  adaptive_screen_brightness_manager_ =
+      power::ml::AdaptiveScreenBrightnessManager::CreateInstance();
 
   // MachineLearningDecisionServiceProvider needs to be created after
   // UserActivityController which depends on UserActivityDetector, not

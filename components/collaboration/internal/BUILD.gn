@@ -31,6 +31,8 @@ static_library("core_internal") {
     "collaboration_service_impl.h",
     "empty_collaboration_service.cc",
     "empty_collaboration_service.h",
+    "metrics.cc",
+    "metrics.h",
   ]
 
   deps = [ "//components/sync/service:service" ]
@@ -51,6 +53,7 @@ static_library("core_internal") {
     deps += [
       ":core_jni_headers",
       "//components/collaboration/public:core_jni_headers",
+      "//components/data_sharing/public:android_utils",
     ]
   }
 }
@@ -97,6 +100,7 @@ static_library("messaging_internal") {
     "//components/collaboration/public:messaging_public",
     "//components/data_sharing/public",
     "//components/saved_tab_groups/public",
+    "//components/url_formatter",
     "//google_apis",
   ]
 
@@ -164,6 +168,8 @@ source_set("messaging_unit_tests") {
     ":messaging_internal",
     "//base",
     "//base/test:test_support",
+    "//components/collaboration/internal/messaging/storage/protocol",
+    "//components/collaboration/public:messaging_public",
     "//components/data_sharing:test_support",
     "//components/data_sharing/public",
     "//components/saved_tab_groups/public",

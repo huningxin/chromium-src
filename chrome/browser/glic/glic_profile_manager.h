@@ -5,6 +5,7 @@
 #ifndef CHROME_BROWSER_GLIC_GLIC_PROFILE_MANAGER_H_
 #define CHROME_BROWSER_GLIC_GLIC_PROFILE_MANAGER_H_
 
+#include "base/callback_list.h"
 #include "base/memory/raw_ptr.h"
 #include "chrome/browser/glic/glic_keyed_service.h"
 
@@ -23,6 +24,9 @@ class GlicProfileManager {
   // Returns the global instance.
   static GlicProfileManager* GetInstance();
 
+  // Returns whether the given profile is supported for glic.
+  static bool IsProfileSupported(Profile* profile);
+
   GlicProfileManager(const GlicProfileManager&) = delete;
   GlicProfileManager& operator=(const GlicProfileManager&) = delete;
 
@@ -38,6 +42,7 @@ class GlicProfileManager {
 
  private:
   base::WeakPtr<GlicKeyedService> active_glic_;
+  base::CallbackListSubscription termination_subscription_;
 };
 }  // namespace glic
 

@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">Inhabilitar el tema oscuro</translation>
 <translation id="1807246157184219062">Claro</translation>
 <translation id="1808803439260407870">Arte clásico</translation>
+<translation id="181434555916624618">Por ahora, no se mostrarán resultados con personas. Prueba otra instrucción.</translation>
 <translation id="1815850098929213707">La tecla seleccionada es <ph name="KEYS" />. Presionar el botón para editar el control</translation>
 <translation id="1823120442877418684">Elementos</translation>
 <translation id="1827738518074806965">Galería de arte</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">Nivel de batería del auricular derecho <ph name="BATTERY_PERCENTAGE" /> %.</translation>
 <translation id="3340978935015468852">configuración</translation>
 <translation id="3347558044552027859">moderno</translation>
+<translation id="3353477144743332882">Descargar el modelo de creación de nombres y resúmenes</translation>
 <translation id="3359218928534347896">activar o desactivar la función para silenciar el micrófono</translation>
 <translation id="3360306038446926262">Windows</translation>
 <translation id="3361618936611118375">sushi</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">Acceso parental</translation>
 <translation id="473775607612524610">Actualizar</translation>
 <translation id="4744944742468440486">Información sobre el texto seleccionado</translation>
+<translation id="4750394297954878236">Sugerencias</translation>
 <translation id="4771607256327216405">iluminación teclado</translation>
 <translation id="4771923071974529837">mañana</translation>
 <translation id="4773299976671772492">Detenida</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">La combinación de teclas no está disponible. Presiona una nueva combinación de teclas sin <ph name="KEY" />.</translation>
 <translation id="5860033963881614850">Desactivado</translation>
 <translation id="5860491529813859533">Activar</translation>
+<translation id="5875913454160982848">Descargar modelo de transcripción</translation>
 <translation id="5876385649737594562">Activa esta opción para seleccionar opciones</translation>
 <translation id="5877503382465267833">Pausar <ph name="RECORDING_NAME" /></translation>
 <translation id="588258955323874662">Pantalla completa</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">Cerrar</translation>
 <translation id="6040852767465482106">Identidad anónima</translation>
 <translation id="604124094241169006">Automático</translation>
-<translation id="6042308850641462728">Más</translation>
 <translation id="6048107060512778456">Error: Se atascó el papel</translation>
 <translation id="6050189528197190982">Escala de grises</translation>
 <translation id="6054711098834486579">expresionista</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{Servidor de nombres}other{Servidores de nombres}}</translation>
 <translation id="7135814714616751706">Buscar accesos directos</translation>
 <translation id="7138614237884624401">Texto simplificado</translation>
+<translation id="7138668887584231801">No hay suficientes palabras para generar un resumen</translation>
 <translation id="7141470099673912333">Content Transfer</translation>
 <translation id="7143207342074048698">Conectando</translation>
 <translation id="7144878232160441200">Volver a intentar</translation>
@@ -1588,6 +1592,7 @@ Descarga el modelo de transcripción (hasta 100 MB) para obtener estas transcri
 <translation id="8503836310948963452">Solo unos minutos más…</translation>
 <translation id="8505011850330200833">El modelo de Gemini requiere 2 GB de almacenamiento para procesar transcripciones y crear resúmenes</translation>
 <translation id="8508640263392900755">Detalles del APN</translation>
+<translation id="8509574872955173831">Más información sobre la creación de nombres y resúmenes</translation>
 <translation id="8522687886059337719">Ahora tienes acceso a <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />fondos de pantalla<ph name="END_LINK_WALLPAPER_SUBPAGE" /> y <ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />protectores de pantalla<ph name="END_LINK_SCREENSAVER_SUBPAGE" /> nuevos</translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">salón de té</translation>
@@ -1724,7 +1729,6 @@ Descarga el modelo de transcripción (hasta 100 MB) para obtener estas transcri
 <translation id="9133772297793293778">Presiona de 1 a 4 teclas modificadoras y 1 tecla adicional en el teclado. Para salir del modo de edición, presiona Alt + Esc.</translation>
 <translation id="9137526406337347448">Servicios de Google</translation>
 <translation id="9138630967333032450">Mayúsculas izquierda</translation>
-<translation id="9147928237330776930">Hay muy pocas palabras para resumir</translation>
 <translation id="9149391708638971077">Ejecutar prueba de memoria</translation>
 <translation id="9159524746324788320">hamburguesas</translation>
 <translation id="9161276708550942948">espacio</translation>

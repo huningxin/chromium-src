@@ -17,6 +17,7 @@
 #include "components/dbus/xdg/request.h"
 #include "dbus/bus.h"
 #include "dbus/object_proxy.h"
+#include "ui/base/accelerators/command.h"
 
 namespace dbus_xdg {
 class Request;
@@ -57,25 +58,25 @@ class GlobalShortcutListenerLinux : public GlobalShortcutListener {
   static constexpr char kSessionTokenPrefix[] = "chromium_";
 
   struct SessionKey {
-    ExtensionId extension_id;
+    std::string accelerator_group_id;
     std::string profile_id;
 
     std::string GetTokenKey() const;
 
     bool operator<(const SessionKey& other) const {
-      return std::tie(extension_id, profile_id) <
-             std::tie(other.extension_id, other.profile_id);
+      return std::tie(accelerator_group_id, profile_id) <
+             std::tie(other.accelerator_group_id, other.profile_id);
     }
   };
 
   struct SessionContext {
-    SessionContext(Observer* observer, const CommandMap& commands);
+    SessionContext(Observer* observer, const ui::CommandMap& commands);
     ~SessionContext();
 
     scoped_refptr<dbus::Bus> bus;
     raw_ptr<dbus::ObjectProxy> session_proxy;
     const raw_ptr<Observer> observer;
-    CommandMap commands;
+    ui::CommandMap commands;
     bool bind_shortcuts_called = false;
     std::unique_ptr<dbus_xdg::Request> request;
   };
@@ -85,15 +86,11 @@ class GlobalShortcutListenerLinux : public GlobalShortcutListener {
   using SessionMapPair = std::pair<SessionKey, std::unique_ptr<SessionContext>>;
 
   // GlobalShortcutListener:
-  void StartListening() override;
-  void StopListening() override;
-  bool RegisterAcceleratorImpl(const ui::Accelerator& accelerator) override;
-  void UnregisterAcceleratorImpl(const ui::Accelerator& accelerator) override;
   void UnregisterAccelerators(Observer* observer) override;
   bool IsRegistrationHandledExternally() const override;
-  void OnCommandsChanged(const ExtensionId& extension_id,
+  void OnCommandsChanged(const std::string& accelerator_group_id,
                          const std::string& profile_id,
-                         const CommandMap& commands,
+                         const ui::CommandMap& commands,
                          Observer* observer) override;
 
   void OnCreateSession(

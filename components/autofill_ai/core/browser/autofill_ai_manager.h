@@ -10,7 +10,7 @@
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
-#include "components/autofill/core/browser/autofill_ai_delegate.h"
+#include "components/autofill/core/browser/integrators/autofill_ai_delegate.h"
 #include "components/autofill/core/browser/strike_databases/strike_database.h"
 #include "components/autofill/core/common/aliases.h"
 #include "components/autofill/core/common/form_data.h"
@@ -196,7 +196,7 @@ class AutofillAiManager : public autofill::AutofillAiDelegate {
   // expected to be called on field focus.
   void UpdateFieldFocusabilityInCache(const autofill::FormData& form);
 
-  autofill::LogManager* GetLogManager() const;
+  autofill::LogManager* GetCurrentLogManager();
 
   // Current state for retrieving predictions.
   PredictionRetrievalState prediction_retrieval_state_ =

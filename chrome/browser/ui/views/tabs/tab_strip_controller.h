@@ -18,6 +18,7 @@
 
 class Browser;
 class BrowserWindowInterface;
+class ScopedTabStripModalUI;
 class Tab;
 class TabGroup;
 class TabStrip;
@@ -35,7 +36,7 @@ class TabGroupVisualData;
 namespace ui {
 class Event;
 class ListSelectionModel;
-}
+}  // namespace ui
 
 // Model/Controller for the TabStrip.
 // NOTE: All indices used by this class are in model coordinates.
@@ -48,6 +49,13 @@ class TabStripController {
 
   // Returns the number of tabs in the model.
   virtual int GetCount() const = 0;
+
+  // Features that want to show tabstrip-modal UI are mutually exclusive.
+  // Before showing a modal UI first check `CanShowModalUI`. Then call
+  // ShowModalUI() and keep `ScopedTabStripModal` alive to prevent other
+  // features from showing tabstrip-modal UI.
+  virtual bool CanShowModalUI() const = 0;
+  virtual std::unique_ptr<ScopedTabStripModalUI> ShowModalUI() = 0;
 
   // Returns true if |index| is a valid model index.
   virtual bool IsValidIndex(int index) const = 0;

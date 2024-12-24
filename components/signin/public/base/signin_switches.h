@@ -31,16 +31,14 @@ namespace switches {
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kSkipCheckForAccountManagementOnSignin);
 
-// Feature flag to hide signin promo in settings page.
-COMPONENT_EXPORT(SIGNIN_SWITCHES)
-BASE_DECLARE_FEATURE(kHideSettingsSignInPromo);
-
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kUseConsentLevelSigninForLegacyAccountEmailPref);
 
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kCctSignInPrompt);
 
+COMPONENT_EXPORT(SIGNIN_SWITCHES)
+BASE_DECLARE_FEATURE(kUnoForAuto);
 #endif
 
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
@@ -89,11 +87,6 @@ extern const char kForceFreDefaultBrowserStep[];
 #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kForceStartupSigninPromo);
-#endif
-
-#if BUILDFLAG(IS_ANDROID)
-COMPONENT_EXPORT(SIGNIN_SWITCHES)
-BASE_DECLARE_FEATURE(kRestoreSignedInAccountAndSettingsFromBackup);
 #endif
 
 // Used for the launch of the UNO model on Desktop Phase 0.

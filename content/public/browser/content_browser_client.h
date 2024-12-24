@@ -26,7 +26,6 @@
 #include "base/values.h"
 #include "build/build_config.h"
 #include "build/buildflag.h"
-#include "build/chromeos_buildflags.h"
 #include "components/browsing_topics/common/common_types.h"
 #include "components/download/public/common/quarantine_connection.h"
 #include "components/file_access/scoped_file_access.h"
@@ -279,6 +278,7 @@ class WebAuthenticationDelegate;
 class WebContents;
 class WebContentsViewDelegate;
 class WebUIBrowserInterfaceBrokerRegistry;
+class WebUIController;
 class XrIntegrationClient;
 struct GlobalRenderFrameHostId;
 struct GlobalRequestID;
@@ -291,12 +291,9 @@ struct SocketPermissionRequest;
 class TtsEnvironmentAndroid;
 #endif
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-class TtsControllerDelegate;
-#endif
-
 #if BUILDFLAG(IS_CHROMEOS)
 class SmartCardDelegate;
+class TtsControllerDelegate;
 #endif
 
 // Embedder API (or SPI) for participating in browser logic, to be implemented
@@ -576,10 +573,10 @@ class CONTENT_EXPORT ContentBrowserClient {
   virtual network::mojom::IPAddressSpace DetermineAddressSpaceFromURL(
       const GURL& url);
 
-  // Called when WebUI objects are created to get aggregate usage data (i.e. is
-  // chrome://downloads used more than chrome://bookmarks?). Only internal (e.g.
-  // chrome://) URLs are logged. Returns whether the URL was actually logged.
-  virtual bool LogWebUIUrl(const GURL& web_ui_url);
+  // Called when WebUI objects are created for collecting WebUI usage data. Only
+  // internal (e.g. chrome://) URLs are logged. The url variant is used for
+  // WebUIs that don't have a WebUI object (crbug.com/40089364).
+  virtual void LogWebUIUsage(std::variant<WebUI*, GURL> webui_variant);
 
   // http://crbug.com/829412
   // Renderers with WebUI bindings shouldn't make http(s) requests for security
@@ -1359,7 +1356,7 @@ class CONTENT_EXPORT ContentBrowserClient {
   virtual SpeechRecognitionManagerDelegate*
   CreateSpeechRecognitionManagerDelegate();
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   // Allows the embedder to return a delegate for the TtsController.
   virtual TtsControllerDelegate* GetTtsControllerDelegate();
 #endif
@@ -1712,14 +1709,6 @@ class CONTENT_EXPORT ContentBrowserClient {
       int child_process_id,
       content::PosixFileDescriptorInfo* mappings) {}
 #endif  // BUILDFLAG(IS_POSIX) && !BUILDFLAG(IS_MAC) || BUILDFLAG(IS_FUCHSIA)
-
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  // Populates |mappings| with all files that need to be mapped before launching
-  // a Zygote process.
-  virtual void GetAdditionalMappedFilesForZygote(
-      base::CommandLine* command_line,
-      content::PosixFileDescriptorInfo* mappings) {}
-#endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
 
 #if BUILDFLAG(IS_WIN)
   // Defines flags that can be passed to PreSpawnChild.
@@ -3143,6 +3132,20 @@ class CONTENT_EXPORT ContentBrowserClient {
 
   // Called when the tracing service has stopped.
   virtual void OnTracingServiceStopped() {}
+
+  // Embedders can override the handling of internal debugging WebUIs. Internal
+  // WebUIs are WebUIs intended for use only by Chromium developer teams and are
+  // not intended to be useful for other users. Consequently such UIs are often
+  // untested and unmaintained. They can be a source of security or stability
+  // bugs, and may be broken periodically. This method allows embedders to limit
+  // access or require additional user action before allowing navigation to
+  // these UIs.
+  //
+  // If this returns non-null, the returned WebUIController is used instead of
+  // the one provided by content.
+  virtual std::unique_ptr<WebUIController> OverrideForInternalWebUI(
+      WebUI* web_ui,
+      const GURL& url);
 };
 
 }  // namespace content

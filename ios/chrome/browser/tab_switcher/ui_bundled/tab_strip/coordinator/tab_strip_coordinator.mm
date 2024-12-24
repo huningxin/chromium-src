@@ -9,8 +9,12 @@
 #import "base/check_op.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/uuid.h"
+#import "components/collaboration/public/collaboration_service.h"
 #import "components/strings/grit/components_strings.h"
 #import "components/tab_groups/tab_group_visual_data.h"
+#import "ios/chrome/browser/collaboration/model/collaboration_service_factory.h"
+#import "ios/chrome/browser/collaboration/model/ios_collaboration_controller_delegate.h"
+#import "ios/chrome/browser/collaboration/model/ios_collaboration_flow_configuration.h"
 #import "ios/chrome/browser/saved_tab_groups/model/ios_tab_group_sync_util.h"
 #import "ios/chrome/browser/saved_tab_groups/model/tab_group_sync_service_factory.h"
 #import "ios/chrome/browser/share_kit/model/share_kit_manage_configuration.h"
@@ -309,39 +313,11 @@
 }
 
 - (void)manageTabGroup:(base::WeakPtr<const TabGroup>)group {
-  ProfileIOS* profile = self.browser->GetProfile();
-  tab_groups::TabGroupSyncService* syncService =
-      tab_groups::TabGroupSyncServiceFactory::GetForProfile(profile);
-  ShareKitService* shareKitService =
-      ShareKitServiceFactory::GetForProfile(profile);
-  NSString* collabID =
-      tab_groups::utils::GetTabGroupCollabID(group.get(), syncService);
-  if (!shareKitService || !collabID) {
-    return;
-  }
-  ShareKitManageConfiguration* config =
-      [[ShareKitManageConfiguration alloc] init];
-  config.baseViewController = self.baseViewController;
-  config.collabID = collabID;
-  config.applicationHandler = HandlerForProtocol(
-      self.browser->GetCommandDispatcher(), ApplicationCommands);
-  shareKitService->ManageTabGroup(config);
+  [self showShareOrManageForGroup:group];
 }
 
 - (void)shareTabGroup:(base::WeakPtr<const TabGroup>)group {
-  ShareKitService* shareKitService =
-      ShareKitServiceFactory::GetForProfile(self.browser->GetProfile());
-  const TabGroup* tabGroup = group.get();
-  if (!tabGroup || !shareKitService) {
-    return;
-  }
-  ShareKitShareGroupConfiguration* config =
-      [[ShareKitShareGroupConfiguration alloc] init];
-  config.tabGroup = tabGroup;
-  config.baseViewController = self.baseViewController;
-  config.applicationHandler = HandlerForProtocol(
-      self.browser->GetCommandDispatcher(), ApplicationCommands);
-  shareKitService->ShareTabGroup(config);
+  [self showShareOrManageForGroup:group];
 }
 
 - (void)showRecentActivityForTabGroup:(base::WeakPtr<const TabGroup>)tabGroup {
@@ -421,6 +397,29 @@
   }
   [_tabGroupConfirmationCoordinator stop];
   _tabGroupConfirmationCoordinator = nil;
+}
+
+// Shows the "share" or "manage" screen for the `group`. The choice is
+// automatically made based on whether the group is already shared or not.
+- (void)showShareOrManageForGroup:(base::WeakPtr<const TabGroup>)group {
+  Browser* browser = self.browser;
+  collaboration::CollaborationService* collaborationService =
+      collaboration::CollaborationServiceFactory::GetForProfile(
+          browser->GetProfile());
+  const TabGroup* tabGroup = group.get();
+
+  if (!tabGroup || !collaborationService) {
+    return;
+  }
+
+  std::unique_ptr<collaboration::CollaborationControllerDelegate> delegate =
+      std::make_unique<collaboration::IOSCollaborationControllerDelegate>(
+          browser, self.baseViewController,
+          std::make_unique<
+              collaboration::CollaborationFlowConfigurationShareOrManage>(
+              tabGroup->GetWeakPtr()));
+  collaborationService->StartShareOrManageFlow(std::move(delegate),
+                                               tabGroup->tab_group_id());
 }
 
 @end

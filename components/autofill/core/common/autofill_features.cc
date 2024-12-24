@@ -48,6 +48,13 @@ BASE_FEATURE(kAutofillCreditCardUserPerceptionSurvey,
              "AutofillCreditCardUserPerceptionSurvey",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Feature flag controlling the display of surveys when a user does not
+// accept an Autofill suggestion. The goal is to understand the reason and work
+// towards improving acceptance.
+BASE_FEATURE(kAutofillAddressUserDeclinedSuggestionSurvey,
+             "AutofillAddressUserDeclinedSuggestionSurvey",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Kill switch for Autofill filling.
 BASE_FEATURE(kAutofillDisableFilling,
              "AutofillDisableFilling",
@@ -265,7 +272,7 @@ BASE_FEATURE(kAutofillImportFromAutocompleteUnrecognized,
              "AutofillImportFromAutocompleteUnrecognized",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-// When enabled, the autofill suggestion labels are more more descriptive and
+// When enabled, the autofill suggestion labels are more descriptive and
 // relevant.
 // TODO(crbug.com/380273791): Cleanup when launched.
 BASE_FEATURE(kAutofillImprovedLabels,
@@ -279,12 +286,19 @@ const base::FeatureParam<bool>
         &kAutofillImprovedLabels,
         "autofill_improved_labels_without_main_text_changes", false};
 
-// Controls whether labels should not be improved, but only the main text.
+// Controls whether differentiating labels should be shown before or after the
+// improved labels.
 // TODO(crbug.com/380273791): Clean up when launched.
 const base::FeatureParam<bool>
-    kAutofillImprovedLabelsParamOnlyWithMainTextChangesParam{
+    kAutofillImprovedLabelsParamWithDifferentiatingLabelsInFrontParam{
         &kAutofillImprovedLabels,
-        "autofill_improved_labels_only_with_main_text_changes", false};
+        "autofill_improved_labels_with_differentiating_labels_in_front", false};
+
+// If enabled, we include a `FormData`'s URL in crowdsourcing votes.
+// TODO(crbug.com/385043924): Clean up when launched.
+BASE_FEATURE(kAutofillIncludeUrlInCrowdsourcing,
+             "AutofillIncludeUrlInCrowdsourcing",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // If enabled, we start forwarding submissions with source
 // DOM_MUTATION_AFTER_AUTOFILL, even for non-password forms.
@@ -338,6 +352,13 @@ BASE_FEATURE(kAutofillDisambiguateContradictingFieldTypes,
              "AutofillDisambiguateContradictingFieldTypes",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Controls whether the `AutofillPopupHideHelper` will hide the keyboard
+// accessory when the Chrome native view is resized on Android.
+BASE_DECLARE_FEATURE(kAutofillDoNotHideKeyboardAccessoryOnMainFrameResized);
+BASE_FEATURE(kAutofillDoNotHideKeyboardAccessoryOnMainFrameResized,
+             "AutofillDoNotHideKeyboardAccessoryOnMainFrameResized",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 // If enabled, whenever form controls are removed from the DOM, the ChromeClient
 // is informed about this. This enables Autofill to trigger a reparsing of
 // forms.
@@ -355,17 +376,17 @@ BASE_FEATURE(kAutofillReplaceCachedWebElementsByRendererIds,
 // one.
 BASE_FEATURE(kAutofillUseAUAddressModel,
              "AutofillUseAUAddressModel",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables using a custom address model for Canada, overriding the legacy one.
 BASE_FEATURE(kAutofillUseCAAddressModel,
              "AutofillUseCAAddressModel",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables using a custom address model for Germany, overriding the legacy one.
 BASE_FEATURE(kAutofillUseDEAddressModel,
              "AutofillUseDEAddressModel",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables using a custom address model for France, overriding the legacy one.
 BASE_FEATURE(kAutofillUseFRAddressModel,
@@ -519,12 +540,6 @@ const base::FeatureParam<bool>
 BASE_FEATURE(kAutofillForUnclassifiedFieldsAvailable,
              "AutofillForUnclassifiedFieldsAvailable",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Controls whether test address profiles will be present in the Autofill popup.
-// TODO(crbug.com/40270486): Clean up when launched.
-BASE_FEATURE(kAutofillTestFormWithTestAddresses,
-             "AutofillTestFormWithTestAddresses",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Allows silent profile updates even when the profile import requirements are
 // not met.
@@ -739,11 +754,28 @@ BASE_FEATURE(kPlusAddressUserDidChoosePlusAddressOverEmailSurvey,
              "PlusAddressUserDidChoosePlusAddressOverEmailSurvey",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// When enabled, the placeholder is not considered a label fallback on the
+// renderer side anymore. Instead, local heuristic will match regexes against
+// either the label or the placeholder, depending on how high quality the label
+// is. If no matche is found, local heuristics fall back to the other value.
+// This feature can be thought of as "lightweight" multi-label support.
+// TODO(crbug.com/320965828): Remove when launched.
+COMPONENT_EXPORT(AUTOFILL)
+BASE_FEATURE(kAutofillBetterLocalHeuristicPlaceholderSupport,
+             "AutofillBetterLocalHeuristicPlaceholderSupport",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 #if BUILDFLAG(IS_ANDROID)
 // Controls if Chrome Autofill UI surfaces ignore touch events if something is
 // fully or partially obscuring the Chrome window.
 BASE_FEATURE(kAutofillEnableSecurityTouchEventFilteringAndroid,
              "AutofillEnableSecurityTouchEventFilteringAndroid",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// If enabled, Autofill Services can query whether Chrome provides forms as
+// virtual view structures to third party providers.
+BASE_FEATURE(kAutofillThirdPartyModeContentProvider,
+             "AutofillThirdPartyModeContentProvider",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Controls the whether the Chrome may provide a virtual view structure for

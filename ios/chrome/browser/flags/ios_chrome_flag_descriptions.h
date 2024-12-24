@@ -186,6 +186,11 @@ extern const char kBreakpadNoDelayInitialUploadDescription[];
 extern const char kClearUndecryptablePasswordsName[];
 extern const char kClearUndecryptablePasswordsDescription[];
 
+// Title and description for the flag that enables the collaboration messaging
+// framework. Requires the shared tab group feature to be enabled.
+extern const char kCollaborationMessagingName[];
+extern const char kCollaborationMessagingDescription[];
+
 // Title and description for the flag to enable the content notification
 // experiments. This is a kill switcher that guarded the
 // ContentPushNotifications feature.
@@ -230,10 +235,6 @@ extern const char kPhoneNumberDescription[];
 // conversion.
 extern const char kMeasurementsName[];
 extern const char kMeasurementsDescription[];
-
-// Title and description for the flag to enable viewport intent detection.
-extern const char kEnableViewportIntentsName[];
-extern const char kEnableViewportIntentsDescription[];
 
 // Title and description for the flag to enable improve parcel tracking
 // detection.
@@ -301,11 +302,6 @@ extern const char kDetectMainThreadFreezeDescription[];
 // Chrome.
 extern const char kDownloadedPDFOpeningName[];
 extern const char kDownloadedPDFOpeningDescription[];
-
-// Title and description for the flag to enable the color Lens and voice icons
-// in the home screen widget.
-extern const char kEnableColorLensAndVoiceIconsInHomeScreenWidgetName[];
-extern const char kEnableColorLensAndVoiceIconsInHomeScreenWidgetDescription[];
 
 // Title and description for the flag to enable the muting of compromised
 // passwords in the Password Manager.
@@ -482,6 +478,11 @@ extern const char kIOSDisableParcelTrackingDescription[];
 extern const char kIOSDockingPromoName[];
 extern const char kIOSDockingPromoDescription[];
 
+// Title and description for the flag to enable delete all saved credentials in
+// PWM.
+extern const char kIOSEnableDeleteAllSavedCredentialsName[];
+extern const char kIOSEnableDeleteAllSavedCredentialsDescription[];
+
 // Title and description for the flag to enable the keyboard accessory upgrade.
 extern const char kIOSKeyboardAccessoryUpgradeName[];
 extern const char kIOSKeyboardAccessoryUpgradeDescription[];
@@ -490,6 +491,11 @@ extern const char kIOSKeyboardAccessoryUpgradeDescription[];
 // with a shorter manual fill menu.
 extern const char kIOSKeyboardAccessoryUpgradeShortManualFillMenuName[];
 extern const char kIOSKeyboardAccessoryUpgradeShortManualFillMenuDescription[];
+
+// Title and description for the flag to enable the new following feed entry
+// points.
+extern const char kIOSNewFollowingFeedEntryPointsName[];
+extern const char kIOSNewFollowingFeedEntryPointsDescription[];
 
 // Title and description for the flag to enable password bottom sheet triggering
 // on autofocus on IOS.
@@ -589,6 +595,11 @@ extern const char kLensOverlayForceShowOnboardingScreenDescription[];
 extern const char kLensOverlayDisablePriceInsightsName[];
 extern const char kLensOverlayDisablePriceInsightsDescription[];
 
+// Title and description for the flag to enable the lens overlay location bar
+// entrypoint only when price insights should have triggered.
+extern const char kLensOverlayPriceInsightsCounterfactualName[];
+extern const char kLensOverlayPriceInsightsCounterfactualDescription[];
+
 // Title and description for the flag to allow lens overlay on iPad devices.
 extern const char kLensOverlayEnableIPadCompatibilityName[];
 extern const char kLensOverlayEnableIPadCompatibilityDescription[];
@@ -598,9 +609,18 @@ extern const char kLensOverlayEnableIPadCompatibilityDescription[];
 extern const char kLensOverlayEnableLocationBarEntrypointName[];
 extern const char kLensOverlayEnableLocationBarEntrypointDescription[];
 
+// Title and description for the flag to enable the Lens overlay location bar
+// entrypoint on SRP.
+extern const char kLensOverlayEnableLocationBarEntrypointOnSRPName[];
+extern const char kLensOverlayEnableLocationBarEntrypointOnSRPDescription[];
+
 // Title and description for the flag to allow lens overlay same tab navigation.
 extern const char kLensOverlayEnableSameTabNavigationName[];
 extern const char kLensOverlayEnableSameTabNavigationDescription[];
+
+// Title and description for the flag to disable single tap text selections.
+extern const char kLensSingleTapTextSelectionDisabledName[];
+extern const char kLensSingleTapTextSelectionDisabledDescription[];
 
 // Title and description for the flag to enable the Lens translate toggle mode.
 extern const char kLensTranslateToggleModeEnabledName[];
@@ -978,6 +998,10 @@ extern const char kSharedHighlightingIOSDescription[];
 // Run.
 extern const char kSetUpListInFirstRunName[];
 extern const char kSetUpListInFirstRunNameDescription[];
+
+// Title and description for the flag to reduce the duration of the Set Up List.
+extern const char kSetUpListShortenedDurationName[];
+extern const char kSetUpListShortenedDurationDescription[];
 
 // Title and description for the flag to enable the Share button
 // in the web context menu in iOS.

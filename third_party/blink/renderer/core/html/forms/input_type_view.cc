@@ -102,8 +102,8 @@ LayoutObject* InputTypeView::CreateLayoutObject(
   return LayoutObject::CreateObject(&GetElement(), style);
 }
 
-ControlPart InputTypeView::AutoAppearance() const {
-  return kNoControlPart;
+AppearanceValue InputTypeView::AutoAppearance() const {
+  return AppearanceValue::kNone;
 }
 
 TextDirection InputTypeView::ComputedTextDirection() {
@@ -127,6 +127,10 @@ void InputTypeView::OpenPopupView() {}
 void InputTypeView::ClosePopupView() {}
 
 bool InputTypeView::HasOpenedPopup() const {
+  return false;
+}
+
+bool InputTypeView::IsPickerVisible() const {
   return false;
 }
 

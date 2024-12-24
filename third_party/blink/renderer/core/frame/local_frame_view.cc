@@ -95,6 +95,7 @@
 #include "third_party/blink/renderer/core/frame/web_local_frame_impl.h"
 #include "third_party/blink/renderer/core/fullscreen/fullscreen.h"
 #include "third_party/blink/renderer/core/highlight/highlight_registry.h"
+#include "third_party/blink/renderer/core/html/anchor_element_viewport_position_tracker.h"
 #include "third_party/blink/renderer/core/html/fenced_frame/document_fenced_frames.h"
 #include "third_party/blink/renderer/core/html/fenced_frame/html_fenced_frame_element.h"
 #include "third_party/blink/renderer/core/html/forms/text_control_element.h"
@@ -1684,7 +1685,7 @@ void LocalFrameView::PerformPostLayoutTasks(bool visual_viewport_size_changed) {
   Document* document = GetFrame().GetDocument();
   DCHECK(document);
 
-  document->Fetcher()->UpdateAllImageResourcePriorities();
+  document->Fetcher()->UpdateImagePrioritiesAndSpeculativeDecodes();
   UpdateDocumentDraggableRegions();
   ExecutePendingStickyUpdates();
 
@@ -2199,8 +2200,7 @@ bool LocalFrameView::UpdateLifecyclePhases(
       for (auto& observer : lifecycle_observers)
         observer->DidFinishLifecycleUpdate(frame_view);
     });
-    if (frame_->GetWidgetForLocalRoot() &&
-        RuntimeEnabledFeatures::ReportVisibleLineBoundsEnabled()) {
+    if (frame_->GetWidgetForLocalRoot()) {
       frame_->GetWidgetForLocalRoot()->UpdateLineBounds();
     }
   }
@@ -2326,7 +2326,7 @@ void LocalFrameView::UpdateLifecyclePhasesInternal(
     // RunPostLayoutIntersectionObserverSteps will return true if any
     // observations led to content-visibility intersection changing visibility
     // state synchronously (which happens on the first intersection
-    // observeration of a context).
+    // observation of a context).
     //
     // Note that we run the content-visibility intersection observation first.
     // The idea is that we want to synchronously determine the initial,
@@ -4376,6 +4376,8 @@ void LocalFrameView::VisibilityChanged(
     frame_->Client()->GetWebFrame()->Client()->OnFrameVisibilityChanged(
         visibility);
   }
+
+  frame_->NotifyFrameVisibilityChanged(visibility);
 }
 
 void LocalFrameView::RenderThrottlingStatusChanged() {
@@ -4651,7 +4653,8 @@ String LocalFrameView::MainThreadScrollingReasonsAsText() {
 
 bool LocalFrameView::MapToVisualRectInRemoteRootFrame(
     PhysicalRect& rect,
-    bool apply_overflow_clip) {
+    bool apply_overflow_clip,
+    bool apply_viewport_transform) {
   DCHECK(frame_->IsLocalRoot());
   // This is the top-level frame, so no mapping necessary.
   if (frame_->IsOutermostMainFrame())
@@ -4661,20 +4664,27 @@ bool LocalFrameView::MapToVisualRectInRemoteRootFrame(
                           : frame_->RemoteMainFrameIntersection()));
   if (result) {
     if (LayoutView* layout_view = GetLayoutView()) {
-      rect = layout_view->LocalToAncestorRect(
-          rect, nullptr,
-          kTraverseDocumentBoundaries | kApplyRemoteMainFrameTransform);
+      auto flags = kTraverseDocumentBoundaries | kApplyRemoteMainFrameTransform;
+      if (apply_viewport_transform) {
+        flags |= kApplyRemoteViewportTransform;
+      }
+      rect = layout_view->LocalToAncestorRect(rect, nullptr, flags);
     }
   }
   return result;
 }
 
 void LocalFrameView::MapLocalToRemoteMainFrame(
-    TransformState& transform_state) {
+    TransformState& transform_state,
+    bool apply_remote_main_frame_scroll_offset) {
   DCHECK(frame_->IsLocalRoot());
   // This is the top-level frame, so no mapping necessary.
   if (frame_->IsOutermostMainFrame())
     return;
+  if (apply_remote_main_frame_scroll_offset) {
+    transform_state.Move(-PhysicalOffset::FromPointFRound(
+        gfx::PointF(GetFrame().GetOutermostMainFrameScrollPosition())));
+  }
   transform_state.ApplyTransform(GetFrame().RemoteMainFrameTransform(),
                                  TransformState::kAccumulateTransform);
 }
@@ -4720,6 +4730,12 @@ void LocalFrameView::OnFirstContentfulPaint() {
 
   if (auto* metrics_aggregator = GetUkmAggregator())
     metrics_aggregator->DidReachFirstContentfulPaint();
+
+  if (auto* viewport_position_tracker =
+          AnchorElementViewportPositionTracker::MaybeGetOrCreateFor(
+              *frame_->GetDocument())) {
+    viewport_position_tracker->OnFirstContentfulPaint();
+  }
 }
 
 void LocalFrameView::RegisterForLifecycleNotifications(

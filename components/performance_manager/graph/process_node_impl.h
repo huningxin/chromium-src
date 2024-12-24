@@ -209,8 +209,8 @@ class ProcessNodeImpl
 
   // NodeBase:
   void OnInitializingProperties() override;
-  void OnUninitializing() override;
-  void RemoveNodeAttachedData() override;
+  void OnUninitializingEdges() override;
+  void CleanUpNodeState() override;
 
   // Receiver for renderer-only messages.
   mojo::Receiver<mojom::ProcessCoordinationUnit> render_process_receiver_

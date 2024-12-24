@@ -28,8 +28,8 @@
 #include "base/strings/stringprintf.h"
 #include "base/task/single_thread_task_runner.h"
 #include "build/build_config.h"
-#include "components/autofill/core/browser/autofill_client.h"
 #include "components/autofill/core/browser/crowdsourcing/autofill_crowdsourcing_encoding.h"
+#include "components/autofill/core/browser/foundations/autofill_client.h"
 #include "components/autofill/core/browser/logging/log_manager.h"
 #include "components/autofill/core/browser/logging/log_protobufs.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
@@ -367,25 +367,6 @@ LogBuffer& operator<<(LogBuffer& out, const AutofillUploadContents& upload) {
     out << Tr{} << "passwords_revealed:" << upload.passwords_revealed();
   if (upload.has_has_form_tag())
     out << Tr{} << "has_form_tag:" << upload.has_form_tag();
-
-  for (const auto& single_username_data : upload.single_username_data()) {
-    LogBuffer single_username_data_buffer(LogBuffer::IsActive(true));
-    single_username_data_buffer << Tag{"span"} << "[";
-    single_username_data_buffer
-        << Tr{} << "username_form_signature:"
-        << single_username_data.username_form_signature();
-    single_username_data_buffer
-        << Tr{} << "username_field_signature:"
-        << single_username_data.username_field_signature();
-    single_username_data_buffer
-        << Tr{}
-        << "value_type:" << static_cast<int>(single_username_data.value_type());
-    single_username_data_buffer
-        << Tr{} << "prompt_edit:"
-        << static_cast<int>(single_username_data.prompt_edit());
-    out << Tr{} << "single_username_data"
-        << std::move(single_username_data_buffer);
-  }
 
   out << Tr{} << "form_signature:" << upload.form_signature();
   for (const auto& field : upload.field_data()) {
@@ -746,7 +727,7 @@ bool AutofillCrowdsourcingManager::StartQueryRequest(
 
   std::string query_data;
   if (CheckCacheForQueryRequest(queried_form_signatures, &query_data)) {
-    LOG_AF(client_->GetLogManager())
+    LOG_AF(client_->GetCurrentLogManager())
         << LoggingScope::kAutofillServer << LogMessage::kCachedAutofillQuery
         << Br{} << query;
     if (scoped_callback_runner) {
@@ -758,7 +739,7 @@ bool AutofillCrowdsourcingManager::StartQueryRequest(
     return true;
   }
 
-  LOG_AF(client_->GetLogManager())
+  LOG_AF(client_->GetCurrentLogManager())
       << LoggingScope::kAutofillServer << LogMessage::kSendAutofillQuery << Br{}
       << "Signatures: " << query;
   return StartRequest(FormRequestData{
@@ -814,7 +795,7 @@ bool AutofillCrowdsourcingManager::StartUploadRequest(
 
   // For debugging purposes, even throttled uploads are logged. If no log
   // manager is active, the function can exit early for throttled uploads.
-  LogManager* log_manager = client_->GetLogManager();
+  LogManager* log_manager = client_->GetCurrentLogManager();
   const bool needs_logging = log_manager && log_manager->IsLoggingActive();
   if (!needs_logging && !allow_upload)
     return false;

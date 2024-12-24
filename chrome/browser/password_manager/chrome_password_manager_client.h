@@ -17,7 +17,7 @@
 #include "build/buildflag.h"
 #include "build/chromeos_buildflags.h"
 #include "components/autofill/content/browser/scoped_autofill_managers_observation.h"
-#include "components/autofill/core/browser/autofill_manager.h"
+#include "components/autofill/core/browser/foundations/autofill_manager.h"
 #include "components/autofill/core/common/password_generation_util.h"
 #include "components/autofill/core/common/unique_ids.h"
 #include "components/password_manager/content/browser/content_credential_manager.h"
@@ -77,6 +77,7 @@ class Profile;
 
 namespace autofill {
 class LogManager;
+class LogRouter;
 class RoutingLogManager;
 
 namespace password_generation {
@@ -248,7 +249,7 @@ class ChromePasswordManagerClient
   url::Origin GetLastCommittedOrigin() const override;
   const password_manager::CredentialsFilter* GetStoreResultFilter()
       const override;
-  autofill::LogManager* GetLogManager() override;
+  autofill::LogManager* GetCurrentLogManager() override;
   void AnnotateNavigationEntry(bool has_password_field) override;
   autofill::LanguageCode GetPageLanguage() const override;
   safe_browsing::PasswordProtectionService* GetPasswordProtectionService()
@@ -521,6 +522,7 @@ class ChromePasswordManagerClient
   AccountStorageAuthHelper account_storage_auth_helper_;
 #endif  // BUILDFLAG(ENABLE_DICE_SUPPORT) || BUILDFLAG(IS_CHROMEOS_LACROS)
 
+  const raw_ptr<autofill::LogRouter> log_router_;
   std::unique_ptr<autofill::RoutingLogManager> log_manager_;
 
   // Recorder of metrics that is associated with the last committed navigation

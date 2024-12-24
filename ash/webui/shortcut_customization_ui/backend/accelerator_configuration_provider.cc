@@ -421,12 +421,12 @@ std::optional<AcceleratorConfigResult> ValidateAccelerator(
     return AcceleratorConfigResult::kShiftOnlyNotAllowed;
   }
 
-  // Case: Accelerator cannot have right alt key.
-  if (accelerator.key_code() == ui::VKEY_RIGHT_ALT) {
+  // Case: Accelerator cannot have quick insert key.
+  if (accelerator.key_code() == ui::VKEY_QUICK_INSERT) {
     VLOG(1) << "Failed to validate accelerator: "
             << accelerator.GetShortcutText() << " with error: "
-            << static_cast<int>(AcceleratorConfigResult::kBlockRightAlt);
-    return AcceleratorConfigResult::kBlockRightAlt;
+            << static_cast<int>(AcceleratorConfigResult::kBlockQuickInsert);
+    return AcceleratorConfigResult::kBlockQuickInsert;
   }
 
   // No errors with the accelerator.
@@ -444,10 +444,6 @@ std::string GetUuid(mojom::AcceleratorSource source,
 // or specific device property.
 bool ShouldExcludeItem(const AcceleratorLayoutDetails& details) {
   switch (details.action_id) {
-    // Hide user switching shortcuts for lacros builds.
-    case kSwitchToNextUser:
-    case kSwitchToPreviousUser:
-      return crosapi::lacros_startup_state::IsLacrosEnabled();
     case kPrivacyScreenToggle:
       return !accelerators::CanTogglePrivacyScreen();
     case kTilingWindowResizeLeft:
@@ -455,8 +451,12 @@ bool ShouldExcludeItem(const AcceleratorLayoutDetails& details) {
     case kTilingWindowResizeUp:
     case kTilingWindowResizeDown:
       return !features::IsTilingWindowResizeEnabled();
+    case kToggleDoNotDisturb:
+      return !features::IsDoNotDisturbShortcutEnabled();
     case kToggleMouseKeys:
       return !::features::IsAccessibilityMouseKeysEnabled();
+    case kToggleGeminiApp:
+      return !features::IsAppLaunchShortcutEnabled();
     case kToggleSnapGroupWindowsMinimizeAndRestore:
       return true;
   }

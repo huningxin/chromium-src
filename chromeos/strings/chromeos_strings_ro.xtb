@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">Dezactivează tema întunecată</translation>
 <translation id="1807246157184219062">Luminos</translation>
 <translation id="1808803439260407870">Artă clasică</translation>
+<translation id="181434555916624618">Momentan, rezultatele cu persoane nu se vor afișa. Încearcă altă solicitare.</translation>
 <translation id="1815850098929213707">Tasta selectată este <ph name="KEYS" />. Atinge butonul pentru a edita comanda</translation>
 <translation id="1823120442877418684">Personaje</translation>
 <translation id="1827738518074806965">Galerie de imagini</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">Nivelul bateriei căștii drepte a dispozitivului este de <ph name="BATTERY_PERCENTAGE" /> %.</translation>
 <translation id="3340978935015468852">setări</translation>
 <translation id="3347558044552027859">modern</translation>
+<translation id="3353477144743332882">Descarcă modelul pentru rezumatul înregistrării și crearea numelui</translation>
 <translation id="3359218928534347896">dezactivează sunetul microfonului</translation>
 <translation id="3360306038446926262">Ferestre</translation>
 <translation id="3361618936611118375">sushi</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">Acces pentru părinți</translation>
 <translation id="473775607612524610">Actualizează</translation>
 <translation id="4744944742468440486">Informații legate de selecția ta</translation>
+<translation id="4750394297954878236">Sugestii</translation>
 <translation id="4771607256327216405">mărirea luminozității tastaturii</translation>
 <translation id="4771923071974529837">mâine</translation>
 <translation id="4773299976671772492">Oprit</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">Comanda rapidă nu este disponibilă. Apasă pe o nouă comandă rapidă fără <ph name="KEY" />.</translation>
 <translation id="5860033963881614850">Dezactivat</translation>
 <translation id="5860491529813859533">Activează</translation>
+<translation id="5875913454160982848">Descarcă modelul de transcriere</translation>
 <translation id="5876385649737594562">Activează modul pentru a selecta opțiuni</translation>
 <translation id="5877503382465267833">Întrerupe <ph name="RECORDING_NAME" /></translation>
 <translation id="588258955323874662">Ecran complet</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">Închide</translation>
 <translation id="6040852767465482106">Identitate anonimă</translation>
 <translation id="604124094241169006">Automat</translation>
-<translation id="6042308850641462728">Mai multe</translation>
 <translation id="6048107060512778456">Nereușită – Blocaj de hârtie</translation>
 <translation id="6050189528197190982">Tonuri de gri</translation>
 <translation id="6054711098834486579">expresionist</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{Server de nume}few{Servere de nume}other{Servere de nume}}</translation>
 <translation id="7135814714616751706">Caută comenzi rapide</translation>
 <translation id="7138614237884624401">Text simplificat</translation>
+<translation id="7138668887584231801">Nu există suficiente cuvinte pentru a rezuma</translation>
 <translation id="7141470099673912333">Content Transfer</translation>
 <translation id="7143207342074048698">Se conectează</translation>
 <translation id="7144878232160441200">Reîncearcă</translation>
@@ -1588,6 +1592,7 @@ Descarcă modelul de transcriere (până la 100 MB) pentru a obține aceste tran
 <translation id="8503836310948963452">Mai sunt câteva minute…</translation>
 <translation id="8505011850330200833">Modelul Gemini necesită un spațiu de stocare de 2 GB pentru a procesa transcrieri și a crea rezumate</translation>
 <translation id="8508640263392900755">Detalii APN</translation>
+<translation id="8509574872955173831">Află mai multe despre rezumatul înregistrării și crearea numelui</translation>
 <translation id="8522687886059337719">Acum ai acces la noi <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />imagini de fundal<ph name="END_LINK_WALLPAPER_SUBPAGE" /> și <ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />screensavere<ph name="END_LINK_SCREENSAVER_SUBPAGE" /></translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">ceainărie</translation>
@@ -1724,7 +1729,6 @@ Descarcă modelul de transcriere (până la 100 MB) pentru a obține aceste tran
 <translation id="9133772297793293778">Apasă 1 – 4 modificatori și încă o tastă de pe tastatură. Pentru a ieși din modul de editare, apasă pe Alt + Esc.</translation>
 <translation id="9137526406337347448">Google Services</translation>
 <translation id="9138630967333032450">Shift din stânga</translation>
-<translation id="9147928237330776930">Prea puține cuvinte pentru a rezuma</translation>
 <translation id="9149391708638971077">Rulează testul Memorie</translation>
 <translation id="9159524746324788320">hamburgeri</translation>
 <translation id="9161276708550942948">spațiu</translation>

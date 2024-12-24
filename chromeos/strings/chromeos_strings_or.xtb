@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">ଗାଢ଼ା ଥିମକୁ ଅକ୍ଷମ କରନ୍ତୁ</translation>
 <translation id="1807246157184219062">ଫିକା</translation>
 <translation id="1808803439260407870">କ୍ଲାସିକ ଆର୍ଟ</translation>
+<translation id="181434555916624618">ବର୍ତ୍ତମାନ ପାଇଁ ଲୋକଙ୍କ ସହ ଫଳାଫଳ ଦେଖାଯିବ ନାହିଁ। ଅନ୍ୟ ଏକ ପ୍ରମ୍ପ୍ଟ ବ୍ୟବହାର କରି ଦେଖନ୍ତୁ।</translation>
 <translation id="1815850098929213707"><ph name="KEYS" /> ହେଉଛି ଚୟନିତ କୀ। ନିୟନ୍ତ୍ରଣକୁ ଏଡିଟ କରିବା ପାଇଁ ବଟନରେ ଟାପ କରନ୍ତୁ</translation>
 <translation id="1823120442877418684">ଚରିତ୍ର</translation>
 <translation id="1827738518074806965">ଆର୍ଟ ଗ୍ୟାଲେରୀ</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">ଡିଭାଇସର ଡାହାଣପଟ ବଡରେ <ph name="BATTERY_PERCENTAGE" />% ବ୍ୟାଟେରୀ ଚାର୍ଜ ଅଛି।</translation>
 <translation id="3340978935015468852">ସେଟିଂସ୍</translation>
 <translation id="3347558044552027859">ଆଧୁନିକ</translation>
+<translation id="3353477144743332882">ସାରାଂଶ ଏବଂ ନାମ କ୍ରିଏସନ ମଡେଲ ଡାଉନଲୋଡ କରନ୍ତୁ</translation>
 <translation id="3359218928534347896">ମାଇକ୍ରୋଫୋନ ମ୍ୟୁଟ କରିବା ବଟନକୁ ଟୋଗଲ କରନ୍ତୁ।</translation>
 <translation id="3360306038446926262">Windows</translation>
 <translation id="3361618936611118375">ସୁଶି</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">ମାତା-ପିତାଙ୍କର ଆକ୍ସେସ୍</translation>
 <translation id="473775607612524610">ଅପ୍‍‍ଡେଟ୍</translation>
 <translation id="4744944742468440486">ଆପଣଙ୍କ ଚୟନ ସମ୍ବନ୍ଧିତ ସୂଚନା</translation>
+<translation id="4750394297954878236">ପରାମର୍ଶ</translation>
 <translation id="4771607256327216405">କୀବୋର୍ଡ ଉଜ୍ଜ୍ୱଳ କରନ୍ତୁ</translation>
 <translation id="4771923071974529837">ଆସନ୍ତାକାଲି</translation>
 <translation id="4773299976671772492">ବନ୍ଦ ହୋଇଯାଇଛି</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">ସର୍ଟକଟ ଉପଲବ୍ଧ ନାହିଁ। <ph name="KEY" /> ବିନା ଏକ ନୂଆ ସର୍ଟକଟକୁ ଦବାନ୍ତୁ।</translation>
 <translation id="5860033963881614850">ବନ୍ଦ ଅଛି</translation>
 <translation id="5860491529813859533">ଚାଲୁ କରନ୍ତୁ</translation>
+<translation id="5875913454160982848">ଟ୍ରାନ୍ସକ୍ରିପସନ ମଡେଲ ଡାଉନଲୋଡ କରନ୍ତୁ</translation>
 <translation id="5876385649737594562">ବିକଳ୍ପଗୁଡ଼ିକୁ ଚୟନ କରିବା ପାଇଁ ଚାଲୁ କରନ୍ତୁ</translation>
 <translation id="5877503382465267833"><ph name="RECORDING_NAME" />କୁ ବିରତ କରନ୍ତୁ</translation>
 <translation id="588258955323874662">ପୂର୍ଣ୍ଣସ୍କ୍ରିନ</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">ବନ୍ଦ</translation>
 <translation id="6040852767465482106">ବେନାମୀ ପରିଚୟ</translation>
 <translation id="604124094241169006">ସ୍ୱଚାଳିତ</translation>
-<translation id="6042308850641462728">ଅଧିକ</translation>
 <translation id="6048107060512778456">ବିଫଳ ହୋଇଛି - କାଗଜ ଅଟକି ଯାଇଛି</translation>
 <translation id="6050189528197190982">ଗ୍ରେସ୍କେଲ୍</translation>
 <translation id="6054711098834486579">ଏକ୍ସପ୍ରେସୋନିଷ୍ଟ</translation>
@@ -1067,7 +1070,7 @@
 <translation id="6137767437444130246">ୟୁଜରଙ୍କ ସାର୍ଟିଫିକେଟ</translation>
 <translation id="6146993107019042706">ସମ୍ପୂର୍ଣ୍ଣ କରିବା ପାଇଁ, ଆପଣଙ୍କର ନୂଆ ପାସ୍‍ୱାର୍ଡ ଲେଖନ୍ତୁ</translation>
 <translation id="6147514244879357420">PNG</translation>
-<translation id="6149015141270619212">ଇଣ୍ଟର୍ନେଟ୍ ସହ ସଂଯୋଗ ହୋଇପାରୁ ନାହିଁ</translation>
+<translation id="6149015141270619212">ଇଣ୍ଟର୍ନେଟ ସହ କନେକ୍ଟ ହୋଇପାରୁନାହିଁ</translation>
 <translation id="6156030503438652198">ମେରୁନ ଏବଂ ଗୋଲାପୀ</translation>
 <translation id="6165508094623778733">ଅଧିକ ଜାଣନ୍ତୁ</translation>
 <translation id="6184793017104303157">B4</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{ନାମ ସର୍ଭର୍}other{ନାମ ସର୍ଭର୍}}</translation>
 <translation id="7135814714616751706">ସର୍ଟକଟ ସର୍ଚ୍ଚ କରନ୍ତୁ</translation>
 <translation id="7138614237884624401">ସରଳୀକୃତ ଟେକ୍ସଟ</translation>
+<translation id="7138668887584231801">ସାରାଂଶ ତିଆରି କରିବା ପାଇଁ ଯଥେଷ୍ଟ ଶବ୍ଦ ନାହିଁ</translation>
 <translation id="7141470099673912333">Content Transfer</translation>
 <translation id="7143207342074048698">ସଂଯୋଗ କରୁଛି</translation>
 <translation id="7144878232160441200">ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ</translation>
@@ -1588,6 +1592,7 @@
 <translation id="8503836310948963452">ଆଉ ଅଳ୍ପ କିଛି ମିନିଟ୍ ଅଛି…</translation>
 <translation id="8505011850330200833">ଟ୍ରାନ୍ସକ୍ରିପ୍ଟଗୁଡ଼ିକୁ ପ୍ରକ୍ରିୟାନ୍ୱିତ କରି ସାରାଂଶ ତିଆରି କରିବା ପାଇଁ Gemini ମଡେଲ 2GB ଷ୍ଟୋରେଜ ଆବଶ୍ୟକ କରେ</translation>
 <translation id="8508640263392900755">APN ବିବରଣୀ</translation>
+<translation id="8509574872955173831">ସାରାଂଶ ଏବଂ ନାମ କ୍ରିଏସନ ବିଷୟରେ ଅଧିକ ଜାଣନ୍ତୁ</translation>
 <translation id="8522687886059337719">ବର୍ତ୍ତମାନ ନୂଆ <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />ୱାଲପେପର<ph name="END_LINK_WALLPAPER_SUBPAGE" /> ଏବଂ <ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />ସ୍କ୍ରିନ ସେଭର<ph name="END_LINK_SCREENSAVER_SUBPAGE" />କୁ ଆପଣଙ୍କର ଆକ୍ସେସ ଅଛି</translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">ଟି ହାଉସ</translation>
@@ -1724,7 +1729,6 @@
 <translation id="9133772297793293778">ଆପଣଙ୍କ କୀବୋର୍ଡରେ 1-4ଟି ମୋଡିଫାୟାର ଏବଂ ଅନ୍ୟ 1ଟି କୀ ଦବାନ୍ତୁ। ଏଡିଟିଂ ମୋଡରୁ ବାହାରି ଯିବା ପାଇଁ alt + esc ଦବାନ୍ତୁ।</translation>
 <translation id="9137526406337347448">Google ସେବାଗୁଡ଼ିକ</translation>
 <translation id="9138630967333032450">ବାମପଟ Shift</translation>
-<translation id="9147928237330776930">ସାରାଂଶ ତିଆରି କରିବା ପାଇଁ ବହୁତ କମ ଶବ୍ଦ</translation>
 <translation id="9149391708638971077">ମେମୋରୀ ଟେଷ୍ଟ ଚଲାନ୍ତୁ</translation>
 <translation id="9159524746324788320">ହାମବର୍ଗର</translation>
 <translation id="9161276708550942948">Space</translation>

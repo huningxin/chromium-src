@@ -15,6 +15,7 @@
 #include "base/observer_list.h"
 #include "ui/events/event_constants.h"
 #include "ui/events/keycodes/keyboard_codes.h"
+#include "ui/events/keycodes/keyboard_codes_posix.h"
 
 namespace ui {
 class Accelerator;
@@ -346,8 +347,8 @@ ASH_PUBLIC_EXPORT inline constexpr auto kAcceleratorData = std::to_array<
      AcceleratorAction::kAccessibilityAction},
 
     // Quick Insert.
-    {false, ui::VKEY_RIGHT_ALT, ui::EF_NONE, AcceleratorAction::kTogglePicker,
-     true},
+    {false, ui::VKEY_QUICK_INSERT, ui::EF_NONE,
+     AcceleratorAction::kTogglePicker, true},
     {true, ui::VKEY_F, ui::EF_COMMAND_DOWN, AcceleratorAction::kTogglePicker},
 
     // Game Dashboard shortcut.
@@ -445,6 +446,15 @@ ASH_PUBLIC_EXPORT inline constexpr AcceleratorData kGeminiAcceleratorData[] = {
 };
 ASH_PUBLIC_EXPORT inline constexpr size_t kGeminiAcceleratorDataLength =
     std::size(kGeminiAcceleratorData);
+
+ASH_PUBLIC_EXPORT inline constexpr AcceleratorData
+    kToggleDoNotDisturbAcceleratorData[] = {
+        {true, ui::VKEY_DO_NOT_DISTURB, ui::EF_NONE,
+         AcceleratorAction::kToggleDoNotDisturb},
+};
+ASH_PUBLIC_EXPORT inline constexpr size_t
+    kToggleDoNotDisturbAcceleratorDataLength =
+        std::size(kToggleDoNotDisturbAcceleratorData);
 
 // The public-facing interface for accelerator handling, which is Ash's duty to
 // implement.

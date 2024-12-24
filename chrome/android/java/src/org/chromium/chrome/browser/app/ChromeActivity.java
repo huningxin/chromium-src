@@ -60,6 +60,7 @@ import org.chromium.base.supplier.UnownedUserDataSupplier;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.ActivityTabProvider;
 import org.chromium.chrome.browser.ActivityUtils;
+import org.chromium.chrome.browser.AppHooks;
 import org.chromium.chrome.browser.ChromeActivitySessionTracker;
 import org.chromium.chrome.browser.ChromeApplicationImpl;
 import org.chromium.chrome.browser.ChromeKeyboardVisibilityDelegate;
@@ -141,6 +142,7 @@ import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.profiles.ProfileManager;
 import org.chromium.chrome.browser.profiles.ProfileProvider;
 import org.chromium.chrome.browser.provider.PageContentProviderImpl;
+import org.chromium.chrome.browser.provider.PageContentProviderMetrics;
 import org.chromium.chrome.browser.readaloud.ReadAloudController;
 import org.chromium.chrome.browser.selection.SelectionPopupBackPressHandler;
 import org.chromium.chrome.browser.settings.SettingsNavigationFactory;
@@ -151,6 +153,7 @@ import org.chromium.chrome.browser.stylus_handwriting.StylusWritingCoordinator;
 import org.chromium.chrome.browser.tab.RequestDesktopUtils;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tab.TabHidingType;
+import org.chromium.chrome.browser.tab.TabImportanceManager;
 import org.chromium.chrome.browser.tab.TabLaunchType;
 import org.chromium.chrome.browser.tab.TabLoadIfNeededCaller;
 import org.chromium.chrome.browser.tab.TabObscuringHandler;
@@ -213,6 +216,8 @@ import org.chromium.components.webapps.bottomsheet.PwaBottomSheetController;
 import org.chromium.components.webapps.bottomsheet.PwaBottomSheetControllerProvider;
 import org.chromium.components.webapps.pwa_universal_install.PwaUniversalInstallBottomSheetCoordinator;
 import org.chromium.components.webxr.XrDelegateProvider;
+import org.chromium.content_public.browser.ChildProcessImportance;
+import org.chromium.content_public.browser.ChildProcessLauncherHelper;
 import org.chromium.content_public.browser.DeviceUtils;
 import org.chromium.content_public.browser.LoadUrlParams;
 import org.chromium.content_public.browser.SelectionPopupController;
@@ -498,8 +503,14 @@ public abstract class ChromeActivity extends AsyncInitializationActivity
         // mTabModelProfileSupplier has the same lifecycle as this activity.
         mTabModelProfileSupplier.addObserver(
                 (profile) -> {
-                    mBookmarkModelSupplier.set(
-                            profile == null ? null : BookmarkModel.getForProfile(profile));
+                    BookmarkModel bookmarkModel =
+                            profile == null ? null : BookmarkModel.getForProfile(profile);
+                    mBookmarkModelSupplier.set(bookmarkModel);
+
+                    // Give BookmarkBridge a Supplier<PartnerBookmark.BookmarkIterator> so that
+                    // PartnerBookmarksShim can be loaded lazily when BookmarkModel is needed.
+                    bookmarkModel.setPartnerBookmarkIteratorSupplier(
+                            () -> AppHooks.get().getPartnerBookmarkIterator());
                 });
 
         super.performPreInflationStartup();
@@ -610,7 +621,8 @@ public abstract class ChromeActivity extends AsyncInitializationActivity
 
             mBottomContainer.initialize(
                     getBrowserControlsManager(),
-                    getWindowAndroid().getApplicationBottomInsetSupplier());
+                    getWindowAndroid().getApplicationBottomInsetSupplier(),
+                    getEdgeToEdgeSupplier());
 
             ShareDelegate shareDelegate =
                     new ShareDelegateImpl(
@@ -1419,6 +1431,17 @@ public abstract class ChromeActivity extends AsyncInitializationActivity
             endUmaSession();
             startUmaSession();
         }
+        if (mNativeInitialized
+                && ChromeFeatureList.isEnabled(ChromeFeatureList.CHANGE_UNFOCUSED_PRIORITY)) {
+            ChildProcessLauncherHelper.setIgnoreMainFrameVisibilityForImportance();
+            if (isTopResumedActivity) {
+                TabImportanceManager.setImportance(
+                        getTabModelSelector().getCurrentTab(), ChildProcessImportance.IMPORTANT);
+            } else {
+                TabImportanceManager.setImportance(
+                        getTabModelSelector().getCurrentTab(), ChildProcessImportance.MODERATE);
+            }
+        }
         super.onTopResumedActivityChanged(isTopResumedActivity);
     }
 
@@ -1458,13 +1481,18 @@ public abstract class ChromeActivity extends AsyncInitializationActivity
         // No information is provided in incognito mode and overview mode.
         if (tab != null && !tab.isIncognito() && !isInOverviewMode()) {
             outContent.setWebUri(Uri.parse(tab.getUrl().getSpec()));
+            PageContentProviderMetrics.recordUrlAttachedToAssistContent(true);
 
             if (ChromeFeatureList.isEnabled(ChromeFeatureList.ANDROID_PDF_ASSIST_CONTENT)
                     && tab.getNativePage() instanceof PdfPage pdfPage) {
                 EnterpriseInfo.OwnedState state =
                         EnterpriseInfo.getInstance().getDeviceEnterpriseInfoSync();
+                RecordHistogram.recordBooleanHistogram(
+                        "Android.Pdf.AssistContent.IsEnterpriseInfoCached", state != null);
                 if (state == null) return;
                 String structuredData = pdfPage.requestAssistContent(state.mProfileOwned);
+                PageContentProviderMetrics.recordPdfStructuredDataAttachedToAssistContent(
+                        structuredData != null);
                 if (structuredData != null) {
                     outContent.setStructuredData(structuredData);
                 }
@@ -1473,10 +1501,14 @@ public abstract class ChromeActivity extends AsyncInitializationActivity
                 String pageContentStructuredData =
                         PageContentProviderImpl.getAssistContentStructuredDataForUrl(
                                 tab.getUrl().getSpec(), getActivityTabProvider());
+                PageContentProviderMetrics.recordWebStructuredDataAttachedToAssistContent(
+                        pageContentStructuredData != null);
                 if (pageContentStructuredData != null) {
                     outContent.setStructuredData(pageContentStructuredData);
                 }
             }
+        } else {
+            PageContentProviderMetrics.recordUrlAttachedToAssistContent(false);
         }
     }
 

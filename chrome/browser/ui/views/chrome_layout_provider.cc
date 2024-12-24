@@ -90,8 +90,9 @@ int ChromeLayoutProvider::GetDistanceMetric(int metric) const {
   DCHECK_GE(metric, views::VIEWS_DISTANCE_START);
   DCHECK_LT(metric, views::VIEWS_DISTANCE_MAX);
 
-  if (metric < views::VIEWS_DISTANCE_END)
+  if (metric < views::VIEWS_DISTANCE_END) {
     return LayoutProvider::GetDistanceMetric(metric);
+  }
 
   switch (static_cast<ChromeDistanceMetric>(metric)) {
     case DISTANCE_CONTENT_LIST_VERTICAL_SINGLE:
@@ -168,6 +169,8 @@ int ChromeLayoutProvider::GetDistanceMetric(int metric) const {
       return 4;
     case DISTANCE_TASK_MANAGER_SEARCH_ICON_SIZE:
       return 20;
+    case DISTANCE_TASK_MANAGER_TAB_SPACING:
+      return 16;
     case DISTANCE_TOAST_BUBBLE_BETWEEN_CHILD_SPACING:
     case DISTANCE_TOAST_BUBBLE_BROWSER_WINDOW_MARGIN:
       return 4;
@@ -201,8 +204,9 @@ int ChromeLayoutProvider::GetDistanceMetric(int metric) const {
 int ChromeLayoutProvider::GetSnappedDialogWidth(int min_width) const {
   for (int snap_point :
        {kSmallDialogWidth, kMediumDialogWidth, kLargeDialogWidth}) {
-    if (min_width <= snap_point)
+    if (min_width <= snap_point) {
       return snap_point;
+    }
   }
 
   return ((min_width + 15) / 16) * 16;

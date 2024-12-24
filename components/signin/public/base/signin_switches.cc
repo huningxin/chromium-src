@@ -22,10 +22,6 @@ BASE_FEATURE(kSkipCheckForAccountManagementOnSignin,
              "SkipCheckForAccountManagementOnSignin",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kHideSettingsSignInPromo,
-             "HideSettingsSignInPromo",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kUseConsentLevelSigninForLegacyAccountEmailPref,
              "UseConsentLevelSigninForLegacyAccountEmailPref",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -33,6 +29,8 @@ BASE_FEATURE(kUseConsentLevelSigninForLegacyAccountEmailPref,
 BASE_FEATURE(kCctSignInPrompt,
              "CctSignInPrompt",
              base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kUnoForAuto, "UnoForAuto", base::FEATURE_DISABLED_BY_DEFAULT);
 #endif
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT)
@@ -104,15 +102,6 @@ BASE_FEATURE(kForceDisableExtendedSyncPromos,
 BASE_FEATURE(kForceStartupSigninPromo,
              "ForceStartupSigninPromo",
              base::FEATURE_DISABLED_BY_DEFAULT);
-#endif
-
-#if BUILDFLAG(IS_ANDROID)
-// Flag guarding the restoration of the signed-in only account instead of
-// the syncing one and the restoration of account settings after device
-// restore.
-BASE_FEATURE(kRestoreSignedInAccountAndSettingsFromBackup,
-             "RestoreSignedInAccountAndSettingsFromBackup",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 #endif
 
 BASE_FEATURE(kExplicitBrowserSigninUIOnDesktop,

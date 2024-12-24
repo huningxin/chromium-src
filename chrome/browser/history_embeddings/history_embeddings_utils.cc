@@ -5,13 +5,12 @@
 #include "chrome/browser/history_embeddings/history_embeddings_utils.h"
 
 #include "chrome/browser/browser_process.h"
-#include "chrome/browser/history_embeddings/history_embeddings_service_factory.h"
 #include "chrome/browser/optimization_guide/optimization_guide_keyed_service.h"
 #include "chrome/browser/optimization_guide/optimization_guide_keyed_service_factory.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/history_embeddings/history_embeddings_features.h"
-#include "components/history_embeddings/history_embeddings_service.h"
+#include "components/optimization_guide/core/model_execution/model_execution_util.h"
 #include "components/optimization_guide/core/optimization_guide_features.h"
 #include "components/strings/grit/components_strings.h"
 #include "components/variations/service/variations_service.h"
@@ -24,16 +23,42 @@
 namespace history_embeddings {
 
 namespace {
-bool IsEnabledForCountryAndLocale(const base::Feature& launch_feature) {
-  // Launch in the US via client-side code, leaving a Finch hook available just
-  // in case. Note, the variations service may be nullptr in unit tests.
-  return g_browser_process && g_browser_process->variations_service() &&
-         g_browser_process->variations_service()->GetStoredPermanentCountry() ==
-             "US" &&
-         g_browser_process->GetApplicationLocale() == "en-US" &&
-         base::FeatureList::IsEnabled(launch_feature);
+
+// Returns the country code from the variations service.
+std::string GetCountryCode(variations::VariationsService* variations_service) {
+  std::string country_code;
+  // The variations service may be nullptr in unit tests.
+  if (variations_service) {
+    country_code = variations_service->GetStoredPermanentCountry();
+    if (country_code.empty()) {
+      country_code = variations_service->GetLatestCountry();
+    }
+  }
+  return country_code;
 }
+
+bool IsCountryAndLocale(const std::string& country, const std::string& locale) {
+  return g_browser_process &&
+         g_browser_process->GetApplicationLocale() == locale &&
+         GetCountryCode(g_browser_process->variations_service()) == country;
+}
+
 }  // namespace
+
+constexpr auto kEnabledByDefaultForDesktopOnly =
+#if BUILDFLAG(IS_ANDROID)
+    base::FEATURE_DISABLED_BY_DEFAULT;
+#else
+    base::FEATURE_ENABLED_BY_DEFAULT;
+#endif
+
+// These are the kill switches for the launched history embeddings features.
+BASE_FEATURE(kLaunchedHistoryEmbeddings,
+             "LaunchedHistoryEmbeddings",
+             kEnabledByDefaultForDesktopOnly);
+BASE_FEATURE(kLaunchedHistoryEmbeddingsAnswers,
+             "LaunchedHistoryEmbeddingsAnswers",
+             kEnabledByDefaultForDesktopOnly);
 
 bool IsHistoryEmbeddingsEnabledForProfile(Profile* profile) {
   if (!IsHistoryEmbeddingsFeatureEnabled()) {
@@ -45,6 +70,27 @@ bool IsHistoryEmbeddingsEnabledForProfile(Profile* profile) {
   return optimization_guide_keyed_service &&
          optimization_guide_keyed_service
              ->ShouldFeatureBeCurrentlyEnabledForUser(
+                 optimization_guide::UserVisibleFeatureKey::kHistorySearch);
+}
+
+bool IsHistoryEmbeddingsAnswersEnabledForProfile(Profile* profile) {
+  if (!IsHistoryEmbeddingsAnswersFeatureEnabled()) {
+    return false;
+  }
+
+  if (optimization_guide::
+          GetGenAILocalFoundationalModelEnterprisePolicySettings(
+              g_browser_process->local_state()) ==
+      optimization_guide::model_execution::prefs::
+          GenAILocalFoundationalModelEnterprisePolicySettings::kDisallowed) {
+    return false;
+  }
+
+  OptimizationGuideKeyedService* optimization_guide_keyed_service =
+      OptimizationGuideKeyedServiceFactory::GetForProfile(profile);
+  return optimization_guide_keyed_service &&
+         optimization_guide_keyed_service
+             ->ShouldFeatureAllowModelExecutionForSignedInUser(
                  optimization_guide::UserVisibleFeatureKey::kHistorySearch);
 }
 
@@ -60,15 +106,22 @@ bool IsHistoryEmbeddingsSettingVisible(Profile* profile) {
              optimization_guide::UserVisibleFeatureKey::kHistorySearch);
 }
 
+bool IsHistoryEmbeddingsAnswersSettingVisible(Profile* profile) {
+  if (!IsHistoryEmbeddingsAnswersFeatureEnabled()) {
+    return false;
+  }
+
+  OptimizationGuideKeyedService* optimization_guide_keyed_service =
+      OptimizationGuideKeyedServiceFactory::GetForProfile(profile);
+  return optimization_guide_keyed_service &&
+         optimization_guide_keyed_service
+             ->ShouldModelExecutionBeAllowedForUser();
+}
+
 void PopulateSourceForWebUI(content::WebUIDataSource* source,
                             Profile* profile) {
-  auto* history_embeddings_service =
-      HistoryEmbeddingsServiceFactory::GetForProfile(profile);
-  source->AddBoolean(
-      "enableHistoryEmbeddingsAnswers",
-      history_embeddings::IsHistoryEmbeddingsAnswersFeatureEnabled() &&
-          history_embeddings_service &&
-          history_embeddings_service->IsAnswererUseAllowed());
+  source->AddBoolean("enableHistoryEmbeddingsAnswers",
+                     IsHistoryEmbeddingsAnswersEnabledForProfile(profile));
   source->AddBoolean(
       "enableHistoryEmbeddingsImages",
       history_embeddings::GetFeatureParameters().enable_images_for_results);
@@ -113,26 +166,29 @@ bool IsHistoryEmbeddingsFeatureEnabled() {
     return false;
   }
 #endif
-
-  if (IsEnabledForCountryAndLocale(kLaunchedHistoryEmbeddings)) {
-    return true;
+  // If the feature is overridden manually or via Finch, return its value.
+  if (base::FeatureList::GetStateIfOverridden(kHistoryEmbeddings).has_value()) {
+    return base::FeatureList::IsEnabled(kHistoryEmbeddings);
   }
-
-  // Gate on server-side Finch config for all other countries/locales.
-  return base::FeatureList::IsEnabled(kHistoryEmbeddings);
+  // Otherwise return true for "us" and "en-US", leaving a Finch hook just in
+  // case.
+  return IsCountryAndLocale("us", "en-US") &&
+         base::FeatureList::IsEnabled(kLaunchedHistoryEmbeddings);
 }
 
 bool IsHistoryEmbeddingsAnswersFeatureEnabled() {
   if (!IsHistoryEmbeddingsFeatureEnabled()) {
     return false;
   }
-
-  if (IsEnabledForCountryAndLocale(kLaunchedHistoryEmbeddingsAnswers)) {
-    return true;
+  // If the feature is overridden manually or via Finch, return its value.
+  if (base::FeatureList::GetStateIfOverridden(kHistoryEmbeddingsAnswers)
+          .has_value()) {
+    return base::FeatureList::IsEnabled(kHistoryEmbeddingsAnswers);
   }
-
-  // Gate on server-side Finch config for all other countries/locales.
-  return base::FeatureList::IsEnabled(kHistoryEmbeddingsAnswers);
+  // Otherwise return true for "us" and "en-US", leaving a Finch hook just in
+  // case.
+  return IsCountryAndLocale("us", "en-US") &&
+         base::FeatureList::IsEnabled(kLaunchedHistoryEmbeddingsAnswers);
 }
 
 }  // namespace history_embeddings

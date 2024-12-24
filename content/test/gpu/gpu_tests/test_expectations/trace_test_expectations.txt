@@ -9,7 +9,7 @@
 #         win win8 win10 win11 ]
 # Devices
 # tags: [ android-nexus-5x android-pixel-2 android-pixel-4
-#             android-pixel-6 android-shield-android-tv android-sm-a135m
+#             android-pixel-6 android-shield-android-tv android-sm-a137f
 #             android-sm-a235m android-sm-s911u1
 #         chromeos-board-amd64-generic chromeos-board-eve chromeos-board-jacuzzi
 #             chromeos-board-octopus chromeos-board-volteer
@@ -25,7 +25,6 @@
 #         release release-x64
 #         fuchsia-chrome
 #         web-engine-shell
-#         lacros-chrome
 #         cros-chrome ]
 # GPU
 # tags: [ amd amd-0x6613 amd-0x679e amd-0x67ef amd-0x6821 amd-0x7340
@@ -214,10 +213,10 @@ crbug.com/329138770 [ win graphite-enabled ] WebGPUCachingTraceTest_RenderPipeli
 crbug.com/329138770 [ win graphite-enabled ] WebGPUCachingTraceTest_RenderPipelineIncognito [ Failure ]
 
 # Fail or flaky on Windows and Linux. Flaky timeout on Mac.
-crbug.com/371949935 [ graphite-disabled win10 ] TraceTest_ViewTransitionsCapture [ Failure ]
+crbug.com/371949935 [ debug-x64 graphite-disabled nvidia-0x2184 nvidia_lt_535.183.01 target-cpu-64 win10 ] TraceTest_ViewTransitionsCapture [ Failure ]
+crbug.com/371949935 [ graphite-disabled intel-0x9bc5 release-x64 target-cpu-64 win10 ] TraceTest_ViewTransitionsCapture [ Failure ]
 crbug.com/371949935 [ graphite-enabled no-clang-coverage qualcomm-0x41333430 release target-cpu-64 win11 ] TraceTest_ViewTransitionsCapture [ Failure ]
 crbug.com/371949935 [ angle-opengl debug display-server-x linux no-clang-coverage nvidia-0x2184 nvidia_lt_535.183.01 renderer-skia-gl ] TraceTest_ViewTransitionsCapture [ Failure ]
-crbug.com/371949935 [ angle-opengles display-server-wayland intel-0x9bc5 linux mesa_ge_23.2 no-clang-coverage release renderer-skia-gl ] TraceTest_ViewTransitionsCapture [ Failure ]
 crbug.com/371949935 [ angle-metal apple graphite-enabled mac-arm64 no-asan no-clang-coverage release sonoma ] TraceTest_ViewTransitionsCapture [ Failure ]
 crbug.com/371949935 [ intel mac mac-x86_64 no-asan release ] TraceTest_ViewTransitionsCapture [ Failure ]
 

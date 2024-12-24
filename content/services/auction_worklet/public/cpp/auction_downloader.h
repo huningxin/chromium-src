@@ -19,6 +19,7 @@
 #include "net/url_request/redirect_info.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/url_loader_completion_status.h"
+#include "services/network/public/mojom/url_loader_completion_status.mojom-forward.h"
 #include "services/network/public/mojom/url_loader_factory.mojom-forward.h"
 #include "services/network/public/mojom/url_response_head.mojom.h"
 #include "url/gurl.h"
@@ -65,6 +66,9 @@ class CONTENT_EXPORT AuctionDownloader {
   // When a URL appears in a network error message, it's truncated to never be
   // longed than this length.
   static constexpr size_t kMaxErrorUrlLength = 10 * 1024;
+
+  // Timeout for network requests it makes.
+  static constexpr base::TimeDelta kRequestTimeout = base::Seconds(30);
 
   // This handles how network requests get logged to devtools.
   class CONTENT_EXPORT NetworkEventsDelegate {
@@ -114,6 +118,7 @@ class CONTENT_EXPORT AuctionDownloader {
       MimeType mime_type,
       std::optional<std::string> post_body,
       std::optional<std::string> content_type,
+      bool is_trusted_bidding_signals_kvv1_download,
       ResponseStartedCallback response_started_callback,
       AuctionDownloaderCallback auction_downloader_callback,
       std::unique_ptr<NetworkEventsDelegate> network_events_delegate);
@@ -122,6 +127,14 @@ class CONTENT_EXPORT AuctionDownloader {
   ~AuctionDownloader();
 
   const GURL& source_url() const { return source_url_; }
+
+  // Checks if the response is allowed for Protected Audience-related requests,
+  // based on the headers. Returns an error string and sets `status_out` on
+  // error.
+  static std::optional<std::string> CheckResponseAllowed(
+      const GURL& url,
+      const network::mojom::URLResponseHead& response_head,
+      network::URLLoaderCompletionStatus& status_out);
 
  private:
   void OnHeadersOnlyReceived(scoped_refptr<net::HttpResponseHeaders> headers);
@@ -146,6 +159,7 @@ class CONTENT_EXPORT AuctionDownloader {
 
   const GURL source_url_;
   const MimeType mime_type_;
+  const bool is_trusted_bidding_signals_kvv1_download_;
   // A UnguessableToken string to be used in devtools.
   std::string request_id_;
 

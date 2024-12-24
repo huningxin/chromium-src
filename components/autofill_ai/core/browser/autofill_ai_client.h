@@ -6,8 +6,8 @@
 #define COMPONENTS_AUTOFILL_AI_CORE_BROWSER_AUTOFILL_AI_CLIENT_H_
 
 #include "base/functional/callback_forward.h"
-#include "components/autofill/core/browser/autofill_ai_delegate.h"
-#include "components/autofill/core/browser/autofill_client.h"
+#include "components/autofill/core/browser/foundations/autofill_client.h"
+#include "components/autofill/core/browser/integrators/autofill_ai_delegate.h"
 #include "components/user_annotations/user_annotations_types.h"
 
 class GURL;
@@ -75,7 +75,7 @@ class AutofillAiClient {
   GetUserAnnotationsService() = 0;
 
   // Returns whether the feature is enabled in the prefs
-  // (`autofill::prefs::kAutofillAiEnabled`).
+  // (`autofill::prefs::kAutofillAisEnabled`).
   //
   // This is different from `IsAutofillAiSupported()`, which
   // checks if the user could enable the feature in the first case (if not, the

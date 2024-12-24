@@ -509,6 +509,16 @@ void ChromeAuthenticatorRequestDelegate::OnTransactionSuccessful(
     if (dialog_model_->in_onboarding_flow) {
       RecordOnboardingEvent(webauthn::metrics::OnboardingEvents::kSucceeded);
     }
+    switch (request_type) {
+      case device::FidoRequestType::kGetAssertion:
+        RecordGPMGetAssertionEvent(
+            webauthn::metrics::GPMGetAssertionEvents::kSuccess);
+        break;
+      case device::FidoRequestType::kMakeCredential:
+        RecordGPMMakeCredentialEvent(
+            webauthn::metrics::GPMMakeCredentialEvents::kSuccess);
+        break;
+    }
     webauthn::user_actions::RecordGpmSuccess();
   }
 }
@@ -901,6 +911,9 @@ void ChromeAuthenticatorRequestDelegate::OnRetryUserVerification(int attempts) {
 void ChromeAuthenticatorRequestDelegate::OnStartOver() {
   DCHECK(start_over_callback_);
   dialog_model_->generation++;
+  if (g_observer) {
+    g_observer->PreStartOver();
+  }
   start_over_callback_.Run();
 }
 

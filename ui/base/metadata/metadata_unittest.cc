@@ -116,8 +116,8 @@ class ClassPropertyMetaDataTestClass : public MetadataTestBaseClass {
 struct MetadataTestClassNoMetadata : public MetadataTestBaseClass {};
 
 DEFINE_UI_CLASS_PROPERTY_KEY(int, kIntKey, -1)
-DEFINE_OWNED_UI_CLASS_PROPERTY_KEY(gfx::Insets, kOwnedInsetsKey1, nullptr)
-DEFINE_OWNED_UI_CLASS_PROPERTY_KEY(gfx::Insets, kOwnedInsetsKey2, nullptr)
+DEFINE_OWNED_UI_CLASS_PROPERTY_KEY(gfx::Insets, kOwnedInsetsKey1)
+DEFINE_OWNED_UI_CLASS_PROPERTY_KEY(gfx::Insets, kOwnedInsetsKey2)
 DEFINE_UI_CLASS_PROPERTY_KEY(gfx::Insets*, kInsetsKey1, nullptr)
 DEFINE_UI_CLASS_PROPERTY_KEY(gfx::Insets*, kInsetsKey2, nullptr)
 DEFINE_UI_CLASS_PROPERTY_TYPE(gfx::Insets*)
@@ -239,7 +239,8 @@ TEST_F(MetadataTest, TestClassPropertyMetaData) {
     for (auto member = metadata->begin(); member != metadata->end(); member++) {
       std::string key = (*member)->member_name();
       if (expected_kv.count(key)) {
-        EXPECT_EQ((*member)->GetValueAsString(&test_class), expected_kv[key]);
+        EXPECT_EQ((*member)->GetValueAsString(&test_class), expected_kv[key])
+            << "Key: " << key;
         expected_kv.erase(key);
       }
     }
@@ -256,9 +257,9 @@ TEST_F(MetadataTest, TestClassPropertyMetaData) {
 
   expected_kv = {{"kIntKey", u"1"},
                  {"kOwnedInsetsKey1", u"8,8,8,8"},
-                 {"kOwnedInsetsKey2", u"(assigned)"},
+                 {"kOwnedInsetsKey2", u"&{8,8,8,8}"},
                  {"kInsetsKey1", u"8,8,8,8"},
-                 {"kInsetsKey2", u"(assigned)"}};
+                 {"kInsetsKey2", u"&{8,8,8,8}"}};
 
   verify();
 }

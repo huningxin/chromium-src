@@ -718,9 +718,11 @@ class CORE_EXPORT WebFrameWidgetImpl
   // Ask compositor to create the shared memory for smoothness ukm region.
   base::ReadOnlySharedMemoryRegion CreateSharedMemoryForSmoothnessUkm();
 
+#if BUILDFLAG(IS_ANDROID)
   // Calculate and cache the most up to date line bounding boxes in the document
   // coordinate space.
   Vector<gfx::Rect> CalculateVisibleLineBoundsOnScreen();
+#endif  // BUILDFLAG(IS_ANDROID)
 
   // Returns true if this widget corresponds to a frame which is being replaced.
   // The compositor for the widget has been detached and passed to the new
@@ -1037,6 +1039,10 @@ class CORE_EXPORT WebFrameWidgetImpl
 
   // Triggers onmove event for window.
   void EnqueueMoveEvent();
+
+  // Let latched scroller know to unpin its selected scroll-marker.
+  void NotifyLatchedScrollMarkerGroup(
+      const cc::CompositorCommitData& commit_data);
 
 #if BUILDFLAG(IS_WIN)
   // Computes a contiguous range of character bounds within proximity of

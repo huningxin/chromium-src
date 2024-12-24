@@ -20,9 +20,9 @@
 #import "base/task/thread_pool/thread_pool_instance.h"
 #import "base/test/ios/wait_util.h"
 #import "base/test/scoped_feature_list.h"
-#import "components/autofill/core/browser/browser_autofill_manager.h"
+#import "components/autofill/core/browser/foundations/browser_autofill_manager.h"
+#import "components/autofill/core/browser/foundations/test_autofill_manager_waiter.h"
 #import "components/autofill/core/browser/heuristic_source.h"
-#import "components/autofill/core/browser/test_autofill_manager_waiter.h"
 #import "components/autofill/core/common/autofill_features.h"
 #import "components/autofill/core/common/autofill_payments_features.h"
 #import "components/autofill/core/common/autofill_test_utils.h"
@@ -214,6 +214,10 @@ FormStructureBrowserTest::FormStructureBrowserTest()
           // changes default parsing behavior, so must be disabled to avoid
           // fieldtrial_testing_config interference.
           features::kAutofillEnableEmailHeuristicOnlyAddressForms,
+          // TODO(crbug.com/320965828): This feature is not supported on the iOS
+          // renderer side and disabled to avoid too many differences between
+          // the expectations.
+          features::kAutofillBetterLocalHeuristicPlaceholderSupport,
       });
 }
 

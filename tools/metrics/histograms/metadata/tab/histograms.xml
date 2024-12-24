@@ -770,7 +770,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="TabGroups.NumberOfRootIdsFixed" units="groups"
-    expires_after="2025-01-26">
+    expires_after="2025-06-26">
   <owner>ckitagawa@chromium.org</owner>
   <owner>clank-tab-dev@chromium.org</owner>
   <summary>
@@ -940,6 +940,29 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="TabGroups.Shared.GroupDeleted" enum="Boolean"
+    expires_after="2025-05-25">
+  <owner>dljames@chromium.org</owner>
+  <owner>chrome-desktop-ui-sea@google.com</owner>
+  <summary>
+    [ All platforms ] Tracks the number of times a shared tab group was deleted.
+
+    Recorded when a shared tab group is deleted.
+  </summary>
+</histogram>
+
+<histogram name="TabGroups.Shared.LastTabClosed" enum="Boolean"
+    expires_after="2025-05-25">
+  <owner>dljames@chromium.org</owner>
+  <owner>chrome-desktop-ui-sea@google.com</owner>
+  <summary>
+    [ All platforms ] Tracks the number of times the last tab was closed in a
+    shared tab group.
+
+    Recorded when the last tab is closed in a shared tab group.
+  </summary>
+</histogram>
+
 <histogram name="TabGroups.Shared.LoadFromDiskResult"
     enum="SharedTabGroupDataLoadFromDiskResult" expires_after="2025-10-10">
   <owner>rushans@google.com</owner>
@@ -969,6 +992,41 @@ chromium-metrics-reviews@google.com.
     [ Desktop ] Tracks the type of recall action a user explicitly performs on a
     shared tab group such as closing a group but not deleting it, or opening a
     group from the bookmarks bar. Recorded when a user triggers a recall action.
+  </summary>
+</histogram>
+
+<histogram name="TabGroups.Shared.TabGroupAge" units="minutes"
+    expires_after="2025-05-25">
+  <owner>dljames@chromium.org</owner>
+  <owner>chrome-desktop-ui-sea@google.com</owner>
+  <summary>
+    [ All platforms ] Tracks the age of a SavedTabGroup (since creation).
+    Recorded once per group on startup 10 seconds after TabGroupSyncService
+    initialization.
+  </summary>
+</histogram>
+
+<histogram name="TabGroups.Shared.TotalTabGroupCount" units="groups"
+    expires_after="2025-05-25">
+  <owner>dljames@chromium.org</owner>
+  <owner>chrome-desktop-ui-sea@google.com</owner>
+  <summary>
+    [ All platforms ] Tracks the number of total shared tab groups on startup
+    which includes both open and closed tab groups.
+
+    Recorded on startup 10 seconds after TabGroupSyncService initialization.
+  </summary>
+</histogram>
+
+<histogram name="TabGroups.Shared.TotalTabGroupTabCount" units="tabs"
+    expires_after="2025-05-25">
+  <owner>dljames@chromium.org</owner>
+  <owner>chrome-desktop-ui-sea@google.com</owner>
+  <summary>
+    [ All platforms ] Tracks the number of tabs in a shared tab group.
+
+    Recorded once per group on startup 10 seconds after TabGroupSyncService
+    initialization.
   </summary>
 </histogram>
 
@@ -1083,7 +1141,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="TabGroups.Sync.NumberOfGroupsDeletedOnStartup" units="groups"
-    expires_after="2025-01-19">
+    expires_after="2025-06-08">
   <owner>shaktisahu@chromium.org</owner>
   <owner>clank-tab-dev@google.com</owner>
   <summary>
@@ -1304,7 +1362,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="TabGroups.Sync.TabGroup.TabSelected.TabCreateOrigin"
-    enum="DeviceType" expires_after="2025-02-02">
+    enum="DeviceType" expires_after="2025-06-08">
   <owner>shaktisahu@chromium.org</owner>
   <owner>chrome-multiplayer-eng@google.com</owner>
   <summary>
@@ -1409,11 +1467,10 @@ chromium-metrics-reviews@google.com.
   <owner>shaktisahu@chromium.org</owner>
   <owner>clank-tab-dev@google.com</owner>
   <summary>
-    Tracks the number of total tab groups on startup which includes both open
-    and closed tab groups.
+    [ All platforms ] Tracks the number of total tab groups on startup which
+    includes both open and closed tab groups.
 
     Recorded on startup 10 seconds after TabGroupSyncService initialization.
-    Android and iOS only.
   </summary>
 </histogram>
 
@@ -1760,6 +1817,20 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Tabs.ArchiveSettings.ArchiveDuplicateTabsEnabled"
+    enum="Boolean" expires_after="2025-03-02">
+  <owner>bjfong@google.com</owner>
+  <owner>wylieb@chromium.org</owner>
+  <owner>clank-tab-dev@google.com</owner>
+  <summary>
+    Records when a user toggles the settings entry for automatically archiving
+    duplicate tabs on Android. The default state is enabled and is not recorded.
+    This histogram tracks the new state of the toggle and is emitted each time
+    it is changed. True corresponds to enabled and false corresponds to
+    disabled.
+  </summary>
+</histogram>
+
 <histogram name="Tabs.ArchiveSettings.AutoDeleteEnabled" enum="Boolean"
     expires_after="2025-03-02">
   <owner>wylieb@chromium.org</owner>
@@ -1879,54 +1950,6 @@ chromium-metrics-reviews@google.com.
     <variant name="SessionSave"
         summary="each time a session is saved to storage"/>
   </token>
-</histogram>
-
-<histogram name="Tabs.Duplicates.Count.AllProfileWindows" units="tabs"
-    expires_after="2025-06-08">
-  <owner>emshack@chromium.org</owner>
-  <owner>chrome-desktop-ui-sea@google.com</owner>
-  <summary>
-    Every 5 minutes, for each profile with at least one open window, records the
-    number of duplicate tabs across all tab strips for that profile. E.g. if
-    there are 3 tabs with the same URL, 2 are duplicates and a value of 2 will
-    be logged. If a tab in a different window has the same URL, it will count as
-    a duplicate.
-  </summary>
-</histogram>
-
-<histogram name="Tabs.Duplicates.Count.SingleWindow" units="tabs"
-    expires_after="2025-06-08">
-  <owner>emshack@chromium.org</owner>
-  <owner>chrome-desktop-ui-sea@google.com</owner>
-  <summary>
-    Every 5 minutes, records the number of duplicate tabs in each open tab
-    strip. Logs once per browser window. E.g. if in one window there are 3 tabs
-    with the same URL, and in another window there are 2 tabs with that URL, a
-    value of 2 and a value of 1 will be logged.
-  </summary>
-</histogram>
-
-<histogram name="Tabs.Duplicates.Percentage.AllProfileWindows" units="%"
-    expires_after="2025-06-08">
-  <owner>emshack@chromium.org</owner>
-  <owner>chrome-desktop-ui-sea@google.com</owner>
-  <summary>
-    Every 5 minutes, for each profile with at least one open window, records the
-    percentage of all tabs across all windows for that profile that are
-    duplicates of other tabs. If there are 3 tabs with the same URL, 2 are
-    considered duplicates.
-  </summary>
-</histogram>
-
-<histogram name="Tabs.Duplicates.Percentage.SingleWindow" units="%"
-    expires_after="2025-06-08">
-  <owner>emshack@chromium.org</owner>
-  <owner>chrome-desktop-ui-sea@google.com</owner>
-  <summary>
-    Every 5 minutes, records the percentage of all tabs in each window that are
-    duplicates of other tabs in that window. Logs once per browser window. If
-    there are 3 tabs with the same URL, 2 are considered duplicates.
-  </summary>
 </histogram>
 
 <histogram name="Tabs.DuplicatesCountAtStartup" units="tabs"
@@ -3314,7 +3337,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Tabs.TabState.SaveTime{Schema}" units="ms"
-    expires_after="2025-04-12">
+    expires_after="2025-06-15">
   <owner>nyquist@chromium.org</owner>
   <owner>dtrainor@chromium.org</owner>
   <owner>davidjm@chromium.org</owner>
@@ -3413,6 +3436,31 @@ chromium-metrics-reviews@google.com.
     The width of each open browser window, in DIPs, reported every 5 minutes.
     Desktop only.
   </summary>
+</histogram>
+
+<histogram name="Tabs.{DuplicateType}.{MetricType}.{WindowType}" units="tabs"
+    expires_after="2025-06-08">
+  <owner>emshack@chromium.org</owner>
+  <owner>chrome-desktop-ui-sea@google.com</owner>
+  <summary>
+    Every 5 minutes, records the {MetricType} of duplicate tabs in {WindowType}.
+    If there are 3 tabs with matching URLs, 2 count as duplicates. URL match is
+    determined by {DuplicateType}. Desktop only.
+  </summary>
+  <token key="DuplicateType">
+    <variant name="Duplicates" summary="exact string comparison"/>
+    <variant name="DuplicatesExcludingFragments"
+        summary="string comparison after excluding fragments"/>
+  </token>
+  <token key="WindowType">
+    <variant name="AllProfileWindows"
+        summary="each open profile, across all windows for that profile."/>
+    <variant name="SingleWindow" summary="each browser window"/>
+  </token>
+  <token key="MetricType">
+    <variant name="Count" summary="count"/>
+    <variant name="Percentage" summary="percentage"/>
+  </token>
 </histogram>
 
 <histogram name="Tabs.{TabActiveState}TabWidth" units="px"

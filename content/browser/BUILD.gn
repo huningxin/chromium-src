@@ -4,8 +4,6 @@
 
 import("//base/allocator/partition_allocator/partition_alloc.gni")
 import("//build/buildflag_header.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/chromeos/ui_mode.gni")
 import("//build/config/compiler/pgo/pgo.gni")
 import("//build/config/features.gni")
 import("//build/config/linux/pangocairo/pangocairo.gni")
@@ -88,7 +86,6 @@ source_set("browser") {
     "//build:android_buildflags",
     "//build:branding_buildflags",
     "//build:chromecast_buildflags",
-    "//build:chromeos_buildflags",
     "//build/config/compiler:compiler_buildflags",
     "//cc",
     "//cc/animation",
@@ -262,6 +259,7 @@ source_set("browser") {
     "//services/webnn/public/mojom",
     "//skia",
     "//skia/public/mojom",
+    "//sql",
     "//storage/browser",
     "//storage/browser/quota:mojo_bindings",
     "//storage/common",
@@ -327,6 +325,7 @@ source_set("browser") {
     "//ui/strings:auto_image_annotation_strings",
     "//ui/strings:ax_strings",
     "//ui/touch_selection",
+    "//ui/webui/resources",
     "//v8:v8_version",
   ]
 
@@ -427,8 +426,6 @@ source_set("browser") {
     "aggregation_service/aggregatable_report_sender.h",
     "aggregation_service/aggregation_service.cc",
     "aggregation_service/aggregation_service.h",
-    "aggregation_service/aggregation_service_features.cc",
-    "aggregation_service/aggregation_service_features.h",
     "aggregation_service/aggregation_service_impl.cc",
     "aggregation_service/aggregation_service_impl.h",
     "aggregation_service/aggregation_service_key_fetcher.cc",
@@ -796,8 +793,8 @@ source_set("browser") {
     "cookie_deprecation_label/cookie_deprecation_label_manager_impl.h",
     "cookie_insight_list/cookie_insight_list.cc",
     "cookie_insight_list/cookie_insight_list.h",
-    "cookie_insight_list/cookie_insight_list_handler.cc",
-    "cookie_insight_list/cookie_insight_list_handler.h",
+    "cookie_insight_list/cookie_insight_list_handler_impl.cc",
+    "cookie_insight_list/cookie_insight_list_handler_impl.h",
     "cookie_insight_list/cookie_readiness_list/cookie_readiness_list_parser.cc",
     "cookie_insight_list/cookie_readiness_list/cookie_readiness_list_parser.h",
     "cookie_store/cookie_change_subscription.cc",
@@ -1027,6 +1024,7 @@ source_set("browser") {
     "file_system_access/file_path_watcher/file_path_watcher.h",
     "file_system_access/file_path_watcher/file_path_watcher_histogram.cc",
     "file_system_access/file_path_watcher/file_path_watcher_histogram.h",
+    "file_system_access/file_path_watcher/file_path_watcher_stub.cc",
     "file_system_access/file_system_access_access_handle_host_impl.cc",
     "file_system_access/file_system_access_access_handle_host_impl.h",
     "file_system_access/file_system_access_bucket_path_watcher.cc",
@@ -2479,6 +2477,9 @@ source_set("browser") {
   }
 
   if (is_linux || is_chromeos) {
+    sources -=
+        [ "file_system_access/file_path_watcher/file_path_watcher_stub.cc" ]
+
     sources += [
       "child_process_launcher_helper_linux.cc",
       "child_thread_type_switcher_linux.cc",
@@ -2553,7 +2554,7 @@ source_set("browser") {
   }
 
   # ChromeOS also defines linux but their memory-monitors conflict.
-  if (is_chromeos_ash) {
+  if (is_chromeos) {
     sources += [
       "gpu/chromeos/delegate_to_browser_gpu_service_accelerator_factory.cc",
       "gpu/chromeos/video_capture_dependencies.cc",
@@ -2600,8 +2601,6 @@ source_set("browser") {
       "accessibility/accessibility_tree_formatter_fuchsia.cc",
       "accessibility/accessibility_tree_formatter_fuchsia.h",
       "child_process_launcher_helper_fuchsia.cc",
-      "file_system_access/file_path_watcher/file_path_watcher_stub.cc",  # See
-                                                                         # crbug.com/42050618
       "font_access/font_enumeration_data_source_fuchsia.cc",
       "font_access/font_enumeration_data_source_fuchsia.h",
       "memory/swap_metrics_driver_impl_fuchsia.cc",
@@ -2651,6 +2650,9 @@ source_set("browser") {
   }
 
   if (is_mac) {
+    sources -=
+        [ "file_system_access/file_path_watcher/file_path_watcher_stub.cc" ]
+
     sources += [
       "../app_shim_remote_cocoa/ns_view_bridge_factory_impl.mm",
       "../app_shim_remote_cocoa/popup_window_mac.h",
@@ -2858,7 +2860,7 @@ source_set("browser") {
       frameworks += [ "CoreMedia.framework" ]
       weak_frameworks = [ "ScreenCaptureKit.framework" ]  # macOS 12.3
     }
-    if (is_chromeos_ash) {
+    if (is_chromeos) {
       sources += [
         "media/capture/desktop_capturer_ash.cc",
         "media/capture/desktop_capturer_ash.h",
@@ -2868,21 +2870,10 @@ source_set("browser") {
     }
   }
 
-  if (is_chromeos_lacros) {
-    sources += [
-      "accessibility/browser_accessibility_state_impl_lacros.cc",
-      "accessibility/browser_accessibility_state_impl_lacros.h",
-      "screenlock_monitor/screenlock_monitor_device_source_lacros.cc",
-    ]
-    deps += [
-      "//chromeos/crosapi/mojom",
-      "//chromeos/lacros",
-      "//chromeos/startup",
-      "//chromeos/startup:constants",
-    ]
-  }
-
   if (is_win) {
+    sources -=
+        [ "file_system_access/file_path_watcher/file_path_watcher_stub.cc" ]
+
     sources += [
       "accessibility/browser_accessibility_state_impl_win.cc",
       "child_process_launcher_helper_win.cc",
@@ -3480,7 +3471,7 @@ source_set("browser") {
       "renderer_host/render_widget_host_view_event_handler.h",
     ]
 
-    if (is_linux || is_chromeos_lacros) {
+    if (is_linux) {
       deps += [ "//ui/base/ime/linux" ]
     }
   } else {  # Not aura.

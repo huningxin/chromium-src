@@ -14,6 +14,7 @@
 #include "base/nix/xdg_util.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
+#include "chrome/browser/extensions/global_shortcut_listener.h"
 #include "components/dbus/properties/types.h"
 #include "components/dbus/thread_linux/dbus_thread_linux.h"
 #include "components/dbus/utils/check_for_service_and_start.h"
@@ -23,6 +24,7 @@
 #include "dbus/message.h"
 #include "dbus/object_path.h"
 #include "ui/base/accelerators/accelerator.h"
+#include "ui/base/accelerators/command.h"
 #include "ui/base/linux/xdg_shortcut.h"
 
 namespace extensions {
@@ -32,7 +34,7 @@ using DbusShortcuts = DbusArray<DbusShortcut>;
 
 GlobalShortcutListenerLinux::GlobalShortcutListenerLinux(
     scoped_refptr<dbus::Bus> bus)
-    : bus_(std::move(bus)) {
+    : GlobalShortcutListener(nullptr), bus_(std::move(bus)) {
   if (!bus_) {
     dbus::Bus::Options options;
     options.bus_type = dbus::Bus::SESSION;
@@ -118,21 +120,6 @@ void GlobalShortcutListenerLinux::CreateSession(SessionMapPair& pair) {
                      weak_ptr_factory_.GetWeakPtr(), session_key));
 }
 
-void GlobalShortcutListenerLinux::StartListening() {}
-
-void GlobalShortcutListenerLinux::StopListening() {}
-
-bool GlobalShortcutListenerLinux::RegisterAcceleratorImpl(
-    const ui::Accelerator& accelerator) {
-  // Shortcut registration is now handled in OnCommandsChanged()
-  return false;
-}
-
-void GlobalShortcutListenerLinux::UnregisterAcceleratorImpl(
-    const ui::Accelerator& accelerator) {
-  // Shortcut unregistration is now handled per extension
-}
-
 void GlobalShortcutListenerLinux::UnregisterAccelerators(Observer* observer) {
   std::vector<SessionKey> remove;
   for (const auto& [key, context] : session_map_) {
@@ -150,16 +137,16 @@ bool GlobalShortcutListenerLinux::IsRegistrationHandledExternally() const {
 }
 
 void GlobalShortcutListenerLinux::OnCommandsChanged(
-    const ExtensionId& extension_id,
+    const std::string& accelerator_group_id,
     const std::string& profile_id,
-    const CommandMap& commands,
+    const ui::CommandMap& commands,
     Observer* observer) {
   // If starting the service failed, there's no need to add the command list.
   if (!service_started_.value_or(true)) {
     return;
   }
 
-  SessionKey session_key = {extension_id, profile_id};
+  SessionKey session_key = {accelerator_group_id, profile_id};
   auto it = session_map_.find(session_key);
   if (it != session_map_.end()) {
     auto& session_context = *it->second;
@@ -338,8 +325,8 @@ void GlobalShortcutListenerLinux::OnActivatedSignal(dbus::Signal* signal) {
   // Find the corresponding accelerator
   for (const auto& [session_key, session_context] : session_map_) {
     if (session_context->session_proxy->object_path() == session_handle) {
-      session_context->observer->ExecuteCommand(session_key.extension_id,
-                                                shortcut_id);
+      session_context->observer->ExecuteCommand(
+          session_key.accelerator_group_id, shortcut_id);
       break;
     }
   }
@@ -357,13 +344,14 @@ void GlobalShortcutListenerLinux::OnSignalConnected(
 
 std::string GlobalShortcutListenerLinux::SessionKey::GetTokenKey() const {
   return kSessionTokenPrefix +
-         base::HexEncode(crypto::SHA256HashString(extension_id + profile_id))
+         base::HexEncode(
+             crypto::SHA256HashString(accelerator_group_id + profile_id))
              .substr(0, 32);
 }
 
 GlobalShortcutListenerLinux::SessionContext::SessionContext(
     Observer* observer,
-    const CommandMap& commands)
+    const ui::CommandMap& commands)
     : observer(observer), commands(commands) {}
 
 GlobalShortcutListenerLinux::SessionContext::~SessionContext() {

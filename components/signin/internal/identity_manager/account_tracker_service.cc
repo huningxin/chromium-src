@@ -20,7 +20,6 @@
 #include "base/memory/ptr_util.h"
 #include "base/memory/ref_counted_memory.h"
 #include "base/metrics/histogram_functions.h"
-#include "base/metrics/histogram_functions_internal_overloads.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/notreached.h"
 #include "base/ranges/algorithm.h"
@@ -506,8 +505,9 @@ void AccountTrackerService::MigrateToGaiaId() {
 
 bool AccountTrackerService::AreAllAccountsMigrated() const {
   for (const auto& pair : accounts_) {
-    if (pair.first.ToString() != pair.second.gaia)
+    if (pair.first.ToString() != pair.second.gaia.ToString()) {
       return false;
+    }
   }
 
   return true;
@@ -531,7 +531,8 @@ AccountTrackerService::ComputeNewMigrationState() const {
 
     // Migration is required if at least one account is not keyed to its
     // gaia id.
-    migration_required |= (pair.first.ToString() != pair.second.gaia);
+    migration_required |=
+        (pair.first.ToString() != pair.second.gaia.ToString());
   }
 
   return migration_required ? MIGRATION_IN_PROGRESS : MIGRATION_DONE;

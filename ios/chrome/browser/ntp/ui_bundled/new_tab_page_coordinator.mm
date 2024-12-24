@@ -722,10 +722,15 @@
   if ([self shouldFeedBeVisible]) {
     if ([self isFollowingFeedAvailable] &&
         self.selectedFeed == FeedTypeFollowing) {
-      self.feedViewController = [self.componentFactory
-              followingFeedForBrowser:self.browser
-          viewControllerConfiguration:[self feedViewControllerConfiguration]
-                             sortType:self.followingFeedSortType];
+      if (IsNewFollowingFeedEntryPointsEnabled()) {
+        // TODO(crbug.com/359325090): Configure the following feed in an overlay
+        // view.
+      } else {
+        self.feedViewController = [self.componentFactory
+                followingFeedForBrowser:self.browser
+            viewControllerConfiguration:[self feedViewControllerConfiguration]
+                               sortType:self.followingFeedSortType];
+      }
     } else {
       self.feedViewController = [self.componentFactory
                discoverFeedForBrowser:self.browser
@@ -1260,7 +1265,8 @@
   id<FakeboxFocuser> fakeboxFocuserHandler =
       HandlerForProtocol(self.browser->GetCommandDispatcher(), FakeboxFocuser);
   [fakeboxFocuserHandler focusOmniboxFromFakebox:_fakeboxTapped
-                                          pinned:[self isFakeboxPinned]];
+                                          pinned:[self isFakeboxPinned]
+                  fakeboxButtonsSnapshotProvider:self.headerViewController];
 }
 
 - (void)refreshNTPContent {
@@ -1739,6 +1745,7 @@
   viewControllerConfig.previewDelegate = self;
   viewControllerConfig.manageDelegate = self;
   viewControllerConfig.signInPromoDelegate = self;
+  viewControllerConfig.controlDelegate = self;
 
   return viewControllerConfig;
 }

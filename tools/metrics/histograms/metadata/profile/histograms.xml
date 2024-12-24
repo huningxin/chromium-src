@@ -288,18 +288,6 @@ chromium-metrics-reviews@google.com.
   </token>
 </histogram>
 
-<histogram name="Profile.LacrosFre.WelcomeHasGivenName" enum="Boolean"
-    expires_after="2024-12-15">
-  <owner>dgn@chromium.org</owner>
-  <owner>chrome-signin-team@google.com</owner>
-  <summary>
-    Tracks how often we have to render Lacros FRE whose welcome pages don't have
-    a given name to display. We expect that it's very rare, if we have a
-    non-trivial number of these without a given name, we will have to redesign
-    the experience to nicely accomodate for it.
-  </summary>
-</histogram>
-
 <histogram name="Profile.LiveProfileCount" units="profiles"
     expires_after="2025-12-30">
   <owner>nicolaso@chromium.org</owner>
@@ -705,20 +693,6 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records the user's choice for the prompt asking if they want to set Chrome
     to be their default browser, in the first run experience.
-  </summary>
-</histogram>
-
-<histogram name="ProfilePicker.FirstRun.EntryPoint" enum="FirstRunEntryPoint"
-    expires_after="2025-04-13">
-  <owner>dgn@chromium.org</owner>
-  <owner>for-you-fre@google.com</owner>
-  <summary>
-    Records the entry point that triggered the first run experience. This is
-    recorded right before the first run is shown. If the FRE is skipped, this is
-    never recorded. If the FRE is exited early and needs to be shown again
-    (relevant only on Lacros where we support showing the FRE more than once),
-    or if the user re-triggers the FRE while it is already shown, there would be
-    more than one record for that install.
   </summary>
 </histogram>
 

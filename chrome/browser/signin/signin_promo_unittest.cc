@@ -12,8 +12,8 @@
 #include "chrome/browser/signin/identity_test_environment_profile_adaptor.h"
 #include "chrome/browser/signin/signin_promo_util.h"
 #include "chrome/common/webui_url_constants.h"
+#include "components/autofill/core/browser/data_manager/personal_data_manager.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
-#include "components/autofill/core/browser/personal_data_manager.h"
 #include "components/autofill/core/browser/test_utils/test_profiles.h"
 #include "components/signin/public/base/consent_level.h"
 #include "components/signin/public/base/signin_metrics.h"
@@ -22,6 +22,7 @@
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/signin/public/identity_manager/identity_test_utils.h"
 #include "components/sync/base/command_line_switches.h"
+#include "components/sync/base/pref_names.h"
 #include "content/public/test/browser_task_environment.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "url/gurl.h"
@@ -232,8 +233,23 @@ TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
 }
 
 TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
+       DoNotShowPromoWithLocalSyncEnabled) {
+  ASSERT_TRUE(ShouldShowPasswordSignInPromo(*profile()));
+  profile()->GetPrefs()->SetBoolean(syncer::prefs::kEnableLocalSyncBackend,
+                                    true);
+  EXPECT_FALSE(ShouldShowPasswordSignInPromo(*profile()));
+}
+
+TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
+       DoNotShowPromoWithoutSyncAllowed) {
+  ASSERT_TRUE(ShouldShowPasswordSignInPromo(*profile()));
+  base::CommandLine::ForCurrentProcess()->AppendSwitch(syncer::kDisableSync);
+  EXPECT_FALSE(ShouldShowPasswordSignInPromo(*profile()));
+}
+
+TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
        DoNotShowPasswordPromoAfterFiveTimesShown) {
-  EXPECT_TRUE(ShouldShowPasswordSignInPromo(*profile()));
+  ASSERT_TRUE(ShouldShowPasswordSignInPromo(*profile()));
 
   profile()->GetPrefs()->SetInteger(
       prefs::kPasswordSignInPromoShownCountPerProfile, 5);
@@ -244,7 +260,7 @@ TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
 
 TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
        DoNotShowAddressPromoAfterFiveTimesShown) {
-  EXPECT_TRUE(ShouldShowAddressSignInPromo(*profile(), CreateAddress()));
+  ASSERT_TRUE(ShouldShowAddressSignInPromo(*profile(), CreateAddress()));
 
   profile()->GetPrefs()->SetInteger(
       prefs::kAddressSignInPromoShownCountPerProfile, 5);
@@ -255,7 +271,7 @@ TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
 
 TEST_F(ShowSigninPromoTestExplicitBrowserSignin,
        DoNotShowPromoAfterTwoTimesDismissed) {
-  EXPECT_TRUE(ShouldShowAddressSignInPromo(*profile(), CreateAddress()));
+  ASSERT_TRUE(ShouldShowAddressSignInPromo(*profile(), CreateAddress()));
 
   profile()->GetPrefs()->SetInteger(
       prefs::kAutofillSignInPromoDismissCountPerProfile, 2);

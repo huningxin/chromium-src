@@ -27,16 +27,16 @@
 #include "components/autofill/content/browser/test_autofill_driver_injector.h"
 #include "components/autofill/content/browser/test_autofill_manager_injector.h"
 #include "components/autofill/content/browser/test_content_autofill_driver.h"
-#include "components/autofill/core/browser/autofill_test_utils.h"
+#include "components/autofill/core/browser/data_manager/test_personal_data_manager.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/autofill_profile_test_api.h"
-#include "components/autofill/core/browser/password_form_classification.h"
+#include "components/autofill/core/browser/foundations/test_autofill_manager_waiter.h"
+#include "components/autofill/core/browser/foundations/test_browser_autofill_manager.h"
+#include "components/autofill/core/browser/integrators/mock_fast_checkout_client.h"
+#include "components/autofill/core/browser/integrators/password_form_classification.h"
 #include "components/autofill/core/browser/payments/payments_autofill_client.h"
-#include "components/autofill/core/browser/test_autofill_manager_waiter.h"
-#include "components/autofill/core/browser/test_browser_autofill_manager.h"
-#include "components/autofill/core/browser/test_personal_data_manager.h"
+#include "components/autofill/core/browser/test_utils/autofill_test_utils.h"
 #include "components/autofill/core/browser/ui/mock_autofill_suggestion_delegate.h"
-#include "components/autofill/core/browser/ui/mock_fast_checkout_client.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
 #include "components/autofill/core/common/autofill_test_utils.h"
 #include "components/autofill/core/common/form_field_data.h"
@@ -444,7 +444,7 @@ TEST_F(ChromeAutofillClientTest, AutofillFieldIPH_NotShownByPromoController) {
       .WillRepeatedly(Return(false));
 
   EXPECT_FALSE(client()->ShowAutofillFieldIphForFeature(
-      FormFieldData{}, AutofillClient::IphFeature::kPredictionImprovements));
+      FormFieldData{}, AutofillClient::IphFeature::kAutofillAi));
 }
 
 TEST_F(ChromeAutofillClientTest, AutofillFieldIPH_IsShown) {
@@ -459,7 +459,7 @@ TEST_F(ChromeAutofillClientTest, AutofillFieldIPH_IsShown) {
       .WillOnce(Return(true));
 
   EXPECT_TRUE(client()->ShowAutofillFieldIphForFeature(
-      FormFieldData{}, AutofillClient::IphFeature::kPredictionImprovements));
+      FormFieldData{}, AutofillClient::IphFeature::kAutofillAi));
 }
 
 TEST_F(ChromeAutofillClientTest, AutofillImprovedPredictionsIPH_IsShown) {
@@ -474,7 +474,7 @@ TEST_F(ChromeAutofillClientTest, AutofillImprovedPredictionsIPH_IsShown) {
       .WillOnce(Return(true));
 
   EXPECT_TRUE(client()->ShowAutofillFieldIphForFeature(
-      FormFieldData{}, AutofillClient::IphFeature::kPredictionImprovements));
+      FormFieldData{}, AutofillClient::IphFeature::kAutofillAi));
 }
 
 TEST_F(ChromeAutofillClientTest,
@@ -529,8 +529,7 @@ TEST_F(ChromeAutofillClientTestWithWindow, AutofillFieldIPH_NotifyFeatureUsed) {
       EndPromo(
           Ref(feature_engagement::kIPHAutofillPredictionImprovementsFeature),
           user_education::EndFeaturePromoReason::kFeatureEngaged));
-  client()->NotifyIphFeatureUsed(
-      AutofillClient::IphFeature::kPredictionImprovements);
+  client()->NotifyIphFeatureUsed(AutofillClient::IphFeature::kAutofillAi);
 }
 #endif
 }  // namespace

@@ -525,10 +525,7 @@ void ProfileNetworkContextService::RegisterProfilePrefs(
   registry->RegisterBooleanPref(prefs::kCAPlatformIntegrationEnabled, true);
 #endif
 #if BUILDFLAG(IS_CHROMEOS)
-  registry->RegisterIntegerPref(
-      prefs::kNSSCertsMigratedToServerCertDb,
-      static_cast<int>(net::ServerCertificateDatabaseService::
-                           NSSMigrationResultPref::kNotMigrated));
+  net::ServerCertificateDatabaseService::RegisterProfilePrefs(registry);
 #endif
 }
 
@@ -1075,15 +1072,6 @@ void ProfileNetworkContextService::FlushCachedClientCertIfNeeded(
       [&](content::StoragePartition* storage_partition) {
         storage_partition->GetNetworkContext()->FlushCachedClientCertIfNeeded(
             host, certificate);
-      });
-}
-
-void ProfileNetworkContextService::FlushMatchingCachedClientCert(
-    const scoped_refptr<net::X509Certificate>& certificate) {
-  profile_->ForEachLoadedStoragePartition(
-      [&](content::StoragePartition* storage_partition) {
-        storage_partition->GetNetworkContext()->FlushMatchingCachedClientCert(
-            certificate);
       });
 }
 

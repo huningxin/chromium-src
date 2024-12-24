@@ -18,7 +18,13 @@ class Browser;
 class ProfileIOS;
 @protocol SystemIdentity;
 
-using OnProfileSwitchCompletion = base::OnceCallback<void(bool success)>;
+// Callback called the profile switching succeded (`success` is true) or failed
+// (`success` is false).
+// If `success is true:
+// `browser` and `view_controller` are the browser and the view controller of
+// the new profile.
+using OnProfileSwitchCompletion = base::OnceCallback<
+    void(bool success, Browser* browser, UIViewController* view_controller)>;
 
 // Performs the sign-in steps and user interactions as part of the sign-in flow.
 @interface AuthenticationFlowPerformer : NSObject
@@ -51,6 +57,9 @@ using OnProfileSwitchCompletion = base::OnceCallback<void(bool success)>;
 - (void)switchToProfileWithIdentity:(id<SystemIdentity>)identity
                     sceneIdentifier:(NSString*)sceneIdentifier
                          completion:(OnProfileSwitchCompletion)completion;
+
+// Converts the personal profile to a managed one and attaches `identity` to it.
+- (void)makePersonalProfileManagedWithIdentity:(id<SystemIdentity>)identity;
 
 // Signs out of `profile` and sends `didSignOut` to the delegate when
 // complete.

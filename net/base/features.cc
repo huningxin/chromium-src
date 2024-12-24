@@ -158,10 +158,6 @@ BASE_FEATURE(kPostQuantumKyber,
 
 BASE_FEATURE(kUseMLKEM, "UseMLKEM", base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kNetUnusedIdleSocketTimeout,
-             "NetUnusedIdleSocketTimeout",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 BASE_FEATURE(kShortLaxAllowUnsafeThreshold,
              "ShortLaxAllowUnsafeThreshold",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -225,6 +221,10 @@ extern const base::FeatureParam<base::TimeDelta>
 BASE_FEATURE(kAncestorChainBitEnabledInPartitionedCookies,
              "AncestorChainBitEnabledInPartitionedCookies",
              base::FEATURE_ENABLED_BY_DEFAULT);
+
+BASE_FEATURE(kRequestStorageAccessNoCorsRequired,
+             "RequestStorageAccessNoCorsRequired",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kStaticKeyPinningEnforcement,
              "StaticKeyPinningEnforcement",
@@ -657,5 +657,9 @@ BASE_FEATURE(kNewClientCertPathBuilding,
              "NewClientCertPathBuilding",
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif  // BUILDFLAG(USE_NSS_CERTS)
+
+BASE_FEATURE(kHstsTopLevelNavigationsOnly,
+             "HstsTopLevelNavigationsOnly",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 }  // namespace net::features

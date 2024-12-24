@@ -67,10 +67,11 @@ void DivergePixels(const gfx::Rect& rect,
     base::span<uint8_t> p_l = p_ul.subspan(static_cast<size_t>(y * stride));
     for (int x = left; x < right; ++x) {
       int intensity = p_l[x];
-      if (intensity >= kDivergeDownThreshold)
+      if (intensity >= kDivergeDownThreshold) {
         intensity = std::max(kMinIntensity, intensity - kDivergeDownAmount);
-      else
+      } else {
         intensity += kDivergeUpAmount;
+      }
       p_l[x] = static_cast<uint8_t>(intensity);
     }
   }
@@ -84,14 +85,18 @@ void RenderLineOfText(const std::string& line, int top, VideoFrame* frame) {
   // including padding.
   const int line_width =
       (((kCharacterWidth + kCharacterSpacing) * static_cast<int>(line.size())) +
-           kCharacterSpacing) * kScale;
+       kCharacterSpacing) *
+      kScale;
 
   // Determine if any characters would render past the left edge of the frame,
   // and compute the index of the first character to be rendered.
   const int pixels_per_char = (kCharacterWidth + kCharacterSpacing) * kScale;
-  const size_t first_idx = (line_width < frame->visible_rect().width()) ? 0u :
-      static_cast<size_t>(
-          ((line_width - frame->visible_rect().width()) / pixels_per_char) + 1);
+  const size_t first_idx =
+      (line_width < frame->visible_rect().width())
+          ? 0u
+          : static_cast<size_t>(((line_width - frame->visible_rect().width()) /
+                                 pixels_per_char) +
+                                1);
 
   // Compute the pointer to the pixel at the upper-left corner of the first
   // character to be rendered.
@@ -271,9 +276,9 @@ scoped_refptr<VideoFrame> RenderPerformanceMetricsOverlay(
     base::span<uint8_t> dst = frame->GetWritableVisiblePlaneData(plane);
     const size_t dst_stride = frame->stride(plane);
     for (size_t row = 0; row < row_count; ++row) {
-      dst.copy_prefix_from(src.first(bytes_per_row));
-      src = src.subspan(src_stride);
-      dst = dst.subspan(dst_stride);
+      auto dst_row = dst.take_first(dst_stride);
+      auto src_row = src.take_first(src_stride);
+      dst_row.copy_prefix_from(src_row.first(bytes_per_row));
     }
   }
   frame->metadata().MergeMetadataFrom(source->metadata());

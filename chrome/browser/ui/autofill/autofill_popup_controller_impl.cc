@@ -28,14 +28,15 @@
 #include "chrome/browser/ui/autofill/autofill_suggestion_controller_utils.h"
 #include "chrome/browser/ui/autofill/next_idle_barrier.h"
 #include "chrome/browser/ui/autofill/popup_controller_common.h"
-#include "components/autofill/core/browser/autofill_manager.h"
-#include "components/autofill/core/browser/filling_product.h"
+#include "components/autofill/core/browser/filling/filling_product.h"
+#include "components/autofill/core/browser/foundations/autofill_manager.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
+#include "components/autofill/core/browser/metrics/autofill_metrics_utils.h"
+#include "components/autofill/core/browser/suggestions/suggestion.h"
+#include "components/autofill/core/browser/suggestions/suggestion_hiding_reason.h"
+#include "components/autofill/core/browser/suggestions/suggestion_type.h"
 #include "components/autofill/core/browser/ui/autofill_suggestion_delegate.h"
 #include "components/autofill/core/browser/ui/popup_interaction.h"
-#include "components/autofill/core/browser/ui/suggestion.h"
-#include "components/autofill/core/browser/ui/suggestion_hiding_reason.h"
-#include "components/autofill/core/browser/ui/suggestion_type.h"
 #include "components/autofill/core/common/aliases.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/compose/core/browser/compose_features.h"
@@ -100,39 +101,6 @@ SuggestionFiltrationResult FilterSuggestions(
   }
 
   return result;
-}
-
-// Returns whether the controller should log the popup interaction shown metric.
-// Some popups can be displayed without a direct user action (i.e. typing into a
-// field or unfocusing a text are with a previous compose suggestion). We do not
-// want to log popup shown interaction logs for them since they defeat the
-// purpose of the metric.
-bool ShouldLogPopupInteractionShown(
-    AutofillSuggestionTriggerSource trigger_source) {
-  switch (trigger_source) {
-    case AutofillSuggestionTriggerSource::kUnspecified:
-    case AutofillSuggestionTriggerSource::kFormControlElementClicked:
-    case AutofillSuggestionTriggerSource::kTextareaFocusedWithoutClick:
-    case AutofillSuggestionTriggerSource::kContentEditableClicked:
-    case AutofillSuggestionTriggerSource::kTextFieldDidReceiveKeyDown:
-    case AutofillSuggestionTriggerSource::kOpenTextDataListChooser:
-    case AutofillSuggestionTriggerSource::kComposeDialogLostFocus:
-    case AutofillSuggestionTriggerSource::kShowCardsFromAccount:
-    case AutofillSuggestionTriggerSource::kPasswordManager:
-    case AutofillSuggestionTriggerSource::kiOS:
-    case AutofillSuggestionTriggerSource::
-        kShowPromptAfterDialogClosedNonManualFallback:
-    case AutofillSuggestionTriggerSource::kPasswordManagerProcessedFocusedField:
-    case AutofillSuggestionTriggerSource::kManualFallbackPayments:
-    case AutofillSuggestionTriggerSource::kManualFallbackPasswords:
-    case AutofillSuggestionTriggerSource::kManualFallbackPlusAddresses:
-      return true;
-    case AutofillSuggestionTriggerSource::kTextFieldDidChange:
-    case AutofillSuggestionTriggerSource::kComposeDelayedProactiveNudge:
-    case AutofillSuggestionTriggerSource::kAutofillAi:
-    case AutofillSuggestionTriggerSource::kPlusAddressUpdatedInBrowserProcess:
-      return false;
-  }
 }
 
 }  // namespace
@@ -304,7 +272,7 @@ void AutofillPopupControllerImpl::Show(
     delegate_->OnSuggestionsShown(non_filtered_suggestions_);
   }
 
-  if (ShouldLogPopupInteractionShown(trigger_source_)) {
+  if (autofill_metrics::ShouldLogAutofillSuggestionShown(trigger_source_)) {
     AutofillMetrics::LogPopupInteraction(suggestions_filling_product_,
                                          GetPopupLevel(),
                                          PopupInteraction::kPopupShown);
@@ -541,7 +509,6 @@ bool AutofillPopupControllerImpl::RemoveSuggestion(
       }
       break;
     case FillingProduct::kCreditCard:
-    case FillingProduct::kStandaloneCvc:
       // TODO(crbug.com/41482065): Add metrics for credit cards.
       break;
     case FillingProduct::kNone:
@@ -630,14 +597,16 @@ void AutofillPopupControllerImpl::HideViewAndDie() {
     view_ = nullptr;
   }
 
-  if (self_deletion_weak_ptr_factory_.HasWeakPtrs())
+  if (self_deletion_weak_ptr_factory_.HasWeakPtrs()) {
     return;
+  }
 
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE, base::BindOnce(
                      [](base::WeakPtr<AutofillPopupControllerImpl> weak_this) {
-                       if (weak_this)
+                       if (weak_this) {
                          delete weak_this.get();
+                       }
                      },
                      self_deletion_weak_ptr_factory_.GetWeakPtr()));
 }
@@ -653,8 +622,9 @@ int AutofillPopupControllerImpl::GetPopupLevel() const {
 }
 
 void AutofillPopupControllerImpl::FireControlsChangedEvent(bool is_show) {
-  if (!accessibility_state_utils::IsScreenReaderEnabled())
+  if (!accessibility_state_utils::IsScreenReaderEnabled()) {
     return;
+  }
 
   // Retrieve the ax tree id associated with the current web contents.
   ui::AXTreeID tree_id;
@@ -666,13 +636,15 @@ void AutofillPopupControllerImpl::FireControlsChangedEvent(bool is_show) {
   // the AXPlatformNode for the web contents.
   ui::AXPlatformNode* root_platform_node =
       GetRootAXPlatformNodeForWebContents();
-  if (!root_platform_node)
+  if (!root_platform_node) {
     return;
+  }
 
   ui::AXPlatformNodeDelegate* root_platform_node_delegate =
       root_platform_node->GetDelegate();
-  if (!root_platform_node_delegate)
+  if (!root_platform_node_delegate) {
     return;
+  }
 
   // Now get the target node from its tree ID and node ID.
   ui::AXPlatformNode* target_node =
@@ -705,14 +677,16 @@ AutofillPopupControllerImpl::GetRootAXPlatformNodeForWebContents() {
   }
 
   auto* rwhv = web_contents_->GetRenderWidgetHostView();
-  if (!rwhv)
+  if (!rwhv) {
     return nullptr;
+  }
 
   // RWHV gives us a NativeViewAccessible.
   gfx::NativeViewAccessible native_view_accessible =
       rwhv->GetNativeViewAccessible();
-  if (!native_view_accessible)
+  if (!native_view_accessible) {
     return nullptr;
+  }
 
   // NativeViewAccessible corresponds to an AXPlatformNode.
   return ui::AXPlatformNode::FromNativeViewAccessible(native_view_accessible);

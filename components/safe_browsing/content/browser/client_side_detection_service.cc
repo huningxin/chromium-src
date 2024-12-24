@@ -78,6 +78,11 @@ struct ClientSideDetectionService::ClientPhishingReportInfo {
   GURL phishing_url;
 };
 
+void LogOnDeviceModelSessionCreationSuccess(bool success) {
+  base::UmaHistogramBoolean(
+      "SBClientPhishing.OnDeviceModelSessionCreationSuccess", success);
+}
+
 void LogOnDeviceModelExecutionSuccessAndTime(
     bool success,
     base::TimeTicks session_execution_start_time) {
@@ -184,7 +189,8 @@ void ClientSideDetectionService::OnPrefsUpdated() {
     for (auto& client_phishing_report : client_phishing_reports_) {
       ClientPhishingReportInfo* info = client_phishing_report.second.get();
       if (!info->callback.is_null()) {
-        std::move(info->callback).Run(info->phishing_url, false, std::nullopt);
+        std::move(info->callback)
+            .Run(info->phishing_url, false, std::nullopt, std::nullopt);
       }
     }
     client_phishing_reports_.clear();
@@ -241,11 +247,9 @@ void ClientSideDetectionService::OnURLLoaderComplete(
     response_code = static_cast<net::HttpStatusCode>(
         url_loader->ResponseInfo()->headers->response_code());
   }
-  if (response_code.has_value()) {
-    RecordHttpResponseOrErrorCode("SBClientPhishing.NetworkResult",
-                                  url_loader->NetError(),
-                                  response_code.value());
-  }
+  RecordHttpResponseOrErrorCode(
+      "SBClientPhishing.NetworkResult2", url_loader->NetError(),
+      response_code.has_value() ? response_code.value() : 0);
 
   DCHECK(base::Contains(client_phishing_reports_, url_loader));
   HandlePhishingVerdict(url_loader, url_loader->GetFinalURL(),
@@ -289,7 +293,8 @@ void ClientSideDetectionService::StartClientReportPhishingRequest(
 
   if (!enabled_) {
     if (!callback.is_null()) {
-      std::move(callback).Run(GURL(request->url()), false, std::nullopt);
+      std::move(callback).Run(GURL(request->url()), false, std::nullopt,
+                              std::nullopt);
     }
     return;
   }
@@ -299,7 +304,8 @@ void ClientSideDetectionService::StartClientReportPhishingRequest(
   // or prefs are null, abandon the request.
   if (!AddPhishingReport(base::Time::Now())) {
     if (!callback.is_null()) {
-      std::move(callback).Run(GURL(request->url()), false, std::nullopt);
+      std::move(callback).Run(GURL(request->url()), false, std::nullopt,
+                              std::nullopt);
     }
     return;
   }
@@ -400,12 +406,16 @@ void ClientSideDetectionService::HandlePhishingVerdict(
   client_phishing_reports_.erase(source);
 
   bool is_phishing = false;
+  std::optional<IntelligentScanVerdict> intelligent_scan_verdict = std::nullopt;
   if (net_error == net::OK && response_code.has_value() &&
       net::HTTP_OK == response_code.value() && response.ParseFromString(data)) {
     // Cache response, possibly flushing an old one.
     cache_[info->phishing_url] =
         base::WrapUnique(new CacheState(response.phishy(), base::Time::Now()));
     is_phishing = response.phishy();
+    if (response.has_intelligent_scan_verdict()) {
+      intelligent_scan_verdict = response.intelligent_scan_verdict();
+    }
   }
 
   content::GetUIThreadTaskRunner({})->PostTask(
@@ -420,7 +430,8 @@ void ClientSideDetectionService::HandlePhishingVerdict(
     }
 
     std::move(info->callback)
-        .Run(info->phishing_url, is_phishing, response_code);
+        .Run(info->phishing_url, is_phishing, response_code,
+             intelligent_scan_verdict);
   }
 }
 
@@ -818,6 +829,7 @@ void ClientSideDetectionService::InquireOnDeviceModel(
   session_ = delegate_->GetModelExecutorSession();
 
   if (!session_) {
+    LogOnDeviceModelSessionCreationSuccess(false);
     std::move(callback).Run(std::nullopt);
     return;
   }
@@ -825,6 +837,7 @@ void ClientSideDetectionService::InquireOnDeviceModel(
   base::UmaHistogramMediumTimes(
       "SBClientPhishing.OnDeviceModelSessionCreationTime",
       base::TimeTicks::Now() - session_creation_start_time);
+  LogOnDeviceModelSessionCreationSuccess(true);
 
   ScamDetectionRequest request;
   request.set_rendered_text(rendered_texts);
@@ -850,7 +863,7 @@ void ClientSideDetectionService::ModelExecutionCallback(
   }
 
   // This is a non-error response, but it's not completed, yet so we wait till
-  // it's complete.
+  // it's complete. We will not respond to the callback yet because of this.
   if (!result.response->is_complete) {
     return;
   }
@@ -864,13 +877,20 @@ void ClientSideDetectionService::ModelExecutionCallback(
 
   if (!scam_detection_response) {
     LogOnDeviceModelExecutionParse(false);
+    if (inquire_on_device_model_callback_) {
+      std::move(inquire_on_device_model_callback_).Run(std::nullopt);
+    }
     return;
   }
 
   LogOnDeviceModelExecutionParse(true);
 
   CHECK(session_);
-  session_.reset();
+  // TODO: Currently, due to the lifetime of session and its deletion when the
+  // model execution finishes, this causes a crash. crbug.com/384774788 tracks
+  // the ergonomic approach to deleting the session, but we can call DeleteSoon
+  // for this session.
+  // session_.reset();
 
   if (inquire_on_device_model_callback_) {
     std::move(inquire_on_device_model_callback_).Run(scam_detection_response);

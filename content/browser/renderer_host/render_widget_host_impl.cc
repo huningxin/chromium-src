@@ -30,6 +30,7 @@
 #include "base/location.h"
 #include "base/memory/ptr_util.h"
 #include "base/metrics/field_trial.h"
+#include "base/metrics/histogram_functions.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/observer_list.h"
 #include "base/strings/string_number_conversions.h"
@@ -37,6 +38,7 @@
 #include "base/task/current_thread.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/default_tick_clock.h"
+#include "base/time/time.h"
 #include "base/trace_event/optional_trace_event.h"
 #include "base/trace_event/trace_event.h"
 #include "build/build_config.h"
@@ -403,6 +405,7 @@ RenderWidgetHostImpl::RenderWidgetHostImpl(
       site_instance_group_(site_instance_group->GetWeakPtrToAllowDangling()),
       routing_id_(routing_id),
       is_hidden_(hidden),
+      was_ever_shown_(!hidden),
       last_view_screen_rect_(kInvalidScreenRect),
       last_window_screen_rect_(kInvalidScreenRect),
       should_disable_hang_monitor_(
@@ -471,6 +474,10 @@ RenderWidgetHostImpl::RenderWidgetHostImpl(
 
   delegate_->RenderWidgetCreated(this);
   render_frame_metadata_provider_.AddObserver(this);
+
+  if (!hidden) {
+    first_shown_time_ = base::TimeTicks::Now();
+  }
 }
 
 RenderWidgetHostImpl::~RenderWidgetHostImpl() {
@@ -478,6 +485,20 @@ RenderWidgetHostImpl::~RenderWidgetHostImpl() {
       "Navigation.RenderWidgetHostDestructor");
   CHECK(!self_owned_);
   render_frame_metadata_provider_.RemoveObserver(this);
+
+  if (was_ever_shown_) {
+    // Log UMA related to possible suppression of input events until the
+    // renderer has pushed content to viz (https://crbug.com/40057499).
+    base::UmaHistogramBoolean("Renderer.ContentProduction.SignalReceived",
+                              first_content_metadata_received_);
+    if (first_content_metadata_received_ &&
+        first_content_metadata_time_ > first_shown_time_) {
+      base::TimeDelta delay = first_content_metadata_time_ - first_shown_time_;
+      base::UmaHistogramTimes("Renderer.ContentProduction.DelayFromUnhide",
+                              delay);
+    }
+  }
+
   if (!destroyed_) {
     Destroy(false);
   }
@@ -842,6 +863,10 @@ void RenderWidgetHostImpl::WasShown(
   TRACE_EVENT_WITH_FLOW0("renderer_host", "RenderWidgetHostImpl::WasShown",
                          routing_id_, TRACE_EVENT_FLAG_FLOW_OUT);
   is_hidden_ = false;
+  if (!was_ever_shown_) {
+    was_ever_shown_ = true;
+    first_shown_time_ = base::TimeTicks::Now();
+  }
 
   // If we navigated in background, clear the displayed graphics of the
   // previous page before going visible.
@@ -3578,7 +3603,8 @@ void RenderWidgetHostImpl::CreateFrameSink(
          mojo::PendingRemote<viz::mojom::CompositorFrameSinkClient> client,
          std::optional<mojo::PendingRemote<
              blink::mojom::RenderInputRouterClient>> viz_rir_client_remote,
-         uint32_t grouping_id, const viz::FrameSinkId& frame_sink_id) {
+         base::UnguessableToken grouping_id,
+         const viz::FrameSinkId& frame_sink_id) {
         input::mojom::RenderInputRouterConfigPtr config;
         if (input::IsTransferInputToVizSupported()) {
           DCHECK(viz_rir_client_remote.has_value());
@@ -3777,13 +3803,32 @@ void RenderWidgetHostImpl::OnRenderFrameMetadataChangedBeforeActivation(
 
 void RenderWidgetHostImpl::OnRenderFrameMetadataChangedAfterActivation(
     base::TimeTicks activation_time) {
+  if (!first_content_metadata_received_) {
+    first_content_metadata_received_ = true;
+    first_content_metadata_time_ = base::TimeTicks::Now();
+  }
+
   const auto& metadata =
       render_frame_metadata_provider_.LastRenderFrameMetadata();
 
-  bool is_mobile_optimized = metadata.is_mobile_optimized;
-  input_router()->NotifySiteIsMobileOptimized(is_mobile_optimized);
-  if (auto* touch_emulator = GetTouchEmulator(/*create_if_necessary=*/false)) {
-    touch_emulator->SetDoubleTapSupportForPageEnabled(!is_mobile_optimized);
+  const bool mobile_optimized_state_changed =
+      (is_mobile_optimized_ != metadata.is_mobile_optimized);
+  is_mobile_optimized_ = metadata.is_mobile_optimized;
+
+  if (mobile_optimized_state_changed) {
+    input_router()->NotifySiteIsMobileOptimized(is_mobile_optimized_);
+    // Notifies Viz only if the page's mobile optimized state has changed, since
+    // this is only used to set touch ack timeout delay for mobile sites in
+    // PassthroughTouchEventQueue.
+    if (auto* delegate_remote =
+            delegate()->GetRenderInputRouterDelegateRemote()) {
+      delegate_remote->NotifySiteIsMobileOptimized(is_mobile_optimized_,
+                                                   frame_sink_id_);
+    }
+    if (auto* touch_emulator =
+            GetTouchEmulator(/*create_if_necessary=*/false)) {
+      touch_emulator->SetDoubleTapSupportForPageEnabled(!is_mobile_optimized_);
+    }
   }
 
   // TODO(danakj): Can this method be called during WebContents destruction?

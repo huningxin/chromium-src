@@ -11,13 +11,13 @@
 #include "base/memory/raw_ref.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
-#include "components/autofill/core/browser/autofill_client.h"
-#include "components/autofill/core/browser/autofill_driver.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/credit_card.h"
 #include "components/autofill/core/browser/filling/field_filling_skip_reason.h"
+#include "components/autofill/core/browser/filling/filling_product.h"
 #include "components/autofill/core/browser/filling/form_autofill_history.h"
-#include "components/autofill/core/browser/filling_product.h"
+#include "components/autofill/core/browser/foundations/autofill_client.h"
+#include "components/autofill/core/browser/foundations/autofill_driver.h"
 #include "components/autofill/core/common/autofill_constants.h"
 
 namespace autofill {
@@ -25,13 +25,20 @@ namespace autofill {
 class BrowserAutofillManager;
 
 // Denotes the reason for triggering a refill attempt.
+// These values are persisted to UMA logs. Entries should not be renumbered and
+// numeric values should never be reused. Keep this enum up to date with the one
+// in tools/metrics/histograms/metadata/autofill/enums.xml.
 enum class RefillTriggerReason {
-  kFormChanged,
-  kSelectOptionsChanged,
-  kExpirationDateFormatted,
+  kFormChanged = 0,
+  kSelectOptionsChanged = 1,
+  kExpirationDateFormatted = 2,
+  kMaxValue = kExpirationDateFormatted
 };
 
-using FillingPayload = absl::variant<const AutofillProfile*, const CreditCard*>;
+using AutofillAiFillingPayload = base::flat_map<FieldGlobalId, std::u16string>;
+using FillingPayload = absl::variant<const AutofillProfile*,
+                                     const CreditCard*,
+                                     AutofillAiFillingPayload>;
 
 // Helper class responsible for [re]filling forms and fields.
 //
@@ -119,23 +126,6 @@ class FormFiller {
                           const std::u16string& value,
                           FillingProduct filling_product,
                           std::optional<FieldType> field_type_used);
-
-  /////////////////
-  // DO NOT USE! //
-  /////////////////
-  // Fills or previews `values_to_fill` in the `form`. Called only by
-  // `AutofillAiManager`.
-  // Minimal version of `FillOrPreviewForm()` that misses every feature besides
-  // filling / preview. E.g. does not handle refill, undo, or any metrics.
-  // TODO(crbug.com/40227071): Clean up the generic API and remove this.
-  void FillOrPreviewFormWithAutofillAiData(
-      mojom::ActionPersistence action_persistence,
-      const DenseSet<FieldFillingSkipReason>& ignorable_skip_reasons,
-      const FormData& form,
-      const FormFieldData& trigger_field,
-      FormStructure& form_structure,
-      const AutofillField& autofill_trigger_field,
-      const base::flat_map<FieldGlobalId, std::u16string>& values_to_fill);
 
   // Fills or previews the data from `filling_payload` into `form`.
   // TODO(crbug.com/40227071): Clean up the API.
@@ -236,7 +226,7 @@ class FormFiller {
   // if it's an override.
   struct FieldFillingData {
     std::u16string value_to_fill;
-    FieldType field_type;
+    std::optional<FieldType> field_type;
     bool value_is_an_override;
   };
 

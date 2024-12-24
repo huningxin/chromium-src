@@ -413,9 +413,7 @@ try_.orchestrator_builder(
         "ci/Linux Builder",
         "ci/Linux Tests",
         "ci/GPU Linux Builder",
-        # TODO(crbug.com/383368160): Restore the GPU tester bot when its test
-        # pool is restored.
-        #"ci/Linux Release (NVIDIA)",
+        "ci/Linux Release (NVIDIA)",
     ],
     gn_args = gn_args.config(
         configs = [
@@ -856,6 +854,18 @@ try_.builder(
     gn_args = "ci/Linux UBSan Builder",
     contact_team_email = "chrome-sanitizer-builder-owners@google.com",
     main_list_view = "try",
+)
+
+try_.builder(
+    name = "linux-modules-compile-fyi-rel",
+    mirrors = [
+        "ci/linux-modules-compile-fyi-rel",
+    ],
+    gn_args = "ci/linux-modules-compile-fyi-rel",
+    cores = 32,
+    ssd = True,
+    contact_team_email = "chrome-build-team@google.com",
+    execution_timeout = 6 * time.hour,
 )
 
 try_.builder(

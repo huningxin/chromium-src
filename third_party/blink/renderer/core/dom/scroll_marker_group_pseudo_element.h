@@ -140,7 +140,7 @@ class ScrollMarkerGroupPseudoElement : public PseudoElement,
   }
   // Set selected scroll marker. Returns true if the selected marker changed.
   CORE_EXPORT bool SetSelected(ScrollMarkerPseudoElement& scroll_marker);
-  ScrollMarkerPseudoElement* Selected() { return selected_marker_; }
+  ScrollMarkerPseudoElement* Selected() const { return selected_marker_; }
   void ActivateNextScrollMarker();
   void ActivatePrevScrollMarker();
   void ActivateScrollMarker(ScrollMarkerPseudoElement* scroll_marker);
@@ -156,6 +156,15 @@ class ScrollMarkerGroupPseudoElement : public PseudoElement,
 
   bool UpdateSelectedScrollMarker(const ScrollOffset& offset);
 
+  // When a "targeted" scroll occurs, we should consider the selected scroll
+  // marker pinned until a non-targeted scroll occurs.
+  void PinSelectedMarker(ScrollMarkerPseudoElement* scroll_marker) {
+    pending_selected_marker_ = scroll_marker;
+    selected_marker_is_pinned_ = true;
+  }
+  void UnPinSelectedMarker() { selected_marker_is_pinned_ = false; }
+  bool SelectedMarkerIsPinned() { return selected_marker_is_pinned_; }
+
  private:
   bool UpdateSnapshotInternal();
 
@@ -168,6 +177,13 @@ class ScrollMarkerGroupPseudoElement : public PseudoElement,
 
   // TODO(332396355): Add spec link, once it's created.
   HeapVector<Member<ScrollMarkerPseudoElement>> focus_group_;
+
+  // Whether to resist changing the selected scroll-marker. We resist updating
+  // the last selected scroll-marker if it was selected due to a targeted
+  // scroll. It should remain the selected scroll-marker until we clear this bit
+  // due to a non-targeted scroll.
+  bool selected_marker_is_pinned_;
+
   // The scroll-marker selected based on the last scroll update observed.
   // At the next snapshot, it will become the |selected_marker_|, if it isn't
   // already, and be cleared.

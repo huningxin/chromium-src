@@ -83,6 +83,7 @@ import org.chromium.base.test.util.Features.EnableFeatures;
 import org.chromium.base.test.util.HistogramWatcher;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.collaboration.CollaborationServiceFactory;
+import org.chromium.chrome.browser.collaboration.messaging.MessagingBackendServiceFactory;
 import org.chromium.chrome.browser.compositor.LayerTitleCache;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerHost;
 import org.chromium.chrome.browser.compositor.layouts.LayoutRenderHost;
@@ -121,6 +122,7 @@ import org.chromium.components.browser_ui.styles.SemanticColorUtils;
 import org.chromium.components.browser_ui.widget.ActionConfirmationResult;
 import org.chromium.components.collaboration.CollaborationService;
 import org.chromium.components.collaboration.ServiceStatus;
+import org.chromium.components.collaboration.messaging.MessagingBackendService;
 import org.chromium.components.data_sharing.DataSharingService;
 import org.chromium.components.data_sharing.DataSharingUIDelegate;
 import org.chromium.components.data_sharing.SharedGroupTestHelper;
@@ -139,7 +141,10 @@ import org.chromium.ui.widget.RectProvider;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 /** Tests for {@link StripLayoutHelper}. */
@@ -175,6 +180,7 @@ public class StripLayoutHelperTest {
     @Mock private TabGroupSyncService mTabGroupSyncService;
     @Mock private DataSharingService mDataSharingService;
     @Mock private CollaborationService mCollaborationService;
+    @Mock private MessagingBackendService mMessagingBackendService;
     @Mock private ServiceStatus mServiceStatus;
     @Mock private DataSharingUIDelegate mDataSharingUiDelegate;
     @Mock private Bitmap mAvatarBitmap;
@@ -278,6 +284,7 @@ public class StripLayoutHelperTest {
         DataSharingServiceFactory.setForTesting(mDataSharingService);
         TabGroupSyncServiceFactory.setForTesting(mTabGroupSyncService);
         CollaborationServiceFactory.setForTesting(mCollaborationService);
+        MessagingBackendServiceFactory.setForTesting(mMessagingBackendService);
         when(mCollaborationService.getServiceStatus()).thenReturn(mServiceStatus);
         when(mServiceStatus.isAllowedToJoin()).thenReturn(false);
         when(mDataSharingService.getUiDelegate()).thenReturn(mDataSharingUiDelegate);
@@ -1340,7 +1347,6 @@ public class StripLayoutHelperTest {
     }
 
     @Test
-    @DisableFeatures(ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU)
     @Feature("Advanced Peripherals Support")
     public void testCloseButtonHoverOnDown() {
         // Setup
@@ -1864,7 +1870,6 @@ public class StripLayoutHelperTest {
     @Test
     @DisableFeatures({
         ChromeFeatureList.TAB_DRAG_DROP_ANDROID,
-        ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU
     })
     public void testOnLongPress_OnTab() {
         onLongPress_OnTab();
@@ -1889,7 +1894,6 @@ public class StripLayoutHelperTest {
 
     @Test
     @Feature("Tab Group Context Menu")
-    @EnableFeatures({ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU})
     public void testOnLongPress_OnGroupTitle() {
         // Initialize.
         initializeTest(false, false, 0);
@@ -1919,7 +1923,6 @@ public class StripLayoutHelperTest {
 
     @Test
     @Feature("Tab Group Context Menu")
-    @EnableFeatures({ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU})
     public void testDragToScroll_WithoutContextMenu() {
         // Initialize.
         initializeTest(false, false, 0);
@@ -1935,7 +1938,6 @@ public class StripLayoutHelperTest {
 
     @Test
     @Feature("Tab Group Context Menu")
-    @EnableFeatures({ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU})
     public void testDragToScroll_WithContextMenu() {
         // Initialize.
         initializeTest(false, false, 0);
@@ -1952,10 +1954,7 @@ public class StripLayoutHelperTest {
 
     @Test
     @Feature("Tab Group Context Menu")
-    @EnableFeatures({
-        ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU,
-        ChromeFeatureList.TAB_STRIP_GROUP_REORDER
-    })
+    @EnableFeatures({ChromeFeatureList.TAB_STRIP_GROUP_REORDER})
     public void testDrag_DismissContextMenu() {
         // Initialize.
         initializeTest(false, false, 0);
@@ -1973,7 +1972,6 @@ public class StripLayoutHelperTest {
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @DisableFeatures(ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU)
     public void testOnLongPress_WithDragDrop_OnTab() {
         // Extra setup for DragDrop
         setTabDragSourceMock();
@@ -2026,17 +2024,13 @@ public class StripLayoutHelperTest {
     }
 
     @Test
-    @DisableFeatures({
-        ChromeFeatureList.TAB_DRAG_DROP_ANDROID,
-        ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU
-    })
+    @DisableFeatures({ChromeFeatureList.TAB_DRAG_DROP_ANDROID})
     public void testOnLongPress_OffTab() {
         onLongPress_OffTab();
     }
 
     @Test
     @Config(sdk = Build.VERSION_CODES.R)
-    @DisableFeatures(ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU)
     public void testOnLongPress_WithDragDrop_OffTab() {
         // Extra setup for DragDrop
         setTabDragSourceMock();
@@ -2176,7 +2170,7 @@ public class StripLayoutHelperTest {
         StripLayoutTab[] tabs = mStripLayoutHelper.getStripLayoutTabsForTesting();
 
         // Start reorder for tab drop between the 2nd and 3rd tab.
-        mStripLayoutHelper.updateStripForExternalTabDrop(300.f);
+        mStripLayoutHelper.prepareForTabDrop(/* currX= */ 300.f, /* lastX= */ 0f, false, false);
 
         // Test tab outline should show for the foregrounded tab in destination window during tab
         // drop.
@@ -2757,7 +2751,7 @@ public class StripLayoutHelperTest {
         mStripLayoutHelper.updateLayout(TIMESTAMP);
 
         // Start reorder for tab drop between the 1st and 2nd tab.
-        mStripLayoutHelper.updateStripForExternalTabDrop(150.f);
+        mStripLayoutHelper.prepareForTabDrop(/* currX= */ 150.f, /* lastX= */ 0f, false, false);
 
         float expectedEndWidth =
                 expectedStartWidth
@@ -2779,7 +2773,7 @@ public class StripLayoutHelperTest {
         ReorderDelegate reorderDelegateSpy = spy(mStripLayoutHelper.getReorderDelegateForTesting());
 
         // Start and stop reorder mode for tab drop.
-        mStripLayoutHelper.updateStripForExternalTabDrop(10.f);
+        mStripLayoutHelper.prepareForTabDrop(/* currX= */ 10.f, /* lastX= */ 0f, false, false);
         mStripLayoutHelper.stopReorderModeForTesting();
 
         // Verify: folio reattachment animation does not run for tab drop.
@@ -3333,6 +3327,55 @@ public class StripLayoutHelperTest {
     }
 
     @Test
+    @EnableFeatures({ChromeFeatureList.DATA_SHARING, ChromeFeatureList.TAB_STRIP_GROUP_COLLAPSE})
+    public void testSharedGroupNotificationBubbleShowAndHide_CollapsedGroup() {
+        // Initialize shared tab group and collapse group.
+        StripLayoutGroupTitle groupTitle =
+                createCollaborationGroup(
+                        /* multipleCollaborators= */ true, /* duringStripBuild= */ false);
+        mStripLayoutHelper.collapseTabGroupForTesting(groupTitle, /* isCollapsed= */ true);
+
+        // Update the root tab.
+        Set<Integer> tabIds = new HashSet<>(Collections.singleton(groupTitle.getRootId()));
+        mStripLayoutHelper.updateTabStripNotificationBubble(tabIds, /* hasUpdate= */ true);
+
+        // Verify group title and tab bubble should show.
+        assertTrue(
+                "Notification bubble on group title should show.", groupTitle.shouldShowBubble());
+        verify(mLayerTitleCache).updateTabBubble(groupTitle.getRootId(), /* showBubble= */ true);
+
+        // Verify tab bubble should hide when update is removed.
+        mStripLayoutHelper.updateTabStripNotificationBubble(tabIds, /* hasUpdate= */ false);
+        assertFalse(
+                "Notification bubble on group title should hide.", groupTitle.shouldShowBubble());
+        verify(mLayerTitleCache).updateTabBubble(groupTitle.getRootId(), /* showBubble= */ false);
+    }
+
+    @Test
+    @EnableFeatures({ChromeFeatureList.DATA_SHARING, ChromeFeatureList.TAB_STRIP_GROUP_COLLAPSE})
+    public void testSharedGroupNotificationBubbleShowAndHide_ExpandedGroup() {
+        // Initialize shared tab group.
+        StripLayoutGroupTitle groupTitle =
+                createCollaborationGroup(
+                        /* multipleCollaborators= */ true, /* duringStripBuild= */ false);
+
+        // The root tab is updated from message backend service.
+        Set<Integer> tabIds = new HashSet<>(Collections.singleton(groupTitle.getRootId()));
+        mStripLayoutHelper.updateTabStripNotificationBubble(tabIds, /* hasUpdate= */ true);
+
+        // Verify only the tab bubble should show.
+        assertFalse(
+                "Notification bubble on group title should hide.", groupTitle.shouldShowBubble());
+        verify(mLayerTitleCache).updateTabBubble(groupTitle.getRootId(), /* showBubble= */ true);
+
+        // Verify tab bubble should hide when update is removed.
+        mStripLayoutHelper.updateTabStripNotificationBubble(tabIds, /* hasUpdate= */ false);
+        assertFalse(
+                "Notification bubble on group title should hide.", groupTitle.shouldShowBubble());
+        verify(mLayerTitleCache).updateTabBubble(groupTitle.getRootId(), /* showBubble= */ false);
+    }
+
+    @Test
     @EnableFeatures(ChromeFeatureList.DATA_SHARING)
     public void testSharedGroupStateDuringStripBuild_OnlyOneCollaborator_AvatarNotShow() {
         // Initialize shared tab group with only one collaborator during strip build.
@@ -3543,6 +3586,9 @@ public class StripLayoutHelperTest {
             assertNotNull(
                     "Avatar resource for shared group should be initialized",
                     groupTitle.getAvatarResourceForTesting());
+            assertNotNull(
+                    "Notification bubbler for shared group should be initialized",
+                    groupTitle.getTabBubbler());
         } else {
             assertFalse("Group should be unshared.", groupTitle.isGroupSharedForTesting());
             assertNull(
@@ -3797,7 +3843,6 @@ public class StripLayoutHelperTest {
 
     @Test
     @Feature("Tab Group Context Menu")
-    @EnableFeatures({ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU})
     public void testFling_WithContextMenu() {
         // Arrange
         initializeTest(false, false, 10, 11);
@@ -4280,7 +4325,7 @@ public class StripLayoutHelperTest {
         when(mTabGroupModelFilter.getRelatedTabListForRootId(eq(groupRootId)))
                 .thenReturn(relatedTabs);
 
-        mStripLayoutHelper.updateGroupTitleTextOrAvatar(groupRootId);
+        mStripLayoutHelper.updateGroupTextAndSharedState(groupRootId);
         mStripLayoutHelper.rebuildStripViews();
         if (mStripLayoutHelper.getRunningAnimatorForTesting() != null) {
             mStripLayoutHelper.getRunningAnimatorForTesting().end();
@@ -4352,7 +4397,6 @@ public class StripLayoutHelperTest {
 
     @Test
     @EnableFeatures(ChromeFeatureList.TAB_DRAG_DROP_ANDROID)
-    @DisableFeatures(ChromeFeatureList.TAB_STRIP_GROUP_CONTEXT_MENU)
     @Config(sdk = Build.VERSION_CODES.R)
     public void testDrag_sendMoveWindowBroadcast_success() {
         // Setup with tabs and select first tab.
@@ -4375,7 +4419,7 @@ public class StripLayoutHelperTest {
         float expectedOffsetX = 123.45f;
         mStripLayoutHelper.setActiveClickedTabAtIndexForTesting(0);
         mStripLayoutHelper.setLastOffsetXForTesting(expectedOffsetX);
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0f, 0f, true, false);
+        mStripLayoutHelper.prepareForTabDrop(0f, 0f, true, false);
 
         // Verify we continue reorder mode with the correct x-offset.
         assertFalse(
@@ -4401,7 +4445,7 @@ public class StripLayoutHelperTest {
         // Drag tab out of strip.
         float expectedOffsetX = 123.45f;
         mStripLayoutHelper.setActiveClickedTabAtIndexForTesting(0);
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0f, 0f, true, false);
+        mStripLayoutHelper.prepareForTabDrop(0f, 0f, true, false);
         StripLayoutTab draggedTab = mStripLayoutHelper.getInteractingTabForTesting();
         draggedTab.setOffsetX(expectedOffsetX);
         mStripLayoutHelper.clearForTabDrop(TIMESTAMP, true, false);
@@ -4438,7 +4482,7 @@ public class StripLayoutHelperTest {
         // Drag tab out of strip.
         StripLayoutTab[] tabs = mStripLayoutHelper.getStripLayoutTabsForTesting();
         mStripLayoutHelper.setTabAtPositionForTesting(tabs[1]);
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0f, 0f, true, false);
+        mStripLayoutHelper.prepareForTabDrop(0f, 0f, true, false);
         mStripLayoutHelper.clearForTabDrop(TIMESTAMP, true, false);
         mStripLayoutHelper.updateLayout(TIMESTAMP);
 
@@ -4512,7 +4556,7 @@ public class StripLayoutHelperTest {
         mStripLayoutHelper.updateLayout(TIMESTAMP);
 
         // Prepare for tab drop.
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0.f, 0.f, false, false);
+        mStripLayoutHelper.prepareForTabDrop(0.f, 0.f, false, false);
         // Start gap will be tabWidth(265) / 2 = 132.5
         mStripLayoutHelper.setScrollOffsetForTesting(-132);
 
@@ -4565,7 +4609,7 @@ public class StripLayoutHelperTest {
         groupTabs(1, 3);
 
         // Prepare for tab drop.
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0.f, 0.f, false, false);
+        mStripLayoutHelper.prepareForTabDrop(0.f, 0.f, false, false);
 
         // Verify.
         StripLayoutTab[] tabs = mStripLayoutHelper.getStripLayoutTabsForTesting();
@@ -4601,7 +4645,7 @@ public class StripLayoutHelperTest {
         mStripLayoutHelper.updateLayout(TIMESTAMP);
 
         // Prepare for tab drop.
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0.f, 0.f, false, false);
+        mStripLayoutHelper.prepareForTabDrop(0.f, 0.f, false, false);
         mStripLayoutHelper.finishAnimations();
         // Verify initial trailing margins before hover.
         StripLayoutTab[] tabs = mStripLayoutHelper.getStripLayoutTabsForTesting();
@@ -4613,17 +4657,17 @@ public class StripLayoutHelperTest {
         assertNotEquals(
                 "Should be tab margin after tab 2.", 0, tabs[2].getTrailingMargin(), EPSILON);
 
-        // Hover between 2nd and 3rd tab:
+        // Drag - Hover between 2nd and 3rd tab:
         // 2 * (tabWidth(265) - overlapWidth(28)) = 474
-        mStripLayoutHelper.updateReorderPositionForTabDrop(474.f);
+        mStripLayoutHelper.drag(TIMESTAMP, 474.f, 0, 0);
 
         // Verify.
         assertNotEquals(
                 "Should be tab margin after tab 1.", 0, tabs[1].getTrailingMargin(), EPSILON);
 
-        // Now hover between 1st and 2nd tab:
+        // Now drag - hover between 1st and 2nd tab:
         // tabWidth(265) - overlapWidth(28) = 237
-        mStripLayoutHelper.updateReorderPositionForTabDrop(237.f);
+        mStripLayoutHelper.drag(TIMESTAMP, 237.f, 0, 0);
 
         // Verify.
         assertNotEquals(
@@ -4644,7 +4688,7 @@ public class StripLayoutHelperTest {
         mStripLayoutHelper.updateLayout(TIMESTAMP);
 
         // Prepare for tab drop.
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0.f, 0.f, false, false);
+        mStripLayoutHelper.prepareForTabDrop(0.f, 0.f, false, false);
         // Start gap will be tabWidth(265) / 2 = 132.5
         mStripLayoutHelper.setScrollOffsetForTesting(-132);
         mStripLayoutHelper.finishAnimations();
@@ -4659,8 +4703,8 @@ public class StripLayoutHelperTest {
         assertNotEquals(
                 "Should be tab margin after tab 2.", 0, tabs[2].getTrailingMargin(), EPSILON);
 
-        // Hover in start gap:
-        mStripLayoutHelper.updateReorderPositionForTabDrop(50);
+        // Drag - Hover in start gap:
+        mStripLayoutHelper.drag(TIMESTAMP, 50, 0, 0);
 
         // Verify first tab is not impacted.
         assertEquals(
@@ -4669,8 +4713,8 @@ public class StripLayoutHelperTest {
         assertEquals(
                 "Should not be tab margin after tab 2.", 0, tabs[2].getTrailingMargin(), EPSILON);
 
-        // Hover in end gap:
-        mStripLayoutHelper.updateReorderPositionForTabDrop(1100);
+        // Drag - Hover in end gap:
+        mStripLayoutHelper.drag(TIMESTAMP, 1100, 0, 0);
 
         // When hovering in edge gaps, last tab margin is reset (since hoveredTab == lastTab)
         assertEquals(
@@ -4686,7 +4730,7 @@ public class StripLayoutHelperTest {
                 SCREEN_WIDTH, SCREEN_HEIGHT, false, TIMESTAMP, PADDING_LEFT, PADDING_RIGHT);
 
         // Prepare and verify no interaction.
-        mStripLayoutHelper.prepareForTabDrop(TIMESTAMP, 0.f, 0.f, false, !isIncognito);
+        mStripLayoutHelper.prepareForTabDrop(0.f, 0.f, false, !isIncognito);
         assertFalse(
                 "Shouldn't start reorder when dragged tab Incognito state is different.",
                 mStripLayoutHelper.getInReorderModeForTesting());

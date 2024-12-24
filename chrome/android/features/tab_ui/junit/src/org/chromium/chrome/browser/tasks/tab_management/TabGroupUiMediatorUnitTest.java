@@ -62,6 +62,7 @@ import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.base.test.util.Features.DisableFeatures;
 import org.chromium.base.test.util.Features.EnableFeatures;
 import org.chromium.chrome.R;
+import org.chromium.chrome.browser.collaboration.CollaborationServiceFactory;
 import org.chromium.chrome.browser.data_sharing.DataSharingServiceFactory;
 import org.chromium.chrome.browser.data_sharing.ui.shared_image_tiles.SharedImageTilesCoordinator;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
@@ -90,6 +91,7 @@ import org.chromium.chrome.browser.tabmodel.TabUiUnitTestUtils;
 import org.chromium.chrome.browser.theme.ThemeColorProvider;
 import org.chromium.chrome.browser.toolbar.bottom.BottomControlsCoordinator;
 import org.chromium.chrome.browser.ui.theme.BrandedColorScheme;
+import org.chromium.components.collaboration.CollaborationService;
 import org.chromium.components.data_sharing.DataSharingService;
 import org.chromium.components.data_sharing.DataSharingUIDelegate;
 import org.chromium.components.data_sharing.SharedGroupTestHelper;
@@ -128,6 +130,7 @@ public class TabGroupUiMediatorUnitTest {
     @Mock private TabGroupSyncService mTabGroupSyncService;
     @Mock private DataSharingService mDataSharingService;
     @Mock private DataSharingUIDelegate mDataSharingUiDelegate;
+    @Mock private CollaborationService mCollaborationService;
 
     @Mock
     private BottomControlsCoordinator.BottomControlsVisibilityController mVisibilityController;
@@ -291,6 +294,7 @@ public class TabGroupUiMediatorUnitTest {
         doReturn(true).when(mTabGroupSyncFeaturesJniMock).isTabGroupSyncEnabled(mProfile);
         TabGroupSyncServiceFactory.setForTesting(mTabGroupSyncService);
         DataSharingServiceFactory.setForTesting(mDataSharingService);
+        CollaborationServiceFactory.setForTesting(mCollaborationService);
         when(mDataSharingService.getUiDelegate()).thenReturn(mDataSharingUiDelegate);
         mSharedGroupTestHelper = new SharedGroupTestHelper(mDataSharingService);
 
@@ -556,27 +560,6 @@ public class TabGroupUiMediatorUnitTest {
     }
 
     @Test
-    public void tabClosure_NotLastTabInGroup_Selection_SingleTabGroupsDisabled() {
-        initAndAssertProperties(mTab2);
-
-        doReturn(mTab3).when(mTabGroupModelFilter).getGroupLastShownTab(TAB2_ROOT_ID);
-        doReturn(false).when(mTabGroupModelFilter).isTabInTabGroup(mTab2);
-        doReturn(false).when(mTabGroupModelFilter).isTabInTabGroup(mTab3);
-
-        // Mock closing tab 2, and tab 3 then gets selected. They are in the same group assume that
-        // that Tab 3 is the last tab in the group.
-        mTabModelObserverArgumentCaptor.getValue().willCloseTab(mTab2, true);
-        verifyResetStrip(false, null);
-
-        mTabModelObserverArgumentCaptor
-                .getValue()
-                .didSelectTab(mTab3, TabSelectionType.FROM_CLOSE, TAB2_ID);
-
-        // Strip should not be reset again.
-        verifyNeverReset();
-    }
-
-    @Test
     public void tabClosure_NotLastTabInGroup_Selection_SingleTabGroupsEnabled() {
         initAndAssertProperties(mTab2);
 
@@ -587,40 +570,9 @@ public class TabGroupUiMediatorUnitTest {
 
         // Mock closing tab 2, and tab 3 then gets selected. They are in the same group assume that
         // that Tab 3 is the last tab in the group, but tab groups of size 1 are supported.
-        mTabModelObserverArgumentCaptor.getValue().willCloseTab(mTab2, true);
         mTabModelObserverArgumentCaptor
                 .getValue()
                 .didSelectTab(mTab3, TabSelectionType.FROM_CLOSE, TAB2_ID);
-
-        // Strip should not be reset since we are still in this group.
-        verifyNeverReset();
-    }
-
-    @Test
-    public void tabClosure_NotLastTabInGroup_NoSelection_SingleTabGroupsDisabled() {
-        initAndAssertProperties(mTab2);
-
-        doReturn(mTab2).when(mTabGroupModelFilter).getGroupLastShownTab(TAB3_ROOT_ID);
-        doReturn(false).when(mTabGroupModelFilter).isTabInTabGroup(mTab2);
-        doReturn(false).when(mTabGroupModelFilter).isTabInTabGroup(mTab3);
-
-        // Mock closing tab 3, and tab 2 remains selected.
-        mTabModelObserverArgumentCaptor.getValue().willCloseTab(mTab3, true);
-
-        // Strip should reset since since we don't have a group anymore.
-        verifyResetStrip(false, null);
-    }
-
-    @Test
-    public void tabClosure_NotLastTabInGroup_NoSelection_SingleTabGroupsEnabled() {
-        initAndAssertProperties(mTab2);
-
-        doReturn(mTab2).when(mTabGroupModelFilter).getGroupLastShownTab(TAB3_ROOT_ID);
-        doReturn(true).when(mTabGroupModelFilter).isTabInTabGroup(mTab2);
-        doReturn(false).when(mTabGroupModelFilter).isTabInTabGroup(mTab3);
-
-        // Mock closing tab 3, and tab 2 remains selected.
-        mTabModelObserverArgumentCaptor.getValue().willCloseTab(mTab3, true);
 
         // Strip should not be reset since we are still in this group.
         verifyNeverReset();
@@ -631,7 +583,6 @@ public class TabGroupUiMediatorUnitTest {
         initAndAssertProperties(mTab1);
 
         // Mock closing tab 1, and tab 2 then gets selected. They are in different group.
-        mTabModelObserverArgumentCaptor.getValue().willCloseTab(mTab1, true);
         when(mTabModelSelector.getCurrentTab()).thenReturn(mTab2);
         mTabModelObserverArgumentCaptor
                 .getValue()
@@ -649,12 +600,10 @@ public class TabGroupUiMediatorUnitTest {
 
         // Mock closing tab 2 and tab, then tab 1 gets selected. They are in different group. Right
         // now tab group UI is visible.
-        mTabModelObserverArgumentCaptor.getValue().willCloseTab(mTab2, true);
         mTabModelObserverArgumentCaptor
                 .getValue()
                 .didSelectTab(mTab3, TabSelectionType.FROM_CLOSE, TAB2_ID);
         doReturn(new ArrayList<>()).when(mTabGroupModelFilter).getRelatedTabList(TAB3_ID);
-        mTabModelObserverArgumentCaptor.getValue().willCloseTab(mTab3, true);
         mTabModelObserverArgumentCaptor
                 .getValue()
                 .didSelectTab(mTab1, TabSelectionType.FROM_CLOSE, TAB3_ID);
@@ -1127,9 +1076,11 @@ public class TabGroupUiMediatorUnitTest {
     @Test
     public void testImageTiles_2Members() {
         setupSyncedGroup(/* isShared= */ true);
-
+        when(mCollaborationService.getGroupData(COLLABORATION_ID1))
+                .thenReturn(
+                        SharedGroupTestHelper.newGroupData(
+                                COLLABORATION_ID1, GROUP_MEMBER1, GROUP_MEMBER2));
         initAndAssertProperties(mTab2);
-        mSharedGroupTestHelper.respondToReadGroup(COLLABORATION_ID1, GROUP_MEMBER1, GROUP_MEMBER2);
 
         assertFalse(mModel.get(TabGroupUiProperties.SHOW_GROUP_DIALOG_BUTTON_VISIBLE));
         assertTrue(mModel.get(TabGroupUiProperties.IMAGE_TILES_CONTAINER_VISIBLE));
@@ -1148,9 +1099,9 @@ public class TabGroupUiMediatorUnitTest {
     @Test
     public void testImageTiles_1Member() {
         setupSyncedGroup(/* isShared= */ true);
-
+        when(mCollaborationService.getGroupData(COLLABORATION_ID1))
+                .thenReturn(SharedGroupTestHelper.newGroupData(COLLABORATION_ID1, GROUP_MEMBER1));
         initAndAssertProperties(mTab2);
-        mSharedGroupTestHelper.respondToReadGroup(COLLABORATION_ID1, GROUP_MEMBER1);
 
         assertTrue(mModel.get(TabGroupUiProperties.SHOW_GROUP_DIALOG_BUTTON_VISIBLE));
         assertFalse(mModel.get(TabGroupUiProperties.IMAGE_TILES_CONTAINER_VISIBLE));

@@ -3884,6 +3884,13 @@ be describing additional metrics about the same event.
       browser receives an account list from IDP prior to showing UI.
     </summary>
   </metric>
+  <metric name="ThirdPartyCookiesStatus" enum="FedCmThirdPartyCookiesStatus">
+    <summary>
+      Records the status of third party cookies when a FedCM API call is
+      invoked. Recorded at most once per API call. i.e. at the same time as
+      Blink.FedCm.Status.RequestIdToken.
+    </summary>
+  </metric>
   <metric name="Timing.AccountsDialogShownDuration">
     <summary>
       Records the duration from when an accounts dialog is shown to when dialog
@@ -4115,6 +4122,13 @@ be describing additional metrics about the same event.
     <summary>
       Records whether user sign-in states between IDP and browser match after
       browser receives an account list from IDP prior to showing UI.
+    </summary>
+  </metric>
+  <metric name="ThirdPartyCookiesStatus" enum="FedCmThirdPartyCookiesStatus">
+    <summary>
+      Records the status of third party cookies when a FedCM API call is
+      invoked. Recorded at most once per API call. i.e. at the same time as
+      Blink.FedCm.Status.RequestIdToken.
     </summary>
   </metric>
   <metric name="Timing.AccountsDialogShownDuration">
@@ -8230,73 +8244,6 @@ be describing additional metrics about the same event.
   </metric>
 </event>
 
-<event name="FacilitatedPayments.PixCodeDetectionResult">
-  <owner>vishwasuppoor@google.com</owner>
-  <owner>siashah@google.com</owner>
-  <owner>rouslan@chromium.org</owner>
-  <owner>payments-autofill-team@google.com</owner>
-  <summary>
-    An event that is logged after a PIX code detection is triggered on the page.
-  </summary>
-  <metric name="Attempts">
-    <summary>
-      The number of attempts at PIX code detection on a given page. Each attempt
-      is a full scan of the document DOM tree. Repeated attempts are made if a
-      PIX code was not found on the page, but the page URL is allowlisted. The
-      retry attempts are limited.
-    </summary>
-    <aggregation>
-      <history>
-        <statistics>
-          <quantiles type="std-percentiles"/>
-        </statistics>
-      </history>
-    </aggregation>
-  </metric>
-  <metric name="DetectionTriggeredOnDomContentLoaded" enum="Boolean">
-    <summary>
-      Whether PIX code detection was triggered on DOMContentLoaded instead of
-      DidFinishLoad.
-    </summary>
-    <aggregation>
-      <history>
-        <statistics>
-          <enumeration/>
-        </statistics>
-      </history>
-    </aggregation>
-  </metric>
-  <metric name="LatencyInMillis">
-    <summary>
-      The duration (in milliseconds) for how long it took to scan the document
-      for PIX code. It is the time between the browser sending a message to the
-      renderer to trigger PIX code detection and the renderer returning the
-      result of the scan.
-    </summary>
-    <aggregation>
-      <history>
-        <statistics>
-          <quantiles type="std-percentiles"/>
-        </statistics>
-      </history>
-    </aggregation>
-  </metric>
-  <metric name="Result" enum="PixCodeDetectionResult">
-    <summary>
-      Represents the outcome of running PIX code detection on the page. It is
-      used to log whether or not PIX detection was run, and if a valid PIX code
-      was found on the page.
-    </summary>
-    <aggregation>
-      <history>
-        <statistics>
-          <enumeration/>
-        </statistics>
-      </history>
-    </aggregation>
-  </metric>
-</event>
-
 <event name="FamilyLinkUser.BlockedContent">
   <owner>chrome-kids-eng@google.com</owner>
   <summary>
@@ -8476,6 +8423,35 @@ be describing additional metrics about the same event.
   <metric name="Temporary">
     <summary>
       Marks a request for a Temporary FileSystem.
+    </summary>
+  </metric>
+</event>
+
+<event name="FileSystemObserver.Usage">
+  <owner>dslee@chromium.org</owner>
+  <owner>memmott@chromium.org</owner>
+  <summary>
+    Quota usage of FileSystemObserver OS resource, collected when usage changes.
+    Recorded when FileSystemAccessObserverQuotaManager is destroyed.
+  </summary>
+  <metric name="HighWaterMark">
+    <summary>
+      High water mark of OS-specific observer resource usage. The unit used
+      depends on OS. On inotify-based OS (Linux, Android), it is the count of
+      inotify watches. On Mac, it is the count of FSEventsCreate calls. On
+      Windows, it is the number of bytes used for buffer memory. This is rounded
+      down to the nearest exponential bucket, with bucket spacing of 1.1.
+    </summary>
+  </metric>
+  <metric name="HighWaterMarkPercentage">
+    <summary>
+      High water mark of OS-specific observer resource usage over quota limit in
+      percentage, rounded down to the nearest integer.
+    </summary>
+  </metric>
+  <metric name="QuotaExceeded" enum="Boolean">
+    <summary>
+      Whether FileSystemObserver usage change caused quota to be exceeded.
     </summary>
   </metric>
 </event>
@@ -11358,25 +11334,6 @@ be describing additional metrics about the same event.
   </metric>
 </event>
 
-<event name="IOS.IsDefaultBrowser">
-  <owner>rkgibson@chromium.org</owner>
-  <summary>
-    As of iOS14, users will be able to set a default browser other than Safari.
-    When Chrome is the default browser, it will open all URL links, which is
-    likely to change certain stability metrics. Thus, it will be good to filter
-    those metrics by default browser status. This metrics records whether the
-    user was deemed to have set Chrome as the device's default browser. This
-    metric will be logged once per metrics log upload, and if the metric changes
-    mid-report, this just records the state at the very end of the report. Note:
-    this is tied to a source_id that is not going to be emitted.
-  </summary>
-  <metric name="IsDefaultBrowser" enum="Boolean">
-    <summary>
-      True if Chrome is set as default browser.
-    </summary>
-  </metric>
-</event>
-
 <event name="IOS.PageAddedToReadingList">
   <owner>thegreenfrog@chromium.org</owner>
   <summary>
@@ -12689,6 +12646,46 @@ be describing additional metrics about the same event.
         </statistics>
       </history>
     </aggregation>
+  </metric>
+</event>
+
+<event name="Media.EME.CdmMetrics">
+  <owner>vpasupathy@chromium.org</owner>
+  <owner>media-dev@chromium.org</owner>
+  <summary>
+    Metrics reported by the CDM to the browser, collected in an utility process.
+    This metric is reported every time on the destruction of the CdmAdapter
+    object. Some fields of this metric can be left unset if the CDM does not
+    report them.
+  </summary>
+  <metric name="CertificateSerialNumber">
+    <summary>
+      The certificate serial number used by the main url given by the CDM server
+      certificate. Different Key systems will report the serial number in
+      different ways.
+    </summary>
+  </metric>
+  <metric name="DecoderBypassBlockCount">
+    <summary>
+      The number of blocks that can bypass the decoder present in an encrypted
+      playback.
+    </summary>
+  </metric>
+  <metric name="LicenseSdkVersion">
+    <summary>
+      The SDK version of the license server of the URL that communicates with
+      the CDM.
+    </summary>
+  </metric>
+  <metric name="NumberOfOnMessageEvents">
+    <summary>
+      The number of OnMessage events for the CDM.
+    </summary>
+  </metric>
+  <metric name="NumberOfUpdateCalls">
+    <summary>
+      The number of Update events for the CDM
+    </summary>
   </metric>
 </event>
 
@@ -19418,15 +19415,15 @@ be describing additional metrics about the same event.
   <owner>speed-metrics-dev@chromium.org</owner>
   <summary>
     Metrics that are associated with user interactions and recorded when users
-    interact with web pages. Currently we are interested in keyboard, tap, click
-    and drag. A user interaction often encompasses multiple input events. For
-    keyboard interactions, we only care about keydown and keyup. For tap, click
-    and drag, we only measure pointerdown, pointerup and click.
+    interact with web pages. Currently we are interested in keyboard, tap or
+    click. A user interaction often encompasses multiple input events. For
+    keyboard interactions, we only care about keydown and keyup. For tap or
+    click we only measure pointerdown, pointerup and click.
   </summary>
   <metric name="InteractionType" enum="UserInteractionType">
     <summary>
       The type of the user interaction that triggered input event sequence, not
-      the input event type. It can be keyboard, tap, click or drag.
+      the input event type. It can be keyboard, tap, click.
     </summary>
   </metric>
   <metric name="MaxEventDuration">

@@ -14,8 +14,9 @@
 #include "base/ranges/algorithm.h"
 #include "base/strings/strcat.h"
 #include "base/types/cxx23_to_underlying.h"
-#include "components/autofill/core/browser/browser_autofill_manager.h"
+#include "components/autofill/core/browser/data_manager/payments/payments_data_manager.h"
 #include "components/autofill/core/browser/form_import/form_data_importer.h"
+#include "components/autofill/core/browser/foundations/browser_autofill_manager.h"
 #include "components/autofill/core/browser/logging/log_manager.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics_utils.h"
 #include "components/autofill/core/browser/metrics/form_events/form_events.h"
@@ -25,7 +26,6 @@
 #include "components/autofill/core/browser/payments/autofill_offer_manager.h"
 #include "components/autofill/core/browser/payments/credit_card_access_manager.h"
 #include "components/autofill/core/browser/payments/payments_autofill_client.h"
-#include "components/autofill/core/browser/payments_data_manager.h"
 #include "components/autofill/core/common/autofill_internals/log_message.h"
 #include "components/autofill/core/common/autofill_internals/logging_scope.h"
 #include "components/autofill/core/common/autofill_payments_features.h"
@@ -46,10 +46,13 @@ void CreditCardFormEventLogger::OnDidFetchSuggestion(
     const std::vector<Suggestion>& suggestions,
     bool with_offer,
     bool with_cvc,
+    bool with_card_info_retrieval_enrolled,
     bool is_virtual_card_standalone_cvc_field,
     CardMetadataLoggingContext metadata_logging_context) {
   has_eligible_offer_ = with_offer;
   suggestion_contains_card_with_cvc_ = with_cvc;
+  suggestion_contains_card_info_retrieval_enrolled_card_ =
+      with_card_info_retrieval_enrolled;
   is_virtual_card_standalone_cvc_field_ = is_virtual_card_standalone_cvc_field;
   metadata_logging_context_ = std::move(metadata_logging_context);
   suggestions_.clear();
@@ -376,6 +379,10 @@ void CreditCardFormEventLogger::OnDidFillFormFillingSuggestion(
       }
     }
   }
+
+  FieldType field_type = field.Type().GetStorableType();
+  field_types_with_shown_suggestions_.erase(field_type);
+  field_types_with_accepted_suggestions_.insert(field_type);
 
   if (!has_logged_form_filling_suggestion_filled_) {
     has_logged_form_filling_suggestion_filled_ = true;

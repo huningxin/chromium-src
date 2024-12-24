@@ -12,13 +12,13 @@
 #include "chrome/browser/ui/views/payments/payment_request_browsertest_base.h"
 #include "chrome/browser/ui/views/payments/payment_request_dialog_view_ids.h"
 #include "chrome/browser/ui/views/payments/validating_textfield.h"
-#include "components/autofill/core/browser/address_data_manager.h"
-#include "components/autofill/core/browser/autofill_test_utils.h"
 #include "components/autofill/core/browser/country_type.h"
+#include "components/autofill/core/browser/data_manager/addresses/address_data_manager.h"
+#include "components/autofill/core/browser/data_manager/personal_data_manager.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/geo/autofill_country.h"
 #include "components/autofill/core/browser/geo/test_region_data_loader.h"
-#include "components/autofill/core/browser/personal_data_manager.h"
+#include "components/autofill/core/browser/test_utils/autofill_test_utils.h"
 #include "components/autofill/core/browser/ui/country_combobox_model.h"
 #include "components/autofill/core/browser/ui/region_combobox_model.h"
 #include "components/payments/content/payment_request_spec.h"
@@ -109,10 +109,12 @@ class DISABLED_PaymentRequestShippingAddressEditorTest
     ValidatingTextfield* textfield =
         static_cast<ValidatingTextfield*>(dialog_view()->GetViewByID(
             EditorViewController::GetInputFieldViewId(type)));
-    if (!textfield)
+    if (!textfield) {
       return false;
-    if (textfield_text)
+    }
+    if (textfield_text) {
       *textfield_text = textfield->GetText();
+    }
     return true;
   }
 
@@ -157,8 +159,9 @@ class DISABLED_PaymentRequestShippingAddressEditorTest
       if (!accept_empty_phone_number) {
         EXPECT_EQ(u"+1 575-555-5555", textfield_text);
       } else if (textfield_text.empty()) {
-        if (unset_types)
+        if (unset_types) {
           unset_types->insert(autofill::PHONE_HOME_WHOLE_NUMBER);
+        }
       }
     } else if (unset_types) {
       unset_types->insert(autofill::PHONE_HOME_WHOLE_NUMBER);
@@ -190,8 +193,9 @@ class DISABLED_PaymentRequestShippingAddressEditorTest
             country_combobox->GetModel());
     size_t i = 0;
     for (; i < country_model->GetItemCount(); i++) {
-      if (country_model->GetItemAt(i) == country_name)
+      if (country_model->GetItemAt(i) == country_name) {
         break;
+      }
     }
     country_combobox->SetSelectedRow(i);
     country_combobox->OnBlur();

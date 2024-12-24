@@ -195,6 +195,7 @@
 #include "chrome/browser/ui/web_applications/navigation_capturing_redirection_throttle.h"
 #include "chrome/browser/ui/webid/identity_dialog_controller.h"
 #include "chrome/browser/ui/webui/chrome_web_ui_controller_factory.h"
+#include "chrome/browser/ui/webui/internal_debug_pages_disabled/internal_debug_pages_disabled_ui.h"
 #include "chrome/browser/ui/webui/log_web_ui_url.h"
 #include "chrome/browser/ui/webui/top_chrome/webui_url_utils.h"
 #include "chrome/browser/universal_web_contents_observers.h"
@@ -285,7 +286,6 @@
 #include "components/payments/content/payment_handler_navigation_throttle.h"
 #include "components/payments/content/payment_request_display_manager.h"
 #include "components/pdf/common/pdf_util.h"
-#include "components/performance_manager/embedder/performance_manager_registry.h"
 #include "components/permissions/permission_context_base.h"
 #include "components/policy/content/policy_blocklist_navigation_throttle.h"
 #include "components/policy/content/policy_blocklist_service.h"
@@ -307,6 +307,7 @@
 #include "components/safe_browsing/core/browser/hashprefix_realtime/hash_realtime_service.h"
 #include "components/safe_browsing/core/browser/realtime/policy_engine.h"
 #include "components/safe_browsing/core/browser/realtime/url_lookup_service.h"
+#include "components/safe_browsing/core/browser/referring_app_info.h"
 #include "components/safe_browsing/core/browser/url_checker_delegate.h"
 #include "components/safe_browsing/core/common/features.h"
 #include "components/safe_browsing/core/common/hashprefix_realtime/hash_realtime_utils.h"
@@ -520,6 +521,7 @@
 #include "chrome/browser/digital_credentials/digital_identity_provider_android.h"
 #include "chrome/browser/download/android/intercept_oma_download_navigation_throttle.h"
 #include "chrome/browser/flags/android/chrome_feature_list.h"
+#include "chrome/browser/safe_browsing/android/safe_browsing_referring_app_bridge_android.h"
 #include "chrome/browser/ui/android/tab_model/tab_model_list.h"
 #include "chrome/common/chrome_descriptors.h"
 #include "components/browser_ui/accessibility/android/font_size_prefs_android.h"
@@ -1322,13 +1324,6 @@ void MaybeAddCondition(
     conditions->push_back(std::move(maybe_condition));
 }
 #endif
-
-void MaybeAddThrottles(
-    std::vector<std::unique_ptr<content::NavigationThrottle>> additional,
-    std::vector<std::unique_ptr<content::NavigationThrottle>>* combined) {
-  combined->insert(combined->end(), std::make_move_iterator(additional.begin()),
-                   std::make_move_iterator(additional.end()));
-}
 
 // Returns whether |web_contents| is within a hosted app.
 bool IsInHostedApp(WebContents* web_contents) {
@@ -2213,11 +2208,6 @@ void ChromeContentBrowserClient::OverrideURLLoaderFactoryParams(
     const url::Origin& origin,
     bool is_for_isolated_world,
     network::mojom::URLLoaderFactoryParams* factory_params) {
-#if BUILDFLAG(IS_ANDROID)
-  // Loading state text isn't used on Android, only in desktop UI.
-  factory_params->provide_loading_state_updates = false;
-#endif
-
 #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
   if (ChromeContentBrowserClientExtensionsPart::AreExtensionsDisabledForProfile(
           browser_context)) {
@@ -2261,8 +2251,9 @@ ChromeContentBrowserClient::DetermineAddressSpaceFromURL(const GURL& url) {
   return network::mojom::IPAddressSpace::kUnknown;
 }
 
-bool ChromeContentBrowserClient::LogWebUIUrl(const GURL& web_ui_url) {
-  return webui::LogWebUIUrl(web_ui_url);
+void ChromeContentBrowserClient::LogWebUIUsage(
+    std::variant<content::WebUI*, GURL> webui_variant) {
+  webui::LogWebUIUsage(webui_variant);
 }
 
 bool ChromeContentBrowserClient::IsWebUIAllowedToMakeNetworkRequests(
@@ -5355,6 +5346,12 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
   }
 #endif
 
+#if BUILDFLAG(ENABLE_GUEST_VIEW)
+  MaybeAddThrottle(
+      extensions::WebViewGuest::MaybeCreateNavigationThrottle(handle),
+      &throttles);
+#endif
+
   MaybeAddThrottle(
       SupervisedUserGoogleAuthNavigationThrottle::MaybeCreate(handle),
       &throttles);
@@ -5503,14 +5500,6 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
 #if BUILDFLAG(IS_MAC)
   MaybeAddThrottle(MaybeCreateAuthSessionThrottleFor(handle), &throttles);
 #endif
-
-  auto* performance_manager_registry =
-      performance_manager::PerformanceManagerRegistry::GetInstance();
-  if (performance_manager_registry) {
-    MaybeAddThrottles(
-        performance_manager_registry->CreateThrottlesForNavigation(handle),
-        &throttles);
-  }
 
   if (profile && profile->GetPrefs()) {
     MaybeAddThrottle(
@@ -5907,6 +5896,19 @@ ChromeContentBrowserClient::MaybeCreateSafeBrowsingURLLoaderThrottle(
       wc_getter, is_enterprise_lookup_enabled, is_consumer_lookup_enabled,
       hash_realtime_selection, frame_tree_node_id);
 
+  std::optional<safe_browsing::internal::ReferringAppInfo> referring_app_info =
+      std::nullopt;
+#if BUILDFLAG(IS_ANDROID)
+  if (base::FeatureList::IsEnabled(
+          safe_browsing::kAddReferringAppInfoToProtegoPings)) {
+    WebContents* web_contents = wc_getter.Run();
+    if (web_contents) {
+      referring_app_info =
+          std::make_optional<safe_browsing::internal::ReferringAppInfo>(
+              safe_browsing::GetReferringAppInfo(web_contents));
+    }
+  }
+#endif
   return safe_browsing::BrowserURLLoaderThrottle::Create(
       base::BindRepeating(
           &ChromeContentBrowserClient::GetSafeBrowsingUrlCheckerDelegate,
@@ -5919,7 +5921,8 @@ ChromeContentBrowserClient::MaybeCreateSafeBrowsingURLLoaderThrottle(
       url_lookup_service ? url_lookup_service->GetWeakPtr() : nullptr,
       hash_realtime_service ? hash_realtime_service->GetWeakPtr() : nullptr,
       hash_realtime_selection,
-      async_check_tracker ? async_check_tracker->GetWeakPtr() : nullptr);
+      async_check_tracker ? async_check_tracker->GetWeakPtr() : nullptr,
+      std::move(referring_app_info));
 }
 #endif
 
@@ -8788,3 +8791,20 @@ void ChromeContentBrowserClient::OnTracingServiceStopped() {
   windows_system_tracing_client_.reset();
 }
 #endif  // BUILDFLAG(IS_WIN)
+
+std::unique_ptr<content::WebUIController>
+ChromeContentBrowserClient::OverrideForInternalWebUI(content::WebUI* web_ui,
+                                                     const GURL& url) {
+  if (!base::FeatureList::IsEnabled(features::kInternalOnlyUisPref)) {
+    return nullptr;
+  }
+
+  PrefService* local_state = g_browser_process->local_state();
+  DCHECK(local_state);
+  DCHECK(local_state->FindPreference(prefs::kInternalOnlyUisEnabled));
+  if (local_state->GetBoolean(prefs::kInternalOnlyUisEnabled)) {
+    return nullptr;
+  }
+
+  return std::make_unique<InternalDebugPagesDisabledUI>(web_ui, url.host());
+}

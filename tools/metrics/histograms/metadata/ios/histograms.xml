@@ -1031,8 +1031,8 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="IOS.DefaultBrowserPromo.NonModal.OnScreenTime" units="ms"
-    expires_after="2025-02-05">
-  <owner>sebsg@chromium.org</owner>
+    expires_after="2025-08-05">
+  <owner>rkgibson@google.com</owner>
   <owner>bling-mony-pod@google.com</owner>
   <summary>
     Logs the time on screen for an impression of a non modal promo. iOS only.
@@ -2762,6 +2762,17 @@ the generic promo launch. -->
   </summary>
 </histogram>
 
+<histogram name="IOS.Notifications.SafetyCheck.NotificationsOptInSource"
+    enum="IOSSafetyCheckNotificationsOptInSource" expires_after="2025-09-17">
+  <owner>bwwilliams@google.com</owner>
+  <owner>scottyoder@google.com</owner>
+  <owner>bling-get-set-up@google.com</owner>
+  <summary>
+    Logs the source where the user opted in or opted out of receiving Safety
+    Check notifications.
+  </summary>
+</histogram>
+
 <histogram name="IOS.Notifications.SafetyCheck.Requested"
     enum="IOSSafetyCheckNotificationType" expires_after="2025-09-17">
   <owner>bwwilliams@google.com</owner>
@@ -3290,7 +3301,7 @@ the generic promo launch. -->
 </histogram>
 
 <histogram name="IOS.OverflowMenu.TimeOpen.DestinationChosen" units="ms"
-    expires_after="2025-01-05">
+    expires_after="2025-05-11">
   <owner>rkgibson@google.com</owner>
   <owner>bling-mony-pod@google.com</owner>
   <summary>
@@ -3429,6 +3440,18 @@ the generic promo launch. -->
   <summary>The length of the selection received from javascript.</summary>
 </histogram>
 
+<histogram name="IOS.PasswordBottomSheet.Activated" enum="Boolean"
+    expires_after="2025-05-11">
+  <owner>vincb@google.com</owner>
+  <owner>tmartino@google.com</owner>
+  <owner>bling-transactions@google.com</owner>
+  <summary>
+    Tracks whether the password suggestion bottom sheet is activated. Recorded
+    when a password form is parsed with available credentials, which corresponds
+    to the moment where the bottom sheet listeners are attached.
+  </summary>
+</histogram>
+
 <histogram name="IOS.PasswordBottomSheet.ExitReason"
     enum="PasswordSuggestionBottomSheetExitReason" expires_after="2025-05-11">
   <owner>sugoi@chromium.org</owner>
@@ -3497,6 +3520,47 @@ the generic promo launch. -->
   <owner>tmartino@chromium.org</owner>
   <summary>
     Tracks the bottom sheet dismissal or use of a payments suggestion.
+  </summary>
+</histogram>
+
+<histogram name="IOS.PaymentsBottomSheet.TimeToSelection" units="ms"
+    expires_after="2025-04-20">
+  <owner>vincb@google.com</owner>
+  <owner>noemies@google.com</owner>
+  <owner>bling-transactions@google.com</owner>
+  <summary>
+    Records the elasped time between displaying the sheet and selecting a credit
+    card. Recorded when the credit is selected by the user (when they did tap on
+    it).
+  </summary>
+</histogram>
+
+<histogram name="IOS.PaymentsBottomSheetV3.TimeToTrigger.{Outcome}" units="ms"
+    expires_after="2025-04-20">
+  <owner>vincb@google.com</owner>
+  <owner>noemies@google.com</owner>
+  <owner>bling-transactions@google.com</owner>
+  <summary>
+    Records the elapsed time between receiving the signal to trigger the bottom
+    sheet V3 and actually making a decision on triggering the sheet, split by
+    {Outcome}. Recorded when making the decision to trigger the sheet.
+  </summary>
+  <token key="Outcome">
+    <variant name="NotTriggered" summary="The sheet was not triggered."/>
+    <variant name="Triggered" summary="The sheet was actually triggered."/>
+  </token>
+</histogram>
+
+<histogram name="IOS.PaymentsBottomSheetV3.Triggered" enum="Boolean"
+    expires_after="2025-04-20">
+  <owner>vincb@google.com</owner>
+  <owner>noemies@google.com</owner>
+  <owner>bling-transactions@google.com</owner>
+  <summary>
+    Records the outcome of attempting to trigger the bottom sheet V3 as a
+    boolean, true if it triggered or false if it didn't. Recorded when the
+    decision is made on triggering the sheet which corresponds to when the
+    activation signal is received from the sheet's form activity listeners.
   </summary>
 </histogram>
 

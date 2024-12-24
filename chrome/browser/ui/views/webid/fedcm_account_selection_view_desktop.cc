@@ -70,6 +70,9 @@ FedCmAccountSelectionView::FedCmAccountSelectionView(
                           weak_ptr_factory_.GetWeakPtr())));
   tab_subscriptions_.push_back(tab_->RegisterWillDetach(base::BindRepeating(
       &FedCmAccountSelectionView::WillDetach, weak_ptr_factory_.GetWeakPtr())));
+  tab_subscriptions_.push_back(tab_->RegisterModalUIChanged(
+      base::BindRepeating(&FedCmAccountSelectionView::ModalUIChanged,
+                          weak_ptr_factory_.GetWeakPtr())));
 }
 
 FedCmAccountSelectionView::~FedCmAccountSelectionView() {
@@ -94,6 +97,7 @@ void FedCmAccountSelectionView::ShowDialogWidget() {
   }
 
   input_protector_->VisibilityChanged(true);
+  GetDialogWidget()->widget_delegate()->SetCanActivate(true);
   GetDialogWidget()->Show();
   if (dialog_type_ == DialogType::MODAL) {
     scoped_ignore_input_events_ =
@@ -120,7 +124,6 @@ void FedCmAccountSelectionView::ShowDialogWidget() {
   }
 #endif  // IS_MAC
 
-  GetDialogWidget()->widget_delegate()->SetCanActivate(true);
   if (accounts_widget_shown_callback_) {
     std::move(accounts_widget_shown_callback_).Run();
   }
@@ -443,8 +446,8 @@ bool FedCmAccountSelectionView::ShowErrorDialog(
                         rp_context, rp_mode, has_modal_support);
   }
 
-  account_selection_view_->ShowErrorDialog(
-      base::UTF8ToUTF16(idp_etld_plus_one), idp_metadata, error);
+  account_selection_view_->ShowErrorDialog(base::UTF8ToUTF16(idp_etld_plus_one),
+                                           idp_metadata, error);
   UpdateDialogVisibilityAndPosition();
   return true;
 }
@@ -830,19 +833,12 @@ void FedCmAccountSelectionView::UpdateDialogPosition() {
         static_cast<AccountSelectionBubbleView*>(account_selection_view_);
     GetDialogWidget()->SetBounds(bubble->GetBubbleBounds());
   } else {
-    auto* modal =
-        static_cast<AccountSelectionModalView*>(account_selection_view_);
-
     constrained_window::UpdateWebContentsModalDialogPosition(
         GetDialogWidget(),
         web_modal::WebContentsModalDialogManager::FromWebContents(
             account_selection_view_->web_contents())
             ->delegate()
             ->GetWebContentsModalDialogHost());
-
-    if (accessibility_state_utils::IsScreenReaderEnabled()) {
-      modal->GetInitiallyFocusedView()->RequestFocus();
-    }
   }
 }
 
@@ -863,6 +859,10 @@ void FedCmAccountSelectionView::WillDiscardContents(
   tab_ = nullptr;
   tab_subscriptions_.clear();
   Close(/*notify_delegate=*/true);
+}
+
+void FedCmAccountSelectionView::ModalUIChanged(tabs::TabInterface* tab) {
+  UpdateDialogVisibilityAndPosition();
 }
 
 void FedCmAccountSelectionView::WillDetach(
@@ -1072,6 +1072,10 @@ void FedCmAccountSelectionView::TabForegrounded(tabs::TabInterface* tab) {
 
 void FedCmAccountSelectionView::TabWillEnterBackground(
     tabs::TabInterface* tab) {
+  // The reason this does not use UpdateDialogVisibilityAndPosition() is because
+  // the tab has not yet entered the background, and so tab->IsInForeground()
+  // returns true. If it's important to simplify this then we should add
+  // TabInterface::RegisterDidEnterBackground().
   if (GetDialogWidget()) {
     HideDialogWidget();
   }
@@ -1219,6 +1223,11 @@ void FedCmAccountSelectionView::UpdateDialogVisibilityAndPosition() {
 
     // Or if we want to hide until Show*() is called.
     if (hide_dialog_widget_after_idp_login_popup_) {
+      should_show_dialog = false;
+    }
+
+    // Or if a tab modal UI is showing (which means we can't show a new modal).
+    if (!tab_->CanShowModalUI()) {
       should_show_dialog = false;
     }
   }

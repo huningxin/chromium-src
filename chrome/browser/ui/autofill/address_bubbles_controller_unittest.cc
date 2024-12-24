@@ -13,12 +13,12 @@
 #include "chrome/browser/autofill/ui/ui_util.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"
-#include "chrome/test/base/browser_with_test_window_test.h"
-#include "components/autofill/core/browser/autofill_address_util.h"
-#include "components/autofill/core/browser/autofill_client.h"
-#include "components/autofill/core/browser/autofill_test_utils.h"
+#include "chrome/browser/ui/views/frame/test_with_browser_view.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/field_types.h"
+#include "components/autofill/core/browser/foundations/autofill_client.h"
+#include "components/autofill/core/browser/test_utils/autofill_test_utils.h"
+#include "components/autofill/core/browser/ui/addresses/autofill_address_util.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/strings/grit/components_strings.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -29,18 +29,18 @@ namespace autofill {
 using ::testing::Property;
 using profile_ref = base::optional_ref<const AutofillProfile>;
 
-class AddressBubblesControllerTest
-    : public BrowserWithTestWindowTest {
+// TODO(crbug.com/384547121): Unit test shouldn't use BrowserWithTestWindowTest
+// or TestWithBrowserView.
+class AddressBubblesControllerTest : public TestWithBrowserView {
  public:
   AddressBubblesControllerTest() = default;
   void SetUp() override {
-    BrowserWithTestWindowTest::SetUp();
+    TestWithBrowserView::SetUp();
     AddTab(browser(), GURL("about:blank"));
   }
 
   AddressBubblesController* controller() {
-    return AddressBubblesController::FromWebContents(
-        web_contents());
+    return AddressBubblesController::FromWebContents(web_contents());
   }
 
  protected:
@@ -53,8 +53,7 @@ class AddressBubblesControllerTest
   }
 };
 
-TEST_F(AddressBubblesControllerTest,
-       DialogAcceptedInvokesCallback) {
+TEST_F(AddressBubblesControllerTest, DialogAcceptedInvokesCallback) {
   AutofillProfile profile = test::GetFullProfile();
   base::MockCallback<AutofillClient::AddressProfileSavePromptCallback> callback;
   AddressBubblesController::SetUpAndShowSaveOrUpdateAddressBubble(
@@ -68,8 +67,7 @@ TEST_F(AddressBubblesControllerTest,
       AutofillClient::AddressPromptUserDecision::kAccepted, std::nullopt);
 }
 
-TEST_F(AddressBubblesControllerTest,
-       DialogCancelledInvokesCallback) {
+TEST_F(AddressBubblesControllerTest, DialogCancelledInvokesCallback) {
   AutofillProfile profile = test::GetFullProfile();
   base::MockCallback<AutofillClient::AddressProfileSavePromptCallback> callback;
   AddressBubblesController::SetUpAndShowSaveOrUpdateAddressBubble(
@@ -86,8 +84,7 @@ TEST_F(AddressBubblesControllerTest,
 // This is testing that closing all tabs (which effectively destroys the web
 // contents) will trigger the save callback with kIgnored decions if the users
 // hasn't interacted with the prompt already.
-TEST_F(AddressBubblesControllerTest,
-       WebContentsDestroyedInvokesCallback) {
+TEST_F(AddressBubblesControllerTest, WebContentsDestroyedInvokesCallback) {
   AutofillProfile profile = test::GetFullProfile();
   base::MockCallback<AutofillClient::AddressProfileSavePromptCallback> callback;
   AddressBubblesController::SetUpAndShowSaveOrUpdateAddressBubble(

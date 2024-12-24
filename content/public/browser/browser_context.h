@@ -205,7 +205,7 @@ class CONTENT_EXPORT BrowserContext : public base::SupportsUserData {
   void StartBrowserPrefetchRequest(
       const GURL& url,
       bool javascript_enabled,
-      std::optional<net::HttpNoVarySearchData> no_vary_search_expected,
+      std::optional<net::HttpNoVarySearchData> no_vary_search_hint,
       const net::HttpRequestHeaders& additional_headers,
       std::unique_ptr<PrefetchRequestStatusListener> request_status_listener);
 
@@ -466,6 +466,12 @@ class CONTENT_EXPORT BrowserContext : public base::SupportsUserData {
   // Returns the OriginTrialsControllerDelegate associated with the context if
   // any, nullptr otherwise.
   virtual OriginTrialsControllerDelegate* GetOriginTrialsControllerDelegate();
+
+#if BUILDFLAG(IS_ANDROID)
+  // Returns extra request headers to be set when navigation happens for `url`.
+  // This function is designed for the headers provided by WebView.loadUrl().
+  virtual std::string GetExtraHeadersForUrl(const GURL& url);
+#endif  // BUILDFLAG(IS_ANDROID)
 
  private:
   // Please don't add more fields to BrowserContext.

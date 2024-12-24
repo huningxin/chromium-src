@@ -178,11 +178,18 @@ bool ThreadTypeLoggingLevelGreaterOrEqual(HangWatcher::ThreadType thread_type,
 
 }  // namespace
 
-// Determines if the HangWatcher is activated. When false the HangWatcher
-// thread never started.
+// Enables the HangWatcher. When disabled, the HangWatcher thread should not be
+// started. Enabled by default only on platforms where the generated data is
+// used, to avoid unnecessary overhead.
 BASE_FEATURE(kEnableHangWatcher,
              "EnableHangWatcher",
-             FEATURE_ENABLED_BY_DEFAULT);
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_CHROMEOS) || \
+    BUILDFLAG(IS_LINUX)
+             FEATURE_ENABLED_BY_DEFAULT
+#else
+             FEATURE_DISABLED_BY_DEFAULT
+#endif
+);
 
 // Browser process.
 constexpr base::FeatureParam<int> kIOThreadLogLevel{
@@ -765,6 +772,12 @@ void HangWatcher::WatchStateSnapShot::Init(
       hung_counts_per_thread_type[hang_count_index] = 0;
     }
 
+#if BUILDFLAG(ENABLE_BASE_TRACING)
+    const PlatformThreadId thread_id = watch_state.get()->GetThreadID();
+    const auto track = perfetto::Track::FromPointer(
+        this, perfetto::ThreadTrack::ForThread(thread_id));
+#endif
+
     // Only copy hung threads.
     if (deadline <= now) {
       ++hung_counts_per_thread_type[hang_count_index];
@@ -778,12 +791,11 @@ void HangWatcher::WatchStateSnapShot::Init(
       // Emit trace events for monitored threads.
       if (ThreadTypeLoggingLevelGreaterOrEqual(watch_state.get()->thread_type(),
                                                LoggingLevel::kUmaOnly)) {
-        const PlatformThreadId thread_id = watch_state.get()->GetThreadID();
-        const auto track = perfetto::Track::FromPointer(
-            this, perfetto::ThreadTrack::ForThread(thread_id));
-        TRACE_EVENT_BEGIN("latency", "HangWatcher::ThreadHung", track,
-                          deadline);
-        TRACE_EVENT_END("latency", track, now);
+        if (!watch_state.get()->TraceEventStarted()) {
+          TRACE_EVENT_BEGIN("latency", "HangWatcher::ThreadHung", track,
+                            deadline - kMonitoringPeriod, "id", thread_id);
+          watch_state.get()->MarkTraceEventStarted(true);
+        }
       }
 #endif
 
@@ -797,11 +809,18 @@ void HangWatcher::WatchStateSnapShot::Init(
       // the next capture then they'll already be marked and will be included
       // in the capture at that time.
       if (thread_marked && all_threads_marked) {
-        hung_watch_state_copies_.push_back(
-            WatchStateCopy{deadline, watch_state.get()->GetThreadID()});
+        hung_watch_state_copies_.push_back(WatchStateCopy{
+            deadline, watch_state.get()->GetSystemWideThreadID()});
       } else {
         all_threads_marked = false;
       }
+    } else {  // For threads that are not hung.
+#if BUILDFLAG(ENABLE_BASE_TRACING)
+      if (watch_state.get()->TraceEventStarted()) {
+        TRACE_EVENT_END("latency", track, now - kMonitoringPeriod);
+        watch_state.get()->MarkTraceEventStarted(false);
+      }
+#endif
     }
   }
 
@@ -1029,6 +1048,17 @@ void HangWatcher::UnregisterThread() {
   // Thread should be registered to get unregistered.
   CHECK(it != watch_states_.end(), base::NotFatalUntil::M125);
 
+  // If a trace event was started it will never be finished if the thread
+  // unregisters so finish it now.
+#if BUILDFLAG(ENABLE_BASE_TRACING)
+  const internal::HangWatchState& watch_state = *(it->get());
+  if (watch_state.TraceEventStarted()) {
+    const auto track = perfetto::Track::FromPointer(
+        this, perfetto::ThreadTrack::ForThread(watch_state.GetThreadID()));
+    TRACE_EVENT_END("latency", track, base::TimeTicks::Now());
+  }
+#endif
+
   watch_states_.erase(it);
 }
 
@@ -1201,17 +1231,10 @@ uint64_t HangWatchDeadline::SwitchBitsForTesting() {
 
 HangWatchState::HangWatchState(HangWatcher::ThreadType thread_type)
     : resetter_(&hang_watch_state, this, nullptr), thread_type_(thread_type) {
-// TODO(crbug.com/40187449): Remove this once macOS uses system-wide ids.
-// On macOS the thread ids used by CrashPad are not the same as the ones
-// provided by PlatformThread. Make sure to use the same for correct
-// attribution.
 #if BUILDFLAG(IS_MAC)
-  uint64_t thread_id;
-  pthread_threadid_np(pthread_self(), &thread_id);
-  thread_id_ = checked_cast<PlatformThreadId>(thread_id);
-#else
-  thread_id_ = PlatformThread::CurrentId();
+  pthread_threadid_np(pthread_self(), &system_wide_thread_id_);
 #endif
+  thread_id_ = PlatformThread::CurrentId();
 }
 
 HangWatchState::~HangWatchState() {
@@ -1312,6 +1335,23 @@ HangWatchState* HangWatchState::GetHangWatchStateForCurrentThread() {
 
 PlatformThreadId HangWatchState::GetThreadID() const {
   return thread_id_;
+}
+
+uint64_t HangWatchState::GetSystemWideThreadID() const {
+#if BUILDFLAG(IS_MAC)
+  return system_wide_thread_id_;
+#else
+  CHECK(thread_id_ > 0);
+  return static_cast<uint64_t>(thread_id_);
+#endif
+}
+
+bool HangWatchState::TraceEventStarted() const {
+  return trace_event_started_;
+}
+
+void HangWatchState::MarkTraceEventStarted(bool capturing) {
+  trace_event_started_ = capturing;
 }
 
 }  // namespace internal

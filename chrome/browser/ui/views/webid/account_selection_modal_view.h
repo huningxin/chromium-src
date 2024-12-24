@@ -26,6 +26,8 @@ namespace views {
 class BoxLayoutView;
 }  // namespace views
 
+// This view is used for the "active" flow for fedCM. This is only ever shown as
+// a result of user action (e.g. clicking a button).
 class AccountSelectionModalView : public views::DialogDelegateView,
                                   public AccountSelectionViewBase {
   METADATA_HEADER(AccountSelectionModalView, views::DialogDelegateView)
@@ -77,6 +79,7 @@ class AccountSelectionModalView : public views::DialogDelegateView,
 
   // views::DialogDelegateView:
   views::View* GetInitiallyFocusedView() override;
+  void VisibilityChanged(View* starting_from, bool is_visible) override;
 
   std::u16string GetQueuedAnnouncementForTesting();
 
@@ -100,8 +103,7 @@ class AccountSelectionModalView : public views::DialogDelegateView,
       const std::vector<IdentityRequestAccountPtr>& accounts,
       bool should_hover,
       bool show_separator,
-      bool is_single_account_chooser,
-      int additional_row_vertical_padding);
+      bool is_request_permission_dialog);
 
   // Returns a View for an account row that acts as a placeholder.
   std::unique_ptr<views::View> CreatePlaceholderAccountRow();

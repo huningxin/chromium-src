@@ -31,11 +31,6 @@ namespace blink::features {
 // `RuntimeEnabledFeatures)`, they should still be ordered in this section based
 // on the identifier name of the generated feature.
 
-// Enable the Protected Audience's reporting with ad macro API.
-BASE_FEATURE(kAdAuctionReportingWithMacroApi,
-             "AdAuctionReportingWithMacroApi",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Controls the capturing of the Ad-Auction-Signals header, and the maximum
 // allowed Ad-Auction-Signals header value.
 BASE_FEATURE(kAdAuctionSignals,
@@ -156,12 +151,6 @@ BASE_FEATURE(kBFCacheOpenBroadcastChannel,
 BASE_FEATURE(kBackForwardCacheDWCOnJavaScriptExecution,
              "BackForwardCacheDWCOnJavaScriptExecution",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Allows pages with keepalive requests to stay eligible for the back/forward
-// cache. See https://crbug.com/1347101 for more details.
-BASE_FEATURE(kBackForwardCacheWithKeepaliveRequest,
-             "BackForwardCacheWithKeepaliveRequest",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enable background resource fetch in Blink. See https://crbug.com/1379780 for
 // more details.
@@ -691,7 +680,12 @@ BASE_FEATURE(kDevToolsImprovedNetworkError,
 
 BASE_FEATURE(kDirectCompositorThreadIpc,
              "DirectCompositorThreadIpc",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+#if BUILDFLAG(IS_ANDROID)
+             base::FEATURE_ENABLED_BY_DEFAULT
+#else
+             base::FEATURE_DISABLED_BY_DEFAULT
+#endif
+);
 
 BASE_FEATURE(kDisableArrayBufferSizeLimitsForTesting,
              "DisableArrayBufferSizeLimitsForTesting",
@@ -782,21 +776,6 @@ BASE_FEATURE(kEnforceNoopenerOnBlobURLNavigation,
 BASE_FEATURE(kEventTimingIgnorePresentationTimeFromUnexpectedFrameSource,
              "EventTimingIgnorePresentationTimeFromUnexpectedFrameSource",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Controls whether LCP calculations should exclude low-entropy images. If
-// enabled, then the associated parameter sets the cutoff, expressed as the
-// minimum number of bits of encoded image data used to encode each rendered
-// pixel. Note that this is not just pixels of decoded image data; the rendered
-// size includes any scaling applied by the rendering engine to display the
-// content.
-BASE_FEATURE(kExcludeLowEntropyImagesFromLCP,
-             "ExcludeLowEntropyImagesFromLCP",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-BASE_FEATURE_PARAM(double,
-                   kMinimumEntropyForLCP,
-                   &kExcludeLowEntropyImagesFromLCP,
-                   "min_bpp",
-                   0.05);
 
 BASE_FEATURE(kExemptSpeculationRulesHeaderFromCSP,
              "ExemptSpeculationRulesHeaderFromCSP",
@@ -927,14 +906,6 @@ BASE_FEATURE(kFledgeConsiderKAnonymity,
 BASE_FEATURE(kFledgeEnforceKAnonymity,
              "FledgeEnforceKAnonymity",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-BASE_FEATURE(kFledgePassKAnonStatusToReportWin,
-             "FledgePassKAnonStatusToReportWin",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-BASE_FEATURE(kFledgePassRecencyToGenerateBid,
-             "FledgePassRecencyToGenerateBid",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kFledgeSampleDebugReports,
              "FledgeSampleDebugReports",
@@ -2135,9 +2106,7 @@ BASE_FEATURE_PARAM(bool,
                    false);
 #endif
 
-// Enables the Private Aggregation API. Note that this API also requires the
-// `kPrivacySandboxAggregationService` to be enabled to successfully send
-// reports.
+// Enables the Private Aggregation API.
 BASE_FEATURE(kPrivateAggregationApi,
              "PrivateAggregationApi",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -2266,10 +2235,6 @@ BASE_FEATURE(kReleaseResourceDecodedDataOnMemoryPressure,
              "ReleaseResourceDecodedDataOnMemoryPressure",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kRemoveAuthroizationOnCrossOriginRedirect,
-             "RemoveAutorizationOnCrossOriginRedirect",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kRenderBlockingFonts,
              "RenderBlockingFonts",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -2318,12 +2283,6 @@ BASE_FEATURE(kSafelistFTPToRegisterProtocolHandler,
 // https://html.spec.whatwg.org/multipage/system-state.html#safelisted-scheme
 BASE_FEATURE(kSafelistPaytoToRegisterProtocolHandler,
              "SafelistPaytoToRegisterProtocolHandler",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// A feature to enable using the smallest image specified within image srcset
-// for users with Save Data enabled.
-BASE_FEATURE(kSaveDataImgSrcset,
-             "SaveDataImgSrcset",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kPausePagesPerBrowsingContextGroup,
@@ -2585,10 +2544,6 @@ BASE_FEATURE(kStreamlineRendererInit,
 
 BASE_FEATURE(kSubSampleWindowProxyUsageMetrics,
              "SubSampleWindowProxyUsageMetrics",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-BASE_FEATURE(kStylusPointerAdjustment,
-             "StylusPointerAdjustment",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kStylusRichGestures,
@@ -2759,6 +2714,12 @@ BASE_FEATURE(kWebAppManifestLockScreen,
              "WebAppManifestLockScreen",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Allow denormals in AudioWorklet and ScriptProcessorNode, to enable strict
+// JavaScript denormal compliance.  See https://crbug.com/382005099.
+BASE_FEATURE(kWebAudioAllowDenormalInProcessing,
+             "WebAudioAllowDenormalInProcessing",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Parameters can be used to control to which latency hints the feature is
 // applied.
 BASE_FEATURE_PARAM(bool,
@@ -2824,10 +2785,6 @@ BASE_FEATURE(kWebRtcIgnoreUnspecifiedColorSpace,
              "WebRtcIgnoreUnspecifiedColorSpace",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kWebRtcThreadsUseResourceEfficientType,
-             "WebRtcThreadsUseResourceEfficientType",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Instructs WebRTC to honor the Min/Max Video Encode Accelerator dimensions.
 BASE_FEATURE(kWebRtcUseMinMaxVEADimensions,
              "WebRtcUseMinMaxVEADimensions",
@@ -2841,6 +2798,11 @@ BASE_FEATURE(kWebRtcUseMinMaxVEADimensions,
 
 // Allow access to WebSQL APIs.
 BASE_FEATURE(kWebSQLAccess, "kWebSQLAccess", base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Allow access to WebSQL on Android WebView.
+BASE_FEATURE(kWebSQLWebViewAccess,
+             "kWebSQLWebViewAccess",
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Kill switch for https://crbug.com/338955051.
 BASE_FEATURE(kWebUSBTransferSizeLimit,

@@ -69,7 +69,6 @@
 #include "base/trace_event/typed_macros.h"
 #include "base/tracing/protos/chrome_track_event.pbzero.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "cc/base/switches.h"
 #include "components/metrics/histogram_controller.h"
 #include "components/metrics/single_sample_metrics.h"
@@ -333,8 +332,9 @@ const char kExtensionProcess[] = "extension-process";
 #endif
 
 // the global list of all renderer processes
-base::IDMap<RenderProcessHost*>& GetAllHosts() {
-  static base::NoDestructor<base::IDMap<RenderProcessHost*>> s_all_hosts;
+base::IDMap<RenderProcessHost*, ChildProcessId>& GetAllHosts() {
+  static base::NoDestructor<base::IDMap<RenderProcessHost*, ChildProcessId>>
+      s_all_hosts;
   return *s_all_hosts;
 }
 
@@ -675,8 +675,8 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
   }
 
   void IncrementSiteProcessCount(const SiteInfo& site_info,
-                                 int render_process_host_id) {
-    std::map<ProcessID, Count>& counts_per_process = map_[site_info];
+                                 ChildProcessId render_process_host_id) {
+    ChildProcessIdCountMap& counts_per_process = map_[site_info];
     ++counts_per_process[render_process_host_id];
 
 #ifndef NDEBUG
@@ -689,10 +689,10 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
   }
 
   void DecrementSiteProcessCount(const SiteInfo& site_info,
-                                 int render_process_host_id) {
+                                 ChildProcessId render_process_host_id) {
     auto result = map_.find(site_info);
     CHECK(result != map_.end(), base::NotFatalUntil::M130);
-    std::map<ProcessID, Count>& counts_per_process = result->second;
+    ChildProcessIdCountMap& counts_per_process = result->second;
 
     --counts_per_process[render_process_host_id];
     DCHECK_GE(counts_per_process[render_process_host_id], 0);
@@ -713,7 +713,7 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
     if (result == map_.end())
       return;
 
-    std::map<ProcessID, Count>& counts_per_process = result->second;
+    ChildProcessIdCountMap& counts_per_process = result->second;
     for (auto iter : counts_per_process) {
       auto* host = RenderProcessHost::FromID(iter.first);
       if (!host) {
@@ -768,7 +768,7 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
       // "about:" in that case.  This looks like a bug that needs to be fixed!
       if (!SiteInstance::ShouldAssignSiteForURL(iter.first.site_url()) &&
           !iter.first.site_url().IsAboutBlank() &&
-          base::Contains(iter.second, host->GetDeprecatedID())) {
+          base::Contains(iter.second, host->GetID())) {
         return true;
       }
     }
@@ -776,9 +776,9 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
   }
 
   // Removes |render_process_host_id| from all sites in |map_|.
-  void ClearProcessForAllSites(int render_process_host_id) {
+  void ClearProcessForAllSites(ChildProcessId render_process_host_id) {
     for (auto iter = map_.begin(); iter != map_.end();) {
-      std::map<ProcessID, Count>& counts_per_process = iter->second;
+      ChildProcessIdCountMap& counts_per_process = iter->second;
       counts_per_process.erase(render_process_host_id);
       // If the site is mapped to no more processes, remove it.
       iter = counts_per_process.empty() ? map_.erase(iter) : ++iter;
@@ -797,7 +797,7 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
 
       bool is_locked_to_site = host->GetProcessLock().is_locked_to_site();
       output += base::StringPrintf("\tProcess Host ID %d (PID %s, %s):\n",
-                                   host_info.first,
+                                   host_info.first.GetUnsafeValue(),
                                    GetRendererPidAsString(host).c_str(),
                                    is_locked_to_site ? "locked" : "not locked");
 
@@ -811,7 +811,8 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
 
   // Returns true if |site_info| is present in |map_| and has
   // |render_process_host_id| in its map of processes that it is hosted by.
-  bool Contains(const SiteInfo& site_info, int render_process_host_id) {
+  bool Contains(const SiteInfo& site_info,
+                ChildProcessId render_process_host_id) {
     auto site_info_found = map_.find(site_info);
     if (site_info_found == map_.end())
       return false;
@@ -821,7 +822,7 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
   }
 
   // Returns true if |render_process_host_id| is present for any site in |map_|.
-  bool ContainsHost(int render_process_host_id) {
+  bool ContainsHost(ChildProcessId render_process_host_id) {
     for (auto iter : map_) {
       const auto& counts_per_process = iter.second;
       if (counts_per_process.find(render_process_host_id) !=
@@ -833,9 +834,10 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
   }
 
  private:
-  using ProcessID = int;
   using Count = int;
-  using HostIdToSiteMap = base::flat_map<ProcessID, std::vector<std::string>>;
+  using HostIdToSiteMap =
+      base::flat_map<ChildProcessId, std::vector<std::string>>;
+  using ChildProcessIdCountMap = std::map<ChildProcessId, Count>;
 
   // Creates a new mapping of the ProcessID to sites and their count based on
   // the current map_.
@@ -847,14 +849,14 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
     rph_to_sites_map.reserve(RenderProcessHostImpl::GetProcessCount());
     for (auto iter(RenderProcessHost::AllHostsIterator()); !iter.IsAtEnd();
          iter.Advance()) {
-      rph_to_sites_map[iter.GetCurrentValue()->GetDeprecatedID()];
+      rph_to_sites_map[iter.GetCurrentValue()->GetID()];
     }
 
     for (auto iter : map_) {
       std::string site = iter.first.GetDebugString();
-      std::map<ProcessID, Count>& counts_per_process = iter.second;
+      ChildProcessIdCountMap& counts_per_process = iter.second;
       for (auto iter_process : counts_per_process) {
-        ProcessID id = iter_process.first;
+        ChildProcessId id = iter_process.first;
         Count count = iter_process.second;
 
         rph_to_sites_map[id].push_back(
@@ -877,9 +879,9 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
   // map after they've been destroyed.
   bool HasProcess(RenderProcessHost* process) {
     for (auto iter : map_) {
-      std::map<ProcessID, Count>& counts_per_process = iter.second;
+      ChildProcessIdCountMap& counts_per_process = iter.second;
       for (auto iter_process : counts_per_process) {
-        if (iter_process.first == process->GetDeprecatedID()) {
+        if (iter_process.first == process->GetID()) {
           return true;
         }
       }
@@ -888,8 +890,7 @@ class SiteProcessCountTracker : public base::SupportsUserData::Data,
   }
 #endif
 
-  using CountPerProcessPerSiteMap =
-      std::map<SiteInfo, std::map<ProcessID, Count>>;
+  using CountPerProcessPerSiteMap = std::map<SiteInfo, ChildProcessIdCountMap>;
   CountPerProcessPerSiteMap map_;
 };
 
@@ -976,7 +977,7 @@ class UnmatchedServiceWorkerProcessTracker
   // Implementation of RenderProcessHostObserver.
   void RenderProcessHostDestroyed(RenderProcessHost* host) override {
     DCHECK(HasProcess(host));
-    int process_id = host->GetDeprecatedID();
+    ChildProcessId process_id = host->GetID();
     for (auto it = site_process_set_.begin(); it != site_process_set_.end();) {
       if (it->second == process_id) {
         it = site_process_set_.erase(it);
@@ -988,16 +989,16 @@ class UnmatchedServiceWorkerProcessTracker
   }
 
  private:
-  using ProcessID = int;
-  using SiteProcessIDPair = std::pair<SiteInfo, ProcessID>;
+  using SiteProcessIDPair = std::pair<SiteInfo, ChildProcessId>;
   using SiteProcessIDPairSet = std::set<SiteProcessIDPair>;
 
   void RegisterProcessForSite(RenderProcessHost* host,
                               SiteInstanceImpl* site_instance) {
     if (!HasProcess(host))
       host->AddObserver(this);
-    site_process_set_.insert(SiteProcessIDPair(site_instance->GetSiteInfo(),
-                                               host->GetDeprecatedID()));
+
+    site_process_set_.insert(
+        SiteProcessIDPair(site_instance->GetSiteInfo(), host->GetID()));
   }
 
   RenderProcessHost* TakeFreshestProcessForSite(
@@ -1048,10 +1049,9 @@ class UnmatchedServiceWorkerProcessTracker
     return std::nullopt;
   }
 
-  // Returns true if this tracker contains the process ID
-  // |host->GetDeprecatedID()|.
+  // Returns true if this tracker contains the process ID |host->GetID()|.
   bool HasProcess(RenderProcessHost* host) const {
-    int process_id = host->GetDeprecatedID();
+    ChildProcessId process_id = host->GetID();
     for (const auto& site_process_id : site_process_set_) {
       if (site_process_id.second == process_id)
         return true;
@@ -1167,11 +1167,6 @@ void InvokeStableVideoDecoderEventCB(
 }
 #endif  // BUILDFLAG(ALLOW_OOP_VIDEO_DECODER)
 
-// Kill-switch for the new CHECKs from https://crrev.com/c/4134809.
-BASE_FEATURE(kCheckNoNewRefCountsWhenRphDeletingSoon,
-             "CheckNoNewRefCountsWhenRphDeletingSoon",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 #if !BUILDFLAG(IS_ANDROID)
 // Enables kUserVisible process priority. Otherwise when feature is disabled,
 // Priority::kUserVisible has same behavior as Priority::kUserBlocking.
@@ -1197,11 +1192,6 @@ enum class BlockedURLReason {
 bool IsUnusedAndTiedToBrowsingInstance(
     RenderProcessHost* host,
     const IsolationContext& isolation_context) {
-  if (!base::FeatureList::IsEnabled(
-          features::kReuseInitialRenderFrameHostForWebUI)) {
-    return false;
-  }
-
   if (!host->IsUnused()) {
     return false;
   }
@@ -1500,7 +1490,7 @@ RenderProcessHostImpl::RenderProcessHostImpl(
                                                      browser_context);
 
   CHECK(!BrowserMainRunner::ExitedMainMessageLoop());
-  RegisterHost(GetDeprecatedID(), this);
+  RegisterHost(GetID(), this);
   GetAllHosts().set_check_on_null_data(true);
   // Initialize |child_process_activity_time_| to a reasonable value.
   mark_child_process_activity_time();
@@ -1604,7 +1594,7 @@ RenderProcessHostImpl::~RenderProcessHostImpl() {
 
   is_dead_ = true;
 
-  UnregisterHost(GetDeprecatedID());
+  UnregisterHost(GetID());
 
   // Remove the cache handles for the client at teardown if relevant.
   if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
@@ -2147,7 +2137,7 @@ void RenderProcessHostImpl::CreateWebSocketConnector(
       std::move(receiver));
 }
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 void RenderProcessHostImpl::ReinitializeLogging(
     uint32_t logging_dest,
     base::ScopedFD log_file_descriptor) {
@@ -2157,7 +2147,7 @@ void RenderProcessHostImpl::ReinitializeLogging(
       mojo::PlatformHandle(std::move(log_file_descriptor));
   child_process_->ReinitializeLogging(std::move(logging_settings));
 }
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 void RenderProcessHostImpl::SetBatterySaverMode(
     bool battery_saver_mode_enabled) {
@@ -2282,8 +2272,8 @@ void RenderProcessHostImpl::DelayProcessShutdown(
         SiteProcessCountTracker::GetInstance(
             GetBrowserContext(),
             content::kDelayedShutdownSiteProcessCountTrackerKey);
-    delayed_shutdown_tracker->IncrementSiteProcessCount(site_info,
-                                                        GetDeprecatedID());
+
+    delayed_shutdown_tracker->IncrementSiteProcessCount(site_info, GetID());
   }
 
   // Don't delay shutdown longer than the maximum delay for renderer process,
@@ -2303,7 +2293,8 @@ bool RenderProcessHostImpl::IsProcessShutdownDelayedForTesting() {
       SiteProcessCountTracker::GetInstance(
           GetBrowserContext(),
           content::kDelayedShutdownSiteProcessCountTrackerKey);
-  return delayed_shutdown_tracker->ContainsHost(GetDeprecatedID());
+
+  return delayed_shutdown_tracker->ContainsHost(GetID());
 }
 
 std::string
@@ -2575,9 +2566,7 @@ base::Process::Priority RenderProcessHostImpl::GetPriority() const {
 void RenderProcessHostImpl::IncrementKeepAliveRefCount(uint64_t handle_id) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   CHECK(!are_ref_counts_disabled_);
-  if (base::FeatureList::IsEnabled(kCheckNoNewRefCountsWhenRphDeletingSoon)) {
-    CHECK(!deleting_soon_);
-  }
+  CHECK(!deleting_soon_);
   CHECK(IsKeepAliveRefCountAllowed());
   ++keep_alive_ref_count_;
   DCHECK(!keep_alive_start_times_.contains(handle_id));
@@ -2608,9 +2597,7 @@ void RenderProcessHostImpl::DecrementKeepAliveRefCount(uint64_t handle_id) {
 void RenderProcessHostImpl::IncrementPendingReuseRefCount() {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   CHECK(!are_ref_counts_disabled_);
-  if (base::FeatureList::IsEnabled(kCheckNoNewRefCountsWhenRphDeletingSoon)) {
-    CHECK(!deleting_soon_);
-  }
+  CHECK(!deleting_soon_);
   ++pending_reuse_ref_count_;
 }
 
@@ -2709,9 +2696,7 @@ void RenderProcessHostImpl::UnregisterRenderFrameHost(
 void RenderProcessHostImpl::IncrementWorkerRefCount() {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   CHECK(!are_ref_counts_disabled_);
-  if (base::FeatureList::IsEnabled(kCheckNoNewRefCountsWhenRphDeletingSoon)) {
-    CHECK(!deleting_soon_);
-  }
+  CHECK(!deleting_soon_);
   ++worker_ref_count_;
 }
 
@@ -2790,9 +2775,7 @@ void RenderProcessHostImpl::AddRoute(int32_t routing_id,
                                   ->set_render_process_host_listener_changed();
                 proto->set_routing_id(routing_id);
               });
-  if (base::FeatureList::IsEnabled(kCheckNoNewRefCountsWhenRphDeletingSoon)) {
-    CHECK(!deleting_soon_);
-  }
+  CHECK(!deleting_soon_);
   CHECK(!listeners_.Lookup(routing_id))
       << "Found Routing ID Conflict: " << routing_id;
   listeners_.AddWithID(listener, routing_id);
@@ -2996,12 +2979,11 @@ void RenderProcessHostImpl::AddFrameWithSite(
 
   SiteProcessCountTracker* tracker = SiteProcessCountTracker::GetInstance(
       browser_context, kCommittedSiteProcessCountTrackerKey);
-  tracker->IncrementSiteProcessCount(site_info,
-                                     render_process_host->GetDeprecatedID());
+  tracker->IncrementSiteProcessCount(site_info, render_process_host->GetID());
 
   MAYBEVLOG(2) << __func__ << "(" << site_info
                << "): Site added to process host "
-               << render_process_host->GetDeprecatedID() << "." << std::endl
+               << render_process_host->GetID() << "." << std::endl
                << GetCurrentHostMapDebugString(tracker);
 }
 
@@ -3015,8 +2997,7 @@ void RenderProcessHostImpl::RemoveFrameWithSite(
 
   SiteProcessCountTracker* tracker = SiteProcessCountTracker::GetInstance(
       browser_context, kCommittedSiteProcessCountTrackerKey);
-  tracker->DecrementSiteProcessCount(site_info,
-                                     render_process_host->GetDeprecatedID());
+  tracker->DecrementSiteProcessCount(site_info, render_process_host->GetID());
 }
 
 // static
@@ -3029,8 +3010,7 @@ void RenderProcessHostImpl::AddExpectedNavigationToSite(
 
   SiteProcessCountTracker* tracker = SiteProcessCountTracker::GetInstance(
       browser_context, kPendingSiteProcessCountTrackerKey);
-  tracker->IncrementSiteProcessCount(site_info,
-                                     render_process_host->GetDeprecatedID());
+  tracker->IncrementSiteProcessCount(site_info, render_process_host->GetID());
 }
 
 // static
@@ -3043,8 +3023,7 @@ void RenderProcessHostImpl::RemoveExpectedNavigationToSite(
 
   SiteProcessCountTracker* tracker = SiteProcessCountTracker::GetInstance(
       browser_context, kPendingSiteProcessCountTrackerKey);
-  tracker->DecrementSiteProcessCount(site_info,
-                                     render_process_host->GetDeprecatedID());
+  tracker->DecrementSiteProcessCount(site_info, render_process_host->GetID());
 }
 
 // static
@@ -3303,8 +3282,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
       switches::kDisableInProcessStackTraces,
       sandbox::policy::switches::kDisableSeccompFilterSandbox,
       sandbox::policy::switches::kNoSandbox,
-#if BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS_ASH) && \
-    !BUILDFLAG(IS_CHROMEOS_LACROS)
+#if BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS)
       switches::kDisableDevShmUsage,
 #endif
 #if BUILDFLAG(IS_MAC)
@@ -3486,11 +3464,6 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
 #if BUILDFLAG(IS_CHROMEOS)
       switches::kSchedulerBoostUrgent,
 #endif
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-      switches::kLacrosEnablePlatformHevc,
-      switches::kLacrosUseChromeosProtectedMedia,
-      switches::kLacrosUseChromeosProtectedAv1,
-#endif
   };
   renderer_cmd->CopySwitchesFrom(browser_cmd, kSwitchNames);
 
@@ -3515,7 +3488,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
   if (browser_cmd.HasSwitch(switches::kDisableGpuCompositing)) {
     renderer_cmd->AppendSwitch(switches::kDisableGpuCompositing);
   }
-#elif !BUILDFLAG(IS_CHROMEOS_ASH)
+#elif !BUILDFLAG(IS_CHROMEOS)
   // If gpu compositing is not being used, tell the renderer at startup. This
   // is inherently racey, as it may change while the renderer is being
   // launched, but the renderer will hear about the correct state eventually.
@@ -3628,7 +3601,8 @@ bool RenderProcessHostImpl::ShutdownRequested() {
 
 bool RenderProcessHostImpl::FastShutdownIfPossible(size_t page_count,
                                                    bool skip_unload_handlers,
-                                                   bool ignore_workers) {
+                                                   bool ignore_workers,
+                                                   bool ignore_keep_alive) {
   base::UmaHistogramBoolean(
       "BrowserRenderProcessHost.FastShutdownIfPossible.Total", true);
   // Do not shut down the process if there are active or pending views other
@@ -3660,7 +3634,7 @@ bool RenderProcessHostImpl::FastShutdownIfPossible(size_t page_count,
   }
 
   // TODO(crbug.com/40236167): Remove this block once the migration is launched.
-  if (keep_alive_ref_count_ != 0) {
+  if (!ignore_keep_alive && keep_alive_ref_count_ != 0) {
     CHECK(IsKeepAliveRefCountAllowed());
     LogDelayReasonForFastShutdown(DelayShutdownReason::kFetchKeepAlive);
     return false;
@@ -4106,7 +4080,7 @@ void RenderProcessHostImpl::Cleanup() {
 
   // Remove ourself from the list of renderer processes so that we can't be
   // reused in between now and when the Delete task runs.
-  UnregisterHost(GetDeprecatedID());
+  UnregisterHost(GetID());
   browser_context_ = nullptr;
   storage_partition_impl_ = nullptr;
 }
@@ -4225,25 +4199,38 @@ bool RenderProcessHostImpl::FastShutdownStarted() {
 
 // static
 void RenderProcessHostImpl::RegisterHost(int host_id, RenderProcessHost* host) {
+  RenderProcessHostImpl::RegisterHost(ChildProcessId(host_id), host);
+}
+
+// static
+void RenderProcessHostImpl::RegisterHost(ChildProcessId host_id,
+                                         RenderProcessHost* host) {
   TRACE_EVENT(
       "shutdown", "RenderProcessHostImpl::RegisterHost",
       [&](perfetto::EventContext ctx) {
+        // TODO(crbug.com/379869738): Refactor to remove GetUnsafeValue.
         ctx.event<ChromeTrackEvent>()->set_render_process_host()->set_id(
-            host_id);
+            host_id.GetUnsafeValue());
       });
   GetAllHosts().AddWithID(host, host_id);
 }
 
 // static
 void RenderProcessHostImpl::UnregisterHost(int host_id) {
+  return UnregisterHost(ChildProcessId(host_id));
+}
+
+// static
+void RenderProcessHostImpl::UnregisterHost(ChildProcessId host_id) {
   RenderProcessHost* host = GetAllHosts().Lookup(host_id);
   if (!host)
     return;
   TRACE_EVENT(
       "shutdown", "RenderProcessHostImpl::UnregisterHost",
       [&](perfetto::EventContext ctx) {
+        // TODO(crbug.com/379869738): Refactor to remove GetUnsafeValue.
         ctx.event<ChromeTrackEvent>()->set_render_process_host()->set_id(
-            host_id);
+            host_id.GetUnsafeValue());
       });
 
   GetAllHosts().Remove(host_id);
@@ -4543,12 +4530,12 @@ RenderProcessHost::iterator RenderProcessHost::AllHostsIterator() {
 // static
 RenderProcessHost* RenderProcessHost::FromID(int render_process_id) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
-  return GetAllHosts().Lookup(render_process_id);
+  return GetAllHosts().Lookup(ChildProcessId(render_process_id));
 }
 
 RenderProcessHost* RenderProcessHost::FromID(ChildProcessId render_process_id) {
   CHECK_CURRENTLY_ON(BrowserThread::UI);
-  return RenderProcessHost::FromID(render_process_id.GetUnsafeValue());
+  return GetAllHosts().Lookup(render_process_id);
 }
 
 // static
@@ -5582,9 +5569,8 @@ void RenderProcessHostImpl::CancelProcessShutdownDelay(
         SiteProcessCountTracker::GetInstance(
             GetBrowserContext(),
             content::kDelayedShutdownSiteProcessCountTrackerKey);
-    if (delayed_shutdown_tracker->Contains(site_info, GetDeprecatedID())) {
-      delayed_shutdown_tracker->DecrementSiteProcessCount(site_info,
-                                                          GetDeprecatedID());
+    if (delayed_shutdown_tracker->Contains(site_info, GetID())) {
+      delayed_shutdown_tracker->DecrementSiteProcessCount(site_info, GetID());
     }
   }
 
@@ -5604,7 +5590,8 @@ void RenderProcessHostImpl::StopTrackingProcessForShutdownDelay() {
       SiteProcessCountTracker::GetInstance(
           GetBrowserContext(),
           content::kDelayedShutdownSiteProcessCountTrackerKey);
-  delayed_shutdown_tracker->ClearProcessForAllSites(GetDeprecatedID());
+
+  delayed_shutdown_tracker->ClearProcessForAllSites(GetID());
 }
 
 void RenderProcessHostImpl::BindTracedProcess(

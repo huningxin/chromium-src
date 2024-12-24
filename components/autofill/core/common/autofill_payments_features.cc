@@ -125,7 +125,11 @@ BASE_FEATURE(kAutofillEnableNewCardArtAndNetworkImages,
 // instead of jumping straight to CVC or biometric auth.
 BASE_FEATURE(kAutofillEnableFpanRiskBasedAuthentication,
              "AutofillEnableFpanRiskBasedAuthentication",
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_ANDROID)
+             base::FEATURE_ENABLED_BY_DEFAULT);
+#else
              base::FEATURE_DISABLED_BY_DEFAULT);
+#endif
 
 // When enabled, the Virtual Card enrollment bottom sheet uses the Java
 // payments data manager and associated image fetcher to retrieve the cached
@@ -305,14 +309,6 @@ const base::FeatureParam<int> kAutofillUploadCardRequestTimeoutMilliseconds{
 BASE_FEATURE(kAutofillUpstream,
              "AutofillUpstream",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// When enabled, shows different text and images in the UI of the credit card
-// upload save bubble.
-BASE_FEATURE(kAutofillUpstreamUpdatedUi,
-             "AutofillUpstreamUpdatedUi",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-const base::FeatureParam<int> kAutofillUpstreamUpdatedUiTreatment{
-    &kAutofillUpstreamUpdatedUi, "autofill_upstream_updated_ui_treatment", 1};
 
 // When enabled, adds a timeout on the network request for VcnEnroll requests.
 BASE_FEATURE(kAutofillVcnEnrollRequestTimeout,

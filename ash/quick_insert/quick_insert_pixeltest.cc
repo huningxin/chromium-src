@@ -6,10 +6,12 @@
 #include <string>
 
 #include "ash/constants/ash_pref_names.h"
+#include "ash/public/cpp/ash_prefs.h"
 #include "ash/quick_insert/metrics/quick_insert_session_metrics.h"
 #include "ash/quick_insert/mock_quick_insert_client.h"
 #include "ash/quick_insert/quick_insert_controller.h"
 #include "ash/quick_insert/views/quick_insert_feature_tour.h"
+#include "ash/session/session_controller_impl.h"
 #include "ash/shell.h"
 #include "ash/test/ash_test_base.h"
 #include "ash/test/pixel/ash_pixel_differ.h"
@@ -52,16 +54,9 @@ class QuickInsertPixelTest : public AshTestBase,
     input_method::InputMethodManager::Initialize(
         new MockInputMethodManagerWithKeyboard);
 
-    QuickInsertController::RegisterProfilePrefs(prefs_.registry());
-    prefs_.registry()->RegisterDictionaryPref(prefs::kEmojiPickerHistory);
-
     CHECK(history_dir_.CreateUniqueTempDir());
     history_service_ =
         history::CreateHistoryService(history_dir_.GetPath(), true);
-
-    ON_CALL(client_, GetPrefs).WillByDefault(Return(&prefs_));
-    ON_CALL(client_, GetHistoryService)
-        .WillByDefault(Return(history_service_.get()));
 
     QuickInsertController::DisableFeatureTourForTesting();
   }
@@ -70,6 +65,9 @@ class QuickInsertPixelTest : public AshTestBase,
 
   void SetUp() override {
     AshTestBase::SetUp();
+
+    ON_CALL(client_, GetHistoryService)
+        .WillByDefault(Return(history_service_.get()));
 
     controller_ = std::make_unique<QuickInsertController>();
     controller_->SetClient(&client_);
@@ -100,7 +98,6 @@ class QuickInsertPixelTest : public AshTestBase,
   QuickInsertController& controller() { return *controller_; }
 
  private:
-  sync_preferences::TestingPrefServiceSyncable prefs_;
   NiceMock<MockQuickInsertClient> client_;
   std::unique_ptr<QuickInsertController> controller_;
   base::ScopedTempDir history_dir_;

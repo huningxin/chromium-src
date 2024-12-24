@@ -62,7 +62,8 @@ class NET_EXPORT SessionServiceImpl : public SessionService {
 
   void RegisterBoundSession(OnAccessCallback on_access_callback,
                             RegistrationFetcherParam registration_params,
-                            const IsolationInfo& isolation_info) override;
+                            const IsolationInfo& isolation_info,
+                            const NetLogWithSource& net_log) override;
 
   std::optional<Session::Id> GetAnySessionRequiringDeferral(
       URLRequest* request) override;
@@ -84,7 +85,7 @@ class NET_EXPORT SessionServiceImpl : public SessionService {
   void DeleteAllSessions(
       std::optional<base::Time> created_after_time,
       std::optional<base::Time> created_before_time,
-      const std::optional<std::vector<net::SchemefulSite>>& including_sites,
+      base::RepeatingCallback<bool(const net::SchemefulSite&)> site_matcher,
       base::OnceClosure completion_callback) override;
   Session* GetSession(const SchemefulSite& site,
                       const Session::Id& session_id) const;
@@ -104,6 +105,7 @@ class NET_EXPORT SessionServiceImpl : public SessionService {
       OnAccessCallback on_access_callback,
       std::optional<RegistrationFetcher::RegistrationCompleteParams> params);
   void OnRefreshRequestCompletion(
+      OnAccessCallback on_access_callback,
       SchemefulSite site,
       Session::Id session_id,
       std::optional<RegistrationFetcher::RegistrationCompleteParams> result);

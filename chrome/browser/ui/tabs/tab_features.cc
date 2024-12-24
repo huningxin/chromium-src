@@ -17,6 +17,7 @@
 #include "chrome/browser/enterprise/data_protection/data_protection_navigation_controller.h"
 #include "chrome/browser/fingerprinting_protection/chrome_fingerprinting_protection_web_contents_helper_factory.h"
 #include "chrome/browser/image_fetcher/image_fetcher_service_factory.h"
+#include "chrome/browser/passage_embeddings/embedder_tab_observer.h"
 #include "chrome/browser/privacy_sandbox/privacy_sandbox_tab_observer.h"
 #include "chrome/browser/privacy_sandbox/tracking_protection_settings_factory.h"
 #include "chrome/browser/profiles/profile.h"
@@ -30,6 +31,8 @@
 #include "chrome/browser/ui/browser_actions.h"
 #include "chrome/browser/ui/commerce/commerce_ui_tab_helper.h"
 #include "chrome/browser/ui/lens/lens_overlay_controller.h"
+#include "chrome/browser/ui/tabs/disconnect_file_chooser_on_background_controller.h"
+#include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/public/tab_dialog_manager.h"
 #include "chrome/browser/ui/tabs/public/tab_interface.h"
 #include "chrome/browser/ui/tabs/saved_tab_groups/collaboration_messaging_tab_data.h"
@@ -155,8 +158,12 @@ void TabFeatures::Init(TabInterface& tab, Profile* profile) {
 
     if (tab_groups::SavedTabGroupUtils::SupportsSharedTabGroups()) {
       collaboration_messaging_tab_data_ =
-          std::make_unique<tab_groups::CollaborationMessagingTabData>();
+          std::make_unique<tab_groups::CollaborationMessagingTabData>(profile);
     }
+
+    embedder_tab_observer_ =
+        std::make_unique<passage_embeddings::EmbedderTabObserver>(
+            tab.GetContents());
   }
 
   customize_chrome_side_panel_controller_ =
@@ -197,6 +204,12 @@ void TabFeatures::Init(TabInterface& tab, Profile* profile) {
           favicon::ContentFaviconDriver::FromWebContents(tab.GetContents()));
 
   task_manager::WebContentsTags::CreateForTabContents(tab.GetContents());
+
+  if (base::FeatureList::IsEnabled(
+          tabs::kDisconnectFileChooserOnTabDeactivateKillSwitch)) {
+    disconnect_file_chooser_on_background_controller_ =
+        std::make_unique<DisconnectFileChooserOnBackgroundController>(tab);
+  }
 }
 
 TabFeatures::TabFeatures() = default;

@@ -16,6 +16,7 @@
 #include "chrome/browser/web_applications/web_app_provider.h"
 #include "chrome/browser/web_applications/web_app_registrar.h"
 #include "chrome/browser/web_applications/web_app_tab_helper.h"
+#include "chrome/browser/web_applications/web_app_utils.h"
 #include "components/services/app_service/public/cpp/preferred_apps_list.h"
 #include "components/webapps/browser/banners/app_banner_manager.h"
 #include "components/webapps/browser/banners/installable_web_app_check_result.h"
@@ -69,7 +70,6 @@ void EmitUkmMetricsForTab(tabs::TabInterface* tab) {
 #else
   interaction.captures_links = registrar.CapturesLinksInScope(*app_id);
 #endif
-
   interaction.promotable = !registrar.IsDiyApp(*app_id);
 
   if (tab->IsInForeground() && browser->IsActive()) {
@@ -191,8 +191,17 @@ void SamplingMetricsProvider::EmitMetrics() {
 
   IdSet emitted_ukm_ids;
   for (BrowserWindowInterface* browser : GetAllBrowserWindowInterfaces()) {
+    if (!AreWebAppsEnabled(browser->GetProfile())) {
+      continue;
+    }
     // If this is a standalone app window.
     if (browser->GetAppBrowserController()) {
+      // A browser may be being closed due to empty tabs. See
+      // https://crbug.com/378020140.
+      if (!browser->GetActiveTabInterface()) {
+        continue;
+      }
+
       ++standalone_pwas_count;
 
       // TODO(https://crbug.com/358404364): This function does not work on macOS
@@ -201,12 +210,6 @@ void SamplingMetricsProvider::EmitMetrics() {
         standalone_pwas_in_active_use = true;
       }
 
-#if BUILDFLAG(IS_CHROMEOS)
-      // TODO(crbug.com/378020140): Clean up once the root cause is
-      // identified.
-      browser->EnsureActiveTab();
-#endif
-      CHECK(browser->GetActiveTabInterface());
       MaybeEmitUkmMetricsForTab(browser->GetActiveTabInterface(),
                                 emitted_ukm_ids);
     }

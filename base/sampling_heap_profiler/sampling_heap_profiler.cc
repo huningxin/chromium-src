@@ -19,7 +19,6 @@
 #include "base/debug/stack_trace.h"
 #include "base/functional/bind.h"
 #include "base/logging.h"
-#include "base/metrics/histogram_functions.h"
 #include "base/no_destructor.h"
 #include "base/notreached.h"
 #include "base/sampling_heap_profiler/lock_free_address_hash_set.h"
@@ -27,8 +26,11 @@
 #include "base/threading/thread_local_storage.h"
 #include "base/trace_event/heap_profiler_allocation_context_tracker.h"  // no-presubmit-check
 #include "build/build_config.h"
-#include "partition_alloc/partition_alloc.h"
 #include "partition_alloc/shim/allocator_shim.h"
+
+#if PA_BUILDFLAG(USE_PARTITION_ALLOC)
+#include "partition_alloc/partition_alloc.h"  // nogncheck
+#endif
 
 #if BUILDFLAG(IS_APPLE)
 #include <pthread.h>
@@ -147,11 +149,6 @@ SamplingHeapProfiler::~SamplingHeapProfiler() {
 
 uint32_t SamplingHeapProfiler::Start() {
   const auto unwinder = ChooseStackUnwinder();
-#if BUILDFLAG(IS_ANDROID)
-  // Record which unwinder is in use on Android, since it's hard to keep track
-  // of which methods are available at runtime.
-  base::UmaHistogramEnumeration("HeapProfiling.AndroidStackUnwinder", unwinder);
-#endif
   if (unwinder == StackUnwinder::kUnavailable) {
     LOG(WARNING) << "Sampling heap profiler: Stack unwinding is not available.";
     return 0;

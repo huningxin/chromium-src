@@ -9,21 +9,20 @@
 
 #import "base/memory/raw_ptr.h"
 #import "base/memory/weak_ptr.h"
+#import "components/saved_tab_groups/public/types.h"
 #import "url/gurl.h"
 
-@class CommandDispatcher;
-class ShareKitService;
 class TabGroup;
 
 namespace collaboration {
 
-// Represents a generic collaboration flow configuration.
+// This class is a generic configuration for a collaboration flow.
 class CollaborationFlowConfiguration {
  public:
   // The type of collaboration flow.
   enum class Type {
-    // Share flow.
-    kShare,
+    // Share or manage flow.
+    kShareOrManage,
     // Join flow.
     kJoin,
   };
@@ -39,15 +38,6 @@ class CollaborationFlowConfiguration {
   // Returns the type of the collaboration flow configuration.
   virtual Type type() const = 0;
 
-  // Returns the ShareKitService associated with the flow configuration.
-  virtual raw_ptr<ShareKitService> share_kit_service() const = 0;
-
-  // Returns the command dispatcher associated with the flow configuration.
-  virtual CommandDispatcher* command_dispatcher() const = 0;
-
-  // Returns the base view controller associated with the flow configuration.
-  virtual UIViewController* base_view_controller() const = 0;
-
   // Casts the dialog to the given type.
   template <typename T>
   const T& As() const {
@@ -57,66 +47,50 @@ class CollaborationFlowConfiguration {
 
  protected:
   CollaborationFlowConfiguration() = default;
+
+ private:
 };
 
-// Represents the share flow configuration.
-class CollaborationFlowConfigurationShare final
+// This class is the configuration for a share or a manage flow.
+class CollaborationFlowConfigurationShareOrManage final
     : public CollaborationFlowConfiguration {
  public:
-  static constexpr Type kType = Type::kShare;
+  static constexpr Type kType = Type::kShareOrManage;
 
-  // Constructs a new CollaborationFlowConfigurationShare object.
-  explicit CollaborationFlowConfigurationShare(
-      ShareKitService* share_kit_service,
-      base::WeakPtr<const TabGroup> tab_group,
-      CommandDispatcher* command_dispatcher,
-      UIViewController* base_view_controller);
-  ~CollaborationFlowConfigurationShare() override;
+  // Constructs a new CollaborationFlowConfigurationShareOrManage object.
+  explicit CollaborationFlowConfigurationShareOrManage(
+      base::WeakPtr<const TabGroup> tab_group);
+  ~CollaborationFlowConfigurationShareOrManage() override;
 
   // CollaborationFlowConfiguration.
   Type type() const final;
-  raw_ptr<ShareKitService> share_kit_service() const override;
-  CommandDispatcher* command_dispatcher() const override;
-  UIViewController* base_view_controller() const override;
 
   // Returns the tab group associated with the flow configuration.
   base::WeakPtr<const TabGroup> tab_group() const { return tab_group_; }
 
  private:
-  raw_ptr<ShareKitService> share_kit_service_;
   base::WeakPtr<const TabGroup> tab_group_;
-  __weak CommandDispatcher* command_dispatcher_;
-  __weak UIViewController* base_view_controller_;
 };
 
-// Represents the join flow configuration.
+// This class is the configuration for a join flow.
 class CollaborationFlowConfigurationJoin final
     : public CollaborationFlowConfiguration {
  public:
   static constexpr Type kType = Type::kJoin;
 
-  // Constructs a new CollaborationFlowConfigurationShare object.
+  // Constructs a new CollaborationFlowConfigurationJoin object.
   explicit CollaborationFlowConfigurationJoin(
-      ShareKitService* share_kit_service,
-      const GURL& url,
-      CommandDispatcher* command_dispatcher,
-      UIViewController* base_view_controller);
+      const GURL& url);
   ~CollaborationFlowConfigurationJoin() override;
 
   // CollaborationFlowConfiguration.
   Type type() const final;
-  raw_ptr<ShareKitService> share_kit_service() const override;
-  CommandDispatcher* command_dispatcher() const override;
-  UIViewController* base_view_controller() const override;
 
   // Returns URL containing the collab ID and the token.
   const GURL& url() const { return url_; }
 
  private:
-  raw_ptr<ShareKitService> share_kit_service_;
   const GURL url_;
-  __weak CommandDispatcher* command_dispatcher_;
-  __weak UIViewController* base_view_controller_;
 };
 
 }  // namespace collaboration

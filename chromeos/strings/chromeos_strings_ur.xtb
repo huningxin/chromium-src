@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">گہری تھیم غیر فعال کریں</translation>
 <translation id="1807246157184219062">روشنی</translation>
 <translation id="1808803439260407870">کلاسک آرٹ</translation>
+<translation id="181434555916624618">ابھی کے لیے، لوگوں کے ساتھ نتائج نہیں دکھائے جائیں گے۔ کوئی اور پرامپٹ آزمائیں۔</translation>
 <translation id="1815850098929213707">منتخب کلید <ph name="KEYS" /> ہے۔ کنٹرول میں ترمیم کرنے کے لیے بٹن پر تھپتھپائیں</translation>
 <translation id="1823120442877418684">حروف</translation>
 <translation id="1827738518074806965">آرٹ گیلری</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">آلے کے دائیں بڈ میں <ph name="BATTERY_PERCENTAGE" />فیصد بیٹری ہے۔</translation>
 <translation id="3340978935015468852">ترتیبات</translation>
 <translation id="3347558044552027859">جدید</translation>
+<translation id="3353477144743332882">خلاصہ اور نام کی تخلیق کا ماڈل ڈاؤن لوڈ کریں</translation>
 <translation id="3359218928534347896">مائیکروفون خاموش کریں بٹن کو ٹوگل کریں</translation>
 <translation id="3360306038446926262">ونڈوز</translation>
 <translation id="3361618936611118375">سوشی</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">والدین کی رسائی</translation>
 <translation id="473775607612524610">اپ ڈيٹ کریں</translation>
 <translation id="4744944742468440486">آپ کے انتخاب سے متعلقہ معلومات</translation>
+<translation id="4750394297954878236">تجاویز</translation>
 <translation id="4771607256327216405">کی بورڈ کو روشن کرنا</translation>
 <translation id="4771923071974529837">آئندہ کل</translation>
 <translation id="4773299976671772492">روک دیا گیا</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">شارٹ کٹ دستیاب نہیں ہے۔ <ph name="KEY" /> کے بغیر ایک نیا شارٹ کٹ دبائیں۔</translation>
 <translation id="5860033963881614850">آف</translation>
 <translation id="5860491529813859533">آن کریں</translation>
+<translation id="5875913454160982848">ٹرانسکرپشن ماڈل ڈاؤن لوڈ کریں</translation>
 <translation id="5876385649737594562">اختیارات کو منتخب کرنے کے لیے آن کریں</translation>
 <translation id="5877503382465267833"><ph name="RECORDING_NAME" /> موقوف کریں</translation>
 <translation id="588258955323874662">پوری اسکرین</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">بند کریں</translation>
 <translation id="6040852767465482106">گمنام شناخت</translation>
 <translation id="604124094241169006">خود کار</translation>
-<translation id="6042308850641462728">مزید</translation>
 <translation id="6048107060512778456">ناکام ہو گیا - پیپر جام</translation>
 <translation id="6050189528197190982">گرے اسکیل</translation>
 <translation id="6054711098834486579">اظہاریت پسند</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{نام سرور}other{نام سرورز}}</translation>
 <translation id="7135814714616751706">شارٹ کٹس تلاش کریں</translation>
 <translation id="7138614237884624401">آسان کردہ ٹیکسٹ</translation>
+<translation id="7138668887584231801">خلاصہ کرنے کے لیے کافی الفاظ نہیں ہیں</translation>
 <translation id="7141470099673912333">مواد کی منتقلی</translation>
 <translation id="7143207342074048698">منسلک ہو رہا ہے</translation>
 <translation id="7144878232160441200">دوبارہ کوشش کریں</translation>
@@ -1588,6 +1592,7 @@
 <translation id="8503836310948963452">صرف چند مزید منٹ...</translation>
 <translation id="8505011850330200833">‏‫Gemini ماڈل کو ٹرانسکرپٹس پر کارروائی کرنے اور خلاصے بنانے کے لیے 2GB اسٹوریج کی ضرورت ہوتی ہے</translation>
 <translation id="8508640263392900755">‏APN کی تفصیلات</translation>
+<translation id="8509574872955173831">خلاصہ اور نام کی تخلیق کے بارے میں مزید جانیں</translation>
 <translation id="8522687886059337719">اب آپ کو نئے <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />وال پیپرز<ph name="END_LINK_WALLPAPER_SUBPAGE" /> اور <ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />اسکرین سیور<ph name="END_LINK_SCREENSAVER_SUBPAGE" /> تک رسائی حاصل ہے</translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">چائے خانہ</translation>
@@ -1724,7 +1729,6 @@
 <translation id="9133772297793293778">‏اپنے کی بورڈ پر 1 سے 4 موڈیفائرز اور 1 دوسری کلید دبائیں۔ ترمیم کی وضع سے باہر نکلنے کے لیے، alt + Esc دبائیں۔</translation>
 <translation id="9137526406337347448">‏Google سروسز</translation>
 <translation id="9138630967333032450">بائیں شفٹ</translation>
-<translation id="9147928237330776930">خلاصہ کرنے کے لیے بہت کم الفاظ ہیں</translation>
 <translation id="9149391708638971077">میموری ٹیسٹ چلائیں</translation>
 <translation id="9159524746324788320">ہیمبرگرز</translation>
 <translation id="9161276708550942948">اسپیس</translation>

@@ -6,7 +6,6 @@ package org.chromium.chrome.browser.educational_tip;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IntDef;
-import androidx.annotation.Nullable;
 
 import org.chromium.chrome.browser.hub.PaneId;
 
@@ -38,22 +37,6 @@ public interface EducationalTipCardProvider {
         int NUM_ENTRIES = 4;
     }
 
-    static @Nullable Integer convertLabelToCardType(String label) {
-        switch (label) {
-            case "default_browser_promo":
-                return EducationalTipCardType.DEFAULT_BROWSER_PROMO;
-            case "tab_group_promo":
-                return EducationalTipCardType.TAB_GROUP;
-            case "tab_group_sync_promo":
-                return EducationalTipCardType.TAB_GROUP_SYNC;
-            case "quick_delete_promo":
-                return EducationalTipCardType.QUICK_DELETE;
-            default:
-                assert false : "card type not supported!";
-                return null;
-        }
-    }
-
     /** Gets the title of the card. */
     String getCardTitle();
 
@@ -69,8 +52,4 @@ public interface EducationalTipCardProvider {
 
     /** Called when the module is hidden. */
     default void destroy() {}
-
-    /** Gets the type of the card. */
-    @EducationalTipCardType
-    int getCardType();
 }

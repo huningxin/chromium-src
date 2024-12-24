@@ -8,8 +8,8 @@
 #include <memory>
 
 #include "base/memory/raw_ptr.h"
-#include "chrome/browser/extensions/global_shortcut_listener.h"
 #include "chrome/browser/glic/launcher/glic_configuration.h"
+#include "ui/base/accelerators/global_accelerator_listener/global_accelerator_listener.h"
 
 class GlicController;
 class GlicStatusIcon;
@@ -28,7 +28,7 @@ namespace glic {
 // listen to a global hotkey, and provide a status icon for triggering the UI.
 class GlicBackgroundModeManager
     : public GlicConfiguration::Observer,
-      public extensions::GlobalShortcutListener::Observer {
+      public ui::GlobalAcceleratorListener::Observer {
  public:
   explicit GlicBackgroundModeManager(StatusTray* status_tray);
   ~GlicBackgroundModeManager() override;
@@ -37,13 +37,8 @@ class GlicBackgroundModeManager
   void OnEnabledChanged(bool enabled) override;
   void OnGlobalHotkeyChanged(ui::Accelerator hotkey) override;
 
-  // extensions::GlobalShortcutListener::Observer
+  // ui::GlobalAcceleratorListener::Observer
   void OnKeyPressed(const ui::Accelerator& accelerator) override;
-
-  // TODO(crbug.com/378487333): Remove this method because this method is
-  // specific to the extensions version of the GlobalShortcutListener
-  void ExecuteCommand(const extensions::ExtensionId& extension_id,
-                      const std::string& command_id) override {}
 
   ui::Accelerator RegisteredHotkeyForTesting() {
     return actual_registered_hotkey_;

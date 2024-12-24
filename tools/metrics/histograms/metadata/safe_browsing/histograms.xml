@@ -538,7 +538,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
-    name="SafeBrowsing.ClientSafeBrowsingReport.NetworkResult.{IsAccessTokenIncluded}"
+    name="SafeBrowsing.ClientSafeBrowsingReport.NetworkResult{IsAccessTokenIncluded}"
     enum="CombinedHttpResponseAndNetErrorCode" expires_after="2025-07-05">
   <owner>thefrog@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
@@ -547,8 +547,9 @@ chromium-metrics-reviews@google.com.
     the request {IsAccessTokenIncluded}.
   </summary>
   <token key="IsAccessTokenIncluded">
-    <variant name="NoAccessToken" summary="has no access token"/>
-    <variant name="YesAccessToken" summary="has an access token"/>
+    <variant name="" summary="response is received"/>
+    <variant name=".NoAccessToken" summary="has no access token"/>
+    <variant name=".YesAccessToken" summary="has an access token"/>
   </token>
 </histogram>
 
@@ -704,6 +705,22 @@ chromium-metrics-reviews@google.com.
     types since the last time this metric was logged, kWithToken will be
     reported. This metric is logged at most once per day and only for users that
     have enhanced protection enabled.
+  </summary>
+</histogram>
+
+<histogram name="SafeBrowsing.Enhanced.ProtegoRequestSentInLast28Days"
+    enum="SafeBrowsingEnhancedProtegoPingType" expires_after="2025-12-09">
+  <owner>zackhan@chromium.org</owner>
+  <owner>chrome-counter-abuse-alerts@google.com</owner>
+  <summary>
+    Similar to the SafeBrowsing.Enhanced.ProtegoRequestSentInLast7Days metric,
+    records whether an ESB user has sent a Protego ping to the Safe Browsing
+    consumer API servers within the last 28 days. If a ping was sent since the
+    last time this metric was logged, then this metric will report the type of
+    that ping, otherwise it will report that none was sent. Pings that had a
+    token are logged preferrentially over pings without a token. This metric is
+    logged at most once per day and only for users that have enhanced protection
+    enabled.
   </summary>
 </histogram>
 
@@ -1123,6 +1140,32 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="SafeBrowsing.ExtensionTelemetry.UploadSize.{SignalType}"
+    units="bytes" expires_after="2025-04-20">
+  <owner>psarouthakis@google.com</owner>
+  <owner>chrome-counter-abuse-alerts@google.com</owner>
+  <summary>
+    The data size of the {SignalType} generated for an extension. The size is
+    recorded at the time of telemetry report creation, regardless of whether the
+    report is uploaded or not.
+  </summary>
+  <token key="SignalType">
+    <variant name="CookiesGet" summary="CookiesGet telemetry signal"/>
+    <variant name="CookiesGetAll" summary="CookiesGetAll telemetry signal"/>
+    <variant name="DeclarativeNetRequest"
+        summary="DeclarativeNetRequest telemetry signal"/>
+    <variant name="DeclarativeNetRequestAction"
+        summary="DeclarativeNetRequestAction telemetry signal"/>
+    <variant name="PotentialPasswordTheft"
+        summary="PotentialPasswordTheft telemetry signal"/>
+    <variant name="RemoteHostContacted"
+        summary="RemoteHostContacted telemetry signal"/>
+    <variant name="TabsApi" summary="TabsApi signal"/>
+    <variant name="TabsExecuteScript"
+        summary="TabsExecuteScript telemetry signal"/>
+  </token>
+</histogram>
+
 <histogram name="SafeBrowsing.ExtensionTelemetry.UploadSuccess"
     enum="BooleanSuccess" expires_after="2025-10-31">
   <owner>anunoy@chromium.org</owner>
@@ -1395,6 +1438,15 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records whether a Safe Browsing cookie exists at profile startup or when a
     new profile is created. Recorded for regular or incognito profiles.
+  </summary>
+</histogram>
+
+<histogram name="SafeBrowsing.HitReport.NetworkResult"
+    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2025-07-05">
+  <owner>thefrog@chromium.org</owner>
+  <owner>chrome-counter-abuse-alerts@google.com</owner>
+  <summary>
+    Records the network result for a Safe Browsing hit report request.
   </summary>
 </histogram>
 
@@ -1828,7 +1880,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="SafeBrowsing.IOS.IsCheckCompletedOnShouldAllowResponse"
-    enum="BooleanCompleted" expires_after="2025-01-05">
+    enum="BooleanCompleted" expires_after="2026-01-05">
   <owner>danieltwhite@google.com</owner>
   <owner>joemerramos@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
@@ -1840,7 +1892,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="SafeBrowsing.IOS.RepeatedResponseCalled"
-    enum="BooleanSubsequentResponse" expires_after="2025-01-05">
+    enum="BooleanSubsequentResponse" expires_after="2026-01-05">
   <owner>danieltwhite@google.com</owner>
   <owner>joemerramos@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
@@ -1919,6 +1971,23 @@ chromium-metrics-reviews@google.com.
     each binary upload with DLP scanning enabled (file download or upload with
     the appropriate enterprise policies enabled).
   </summary>
+</histogram>
+
+<histogram
+    name="SafeBrowsing.MultipartUploader.NetworkResult.{UploaderConsumer}"
+    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2025-06-13">
+  <owner>drubery@chromium.org</owner>
+  <owner>nancylanxiao@google.com</owner>
+  <owner>chrome-counter-abuse-alerts@google.com</owner>
+  <summary>
+    The net error or HTTP response code returned when a multipart uploader
+    response is received for {UploaderConsumer}.
+  </summary>
+  <token key="UploaderConsumer">
+    <variant name="ConsumerUpload" summary="consumer uploads"/>
+    <variant name="DownloadFeedback" summary="download feedback"/>
+    <variant name="EnterpriseUpload" summary="enterprise uploads"/>
+  </token>
 </histogram>
 
 <histogram name="SafeBrowsing.NavigationIdMatchedInUnsafeResource"
@@ -2236,6 +2305,17 @@ chromium-metrics-reviews@google.com.
     Logs the request destination of the URL that is checked by the renderer URL
     loader throttle, and whether the URL check was requested. Logged each time
     WillStartRequest is called.
+  </summary>
+</histogram>
+
+<histogram name="SafeBrowsing.ResumableUploader.NetworkResult.EnterpriseUpload"
+    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2025-06-13">
+  <owner>drubery@chromium.org</owner>
+  <owner>nancylanxiao@google.com</owner>
+  <owner>chrome-counter-abuse-alerts@google.com</owner>
+  <summary>
+    The net error or HTTP response code returned when a resumable uploader
+    response is received. This only applies to enterprise uploads.
   </summary>
 </histogram>
 
@@ -2896,18 +2976,18 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="SafeBrowsing.TailoredSecurityService.OAuthTokenResponseCode"
-    units="code" expires_after="2025-09-29">
+<histogram name="SafeBrowsing.TailoredSecurityService.OAuthTokenNetworkResult"
+    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2025-06-17">
   <owner>jacastro@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
   <summary>
-    HTTP Response code returned by the server when trying to fetch the OAuth
+    The net error or HTTP response code returned when trying to fetch the OAuth
     token for a tailored security service query.
   </summary>
 </histogram>
 
 <histogram name="SafeBrowsing.TailoredSecurityUnconsentedModalOutcome"
-    enum="SafeBrowsingTailoredSecurityOutcome" expires_after="2024-12-24">
+    enum="SafeBrowsingTailoredSecurityOutcome" expires_after="2025-12-24">
   <owner>jacastro@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
   <summary>
@@ -2919,7 +2999,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="SafeBrowsing.TailoredSecurityUnconsentedPromotionNotificationOutcome"
-    enum="SafeBrowsingTailoredSecurityOutcome" expires_after="2024-12-08">
+    enum="SafeBrowsingTailoredSecurityOutcome" expires_after="2025-12-08">
   <owner>jacastro@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
   <summary>
@@ -2930,7 +3010,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="SafeBrowsing.TailoredSecurityUnconsented{Flow}MessageOutcome"
-    enum="SafeBrowsingTailoredSecurityOutcome" expires_after="2025-01-05">
+    enum="SafeBrowsingTailoredSecurityOutcome" expires_after="2026-01-05">
   <owner>jacastro@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
   <summary>
@@ -3362,6 +3442,18 @@ and applied correctly. -->
   <summary>
     Records how long it took to verify the checksum of a V4 store. This is
     recorded in thread time, to avoid recording any disk operations.
+  </summary>
+</histogram>
+
+<histogram
+    name="SafeBrowsing.V4Store.DbThread.CheckHighConfidenceAllowlistStoreDuration"
+    units="ms" expires_after="2025-09-01">
+  <owner>pkotwicz@chromium.org</owner>
+  <owner>chrome-counter-abuse-alerts@google.com</owner>
+  <summary>
+    Records how long it takes to check for matching prefixes in the high
+    confidence allowlist v4 store. This metric counts only the time spent on the
+    database thread and excludes any thread hopping time.
   </summary>
 </histogram>
 

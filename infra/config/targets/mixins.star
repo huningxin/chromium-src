@@ -872,8 +872,8 @@ targets.mixin(
     swarming = targets.swarming(
         dimensions = {
             "os": "Android",
-            "device_type": "a13",
-            "device_os": "S",
+            "device_type": "a13ve",
+            "device_os": "TP1A.220624.014",
             "device_os_type": "user",
             "pool": "chromium.tests.gpu",
         },
@@ -1288,10 +1288,25 @@ targets.mixin(
     generate_pyl_entry = False,
     swarming = targets.swarming(
         dimensions = {
-            "cpu": "arm64",
-            "mac_model": "VirtualMac2,1",
+            "cpu": "Apple_(Virtual)",
             "os": "Mac-14",
             "pool": "chromium.tests.macvm",
+        },
+    ),
+)
+
+targets.mixin(
+    name = "mac_14_vm_optional",
+    generate_pyl_entry = False,
+    swarming = targets.swarming(
+        dimensions = {
+            "cpu": "arm64",  # fallback on bare metal if no VMs are available
+            "os": "Mac-14",
+        },
+        optional_dimensions = {
+            30: {
+                "cpu": "Apple_(Virtual)",
+            },
         },
     ),
 )
@@ -2168,8 +2183,8 @@ targets.mixin(
     swarming = targets.swarming(
         dimensions = {
             "display_attached": "1",
-            "gpu": "10de:2184-27.21.14.5638|10de:2184-31.0.15.4601",
-            "os": "Windows-10-18363|Windows-10-19045",
+            "gpu": "10de:2184-31.0.15.4601",
+            "os": "Windows-10-19045",
             "pool": "chromium.tests.gpu",
         },
     ),
@@ -2240,6 +2255,10 @@ targets.mixin(
             "cpu": "arm64",
             "os": "Windows-11",
         },
+        # win-arm64 is a limited pool with ~100 bots that can be easily
+        # overloaded by few builds. Increase the expiration_sec to 2h to prevent
+        # shards from timing out.
+        expiration_sec = 7200,
     ),
 )
 
@@ -2291,12 +2310,12 @@ targets.mixin(
     generate_pyl_entry = False,
     args = [
         "--xcode-build-version",
-        "16c5031c",
+        "16c5032a",
     ],
     swarming = targets.swarming(
         named_caches = [
             swarming.cache(
-                name = "xcode_ios_16c5031c",
+                name = "xcode_ios_16c5032a",
                 path = "Xcode.app",
             ),
         ],

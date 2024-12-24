@@ -12,9 +12,11 @@
 #include "components/segmentation_platform/embedder/home_modules/card_selection_info.h"
 #include "components/segmentation_platform/embedder/home_modules/constants.h"
 #include "components/segmentation_platform/embedder/home_modules/default_browser_promo.h"
+#include "components/segmentation_platform/embedder/home_modules/ephemeral_module_utils.h"
 #include "components/segmentation_platform/embedder/home_modules/price_tracking_notification_promo.h"
 #include "components/segmentation_platform/embedder/home_modules/send_tab_notification_promo.h"
 #include "components/segmentation_platform/embedder/home_modules/tab_group_promo.h"
+#include "components/segmentation_platform/embedder/home_modules/tab_group_sync_promo.h"
 #include "components/segmentation_platform/embedder/home_modules/tips_manager/constants.h"
 #include "components/segmentation_platform/public/features.h"
 #if BUILDFLAG(IS_IOS)
@@ -37,6 +39,10 @@ const char kTabGroupPromoImpressionCounterPref[] =
     "ephemeral_pref_counter.tab_group_promo_counter";
 const char kTabGroupPromoInteractedPref[] =
     "ephemeral_pref_interacted.tab_group_promo_interacted";
+const char kTabGroupSyncPromoImpressionCounterPref[] =
+    "ephemeral_pref_counter.tab_group_sync_promo_counter";
+const char kTabGroupSyncPromoInteractedPref[] =
+    "ephemeral_pref_interacted.tab_group_sync_promo_interacted";
 #endif
 
 namespace {
@@ -175,6 +181,8 @@ void HomeModulesCardRegistry::RegisterProfilePrefs(
   registry->RegisterBooleanPref(kDefaultBrowserPromoInteractedPref, false);
   registry->RegisterIntegerPref(kTabGroupPromoImpressionCounterPref, 0);
   registry->RegisterBooleanPref(kTabGroupPromoInteractedPref, false);
+  registry->RegisterIntegerPref(kTabGroupSyncPromoImpressionCounterPref, 0);
+  registry->RegisterBooleanPref(kTabGroupSyncPromoInteractedPref, false);
 #endif
 }
 
@@ -245,14 +253,37 @@ void HomeModulesCardRegistry::NotifyCardShown(const char* card_name) {
         profile_prefs_->GetInteger(kDefaultBrowserPromoImpressionCounterPref);
     profile_prefs_->SetInteger(kDefaultBrowserPromoImpressionCounterPref,
                                freshness_impression_count + 1);
-  } else if (strcmp(card_name, kTabGroupPromo) == 0) {
-    int freshness_impression_count =
-        profile_prefs_->GetInteger(kTabGroupPromoImpressionCounterPref);
-    profile_prefs_->SetInteger(kTabGroupPromoImpressionCounterPref,
-                               freshness_impression_count + 1);
-  }
+  } else if (ShouldNotifyCardShownPerSession(card_name)) {
+    // Educational tip cards, except for the default browser promo card, will
+    // send a notification when the card is shown once per session, rather than
+    // every time it is displayed.
+    if (strcmp(card_name, kTabGroupPromo) == 0) {
+      int freshness_impression_count =
+          profile_prefs_->GetInteger(kTabGroupPromoImpressionCounterPref);
+      profile_prefs_->SetInteger(kTabGroupPromoImpressionCounterPref,
+                                 freshness_impression_count + 1);
+    } else if (strcmp(card_name, kTabGroupSyncPromo) == 0) {
+      int freshness_impression_count =
+          profile_prefs_->GetInteger(kTabGroupSyncPromoImpressionCounterPref);
+      profile_prefs_->SetInteger(kTabGroupSyncPromoImpressionCounterPref,
+                                 freshness_impression_count + 1);
+    }
+    }
 #endif
 }
+
+#if BUILDFLAG(IS_ANDROID)
+bool HomeModulesCardRegistry::ShouldNotifyCardShownPerSession(
+    const std::string& card_name) {
+  if (shown_in_current_session_.find(card_name) !=
+      shown_in_current_session_.end()) {
+    return false;
+  }
+
+  shown_in_current_session_.insert(card_name);
+  return true;
+}
+#endif
 
 void HomeModulesCardRegistry::NotifyCardInteracted(const char* card_name) {
 #if BUILDFLAG(IS_IOS)
@@ -287,6 +318,8 @@ void HomeModulesCardRegistry::NotifyCardInteracted(const char* card_name) {
     profile_prefs_->SetBoolean(kDefaultBrowserPromoInteractedPref, true);
   } else if (strcmp(card_name, kTabGroupPromo) == 0) {
     profile_prefs_->SetBoolean(kTabGroupPromoInteractedPref, true);
+  } else if (strcmp(card_name, kTabGroupSyncPromo) == 0) {
+    profile_prefs_->SetBoolean(kTabGroupSyncPromoInteractedPref, true);
   }
 #endif
 }
@@ -363,6 +396,13 @@ void HomeModulesCardRegistry::CreateAllCards() {
   if (TabGroupPromo::IsEnabled(tab_group_promo_count)) {
     all_cards_by_priority_.push_back(
         std::make_unique<TabGroupPromo>(profile_prefs_));
+  }
+
+  int tab_group_sync_promo_count =
+      profile_prefs_->GetInteger(kTabGroupSyncPromoImpressionCounterPref);
+  if (TabGroupSyncPromo::IsEnabled(tab_group_sync_promo_count)) {
+    all_cards_by_priority_.push_back(
+        std::make_unique<TabGroupSyncPromo>(profile_prefs_));
   }
 #endif
   InitializeAfterAddingCards();

@@ -464,7 +464,8 @@ class ClientSideDetectionHost::ShouldClassifyUrlRequest {
       host_->MaybeShowPhishingWarning(
           /*is_from_cache=*/true, ClientSideDetectionType::TRIGGER_MODELS,
           did_match_high_confidence_allowlist_, url_, is_phishing,
-          /*response_code=*/std::nullopt);
+          /*response_code=*/std::nullopt,
+          /*IntelligentScanVerdict=*/std::nullopt);
       DontClassifyForPhishing(
           PreClassificationCheckResult::NO_CLASSIFY_RESULT_FROM_CACHE);
     }
@@ -1105,7 +1106,13 @@ void ClientSideDetectionHost::OnInquireOnDeviceModelDone(
     std::unique_ptr<ClientPhishingRequest> verdict,
     std::optional<bool> did_match_high_confidence_allowlist,
     std::optional<optimization_guide::proto::ScamDetectionResponse> response) {
-  // Pass the response to the ping proto.
+  if (response.has_value()) {
+    IntelligentScanInfo intelligent_scan_info;
+    intelligent_scan_info.set_brand(response->brand());
+    intelligent_scan_info.set_intent(response->intent());
+    *verdict->mutable_intelligent_scan_info() =
+        std::move(intelligent_scan_info);
+  }
 
   MaybeGetAccessToken(std::move(verdict), did_match_high_confidence_allowlist);
 }
@@ -1131,7 +1138,8 @@ void ClientSideDetectionHost::MaybeShowPhishingWarning(
     std::optional<bool> did_match_high_confidence_allowlist,
     GURL phishing_url,
     bool is_phishing,
-    std::optional<net::HttpStatusCode> response_code) {
+    std::optional<net::HttpStatusCode> response_code,
+    std::optional<IntelligentScanVerdict> intelligent_scan_verdict) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
 
   std::string request_type_name = GetRequestTypeName(request_type);
@@ -1154,7 +1162,27 @@ void ClientSideDetectionHost::MaybeShowPhishingWarning(
         ->set_network_result(response_code.value());
   }
 
-  if (is_phishing) {
+  if (base::FeatureList::IsEnabled(
+          kClientSideDetectionBrandAndIntentForScamDetection) &&
+      IsEnhancedProtectionEnabled(*delegate_->GetPrefs()) &&
+      intelligent_scan_verdict.has_value()) {
+    base::UmaHistogramExactLinear("SBClientPhishing.IntelligentScanVerdict",
+                                  intelligent_scan_verdict.value(),
+                                  IntelligentScanVerdict_MAX + 1);
+  }
+
+  bool should_show_warning =
+      base::FeatureList::IsEnabled(kClientSideDetectionShowScamVerdictWarning)
+          ? (is_phishing ||
+             (intelligent_scan_verdict.has_value() &&
+              intelligent_scan_verdict !=
+                  IntelligentScanVerdict::
+                      INTELLIGENT_SCAN_VERDICT_UNSPECIFIED &&
+              intelligent_scan_verdict !=
+                  IntelligentScanVerdict::INTELLIGENT_SCAN_VERDICT_SAFE))
+          : is_phishing;
+
+  if (should_show_warning) {
     if (!is_from_cache && did_match_high_confidence_allowlist.has_value()) {
       base::UmaHistogramBoolean(
           "SBClientPhishing.HighConfidenceAllowlistMatchOnServerVerdictPhishy",

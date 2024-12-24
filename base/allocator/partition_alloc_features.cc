@@ -109,7 +109,7 @@ MIRACLE_PARAMETER_FOR_INT(
 
 BASE_FEATURE(kPartitionAllocLargeEmptySlotSpanRing,
              "PartitionAllocLargeEmptySlotSpanRing",
-#if BUILDFLAG(IS_MAC)
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
              FEATURE_ENABLED_BY_DEFAULT);
 #else
              FEATURE_DISABLED_BY_DEFAULT);
@@ -187,6 +187,8 @@ constexpr FeatureParam<BackupRefPtrMode>::Option kBackupRefPtrModeOptions[] = {
 const base::FeatureParam<BackupRefPtrMode> kBackupRefPtrModeParam{
     &kPartitionAllocBackupRefPtr, "brp-mode", BackupRefPtrMode::kEnabled,
     &kBackupRefPtrModeOptions};
+const base::FeatureParam<int> kBackupRefPtrExtraExtrasSizeParam{
+    &kPartitionAllocBackupRefPtr, "brp-extra-extras-size", 0};
 
 BASE_FEATURE(kPartitionAllocMemoryTagging,
              "PartitionAllocMemoryTagging",
@@ -439,17 +441,13 @@ BASE_FEATURE(kPartitionAllocDisableBRPInBufferPartition,
 #if PA_BUILDFLAG(USE_FREELIST_DISPATCHER)
 BASE_FEATURE(kUsePoolOffsetFreelists,
              "PartitionAllocUsePoolOffsetFreelists",
-#if BUILDFLAG(IS_ANDROID)
-             base::FEATURE_DISABLED_BY_DEFAULT
-#else
              base::FEATURE_ENABLED_BY_DEFAULT
-#endif
 );
 #endif
 
 BASE_FEATURE(kPartitionAllocAdjustSizeWhenInForeground,
              "PartitionAllocAdjustSizeWhenInForeground",
-#if BUILDFLAG(IS_MAC)
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
              FEATURE_ENABLED_BY_DEFAULT);
 #else
              FEATURE_DISABLED_BY_DEFAULT);
@@ -457,7 +455,7 @@ BASE_FEATURE(kPartitionAllocAdjustSizeWhenInForeground,
 
 BASE_FEATURE(kPartitionAllocUseSmallSingleSlotSpans,
              "PartitionAllocUseSmallSingleSlotSpans",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 #if PA_CONFIG(ENABLE_SHADOW_METADATA)
 BASE_FEATURE(kPartitionAllocShadowMetadata,

@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">ปิดใช้ธีมมืด</translation>
 <translation id="1807246157184219062">สว่าง</translation>
 <translation id="1808803439260407870">ศิลปะคลาสสิก</translation>
+<translation id="181434555916624618">ในตอนนี้ระบบจะไม่แสดงผลการค้นหาที่มีผู้คน โปรดลองใช้พรอมต์อื่น</translation>
 <translation id="1815850098929213707">คีย์ที่เลือกคือ <ph name="KEYS" /> แตะปุ่มเพื่อแก้ไขตัวควบคุม</translation>
 <translation id="1823120442877418684">ตัวละคร</translation>
 <translation id="1827738518074806965">แกลเลอรีศิลปะ</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">อุปกรณ์มีระดับแบตเตอรี่ของหูฟังข้างขวา <ph name="BATTERY_PERCENTAGE" />%</translation>
 <translation id="3340978935015468852">การตั้งค่า</translation>
 <translation id="3347558044552027859">ทันสมัย</translation>
+<translation id="3353477144743332882">ดาวน์โหลดโมเดลการสร้างชื่อและสรุป</translation>
 <translation id="3359218928534347896">เปิด/ปิดเสียงไมโครโฟน</translation>
 <translation id="3360306038446926262">หน้าต่าง</translation>
 <translation id="3361618936611118375">ซูชิ</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">การเข้าถึงของผู้ปกครอง</translation>
 <translation id="473775607612524610">อัปเดต</translation>
 <translation id="4744944742468440486">ข้อมูลที่เกี่ยวข้องกับสิ่งที่คุณเลือก</translation>
+<translation id="4750394297954878236">คำแนะนำ</translation>
 <translation id="4771607256327216405">เพิ่มความสว่างของแป้นพิมพ์</translation>
 <translation id="4771923071974529837">พรุ่งนี้</translation>
 <translation id="4773299976671772492">หยุดแล้ว</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">แป้นพิมพ์ลัดไม่พร้อมใช้งาน กดแป้นพิมพ์ลัดใหม่โดยไม่ใช้ <ph name="KEY" /></translation>
 <translation id="5860033963881614850">ปิด</translation>
 <translation id="5860491529813859533">เปิด</translation>
+<translation id="5875913454160982848">ดาวน์โหลดโมเดลการถอดเสียงเป็นคำ</translation>
 <translation id="5876385649737594562">เปิดเพื่อเลือกตัวเลือก</translation>
 <translation id="5877503382465267833">หยุด <ph name="RECORDING_NAME" /> ชั่วคราว</translation>
 <translation id="588258955323874662">เต็มหน้าจอ</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">ปิด</translation>
 <translation id="6040852767465482106">ข้อมูลประจำตัวที่ไม่ระบุตัวตน</translation>
 <translation id="604124094241169006">อัตโนมัติ</translation>
-<translation id="6042308850641462728">แสดงเพิ่ม</translation>
 <translation id="6048107060512778456">ไม่สำเร็จ - กระดาษติด</translation>
 <translation id="6050189528197190982">ระดับสีเทา</translation>
 <translation id="6054711098834486579">เอ็กซ์เพรสชันนิสม์</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{เนมเซิร์ฟเวอร์}other{เนมเซิร์ฟเวอร์}}</translation>
 <translation id="7135814714616751706">ค้นหาทางลัด</translation>
 <translation id="7138614237884624401">ข้อความอย่างง่าย</translation>
+<translation id="7138668887584231801">มีคำไม่เพียงพอที่จะสรุป</translation>
 <translation id="7141470099673912333">Content Transfer</translation>
 <translation id="7143207342074048698">กำลังเชื่อมต่อ</translation>
 <translation id="7144878232160441200">ลองอีกครั้ง</translation>
@@ -1588,6 +1592,7 @@
 <translation id="8503836310948963452">อีกเพียงไม่กี่นาทีเท่านั้น...</translation>
 <translation id="8505011850330200833">โมเดล Gemini ต้องใช้พื้นที่เก็บข้อมูล 2 GB ในการประมวลผลข้อความถอดเสียงและสร้างข้อมูลสรุป</translation>
 <translation id="8508640263392900755">รายละเอียด APN</translation>
+<translation id="8509574872955173831">ดูข้อมูลเพิ่มเติมเกี่ยวกับการสร้างชื่อและสรุป</translation>
 <translation id="8522687886059337719">ตอนนี้คุณเข้าถึง<ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />วอลเปเปอร์<ph name="END_LINK_WALLPAPER_SUBPAGE" />และ<ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />ภาพพักหน้าจอ<ph name="END_LINK_SCREENSAVER_SUBPAGE" />ใหม่ได้แล้ว</translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">ร้านน้ำชา</translation>
@@ -1724,7 +1729,6 @@
 <translation id="9133772297793293778">กดแป้นกดร่วม 1-4 รายการและคีย์อื่นๆ อีก 1 รายการบนแป้นพิมพ์ หากต้องการออกจากโหมดแก้ไข ให้กด alt + esc</translation>
 <translation id="9137526406337347448">Google Services</translation>
 <translation id="9138630967333032450">Shift ซ้าย</translation>
-<translation id="9147928237330776930">มีคำน้อยเกินกว่าที่จะสรุป</translation>
 <translation id="9149391708638971077">ทดสอบหน่วยความจำ</translation>
 <translation id="9159524746324788320">แฮมเบอร์เกอร์</translation>
 <translation id="9161276708550942948">วรรค</translation>

@@ -1718,7 +1718,7 @@ int NetworkContext::CheckCTRequirementsForSignedExchange(
 
   net::TransportSecurityState::CTRequirementsStatus ct_requirement_status =
       url_request_context_->transport_security_state()->CheckCTRequirements(
-          host_port_pair, cert_verify_result.is_issued_by_known_root,
+          host_port_pair.host(), cert_verify_result.is_issued_by_known_root,
           cert_verify_result.public_key_hashes, verified_cert,
           cert_verify_result.policy_compliance);
 
@@ -2508,9 +2508,9 @@ void NetworkContext::OnHttpAuthDynamicParamsChanged(
   }
 
   url_matcher_ = std::make_unique<url_matcher::URLMatcher>();
-  url_matcher::util::AddAllowFilters(url_matcher_.get(),
-                                     http_auth_dynamic_network_service_params
-                                         ->patterns_allowed_to_use_all_schemes);
+  url_matcher::util::AddAllowFiltersWithLimit(
+      url_matcher_.get(), http_auth_dynamic_network_service_params
+                              ->patterns_allowed_to_use_all_schemes);
   http_auth_merged_preferences_.set_http_auth_scheme_filter(
       base::BindRepeating(&NetworkContext::IsAllowedToUseAllHttpAuthSchemes,
                           base::Unretained(this)));
@@ -2648,8 +2648,6 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
     builder.SetCookieStore(std::move(cookie_store));
   }
 
-  if (base::FeatureList::IsEnabled(features::kPrivateStateTokens) ||
-      base::FeatureList::IsEnabled(features::kFledgePst)) {
     trust_token_store_ = std::make_unique<PendingTrustTokenStore>();
 
     base::FilePath trust_token_path;
@@ -2670,7 +2668,6 @@ URLRequestContextOwner NetworkContext::MakeURLRequestContext(
           std::make_unique<ExpiryInspectingRecordExpiryDelegate>(
               network_service()->trust_token_key_commitments())));
     }
-  }
 
   std::unique_ptr<net::StaticHttpUserAgentSettings> user_agent_settings =
       std::make_unique<net::StaticHttpUserAgentSettings>(
@@ -3129,7 +3126,7 @@ void NetworkContext::OnVerifyCertForSignedExchangeComplete(
 #endif  // BUILDFLAG(IS_CT_SUPPORTED)
     net::TransportSecurityState::PKPStatus pin_validity =
         url_request_context_->transport_security_state()->CheckPublicKeyPins(
-            net::HostPortPair::FromURL(pending_cert_verify->url),
+            pending_cert_verify->url.host(),
             pending_cert_verify->result->is_issued_by_known_root,
             pending_cert_verify->result->public_key_hashes);
     switch (pin_validity) {

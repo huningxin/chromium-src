@@ -253,14 +253,14 @@ bool AutoPictureInPictureTabHelper::IsEligibleForAutoPictureInPicture() {
     return false;
   }
 
-  // The tab must either have playback or be using camera/microphone to autopip.
-  if (!MeetsVideoPlaybackConditions() && !IsUsingCameraOrMicrophone()) {
-    return false;
-  }
-
   // Only https:// or file:// may autopip.
   const GURL url = web_contents()->GetLastCommittedURL();
   if (!url.SchemeIs(url::kHttpsScheme) && !url.SchemeIsFile()) {
+    return false;
+  }
+
+  // The tab must either have playback or be using camera/microphone to autopip.
+  if (!MeetsVideoPlaybackConditions() && !IsUsingCameraOrMicrophone()) {
     return false;
   }
 
@@ -333,17 +333,21 @@ bool AutoPictureInPictureTabHelper::MeetsMediaEngagementConditions() const {
     return true;
   }
 
-  if (!media_engagement_service_) {
-    return false;
-  }
-
   std::optional<content::RenderFrameHost*> rfh = GetPrimaryMainRoutedFrame();
   if (!rfh) {
     return false;
   }
 
-  return media_engagement_service_->HasHighEngagement(
-      rfh.value()->GetLastCommittedOrigin());
+  const url::Origin origin = rfh.value()->GetLastCommittedOrigin();
+  if (origin.GetURL().SchemeIsFile()) {
+    return true;
+  }
+
+  if (!media_engagement_service_) {
+    return false;
+  }
+
+  return media_engagement_service_->HasHighEngagement(origin);
 }
 
 ContentSetting AutoPictureInPictureTabHelper::GetCurrentContentSetting() const {
@@ -416,6 +420,20 @@ AutoPictureInPictureTabHelper::GetPrimaryMainRoutedFrame() const {
   return {rfh};
 }
 
+std::string AutoPictureInPictureTabHelper::GetHistogramNameForReason() const {
+  if (IsUsingCameraOrMicrophone()) {
+    return "Media.AutoPictureInPicture.EnterPictureInPicture.AutomaticReason."
+           "VideoConferencing";
+  }
+
+  if (MeetsVideoPlaybackConditions()) {
+    return "Media.AutoPictureInPicture.EnterPictureInPicture.AutomaticReason."
+           "MediaPlayback";
+  }
+
+  return "";
+}
+
 bool AutoPictureInPictureTabHelper::IsInAutoPictureInPicture() const {
   return is_in_auto_picture_in_picture_;
 }
@@ -446,7 +464,7 @@ AutoPictureInPictureTabHelper::CreateOverlayPermissionViewIfNeeded(
   EnsureAutoPipSettingHelper();
 
   return auto_pip_setting_helper_->CreateOverlayViewIfNeeded(
-      std::move(close_pip_cb), anchor_view, arrow);
+      std::move(close_pip_cb), GetHistogramNameForReason(), anchor_view, arrow);
 }
 
 void AutoPictureInPictureTabHelper::OnUserClosedWindow() {

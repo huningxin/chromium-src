@@ -13,9 +13,12 @@
 #include "dbus/message.h"
 #include "dbus/mock_bus.h"
 #include "dbus/mock_object_proxy.h"
+#include "extensions/common/command.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "ui/base/accelerators/accelerator.h"
+#include "ui/base/accelerators/command.h"
+#include "ui/base/accelerators/global_accelerator_listener/global_accelerator_listener.h"
 
 using ::testing::_;
 using ::testing::AtLeast;
@@ -334,7 +337,7 @@ TEST(GlobalShortcutListenerLinuxTest, OnCommandsChanged) {
         std::move(*callback).Run(response.get());
       }));
 
-  CommandMap commands;
+  ui::CommandMap commands;
   commands[kCommandName] = Command(kCommandName, kShortcutDescription,
                                    Command::AcceleratorToString(ui::Accelerator(
                                        ui::VKEY_A, ui::EF_CONTROL_DOWN)),

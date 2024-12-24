@@ -11,9 +11,9 @@
 
 #import "base/memory/raw_ptr.h"
 #import "base/types/pass_key.h"
-#import "components/autofill/core/browser/autofill_client.h"
-#import "components/autofill/core/browser/autofill_driver_factory.h"
-#import "components/autofill/core/browser/autofill_driver_router.h"
+#import "components/autofill/core/browser/foundations/autofill_client.h"
+#import "components/autofill/core/browser/foundations/autofill_driver_factory.h"
+#import "components/autofill/core/browser/foundations/autofill_driver_router.h"
 #import "components/autofill/ios/browser/autofill_driver_ios_bridge.h"
 #import "ios/web/public/js_messaging/web_frames_manager.h"
 #import "ios/web/public/web_state_observer.h"
@@ -117,6 +117,10 @@ class AutofillDriverIOSFactory final
   // The map type must be so that `driver_map_.emplace()` does *not* invalidate
   // references. Otherwise, recursive DriverForFrame() calls are unsafe.
   std::map<std::string, std::unique_ptr<AutofillDriverIOS>> driver_map_;
+
+  // The maximum number of coexisting drivers over the lifetime of this factory.
+  // TODO: crbug.com/365097975 - Remove the counter and the metric.
+  size_t max_drivers_ = 0;
 
   WEB_STATE_USER_DATA_KEY_DECL();
 };

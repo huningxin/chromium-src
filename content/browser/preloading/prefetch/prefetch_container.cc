@@ -1061,10 +1061,6 @@ void PrefetchContainer::MarkCrossSiteContaminated() {
 
 void PrefetchContainer::AddXClientDataHeader(
     network::ResourceRequest& request) {
-  if (!base::FeatureList::IsEnabled(features::kPrefetchXClientDataHeader)) {
-    return;
-  }
-
   if (browser_context_) {
     // Add X-Client-Data header with experiment IDs from field trials.
     variations::AppendVariationsHeader(request.url,
@@ -1618,7 +1614,9 @@ void PrefetchContainer::OnDetectedCookiesChange() {
   CancelStreamingURLLoaderIfNotServing();
 }
 
-void PrefetchContainer::OnDetectedCookiesChange2() {
+void PrefetchContainer::OnDetectedCookiesChange2(
+    std::optional<bool>
+        is_unblock_for_cookies_changed_triggered_by_this_prefetch_container) {
   CHECK(UseNewWaitLoop());
 
   // If `kPrefetchNewWaitLoop` is enabled, multiple `PrefetchMatchResolver2` can
@@ -1632,6 +1630,27 @@ void PrefetchContainer::OnDetectedCookiesChange2() {
   // Do not call `OnDetectedCookiesChange()` multiple times even if
   // `OnDetectedCookiesChange2()` is called multiple times.
   if (on_detected_cookies_change_called_) {
+    return;
+  }
+
+  // There are cases that `prefetch_status_` is failure but this method is
+  // called. For more details, see
+  // https://docs.google.com/document/d/1G48SaWbdOy1yNBT1wio2IHVuUtddF5VLFsT6BRSYPMI/edit?tab=t.hpkotaxo7tfh#heading=h.woaoy8erwx63
+  //
+  // To prevent crash, we don't call `SetPrefetchStatus()`.
+  if (prefetch_status_ &&
+      TriggeringOutcomeFromStatus(prefetch_status_.value()) ==
+          PreloadingTriggeringOutcome::kFailure) {
+    SCOPED_CRASH_KEY_NUMBER("PrefetchContainer", "ODCC2_from",
+                            static_cast<int>(prefetch_status_.value()));
+    if (is_unblock_for_cookies_changed_triggered_by_this_prefetch_container
+            .has_value()) {
+      SCOPED_CRASH_KEY_BOOL(
+          "PrefetchContainer", "ODCC2_iufcctbtpc",
+          is_unblock_for_cookies_changed_triggered_by_this_prefetch_container
+              .value());
+    }
+    base::debug::DumpWithoutCrashing();
     return;
   }
 

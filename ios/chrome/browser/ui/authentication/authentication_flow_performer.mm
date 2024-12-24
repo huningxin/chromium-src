@@ -30,8 +30,11 @@
 #import "ios/chrome/browser/policy/model/cloud/user_policy_signin_service_factory.h"
 #import "ios/chrome/browser/policy/model/cloud/user_policy_switch.h"
 #import "ios/chrome/browser/shared/coordinator/alert/alert_coordinator.h"
+#import "ios/chrome/browser/shared/coordinator/scene/scene_state.h"
 #import "ios/chrome/browser/shared/model/application_context/application_context.h"
 #import "ios/chrome/browser/shared/model/browser/browser.h"
+#import "ios/chrome/browser/shared/model/browser/browser_provider.h"
+#import "ios/chrome/browser/shared/model/browser/browser_provider_interface.h"
 #import "ios/chrome/browser/shared/model/profile/profile_ios.h"
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list.h"
 #import "ios/chrome/browser/shared/public/commands/command_dispatcher.h"
@@ -148,13 +151,23 @@ NSString* const kAuthenticationSnackbarCategory =
           ->FindProfileNameForGaiaID(base::SysNSStringToUTF8(identity.gaiaID));
   if (!profileName.has_value()) {
     base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
-        FROM_HERE,
-        base::BindOnce(std::move(_onProfileSwitchCompletion), false));
+        FROM_HERE, base::BindOnce(std::move(_onProfileSwitchCompletion), false,
+                                  nullptr, nil));
     return;
   }
   [_changeProfileHandler changeProfile:base::SysUTF8ToNSString(*profileName)
                               forScene:sceneIdentifier
                               observer:self];
+}
+
+- (void)makePersonalProfileManagedWithIdentity:(id<SystemIdentity>)identity {
+  __weak __typeof(_delegate) weakDelegate = _delegate;
+  GetApplicationContext()
+      ->GetAccountProfileMapper()
+      ->MakePersonalProfileManagedWithGaiaID(
+          base::SysNSStringToUTF8(identity.gaiaID), base::BindOnce(^{
+            [weakDelegate didMakePersonalProfileManaged];
+          }));
 }
 
 - (void)signOutProfile:(ProfileIOS*)profile {
@@ -397,7 +410,7 @@ NSString* const kAuthenticationSnackbarCategory =
 #pragma mark - ChangeProfileObserving
 
 - (void)operationFailed:(ChangeProfileFailure)failure {
-  std::move(_onProfileSwitchCompletion).Run(false);
+  std::move(_onProfileSwitchCompletion).Run(false, nullptr, nil);
 }
 
 - (void)willStartOperation:(UIViewController*)viewController {
@@ -406,7 +419,13 @@ NSString* const kAuthenticationSnackbarCategory =
 
 - (void)operationDidComplete:(UIViewController*)viewController
               withSceneState:(SceneState*)sceneState {
-  std::move(_onProfileSwitchCompletion).Run(true);
+  Browser* newProfileBrowser =
+      sceneState.browserProviderInterface.currentBrowserProvider.browser;
+  // TODO(crbug.com/375605482): `viewController` is nil. This is not expected.
+  // `sceneState.rootViewController` is used until the bug is fixed.
+  viewController = sceneState.rootViewController;
+  std::move(_onProfileSwitchCompletion)
+      .Run(true, newProfileBrowser, viewController);
 }
 
 #pragma mark - Private
@@ -521,11 +540,18 @@ NSString* const kAuthenticationSnackbarCategory =
   _managedConfirmationAlertCoordinator = nil;
   [self managedConfirmationDidAccept:accepted
                              browser:browser
-            keepBrowsingDataSeparate:NO];
+            keepBrowsingDataSeparate:
+                AreSeparateProfilesForManagedAccountsEnabled()];
 }
 
 // Called when the user accepted to continue to sign-in with a managed account.
 // `accepted` is YES when the user confirmed or NO if the user canceled.
+// If `keepBrowsingDataSeparate` is `YES`, the managed account gets signed in to
+// a new empty work profile. This must only be specified if
+// AreSeparateProfilesForManagedAccountsEnabled() is true.
+// If `keepBrowsingDataSeparate` is `NO`, the account gets signed in to the
+// current profile. If AreSeparateProfilesForManagedAccountsEnabled() is true,
+// this involves converting the current profile into a work profile.
 - (void)managedConfirmationDidAccept:(BOOL)accepted
                              browser:(Browser*)browser
             keepBrowsingDataSeparate:(BOOL)keepBrowsingDataSeparate {
@@ -536,6 +562,8 @@ NSString* const kAuthenticationSnackbarCategory =
     [self.delegate didCancelManagedConfirmation];
     return;
   }
+  CHECK(AreSeparateProfilesForManagedAccountsEnabled() ||
+        !keepBrowsingDataSeparate);
   base::RecordAction(
       base::UserMetricsAction("Signin_AuthenticationFlowPerformer_"
                               "ManagedConfirmationDialog_Confirmed"));

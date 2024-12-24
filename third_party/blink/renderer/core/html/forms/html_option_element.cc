@@ -130,7 +130,8 @@ FocusableState HTMLOptionElement::SupportsFocus(
     UpdateBehavior update_behavior) const {
   HTMLSelectElement* select = OwnerSelectElement();
   if (select && select->UsesMenuList()) {
-    if (select->IsAppearanceBasePicker()) {
+    auto* popover = select->PopoverForAppearanceBase();
+    if (popover && popover->popoverOpen()) {
       // If this option is being rendered as regular web content inside a
       // base-select <select> popover, then we need this element to be
       // focusable.
@@ -451,13 +452,15 @@ void HTMLOptionElement::DidAddUserAgentShadowRoot(ShadowRoot& root) {
 }
 
 void HTMLOptionElement::UpdateLabel() {
-  // For appearance:base-select <select> we also need to render all children. We
-  // only check UsesMenuList and not computed style because we don't want to
-  // change DOM content based on computed style and because appearance:auto/none
-  // don't render the UA shadowroot when UsesMenuList is true.
+  // For appearance:base-select <select> without a label attribute we also
+  // need to render all children. We only check UsesMenuList and not computed
+  // style because we don't want to change DOM content based on computed style
+  // and because appearance:auto/none don't render the UA shadowroot when
+  // UsesMenuList is true.
   if (RuntimeEnabledFeatures::CustomizableSelectEnabled()) {
     if (auto* select = OwnerSelectElement()) {
-      if (select->UsesMenuList()) {
+      if (select->UsesMenuList() &&
+          FastGetAttribute(html_names::kLabelAttr).empty()) {
         return;
       }
     }
@@ -662,15 +665,10 @@ void HTMLOptionElement::DefaultEventHandlerInternal(Event& event) {
   }
 
   if (select) {
-    // This logic to determine if we should select the option is copied from
-    // ListBoxSelectType::DefaultEventHandler. It will likely change when we try
-    // to spec it.
     const auto* mouse_event = DynamicTo<MouseEvent>(event);
-    const auto* gesture_event = DynamicTo<GestureEvent>(event);
-    if ((event.type() == event_type_names::kGesturetap && gesture_event) ||
-        (event.type() == event_type_names::kMousedown && mouse_event &&
-         mouse_event->button() ==
-             static_cast<int16_t>(WebPointerProperties::Button::kLeft))) {
+    if (mouse_event && event.type() == event_type_names::kMouseup &&
+        mouse_event->button() ==
+        static_cast<int16_t>(WebPointerProperties::Button::kLeft)) {
       select->SelectOptionByPopup(this);
       select->HidePopup();
       event.SetDefaultHandled();
@@ -760,9 +758,8 @@ void HTMLOptionElement::FinishParsingChildren() {
   HTMLElement::FinishParsingChildren();
   if (RuntimeEnabledFeatures::CustomizableSelectEnabled() && Selected()) {
     auto* select = OwnerSelectElement();
-    if (select && select->UsesMenuList() && !select->IsMultiple()) {
-      CHECK_EQ(this, select->SelectedOption());
-      select->UpdateAllSelectedcontents();
+    if (select && !select->IsMultiple()) {
+      select->UpdateAllSelectedcontents(this);
     }
   }
 }

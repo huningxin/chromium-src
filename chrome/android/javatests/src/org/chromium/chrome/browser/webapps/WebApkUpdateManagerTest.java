@@ -51,7 +51,6 @@ import org.chromium.chrome.test.util.browser.webapps.WebappTestPage;
 import org.chromium.components.webapk.proto.WebApkProto;
 import org.chromium.components.webapps.WebApkDistributor;
 import org.chromium.components.webapps.WebApkUpdateReason;
-import org.chromium.components.webapps.WebappsIconUtils;
 import org.chromium.device.mojom.ScreenOrientationLockType;
 import org.chromium.net.test.EmbeddedTestServer;
 import org.chromium.ui.modaldialog.DialogDismissalCause;
@@ -430,8 +429,7 @@ public class WebApkUpdateManagerTest {
         creationData.startUrl =
                 mTestServer.getURL("/chrome/test/data/banners/manifest_%74est_page.html");
 
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertTrue(checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ false));
         assertUpdateReasonsEqual(WebApkUpdateReason.START_URL_DIFFERS);
     }
@@ -444,8 +442,7 @@ public class WebApkUpdateManagerTest {
         creationData.startUrl =
                 mTestServer.getURL("/chrome/test/data/banners/manifest_test_page.html");
 
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertFalse(checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ false));
     }
 
@@ -464,20 +461,15 @@ public class WebApkUpdateManagerTest {
                 mTestServer.getURL("/chrome/test/data/banners/launcher-icon-3x.png"),
                 "16812314236514539104");
 
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
+        WebappTestPage.navigateToPageWithManifest(
                 mTestServer, mTab, WEBAPK_MANIFEST_WITH_MASKABLE_ICON_URL);
 
         // Icon changes should trigger the warning dialog, if the platform supports maskable icons.
         enableUpdateDialogForIcon(true);
-        Assert.assertEquals(
-                WebappsIconUtils.doesAndroidSupportMaskableIcons(),
-                checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ true));
-        boolean supportsMaskableIcons = WebappsIconUtils.doesAndroidSupportMaskableIcons();
-        if (supportsMaskableIcons) {
-            assertUpdateReasonsEqual(WebApkUpdateReason.PRIMARY_ICON_MASKABLE_DIFFERS);
-        }
-        Assert.assertEquals(supportsMaskableIcons, mUpdateRequested);
-        Assert.assertEquals(supportsMaskableIcons, mIconOrNameUpdateDialogShown);
+        Assert.assertTrue(checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ true));
+        assertUpdateReasonsEqual(WebApkUpdateReason.PRIMARY_ICON_MASKABLE_DIFFERS);
+        Assert.assertTrue(mUpdateRequested);
+        Assert.assertTrue(mIconOrNameUpdateDialogShown);
     }
 
     @Test
@@ -501,7 +493,7 @@ public class WebApkUpdateManagerTest {
         }
 
         // The fifth shortcut should be ignored.
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
+        WebappTestPage.navigateToPageWithManifest(
                 mTestServer, mTab, WEBAPK_MANIFEST_TOO_MANY_SHORTCUTS_URL);
         Assert.assertFalse(checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ false));
     }
@@ -534,8 +526,7 @@ public class WebApkUpdateManagerTest {
         creationData.iconUrlToMurmur2HashMap.put(
                 mTestServer.getURL(WEBAPK_ICON_URL), WEBAPK_ICON_MURMUR2_HASH + "1");
 
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertTrue(checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ true));
 
         if (iconEnabled || !iconChangeSignificant) {
@@ -602,8 +593,7 @@ public class WebApkUpdateManagerTest {
 
         boolean requestingChange = changeIcon || changeName || changeShortName;
         boolean expectingChange = expectIconChange || changeName || changeShortName;
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertTrue(
                 checkUpdateNeeded(
                         creationData,
@@ -754,8 +744,7 @@ public class WebApkUpdateManagerTest {
         legacyWebApkData.manifestId = null;
         legacyWebApkData.backgroundColor -= 1;
 
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         waitForUpdate(legacyWebApkData);
 
         assertNotNull(mUpdateRequestPath);
@@ -774,8 +763,7 @@ public class WebApkUpdateManagerTest {
         creationData.appKey = mTestServer.getURL("/appKey");
         creationData.backgroundColor -= 1;
 
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         waitForUpdate(creationData);
 
         assertNotNull(mUpdateRequestPath);
@@ -800,8 +788,7 @@ public class WebApkUpdateManagerTest {
         legacyWebApkData.backgroundColor -= 1;
 
         // Navigate to a page with different manifestUrl and startUrl.
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertFalse(checkUpdateNeeded(legacyWebApkData, /* acceptDialogIfAppears= */ false));
     }
 
@@ -819,8 +806,7 @@ public class WebApkUpdateManagerTest {
         legacyWebApkData.backgroundColor -= 1;
 
         // Navigate to a page with different manifestUrl.
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertTrue(checkUpdateNeeded(legacyWebApkData, /* acceptDialogIfAppears= */ false));
     }
 
@@ -837,8 +823,7 @@ public class WebApkUpdateManagerTest {
         legacyWebApkData.backgroundColor -= 1;
 
         // Navigate to a page with different manifestUrl.
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertTrue(checkUpdateNeeded(legacyWebApkData, /* acceptDialogIfAppears= */ false));
     }
 
@@ -854,8 +839,7 @@ public class WebApkUpdateManagerTest {
         creationData.backgroundColor -= 1;
 
         // Navigate to a page under different scope.
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
         Assert.assertFalse(checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ false));
     }
 
@@ -946,8 +930,7 @@ public class WebApkUpdateManagerTest {
         creationData.hasCustomName = true;
         creationData.shellVersion = -1;
 
-        WebappTestPage.navigateToServiceWorkerPageWithManifest(
-                mTestServer, mTab, WEBAPK_MANIFEST_URL);
+        WebappTestPage.navigateToPageWithManifest(mTestServer, mTab, WEBAPK_MANIFEST_URL);
 
         Assert.assertTrue(checkUpdateNeeded(creationData, /* acceptDialogIfAppears= */ false));
 

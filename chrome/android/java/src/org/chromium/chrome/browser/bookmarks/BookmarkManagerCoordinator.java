@@ -4,6 +4,7 @@
 
 package org.chromium.chrome.browser.bookmarks;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -13,7 +14,9 @@ import android.view.ViewGroup;
 
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator;
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener;
@@ -130,6 +133,7 @@ public class BookmarkManagerCoordinator
      * @param snackbarManager The {@link SnackbarManager} used to display snackbars.
      * @param profile The profile which the manager is running in.
      * @param bookmarkUiPrefs Manages prefs for bookmarks ui.
+     * @param bookmarkOpenedCallback Callback that's run when a bookamrk is opened.
      */
     public BookmarkManagerCoordinator(
             Context context,
@@ -137,7 +141,8 @@ public class BookmarkManagerCoordinator
             boolean isDialogUi,
             SnackbarManager snackbarManager,
             Profile profile,
-            BookmarkUiPrefs bookmarkUiPrefs) {
+            BookmarkUiPrefs bookmarkUiPrefs,
+            @Nullable Runnable bookmarkOpenedCallback) {
         mProfile = profile;
         mImageFetcher =
                 ImageFetcherFactory.createImageFetcher(
@@ -148,7 +153,9 @@ public class BookmarkManagerCoordinator
 
         mMainView = (ViewGroup) LayoutInflater.from(context).inflate(R.layout.bookmark_main, null);
         mBookmarkModel = BookmarkModel.getForProfile(profile);
-        mBookmarkOpener = new BookmarkOpener(mBookmarkModel, context, openBookmarkComponentName);
+        mBookmarkOpener =
+                new BookmarkOpener(
+                        mBookmarkModel, context, openBookmarkComponentName, bookmarkOpenedCallback);
         ShoppingService service = ShoppingServiceFactory.getForProfile(profile);
         if (CommerceFeatureUtils.isShoppingListEligible(service)) {
             service.scheduleSavedProductUpdate();
@@ -221,7 +228,9 @@ public class BookmarkManagerCoordinator
                 onScrollListener -> mRecyclerView.addOnScrollListener(onScrollListener);
         mMediator =
                 new BookmarkManagerMediator(
-                        context,
+                        (Activity) context,
+                        (LifecycleOwner) context,
+                        mModalDialogManager,
                         mBookmarkModel,
                         mBookmarkOpener,
                         mSelectableListLayout,

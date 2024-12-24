@@ -23,6 +23,8 @@ LensEntrypoint LensEntrypointFromOverlayEntrypoint(
       return LensEntrypoint::LensOverlayLocationBar;
     case LensOverlayEntrypoint::kOverflowMenu:
       return LensEntrypoint::LensOverlayOverflowMenu;
+    case LensOverlayEntrypoint::kSearchImageContextMenu:
+      return LensEntrypoint::ContextMenu;
   }
 }
 
@@ -33,6 +35,13 @@ LensEntrypoint LensEntrypointFromOverlayEntrypoint(
 - (LensConfiguration*)configurationForEntrypoint:
                           (LensOverlayEntrypoint)entrypoint
                                          profile:(ProfileIOS*)profile {
+  LensEntrypoint lensEntrypoint =
+      LensEntrypointFromOverlayEntrypoint(entrypoint);
+  return [self configurationForLensEntrypoint:lensEntrypoint profile:profile];
+}
+
+- (LensConfiguration*)configurationForLensEntrypoint:(LensEntrypoint)entrypoint
+                                             profile:(ProfileIOS*)profile {
   CHECK(profile, kLensOverlayNotFatalUntil);
   // Lens needs to have visibility into the user's identity and whether the
   // search should be incognito or not.
@@ -41,7 +50,7 @@ LensEntrypoint LensEntrypointFromOverlayEntrypoint(
   configuration.isIncognito = isIncognito;
   configuration.singleSignOnService =
       GetApplicationContext()->GetSingleSignOnService();
-  configuration.entrypoint = LensEntrypointFromOverlayEntrypoint(entrypoint);
+  configuration.entrypoint = entrypoint;
 
   if (!isIncognito) {
     AuthenticationService* authenticationService =

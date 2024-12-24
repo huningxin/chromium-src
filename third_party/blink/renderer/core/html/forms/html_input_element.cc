@@ -1724,7 +1724,7 @@ bool HTMLInputElement::MatchesReadWritePseudoClass() const {
   return input_type_->SupportsReadOnly() && !IsDisabledOrReadOnly();
 }
 
-ControlPart HTMLInputElement::AutoAppearance() const {
+AppearanceValue HTMLInputElement::AutoAppearance() const {
   return input_type_view_->AutoAppearance();
 }
 
@@ -2356,6 +2356,10 @@ void HTMLInputElement::showPicker(ExceptionState& exception_state) {
   LocalFrame::ConsumeTransientUserActivation(frame);
 
   input_type_view_->OpenPopupView();
+}
+
+bool HTMLInputElement::IsPickerVisible() const {
+  return input_type_view_->IsPickerVisible();
 }
 
 bool HTMLInputElement::IsValidBuiltinCommand(HTMLElement& invoker,

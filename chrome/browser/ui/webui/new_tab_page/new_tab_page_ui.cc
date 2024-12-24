@@ -53,7 +53,6 @@
 #include "chrome/browser/ui/webui/searchbox/realbox_handler.h"
 #include "chrome/browser/ui/webui/searchbox/searchbox_handler.h"
 #include "chrome/browser/ui/webui/theme_source.h"
-#include "chrome/browser/ui/webui/webui_util.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/common/search/instant_types.h"
 #include "chrome/common/url_constants.h"
@@ -92,9 +91,9 @@
 #include "ui/base/webui/web_ui_util.h"
 #include "ui/color/color_provider.h"
 #include "ui/native_theme/native_theme.h"
-#include "ui/resources/grit/webui_resources.h"
 #include "ui/webui/color_change_listener/color_change_handler.h"
 #include "ui/webui/webui_allowlist.h"
+#include "ui/webui/webui_util.h"
 #include "url/origin.h"
 #include "url/url_util.h"
 
@@ -491,7 +490,6 @@ NewTabPageUI::NewTabPageUI(content::WebUI* web_ui)
       most_visited_page_factory_receiver_(this),
       browser_command_factory_receiver_(this),
       profile_(Profile::FromWebUI(web_ui)),
-      tab_(tabs::TabInterface::GetFromContents(web_ui->GetWebContents())),
       theme_service_(ThemeServiceFactory::GetForProfile(profile_)),
       ntp_custom_background_service_(
           NtpCustomBackgroundServiceFactory::GetForProfile(profile_)),
@@ -571,9 +569,6 @@ NewTabPageUI::NewTabPageUI(content::WebUI* web_ui)
   OnColorProviderChanged();
   OnCustomBackgroundImageUpdated();
   OnLoad();
-
-  tab_subscriptions_.push_back(tab_->RegisterWillDetach(base::BindRepeating(
-      &NewTabPageUI::TabWillDetach, weak_ptr_factory_.GetWeakPtr())));
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(NewTabPageUI)
@@ -654,8 +649,9 @@ void NewTabPageUI::BindInterface(
 void NewTabPageUI::BindInterface(
     mojo::PendingReceiver<browser_command::mojom::CommandHandlerFactory>
         pending_receiver) {
-  if (browser_command_factory_receiver_.is_bound())
+  if (browser_command_factory_receiver_.is_bound()) {
     browser_command_factory_receiver_.reset();
+  }
   browser_command_factory_receiver_.Bind(std::move(pending_receiver));
 }
 
@@ -701,7 +697,7 @@ void NewTabPageUI::BindInterface(
     mojo::PendingReceiver<ntp::calendar::mojom::OutlookCalendarPageHandler>
         pending_page_handler) {
   outlook_calendar_handler_ = std::make_unique<OutlookCalendarPageHandler>(
-      std::move(pending_page_handler));
+      std::move(pending_page_handler), profile_);
 }
 
 void NewTabPageUI::BindInterface(
@@ -740,8 +736,6 @@ void NewTabPageUI::CreatePageHandler(
         pending_page_handler) {
   DCHECK(pending_page.is_valid());
 
-  auto* side_panel_controller =
-      tab_->GetTabFeatures()->customize_chrome_side_panel_controller();
   page_handler_ = std::make_unique<NewTabPageHandler>(
       std::move(pending_page_handler), std::move(pending_page), profile_,
       ntp_custom_background_service_, theme_service_,
@@ -750,7 +744,7 @@ void NewTabPageUI::CreatePageHandler(
       segmentation_platform::SegmentationPlatformServiceFactory::GetForProfile(
           profile_),
       web_contents(), std::make_unique<NewTabPageFeaturePromoHelper>(),
-      navigation_start_time_, &module_id_details_, side_panel_controller);
+      navigation_start_time_, &module_id_details_);
 }
 
 void NewTabPageUI::CreateBrowserCommandHandler(
@@ -793,8 +787,9 @@ void NewTabPageUI::CreateHelpBubbleHandler(
 // should not directly access any member variables.
 void NewTabPageUI::OnColorProviderChanged() {
   base::Value::Dict update;
-  if (!web_contents() || !web_ui())
+  if (!web_contents() || !web_ui()) {
     return;
+  }
   const ui::ColorProvider& color_provider = web_contents()->GetColorProvider();
   auto background_color = color_provider.GetColor(kColorNewTabPageBackground);
   update.Set("backgroundColor", skia::SkColorToHexString(background_color));
@@ -876,16 +871,6 @@ void NewTabPageUI::OnLoad() {
                              IdentityManagerFactory::GetForProfile(profile_)));
   content::WebUIDataSource::Update(profile_, chrome::kChromeUINewTabPageHost,
                                    std::move(update));
-}
-
-void NewTabPageUI::TabWillDetach(tabs::TabInterface* tab,
-                                 tabs::TabInterface::DetachReason reason) {
-  if (reason == tabs::TabInterface::DetachReason::kDelete) {
-    tab_ = nullptr;
-    if (page_handler_) {
-      page_handler_->TabWillDelete();
-    }
-  }
 }
 
 // static

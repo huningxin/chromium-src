@@ -26,7 +26,6 @@
 #import "ios/chrome/browser/policy/model/browser_policy_connector_ios.h"
 #import "ios/chrome/browser/policy/model/cloud/user_policy_switch.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_state.h"
-#import "ios/chrome/browser/shared/model/application_context/application_context.h"
 #import "ios/chrome/browser/shared/model/browser/browser.h"
 #import "ios/chrome/browser/shared/model/prefs/pref_names.h"
 #import "ios/chrome/browser/shared/model/profile/profile_ios.h"
@@ -59,6 +58,7 @@ enum AuthenticationState {
   CHECK_SIGNIN_STEPS,
   FETCH_MANAGED_STATUS,
   SHOW_MANAGED_CONFIRMATION,
+  CONVERT_PERSONAL_PROFILE_TO_MANAGED,
   SIGN_OUT_IF_NEEDED,
   SIGN_IN,
   REGISTER_FOR_USER_POLICY,
@@ -163,6 +163,10 @@ BOOL IsIdentityInCoreAccountInfos(
   // YES if the signed in account is a managed account and the sign-in flow
   // includes sync.
   BOOL _shouldShowManagedConfirmation;
+  // YES if the personal profile should be converted to a managed (work) profile
+  // as part of the signin flow. Can only be true if the to-be-signed-in account
+  // is managed.
+  BOOL _shouldConvertPersonalProfileToManaged;
   // YES if user policies have to be fetched.
   BOOL _shouldFetchUserPolicy;
   // YES if user is opted into bookmark and reading list account storage.
@@ -275,6 +279,7 @@ BOOL IsIdentityInCoreAccountInfos(
     case CHECK_SIGNIN_STEPS:
     case FETCH_MANAGED_STATUS:
     case SHOW_MANAGED_CONFIRMATION:
+    case CONVERT_PERSONAL_PROFILE_TO_MANAGED:
     case SIGN_OUT_IF_NEEDED:
     case SIGN_IN:
     case REGISTER_FOR_USER_POLICY:
@@ -310,10 +315,15 @@ BOOL IsIdentityInCoreAccountInfos(
       else
         return SIGN_IN;
     case SHOW_MANAGED_CONFIRMATION:
-      if (_shouldSignOut)
+      if (_shouldConvertPersonalProfileToManaged) {
+        return CONVERT_PERSONAL_PROFILE_TO_MANAGED;
+      } else if (_shouldSignOut) {
         return SIGN_OUT_IF_NEEDED;
-      else
+      } else {
         return SIGN_IN;
+      }
+    case CONVERT_PERSONAL_PROFILE_TO_MANAGED:
+      return SIGN_IN;
     case SIGN_OUT_IF_NEEDED:
       return SIGN_IN;
     case SIGN_IN:
@@ -388,12 +398,19 @@ BOOL IsIdentityInCoreAccountInfos(
       return;
     }
 
+    case CONVERT_PERSONAL_PROFILE_TO_MANAGED: {
+      [_performer makePersonalProfileManagedWithIdentity:_identityToSignIn];
+      return;
+    }
+
     case SIGN_OUT_IF_NEEDED:
+      // TODO(crbug.com/375605482): skip sign out if there is a profile
+      // switching.
       [_performer signOutProfile:profile];
       return;
 
     case SIGN_IN:
-      [self signInIdentity:_identityToSignIn];
+      [self multiProfileSignIn];
       return;
 
     case REGISTER_FOR_USER_POLICY:
@@ -461,12 +478,8 @@ BOOL IsIdentityInCoreAccountInfos(
       [currentIdentity isEqual:_identityToSignIn];
 }
 
-- (void)signInIdentity:(id<SystemIdentity>)identity {
-  if (self.userDecisionCompletion) {
-    self.userDecisionCompletion();
-  }
+- (void)multiProfileSignIn {
   ProfileIOS* profile = [self originalProfile];
-
   signin::IdentityManager* identityManager =
       IdentityManagerFactory::GetForProfile(profile);
   ChromeAccountManagerService* accountManagerService =
@@ -475,30 +488,29 @@ BOOL IsIdentityInCoreAccountInfos(
   BOOL isValidIdentityOnDevice = NO;
   if (AreSeparateProfilesForManagedAccountsEnabled()) {
     isValidIdentityOnDevice = IsIdentityInAccountInfos(
-        identity, identityManager->GetAccountsOnDevice());
+        _identityToSignIn, identityManager->GetAccountsOnDevice());
     isValidIdentityInProfile = IsIdentityInCoreAccountInfos(
-        identity, identityManager->GetAccountsWithRefreshTokens());
+        _identityToSignIn, identityManager->GetAccountsWithRefreshTokens());
   } else {
     isValidIdentityOnDevice = isValidIdentityInProfile =
-        accountManagerService->IsValidIdentity(identity);
+        accountManagerService->IsValidIdentity(_identityToSignIn);
   }
 
   if (isValidIdentityInProfile) {
-    [_performer signInIdentity:identity
-                 atAccessPoint:self.accessPoint
-                currentProfile:profile];
-    _didSignIn = YES;
-    [self continueSignin];
+    [self signInInCurrentProfile];
   } else if (isValidIdentityOnDevice) {
     CHECK(AreSeparateProfilesForManagedAccountsEnabled());
     NSString* sceneIdentifier = _browser->GetSceneState().sceneSessionID;
     __weak __typeof(self) weakSelf = self;
     OnProfileSwitchCompletion completion = base::BindOnce(
-        [](__typeof(self) strongSelf, bool success) {
-          [strongSelf onSwitchToProfileWithSuccess:success];
+        [](__typeof(self) strong_self, bool success,
+           Browser* new_profile_browser, UIViewController* view_controller) {
+          [strong_self onSwitchToProfileWithSuccess:success
+                                  newProfileBrowser:new_profile_browser
+                                     viewController:view_controller];
         },
         weakSelf);
-    [_performer switchToProfileWithIdentity:identity
+    [_performer switchToProfileWithIdentity:_identityToSignIn
                             sceneIdentifier:sceneIdentifier
                                  completion:std::move(completion)];
   } else {
@@ -627,14 +639,12 @@ BOOL IsIdentityInCoreAccountInfos(
                                      prefs::kSigninHasAcceptedManagementDialog,
                                      gaiaIDHash, base::Value(true));
   }
-  if (AreSeparateProfilesForManagedAccountsEnabled() &&
+
+  _shouldConvertPersonalProfileToManaged =
+      AreSeparateProfilesForManagedAccountsEnabled() &&
       (!keepBrowsingDataSeparate ||
-       _accessPoint == signin_metrics::AccessPoint::ACCESS_POINT_START_PAGE)) {
-    GetApplicationContext()
-        ->GetAccountProfileMapper()
-        ->MakePersonalProfileManagedWithGaiaID(
-            base::SysNSStringToUTF8(_identityToSignIn.gaiaID));
-  }
+       _accessPoint == signin_metrics::AccessPoint::ACCESS_POINT_START_PAGE);
+
   [self continueSignin];
 }
 
@@ -657,6 +667,10 @@ BOOL IsIdentityInCoreAccountInfos(
 - (void)didFetchUserPolicyWithSuccess:(BOOL)success {
   DCHECK_EQ(FETCH_USER_POLICY, _state);
   DLOG_IF(ERROR, !success) << "Error fetching policy for user";
+  [self continueSignin];
+}
+
+- (void)didMakePersonalProfileManaged {
   [self continueSignin];
 }
 
@@ -708,25 +722,37 @@ BOOL IsIdentityInCoreAccountInfos(
 
 // Called when the profile switching succeeded or failed (according to
 // `success`).
-- (void)onSwitchToProfileWithSuccess:(BOOL)success {
+- (void)onSwitchToProfileWithSuccess:(BOOL)success
+                   newProfileBrowser:(Browser*)newProfileBrowser
+                      viewController:(UIViewController*)viewController {
+  CHECK(AreSeparateProfilesForManagedAccountsEnabled());
   if (success) {
-    // TODO(crbug.com/375604649): Need to define how to finish the
-    // authentication flow after the profile switching.
-    // * What happens for the steps after SIGN_IN?
-    //    REGISTER_FOR_USER_POLICY
-    //    FETCH_USER_POLICY
-    //    FETCH_CAPABILITIES
-    //    COMPLETE_WITH_SUCCESS
-    // * Is there metrics to record before to the flow is finished?
-    // It is important to reach the last step otherwise AuthenticationFlow is
-    // leaked since `_selfRetainer` returns itself.
-
-    // The _browser doesn't exist anymore, since the profile has been switched.
-    _browser = nil;
+    _browser = newProfileBrowser;
+    _presentingViewController = viewController;
+    // TODO(crbug.com/375605482): Need to sign-out if the new profile is not
+    // signed in with the right identity (useful for the personal profile).
+    // TODO(crbug.com/375605482): Need to block user until AuthenticationFlow
+    // is done? Probably with a blur animation.
+    [self signInInCurrentProfile];
   } else {
-    // TODO(crbug.com/375604649): Generate an error and call:
+    // TODO(crbug.com/375605482): Generate an error and call:
     // `[self handleAuthenticationError:error];`.
   }
+}
+
+// Signs in the user using `_identityToSignIn`. The identity must be assigned
+// to the current profile.
+- (void)signInInCurrentProfile {
+  ProfileIOS* profile = [self originalProfile];
+  signin::IdentityManager* identityManager =
+      IdentityManagerFactory::GetForProfile(profile);
+  CHECK(IsIdentityInCoreAccountInfos(
+      _identityToSignIn, identityManager->GetAccountsWithRefreshTokens()));
+  [_performer signInIdentity:_identityToSignIn
+               atAccessPoint:self.accessPoint
+              currentProfile:profile];
+  _didSignIn = YES;
+  [self continueSignin];
 }
 
 #pragma mark - Used for testing

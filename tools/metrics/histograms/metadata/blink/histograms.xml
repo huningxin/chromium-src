@@ -179,7 +179,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram base="true"
     name="Blink.AnchorElementMetricsIntersectionObserver.UpdateTime"
-    units="microseconds" expires_after="2025-04-13">
+    units="microseconds" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -593,6 +593,24 @@ chromium-metrics-reviews@google.com.
   </token>
 </histogram>
 
+<histogram name="Blink.Canvas.ToDataURLCompressionRatio.PNG"
+    units="encoded bytes per 100 image bytes" expires_after="2025-06-08">
+  <owner>lukasza@chromium.org</owner>
+  <owner>danieldilan@google.com</owner>
+  <owner>fmalita@chromium.org</owner>
+  <owner>aaronhk@chromium.org</owner>
+  <summary>
+    Number of bytes of the encoded PNG per 100 bytes of the input image.
+
+    Note the numerator is the number of bytes of the encoded PNG **before** it
+    gets base64-encoding and converted into a data URI.
+
+    For example, an 8x8 image of RGBA8 pixels takes 256 bytes in memory. If such
+    image gets encoded as 192 bytes (i.e. 75% of 256 bytes), then the metrics
+    here will be 75.
+  </summary>
+</histogram>
+
 <histogram
     name="Blink.Canvas.ToDataURLScaledDuration{BlinkCanvasToDataURLMimeType}"
     units="microseconds/sqrt(pixels)" expires_after="2025-06-08">
@@ -661,7 +679,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.CompositingCommit.UpdateTime"
-    units="microseconds" expires_after="2025-04-13">
+    units="microseconds" expires_after="2025-06-15">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -1027,7 +1045,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.DisplayLockIntersectionObserver.UpdateTime"
-    units="microseconds" expires_after="2025-02-10">
+    units="microseconds" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -1097,7 +1115,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram name="Blink.Experimental.Cookies.CacheLookupResult2"
     enum="CookieCacheLookupResult" expires_after="2025-04-13">
-  <owner>carlscab@google.com</owner>
+  <owner>olivierli@chromium.org</owner>
   <owner>woa-performance@google</owner>
   <summary>
     Whether a GetCookiesString request for a document returned the same result
@@ -1516,6 +1534,18 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records the type of token response received. Recorded at most once per API
     call when a token response received.
+  </summary>
+</histogram>
+
+<histogram name="Blink.FedCm.IdentityProvidersCount" units="count"
+    expires_after="2025-04-13">
+  <owner>npm@chromium.org</owner>
+  <owner>web-identity-eng@google.com</owner>
+  <summary>
+    Records the count of identity providers right before fetching endpoints with
+    multi IDP flag enabled. It counts distint providers including the ones a
+    user is not signed in to. Recorded at most once per API call before the
+    browser starts fetching from the IdPs.
   </summary>
 </histogram>
 
@@ -2341,7 +2371,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.ForcedStyleAndLayout.UpdateTime"
-    units="microseconds" expires_after="2025-04-13">
+    units="microseconds" expires_after="2025-06-15">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -2835,7 +2865,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.IntersectionObservation.UpdateTime"
-    units="microseconds" expires_after="2025-04-13">
+    units="microseconds" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -2857,7 +2887,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram base="true"
     name="Blink.IntersectionObservationInternalCount.UpdateTime" units="count"
-    expires_after="2024-12-08">
+    expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>szager@chromium.org</owner>
@@ -2870,7 +2900,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram base="true"
     name="Blink.IntersectionObservationJavascriptCount.UpdateTime"
-    units="count" expires_after="2024-12-08">
+    units="count" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>szager@chromium.org</owner>
@@ -2907,7 +2937,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.JavascriptIntersectionObserver.UpdateTime"
-    units="microseconds" expires_after="2025-02-10">
+    units="microseconds" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -2955,7 +2985,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Blink.Layout.InlineNode.ShapeText.TotalTime.InOutermostMainFrame3"
-    units="microseconds" expires_after="2025-04-13">
+    units="microseconds" expires_after="2025-06-15">
   <owner>chikamune@chromium.org</owner>
   <owner>
     src/third_party/blink/renderer/core/lcp_critical_path_predictor/OWNERS
@@ -2969,18 +2999,8 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="Blink.Layout.RebuildFragmentTreeSpine" units="microseconds"
-    expires_after="2025-01-26">
-  <owner>tkent@chromium.org</owner>
-  <owner>layout-dev@chromium.org</owner>
-  <summary>
-    Time spent to rebuild container physical fragments, recorded on sub-tree
-    root layout.
-  </summary>
-</histogram>
-
 <histogram name="Blink.Layout.SVGImage.Count.InOutermostMainFrame"
-    units="count" expires_after="2025-01-26">
+    units="count" expires_after="2025-12-01">
   <owner>chikamune@chromium.org</owner>
   <owner>
     src/third_party/blink/renderer/core/lcp_critical_path_predictor/OWNERS
@@ -3024,7 +3044,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.Layout.UpdateTime" units="microseconds"
-    expires_after="2025-04-13">
+    expires_after="2025-06-15">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -3044,7 +3064,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.LazyLoadIntersectionObserver.UpdateTime"
-    units="microseconds" expires_after="2025-04-13">
+    units="microseconds" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -3203,7 +3223,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Blink.LCPP.LCPElementLocatorSize" units="bytes"
-    expires_after="2025-04-13">
+    expires_after="2025-06-15">
   <owner>kouhei@chromium.org</owner>
   <owner>
     src/third_party/blink/renderer/core/lcp_critical_path_predictor/OWNERS
@@ -3687,7 +3707,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.MainFrame.UpdateTime" units="microseconds"
-    expires_after="2025-04-13">
+    expires_after="2025-06-15">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -3707,7 +3727,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.MediaIntersectionObserver.UpdateTime"
-    units="microseconds" expires_after="2025-02-10">
+    units="microseconds" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -3946,7 +3966,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Blink.Paint.UpdateTime" units="microseconds"
-    expires_after="2025-04-13">
+    expires_after="2025-06-15">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>
@@ -4010,7 +4030,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram base="true"
     name="Blink.PermissionElementIntersectionObserver.UpdateTime"
-    units="microseconds" expires_after="2025-04-20">
+    units="microseconds" expires_after="2025-12-08">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>tungnh@chromium.org</owner>
@@ -4130,6 +4150,17 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Blink.ResourceRequest.CodeFetchLatency" units="ms"
+    expires_after="2025-12-06">
+  <owner>olivierli@chromium.org</owner>
+  <owner>leszeks@chromium.org</owner>
+  <summary>
+    Measures the time from when a code fetch is initiated to when the renderer
+    starts processesing the result. Logged for every code fetch when the
+    response is received.
+  </summary>
+</histogram>
+
 <histogram name="Blink.ResourceRequest.CompletionDelay2" units="ms"
     expires_after="2025-05-11">
   <owner>horo@chromium.org</owner>
@@ -4188,6 +4219,26 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
+    name="Blink.Responsiveness.PerAnimationFrame.CommitToPresentationTime"
+    units="ms" expires_after="2025-10-30">
+  <owner>sullivan@chromium.org</owner>
+  <owner>mmocny@chromium.org</owner>
+  <owner>speed-metrics-dev@chromium.org</owner>
+  <owner>chrome-analysis-team@google.com</owner>
+  <summary>
+    Blink.Responsiveness.PerAnimationFrame.* is a family of metrics representing
+    the sub-parts (aka breakdowns) of Interactions. Reported per Animation Frame
+    which includes at least one Event Timing which is a part of an interaction
+    (as in INP). All subparts are based on Event Timing API measurements (and
+    so, do not include continuous events, like scrolling).
+
+    This subpart represents the duration from the time when commit stage of
+    rendering completes to when the browser presents the next frame with the
+    changes caused by the last event.
+  </summary>
+</histogram>
+
+<histogram
     name="Blink.Responsiveness.PerAnimationFrame.EventCreationTimeToEventQueueTime"
     units="ms" expires_after="2025-10-30">
   <owner>sullivan@chromium.org</owner>
@@ -4201,7 +4252,7 @@ chromium-metrics-reviews@google.com.
     (as in INP). All subparts are based on Event Timing API measurements (and
     so, do not include continuous events, like scrolling).
 
-    This subpart represents the duration from the earliest event creation time
+    This subpart represents the duration from the first event creation time
     (timeStamp) to when it was queued on the main thread.
   </summary>
 </histogram>
@@ -4220,7 +4271,7 @@ chromium-metrics-reviews@google.com.
     (as in INP). All subparts are based on Event Timing API measurements (and
     so, do not include continuous events, like scrolling).
 
-    This subpart represents the duration from the earliest event creation time
+    This subpart represents the duration from the first event creation time
     (timeStamp) to when it was processed on the main thread. Traditionally, also
     referred to as Input Delay.
   </summary>
@@ -4240,8 +4291,67 @@ chromium-metrics-reviews@google.com.
     (as in INP). All subparts are based on Event Timing API measurements (and
     so, do not include continuous events, like scrolling).
 
-    This subpart represents the duration from the time when the earliest event
-    was queued on the main thread to when it was processed.
+    This subpart represents the duration from the time when the first event was
+    queued on the main thread to when it was processed.
+  </summary>
+</histogram>
+
+<histogram
+    name="Blink.Responsiveness.PerAnimationFrame.ProcessingEndToPresentationTime"
+    units="ms" expires_after="2025-10-30">
+  <owner>sullivan@chromium.org</owner>
+  <owner>mmocny@chromium.org</owner>
+  <owner>speed-metrics-dev@chromium.org</owner>
+  <owner>chrome-analysis-team@google.com</owner>
+  <summary>
+    Blink.Responsiveness.PerAnimationFrame.* is a family of metrics representing
+    the sub-parts (aka breakdowns) of Interactions. Reported per Animation Frame
+    which includes at least one Event Timing which is a part of an interaction
+    (as in INP). All subparts are based on Event Timing API measurements (and
+    so, do not include continuous events, like scrolling).
+
+    This subpart represents the duration from the time when the last event
+    finishes processing on the main thread to when the browser presents the next
+    frame with the changes caused by this event. Traditionally, also referred to
+    as Presentation Delay.
+  </summary>
+</histogram>
+
+<histogram
+    name="Blink.Responsiveness.PerAnimationFrame.ProcessingEndToRenderStartTime"
+    units="ms" expires_after="2025-10-30">
+  <owner>sullivan@chromium.org</owner>
+  <owner>mmocny@chromium.org</owner>
+  <owner>speed-metrics-dev@chromium.org</owner>
+  <owner>chrome-analysis-team@google.com</owner>
+  <summary>
+    Blink.Responsiveness.PerAnimationFrame.* is a family of metrics representing
+    the sub-parts (aka breakdowns) of Interactions. Reported per Animation Frame
+    which includes at least one Event Timing which is a part of an interaction
+    (as in INP). All subparts are based on Event Timing API measurements (and
+    so, do not include continuous events, like scrolling).
+
+    This subpart represents the duration from the time when the last event
+    finishes processing on the main thread to when the rendering starts.
+  </summary>
+</histogram>
+
+<histogram
+    name="Blink.Responsiveness.PerAnimationFrame.RenderStartTimeToCommitTime"
+    units="ms" expires_after="2025-10-30">
+  <owner>sullivan@chromium.org</owner>
+  <owner>mmocny@chromium.org</owner>
+  <owner>speed-metrics-dev@chromium.org</owner>
+  <owner>chrome-analysis-team@google.com</owner>
+  <summary>
+    Blink.Responsiveness.PerAnimationFrame.* is a family of metrics representing
+    the sub-parts (aka breakdowns) of Interactions. Reported per Animation Frame
+    which includes at least one Event Timing which is a part of an interaction
+    (as in INP). All subparts are based on Event Timing API measurements (and
+    so, do not include continuous events, like scrolling).
+
+    This subpart represents the duration from the time when the rendering starts
+    to when commit stage of rendering completes.
   </summary>
 </histogram>
 
@@ -4667,7 +4777,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Blink.UpdateViewportIntersection.UpdateTime"
-    units="microseconds" expires_after="2025-04-13">
+    units="microseconds" expires_after="2025-06-15">
 <!-- Name completed by histogram_suffixes name="BlinkUpdateTimeSuffixes" -->
 
   <owner>pdr@chromium.org</owner>

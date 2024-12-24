@@ -14,8 +14,6 @@ namespace history_embeddings {
 // Please use `IsHistoryEmbeddingsFeatureEnabled()` instead of using any of
 // these features directly.
 // See chrome/browser/history_embeddings/history_embeddings_utils.h
-BASE_DECLARE_FEATURE(kLaunchedHistoryEmbeddings);
-BASE_DECLARE_FEATURE(kLaunchedHistoryEmbeddingsAnswers);
 BASE_DECLARE_FEATURE(kHistoryEmbeddings);
 BASE_DECLARE_FEATURE(kHistoryEmbeddingsAnswers);
 
@@ -70,6 +68,10 @@ struct FeatureParameters {
   // scoring and result inclusion.
   double search_score_threshold = -1;
 
+  // Minimum word match score required to include an extra search result when
+  // the total score does not meet the `search_score_threshold`.
+  double search_word_match_score_threshold = 0.2;
+
   // Specifies whether to use the intent classifier to gate answer generation.
   bool enable_intent_classifier = true;
 
@@ -98,10 +100,6 @@ struct FeatureParameters {
   // Specifies the answer status to use for the mock answerer for local
   // development.
   int mock_answerer_status = 2;
-
-  // This can be used to bypass IsAnswererUseAllowed checks. It's necessary for
-  // testing and development but should remain false in real configurations.
-  bool force_answerer_use_allowed = false;
 
   // Specifies whether to show images in results for search results on the
   // chrome://history page.
@@ -181,6 +179,17 @@ struct FeatureParameters {
   // then will be skipped during search. When true, passages are embedded with
   // non-ASCII characters removed, but are then included in search.
   bool erase_non_ascii_characters = false;
+
+  // Whether to use word match text search for passages containing non-ASCII
+  // characters. See also `word_match_min_embedding_score`, which this bypasses.
+  // Note, when `erase_non_ascii_characters` is true, this will have no effect.
+  bool word_match_search_non_ascii_passages = false;
+
+  // Whether to insert the web contents title as the first passage when it
+  // isn't already in the set of extracted passages. Enabling this can help
+  // recall for URLs that have a title after the tab loads, for example PDF
+  // documents where there is no DOM and hence no <title> tag text to extract.
+  bool insert_title_passage = false;
 };
 
 // Use this to apply changes for testing only while an instance lives.

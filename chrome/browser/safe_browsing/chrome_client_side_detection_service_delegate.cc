@@ -25,6 +25,10 @@ static constexpr auto kWaitableReasons =
         optimization_guide::OnDeviceModelEligibilityReason::
             kConfigNotAvailableForFeature,
         optimization_guide::OnDeviceModelEligibilityReason::kModelToBeInstalled,
+        optimization_guide::OnDeviceModelEligibilityReason::
+            kSafetyModelNotAvailable,
+        optimization_guide::OnDeviceModelEligibilityReason::
+            kLanguageDetectionModelNotAvailable,
     });
 }  // namespace
 
@@ -156,10 +160,6 @@ void ChromeClientSideDetectionServiceDelegate::
 
 std::unique_ptr<optimization_guide::OptimizationGuideModelExecutor::Session>
 ChromeClientSideDetectionServiceDelegate::GetModelExecutorSession() {
-  if (!observing_on_device_model_availability_) {
-    return nullptr;
-  }
-
   auto* opt_guide =
       OptimizationGuideKeyedServiceFactory::GetForProfile(profile_);
 

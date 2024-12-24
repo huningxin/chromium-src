@@ -273,6 +273,8 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 
   dispatch_once(&onceToken, ^{
     dict = @{
+      @"accessibilityCellForColumn:row:" :
+          NSAccessibilityCellForColumnAndRowParameterizedAttribute,
       @"accessibilityColumns" : NSAccessibilityColumnsAttribute,
       @"accessibilityColumnCount" : NSAccessibilityColumnCountAttribute,
       @"accessibilityColumnIndexRange" :
@@ -289,13 +291,27 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
           NSAccessibilityRowHeaderUIElementsAttribute,
       @"accessibilityRowIndexRange" : NSAccessibilityRowIndexRangeAttribute,
       @"accessibilitySortDirection" : NSAccessibilitySortDirectionAttribute,
+      @"accessibilitySplitters" : NSAccessibilitySplittersAttribute,
       @"accessibilityTabs" : NSAccessibilityTabsAttribute,
+      @"accessibilityToolbarButton" : NSAccessibilityToolbarButtonAttribute,
       @"accessibilityVisibleColumns" : NSAccessibilityVisibleColumnsAttribute,
       @"accessibilityVisibleCells" : NSAccessibilityVisibleCellsAttribute,
       @"accessibilityVisibleRows" : NSAccessibilityVisibleRowsAttribute,
       @"isAccessibilityDisclosed" : NSAccessibilityDisclosingAttribute,
       @"isAccessibilityExpanded" : NSAccessibilityExpandedAttribute,
       @"isAccessibilityFocused" : NSAccessibilityFocusedAttribute,
+    };
+  });
+  return dict;
+}
+
+// Similar to newAccessibilityAPIMethodToAttributeMap but for actions.
++ (NSDictionary*)newAccessibilityAPIMethodToActionMap {
+  static NSDictionary* dict = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    dict = @{
+      @"accessibilityPerformPress" : NSAccessibilityPressAction,
     };
   });
   return dict;
@@ -314,6 +330,18 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return set;
 }
 
+// Returns the set of actions available through the new Cocoa
+// accessibility API.
++ (NSSet<NSString*>*)actionsAvailableThroughNewAccessibilityAPI {
+  static NSSet<NSString*>* set = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    set = [NSSet<NSString*>
+        setWithArray:[[self newAccessibilityAPIMethodToActionMap] allValues]];
+  });
+  return set;
+}
+
 // Returns YES if `attribute` is available through a method implemented for
 // the new accessibility API.
 + (BOOL)isAttributeAvailableThroughNewAccessibilityAPI:(NSString*)attribute {
@@ -324,8 +352,18 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   return NO;
 }
 
+// Returns YES if `action` is available through a method implemented for
+// the new accessibility API.
++ (BOOL)isActionAvailableThroughNewAccessibilityAPI:(NSString*)action {
+  if (features::IsMacAccessibilityAPIMigrationEnabled()) {
+    return [[self actionsAvailableThroughNewAccessibilityAPI]
+        containsObject:action];
+  }
+  return NO;
+}
+
 // Returns the set of methods implemented to support the new Cocoa
-// accessibility API.
+// accessibility API corresponding to old API attributes.
 + (NSSet<NSString*>*)newAccessibilityAPIMethods {
   static NSSet<NSString*>* set = nil;
   static dispatch_once_t onceToken;
@@ -352,14 +390,50 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
     return NO;
   }
 
+  // Check whether the corresponding attribute is supported for this node.
   NSString* attribute = [[[self class] newAccessibilityAPIMethodToAttributeMap]
       objectForKey:method];
   if (attribute) {
-    // Check whether the corresponding attribute is supported for this node.
     NSArray* attributeNames = [self internalAccessibilityAttributeNames];
+    if ([attributeNames containsObject:attribute]) {
+      return YES;
+    }
+
+    attributeNames = [self internalAccessibilityParameterizedAttributeNames];
     return [attributeNames containsObject:attribute];
   }
+
+  // Check whether the corresponding action is supported for this node.
+  NSString* action =
+      [[[self class] newAccessibilityAPIMethodToActionMap] objectForKey:method];
+  if (action) {
+    NSArray* actionNames = [self internalAccessibilityActionNames];
+    return [actionNames containsObject:action];
+  }
+
   return NO;
+}
+
+- (BOOL)conditionallyRespondsToSelector:(SEL)selector {
+  static std::unordered_set<SEL> methodSelectorsForParameterizedAttributes = {
+      @selector(accessibilityCellForColumn:row:),
+  };
+
+  // See if the method is permitted by checking its corresponding parameterized
+  // attribute counterpart.
+  if (methodSelectorsForParameterizedAttributes.find(selector) !=
+      methodSelectorsForParameterizedAttributes.end()) {
+    NSString* selectorString = NSStringFromSelector(selector);
+    NSString* attribute =
+        [[AXPlatformNodeCocoa newAccessibilityAPIMethodToAttributeMap]
+            objectForKey:selectorString];
+    NSArray* attributes =
+        [self internalAccessibilityParameterizedAttributeNames];
+    if (![attributes containsObject:attribute]) {
+      return NO;
+    }
+  }
+  return YES;
 }
 
 - (BOOL)respondsToSelector:(SEL)selector {
@@ -381,6 +455,26 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
         newAccessibilityAPISelectors.end()) {
       return NO;
     }
+  } else {
+    // The following deprecated selectors had existing new-API implementations
+    // that are expected to continue to work independent of the flag. For any
+    // such API, ensure the corresponding old API is not available when the flag
+    // is enabled.
+    static std::unordered_set<SEL> deprecatedSelectors = {
+        @selector(AXInsertionPointLineNumber),
+        @selector(AXNumberOfCharacters),
+        @selector(AXPlaceholderValue),
+        @selector(AXSelectedText),
+        @selector(AXSelectedTextRange),
+        @selector(AXVisibleCharacterRange)};
+    if (deprecatedSelectors.find(selector) != deprecatedSelectors.end()) {
+      return NO;
+    }
+  }
+
+  // Do not respond to the method if it's not supported by the node.
+  if (![self conditionallyRespondsToSelector:selector]) {
+    return NO;
   }
 
   return [super respondsToSelector:selector];
@@ -763,11 +857,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
     case ax::mojom::Role::kListBox:
       return NSAccessibilityListRole;
     case ax::mojom::Role::kListBoxOption:
-      // Short term solution that allows children until Mac gets a more
-      // appropriate role for options than AXStaticText, which can result
-      // truncation or incorrect announcements of the option text when there are
-      // children.
-      return NSAccessibilityMenuItemRole;
+      return NSAccessibilityStaticTextRole;
     case ax::mojom::Role::kListGrid:
       return NSAccessibilityTableRole;
     case ax::mojom::Role::kListMarker:
@@ -921,6 +1011,10 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
   }
 
   return ax::mojom::Role::kUnknown;
+}
+
+- (BOOL)hasAction:(ax::mojom::Action)action {
+  return _node->HasAction(action) || HasImplicitAction(*_node, action);
 }
 
 - (AXPlatformNodeCocoa*)fromNodeID:(ui::AXNodeID)id {
@@ -1222,8 +1316,27 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 // called by AppKit internally and b) not implemented by NSAccessibilityElement,
 // so this class needs its own implementations.
 - (NSArray*)accessibilityActionNames {
-  if (!_node)
-    return @[];
+  TRACE_EVENT1("accessibility", "AXPlatformNodeCocoa::accessibilityActionNames",
+               "role=", ui::ToString([self internalRole]));
+
+  // Exclude actions available through the new accessibility API.
+  NSMutableArray* actions = [self internalAccessibilityActionNames];
+  if (features::IsMacAccessibilityAPIMigrationEnabled()) {
+    [actions
+        filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(
+                                              id evaluatedObject,
+                                              NSDictionary* bindings) {
+          return ![[[self class] actionsAvailableThroughNewAccessibilityAPI]
+              containsObject:evaluatedObject];
+        }]];
+  }
+  return actions;
+}
+
+- (NSMutableArray*)internalAccessibilityActionNames {
+  if (![self instanceActive]) {
+    return [NSMutableArray array];
+  }
 
   NSMutableArray* axActions = [NSMutableArray array];
   const ui::CocoaActionList& action_list = GetCocoaActionList();
@@ -1267,6 +1380,18 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 
   if (data.action != ax::mojom::Action::kNone)
     _node->GetDelegate()->AccessibilityPerformAction(data);
+}
+
+- (BOOL)accessibilityPerformPress {
+  ax::mojom::Action action = ax::mojom::Action::kDoDefault;
+  if (![self hasAction:action]) {
+    return NO;
+  }
+
+  ui::AXActionData data;
+  data.action = action;
+  _node->GetDelegate()->AccessibilityPerformAction(data);
+  return YES;
 }
 
 - (NSMutableArray*)internalAccessibilityAttributeNames {
@@ -1510,9 +1635,8 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
                "AXPlatformNodeCocoa::accessibilityAttributeNames",
                "role=", ui::ToString([self internalRole]));
 
-  NSMutableArray* attributes = [self internalAccessibilityAttributeNames];
-
   // Exclude attributes available through the new accessibility API.
+  NSMutableArray* attributes = [self internalAccessibilityAttributeNames];
   if (features::IsMacAccessibilityAPIMigrationEnabled()) {
     [attributes
         filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(
@@ -1522,26 +1646,46 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
               containsObject:evaluatedObject];
         }]];
   }
-
   return attributes;
 }
 
 - (NSArray*)accessibilityParameterizedAttributeNames {
-  if (!_node)
-    return @[];
+  TRACE_EVENT1("accessibility",
+               "AXPlatformNodeCocoa::accessibilityParameterizedAttributeNames",
+               "role=", ui::ToString([self internalRole]));
+
+  // Exclude attributes available through the new accessibility API.
+  NSMutableArray* attributes =
+      [self internalAccessibilityParameterizedAttributeNames];
+  if (features::IsMacAccessibilityAPIMigrationEnabled()) {
+    [attributes
+        filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(
+                                              id evaluatedObject,
+                                              NSDictionary* bindings) {
+          return ![[[self class] attributesAvailableThroughNewAccessibilityAPI]
+              containsObject:evaluatedObject];
+        }]];
+  }
+  return attributes;
+}
+
+- (NSMutableArray*)internalAccessibilityParameterizedAttributeNames {
+  if (![self instanceActive]) {
+    return [NSMutableArray array];
+  }
 
   // General attributes.
-  NSMutableArray* ret = [NSMutableArray
+  NSMutableArray* attributeNames = [NSMutableArray
       arrayWithObjects:
           NSAccessibilityAttributedStringForTextMarkerRangeParameterizedAttribute,
           nil];
 
   if (_node->HasState(ax::mojom::State::kEditable)) {
-    [ret addObjectsFromArray:@[
+    [attributeNames addObjectsFromArray:@[
       NSAccessibilityAttributedStringForRangeParameterizedAttribute
     ]];
   }
-  return ret;
+  return attributeNames;
 }
 
 // This API is deprecated.
@@ -1598,6 +1742,13 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
                      forParameter:(id)parameter {
   if (!_node)
     return nil;
+
+  if ([[self class] isAttributeAvailableThroughNewAccessibilityAPI:attribute]) {
+    // TODO(crbug.com/376723178): We should be able to add a NOTREACHED()
+    // here, but at the moment, test infrastructure still directly calls this
+    // api endpoint.
+    return nil;
+  }
 
   SEL selector = NSSelectorFromString([attribute stringByAppendingString:@":"]);
 #pragma clang diagnostic push
@@ -2235,7 +2386,7 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
       (0 != strcmp([parameter objCType], @encode(NSRange))))
     return nil;
 
-  return [[self getAXValueAsString] substringWithRange:[parameter rangeValue]];
+  return [self accessibilityStringForRange:[parameter rangeValue]];
 }
 
 - (id)AXRangeForPosition:(id)parameter {
@@ -3130,10 +3281,10 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 // LINT.ThenChange(AXVisibleCharacterRange)
 
 - (NSString*)accessibilityStringForRange:(NSRange)range {
-  if (!_node)
+  if (![self instanceActive]) {
     return nil;
-
-  return (NSString*)[self AXStringForRange:[NSValue valueWithRange:range]];
+  }
+  return [[self getAXValueAsString] substringWithRange:range];
 }
 
 - (NSAttributedString*)accessibilityAttributedStringForRange:(NSRange)range {
@@ -3222,6 +3373,16 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 }
 // LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityTabs)
 
+- (id)accessibilitySplitters {
+  // Chromium windows do not have NSSplitViews or anything similar.
+  return nil;
+}
+
+- (id)accessibilityToolbarButton {
+  // Chromium windows do not have a toolbar button.
+  return nil;
+}
+
 // NSAccessibility: configuring linkage elements.
 - (id)accessibilityTitleUIElement {
   if (![self instanceActive])
@@ -3229,6 +3390,30 @@ const ui::CocoaActionList& GetCocoaActionListForTesting() {
 
   return [self titleUIElement];
 }
+
+// LINT.IfChange(accessibilityCellForColumn)
+- (id)accessibilityCellForColumn:(NSInteger)column row:(NSInteger)row {
+  if (![self instanceActive] || ![self nodeDelegate]) {
+    return nil;
+  }
+
+  if (!ui::IsTableLike([self internalRole])) {
+    return nil;
+  }
+
+  std::optional<int32_t> cellId = [self nodeDelegate]->GetCellId(row, column);
+  if (!cellId) {
+    return nil;
+  }
+
+  ui::AXPlatformNode* cell = [self nodeDelegate]->GetFromNodeID(*cellId);
+  if (!cell) {
+    return nil;
+  }
+
+  return cell->GetNativeViewAccessible();
+}
+// LINT.ThenChange(ui/accessibility/platform/browser_accessibility_cocoa.mm:accessibilityCellForColumn)
 
 - (NSRange)accessibilityColumnIndexRange {
   if (![self instanceActive] || ![self nodeDelegate]) {

@@ -17,23 +17,6 @@ namespace lens::features {
 COMPONENT_EXPORT(LENS_FEATURES)
 BASE_DECLARE_FEATURE(kLensStandalone);
 
-// Enables a variety of changes aimed to improve user's engagement with current
-// Lens features.
-COMPONENT_EXPORT(LENS_FEATURES)
-BASE_DECLARE_FEATURE(kLensSearchOptimizations);
-
-// Enables Latency logging for the LensStandalone feature.
-COMPONENT_EXPORT(LENS_FEATURES)
-BASE_DECLARE_FEATURE(kEnableLatencyLogging);
-
-// Enable keyboard shortcut for the Lens Region Search feature.
-COMPONENT_EXPORT(LENS_FEATURES)
-BASE_DECLARE_FEATURE(kEnableRegionSearchKeyboardShortcut);
-
-// Enables context menu option for translating image feature.
-COMPONENT_EXPORT(LENS_FEATURES)
-BASE_DECLARE_FEATURE(kEnableImageTranslate);
-
 // Enables the Lens overlay.
 COMPONENT_EXPORT(LENS_FEATURES)
 BASE_DECLARE_FEATURE(kLensOverlay);
@@ -107,10 +90,6 @@ extern const base::FeatureParam<bool> kDismissLoadingStateOnPrimaryPageChanged;
 // Enables Lens fullscreen search on Desktop platforms.
 COMPONENT_EXPORT(LENS_FEATURES)
 extern const base::FeatureParam<bool> kEnableFullscreenSearch;
-
-// Enables Latency logging for the LensStandalone feature.
-COMPONENT_EXPORT(LENS_FEATURES)
-extern bool GetEnableLatencyLogging();
 
 // The URL for the Lens home page.
 COMPONENT_EXPORT(LENS_FEATURES)
@@ -323,6 +302,14 @@ extern bool GetLensOverlaySendLensVisualInteractionDataForLensSuggest();
 COMPONENT_EXPORT(LENS_FEATURES)
 extern uint32_t GetLensOverlayFileUploadLimitBytes();
 
+// Returns the number of characters to be retrieved from the PDF for generating
+// suggestions. This is a target and not a hard limit. The actual number of
+// characters returned may be more than this value since the characters are
+// rounded to the nearest page. The actual number of characters may also be
+// less than this value if the PDF is too small.
+COMPONENT_EXPORT(LENS_FEATURES)
+extern uint32_t GetLensOverlayPdfSuggestCharacterTarget();
+
 // Returns whether to use the &vit=pdf param for the search request.
 COMPONENT_EXPORT(LENS_FEATURES)
 extern bool UsePdfVitParam();
@@ -339,6 +326,12 @@ extern bool UsePdfInteractionType();
 // queries.
 COMPONENT_EXPORT(LENS_FEATURES)
 extern bool UseWebpageInteractionType();
+
+// Returns the number of characters that should be present per page if the PDF
+// is not scanned. This value is compared to the average number of characters
+// per page to determine if the PDF is scanned.
+COMPONENT_EXPORT(LENS_FEATURES)
+extern int GetScannedPdfCharacterPerPageHeuristic();
 
 // Returns whether to include PDFs from the underlying page in the request to be
 // used as page context.

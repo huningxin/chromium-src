@@ -21,6 +21,7 @@ import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.base.supplier.OneshotSupplier;
 import org.chromium.base.supplier.Supplier;
+import org.chromium.chrome.browser.collaboration.CollaborationServiceFactory;
 import org.chromium.chrome.browser.data_sharing.DataSharingServiceFactory;
 import org.chromium.chrome.browser.data_sharing.ui.shared_image_tiles.SharedImageTilesCoordinator;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
@@ -50,6 +51,7 @@ import org.chromium.chrome.browser.toolbar.bottom.BottomControlsCoordinator;
 import org.chromium.chrome.browser.toolbar.bottom.BottomControlsCoordinator.BottomControlsVisibilityController;
 import org.chromium.chrome.browser.ui.theme.BrandedColorScheme;
 import org.chromium.components.browser_ui.widget.gesture.BackPressHandler;
+import org.chromium.components.collaboration.CollaborationService;
 import org.chromium.components.data_sharing.DataSharingService;
 import org.chromium.components.data_sharing.GroupMember;
 import org.chromium.components.embedder_support.util.UrlConstants;
@@ -158,8 +160,11 @@ public class TabGroupUiMediator implements BackPressHandler, ThemeColorObserver,
                     TabGroupSyncServiceFactory.getForProfile(originalProfile);
             DataSharingService dataSharingService =
                     DataSharingServiceFactory.getForProfile(originalProfile);
+            CollaborationService collaborationService =
+                    CollaborationServiceFactory.getForProfile(originalProfile);
             mTransitiveSharedGroupObserver =
-                    new TransitiveSharedGroupObserver(tabGroupSyncService, dataSharingService);
+                    new TransitiveSharedGroupObserver(
+                            tabGroupSyncService, dataSharingService, collaborationService);
             mTransitiveSharedGroupObserver
                     .getGroupSharedStateSupplier()
                     .addObserver(mOnGroupSharedStateChanged);
@@ -181,13 +186,6 @@ public class TabGroupUiMediator implements BackPressHandler, ThemeColorObserver,
                 new TabModelObserver() {
                     @Override
                     public void didSelectTab(Tab tab, @TabSelectionType int type, int lastId) {
-                        resetTabStrip();
-                    }
-
-                    // TODO(crbug/41496693): Delete this logic once tab groups with one tab are
-                    // launched.
-                    @Override
-                    public void willCloseTab(Tab tab, boolean didCloseAlone) {
                         resetTabStrip();
                     }
 

@@ -1273,6 +1273,14 @@ bool CSSParserFastPaths::IsValidKeywordPropertyAndValue(
     case CSSPropertyID::kMaskType:
       return value_id == CSSValueID::kLuminance ||
              value_id == CSSValueID::kAlpha;
+    case CSSPropertyID::kMasonryDirection:
+      return value_id == CSSValueID::kRow ||
+             value_id == CSSValueID::kRowReverse ||
+             value_id == CSSValueID::kColumn ||
+             value_id == CSSValueID::kColumnReverse;
+    case CSSPropertyID::kMasonryFill:
+      return value_id == CSSValueID::kNormal ||
+             value_id == CSSValueID::kReverse;
     case CSSPropertyID::kMathShift:
       return value_id == CSSValueID::kNormal ||
              value_id == CSSValueID::kCompact;
@@ -1361,8 +1369,8 @@ bool CSSParserFastPaths::IsValidKeywordPropertyAndValue(
              value_id == CSSValueID::kBefore;
     case CSSPropertyID::kScrollBehavior:
       return value_id == CSSValueID::kAuto || value_id == CSSValueID::kSmooth;
-    case CSSPropertyID::kScrollStartTarget:
-      return value_id == CSSValueID::kAuto || value_id == CSSValueID::kNone;
+    case CSSPropertyID::kScrollInitialTarget:
+      return value_id == CSSValueID::kNearest || value_id == CSSValueID::kNone;
     case CSSPropertyID::kShapeRendering:
       return value_id == CSSValueID::kAuto ||
              value_id == CSSValueID::kOptimizespeed ||
@@ -1749,6 +1757,8 @@ CSSBitset CSSParserFastPaths::handled_by_keyword_fast_paths_properties_{{
     CSSPropertyID::kInterpolateSize,
     CSSPropertyID::kListStylePosition,
     CSSPropertyID::kMaskType,
+    CSSPropertyID::kMasonryDirection,
+    CSSPropertyID::kMasonryFill,
     CSSPropertyID::kMathShift,
     CSSPropertyID::kMathStyle,
     CSSPropertyID::kObjectFit,
@@ -1841,7 +1851,7 @@ CSSBitset CSSParserFastPaths::handled_by_keyword_fast_paths_properties_{{
     CSSPropertyID::kOriginTrialTestProperty,
     CSSPropertyID::kOverlay,
     CSSPropertyID::kTextBoxTrim,
-    CSSPropertyID::kScrollStartTarget,
+    CSSPropertyID::kScrollInitialTarget,
     CSSPropertyID::kInteractivity,
 }};
 

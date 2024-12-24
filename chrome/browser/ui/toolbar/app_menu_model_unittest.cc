@@ -60,7 +60,6 @@
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 #include "ash/constants/ash_features.h"
-#include "chromeos/ash/components/standalone_browser/standalone_browser_features.h"
 #include "components/user_manager/fake_user_manager.h"
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
@@ -164,8 +163,9 @@ class TestAppMenuModel : public AppMenuModel {
   // Testing overrides to ui::SimpleMenuModel::Delegate:
   bool IsCommandIdChecked(int command_id) const override {
     bool val = AppMenuModel::IsCommandIdChecked(command_id);
-    if (val)
+    if (val) {
       checked_count_++;
+    }
     return val;
   }
 
@@ -224,8 +224,9 @@ TEST_F(AppMenuModelTest, Basics) {
   // Note: the second item in the menu may be a separator if the browser
   // supports showing upgrade status in the app menu.
   size_t item_index = 1;
-  if (model.GetTypeAt(item_index) == ui::MenuModel::TYPE_SEPARATOR)
+  if (model.GetTypeAt(item_index) == ui::MenuModel::TYPE_SEPARATOR) {
     ++item_index;
+  }
   model.ActivatedAt(item_index);
   EXPECT_TRUE(model.IsEnabledAt(item_index));
   // Make sure to use the index that is not separator in all configurations.

@@ -200,7 +200,6 @@ class ProfileKeyedServiceBrowserTest : public InProcessBrowserTest {
           network::features::kReduceAcceptLanguage,
 #endif  // BUILDFLAG(IS_CHROMEOS)
           features::kMainNodeAnnotations,
-          features::kPersistentOriginTrials,
 #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
           omnibox::kOnDeviceTailModel,
           omnibox::kOnDeviceHeadProviderNonIncognito,
@@ -478,6 +477,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceGuestBrowserTest,
     "StatefulSSLHostStateDelegate",
     "StorageAccessAPIService",
     "SubresourceFilterProfileContext",
+    "SupervisedUserService",
     "SystemWebAppManager",
     "TpcdTrialService",
     "VerdictCacheManager",
@@ -788,7 +788,6 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceGuestBrowserTest,
     // Verify these are necessary: then reorder or remove.
 
     "AccountManagerPolicyController",
-    "AppShortcutManager",
     "ArcAppsPrivateAPI",
     "AuthTokenValidatorFactory",
     "AutocompleteActionPredictor",

@@ -120,8 +120,7 @@ class TestWebContentsObserver : public content::WebContentsObserver {
  public:
   TestWebContentsObserver(content::WebContents* source,
                           content::WebContents* other)
-      : content::WebContentsObserver(source),
-        other_(other) {}
+      : content::WebContentsObserver(source), other_(other) {}
 
   TestWebContentsObserver(const TestWebContentsObserver&) = delete;
   TestWebContentsObserver& operator=(const TestWebContentsObserver&) = delete;
@@ -274,8 +273,7 @@ IN_PROC_BROWSER_TEST_F(BrowserViewTest, SidePanelRoundedCornerLayout) {
 
 class BookmarkBarViewObserverImpl : public BookmarkBarViewObserver {
  public:
-  BookmarkBarViewObserverImpl() : change_count_(0) {
-  }
+  BookmarkBarViewObserverImpl() : change_count_(0) {}
 
   BookmarkBarViewObserverImpl(const BookmarkBarViewObserverImpl&) = delete;
   BookmarkBarViewObserverImpl& operator=(const BookmarkBarViewObserverImpl&) =
@@ -403,8 +401,9 @@ IN_PROC_BROWSER_TEST_F(BrowserViewTest, GetAccessibleTabModalDialogTree) {
 #if BUILDFLAG(IS_WIN)
   ASSERT_TRUE(ax_node);
 #else
-  if (!ax_node)
+  if (!ax_node) {
     return;
+  }
 #endif
 
   // There is no dialog, but the browser UI should be visible. So we expect the
@@ -439,7 +438,9 @@ class FakeRealTimeUrlLookupService
       const GURL& url,
       safe_browsing::RTLookupResponseCallback response_callback,
       scoped_refptr<base::SequencedTaskRunner> callback_task_runner,
-      SessionID session_id) override {
+      SessionID session_id,
+      std::optional<safe_browsing::internal::ReferringAppInfo>
+          referring_app_info) override {
     auto response = std::make_unique<safe_browsing::RTLookupResponse>();
     safe_browsing::RTLookupResponse::ThreatInfo* new_threat_info =
         response->add_threat_info();

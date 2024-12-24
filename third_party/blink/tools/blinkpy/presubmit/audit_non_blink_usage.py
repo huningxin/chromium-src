@@ -59,6 +59,7 @@ _CONFIG = [
             # //base constructs that are allowed everywhere
             'base::(byte_)?span_from_ref',
             'base::AdoptRef',
+            'base::allow_nonunique_obj',
             'base::ApplyMetadataToPastSamples',
             'base::as_byte_span',
             'base::as_byte_span',
@@ -87,6 +88,7 @@ _CONFIG = [
             'base::File',
             'base::FileErrorOr',
             'base::FilePath',
+            'base::FindOrNull',
             'base::FunctionRef',
             'base::GetUniqueIdForProcess',
             'base::HashingLRUCache',
@@ -339,6 +341,9 @@ _CONFIG = [
             'base::UnsafeSharedMemoryRegion',
             'base::WritableSharedMemoryMapping',
             'base::subtle::SharedAtomic',
+
+            # tracing
+            'perfetto::.+',
         ]
     },
     {
@@ -719,7 +724,6 @@ _CONFIG = [
             # are OK.
             'icu::.+',
             'inspector_protocol_encoding::.+',
-            'perfetto::.+',  # tracing
             'snappy::.+',
             'testing::.+',  # googlemock / googletest
             'v8::.+',
@@ -964,6 +968,7 @@ _CONFIG = [
             'third_party/blink/renderer/core/frame/web_frame_widget_impl',
             'third_party/blink/renderer/core/html/canvas',
             'third_party/blink/renderer/core/offscreencanvas',
+            'third_party/blink/renderer/core/timing/animation_frame_timing_info.h',
             'third_party/blink/renderer/core/timing/window_performance',
         ],
         'allowed': [

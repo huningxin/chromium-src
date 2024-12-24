@@ -264,13 +264,13 @@ void ShowDeskRemovalUndoToast(const std::string& toast_id,
       toast_id, ash::ToastCatalogName::kUndoCloseAll,
       l10n_util::GetStringUTF16(IDS_ASH_DESKS_CLOSE_ALL_TOAST_TEXT),
       use_persistent_toast ? ToastData::kInfiniteDuration
-                           : ToastData::kDefaultToastDuration,
-      /*visible_on_lock_screen=*/false,
-      /*has_dismiss_button=*/true,
-      l10n_util::GetStringUTF16(IDS_ASH_DESKS_CLOSE_ALL_UNDO_TEXT));
+                           : ToastData::kDefaultToastDuration);
   undo_toast_data.persist_on_hover = true;
   undo_toast_data.show_on_all_root_windows = true;
-  undo_toast_data.dismiss_callback = std::move(dismiss_callback);
+  undo_toast_data.button_type = ToastData::ButtonType::kTextButton;
+  undo_toast_data.button_text =
+      l10n_util::GetStringUTF16(IDS_ASH_DESKS_CLOSE_ALL_UNDO_TEXT);
+  undo_toast_data.button_callback = std::move(dismiss_callback);
   undo_toast_data.expired_callback = std::move(expired_callback);
   undo_toast_data.activatable = use_persistent_toast;
   ToastManager::Get()->Show(std::move(undo_toast_data));
@@ -1220,9 +1220,8 @@ Desk* DesksController::CreateNewDeskForSavedDesk(
       NewDesk(DesksCreationRemovalSource::kFloatingWorkspace);
       break;
     case DeskTemplateType::kCoral:
-      // TODO(crbug.com/371447150): Create a new desk with a new creation
-      // source.
-      return nullptr;
+      NewDesk(DesksCreationRemovalSource::kCoral);
+      break;
     case DeskTemplateType::kUnknown:
       return nullptr;
   }
@@ -1508,7 +1507,7 @@ bool DesksController::RequestFocusOnUndoDeskRemovalToast() {
     return false;
   }
 
-  return ToastManager::Get()->RequestFocusOnActiveToastDismissButton(
+  return ToastManager::Get()->RequestFocusOnActiveToastButton(
       temporary_removed_desk_->toast_id());
 }
 
@@ -2206,9 +2205,8 @@ void DesksController::MaybeCommitPendingDeskRemoval(
 }
 
 bool DesksController::IsUndoToastFocused() const {
-  return temporary_removed_desk_ &&
-         ToastManager::Get()->IsToastDismissButtonFocused(
-             temporary_removed_desk_->toast_id());
+  return temporary_removed_desk_ && ToastManager::Get()->IsToastButtonFocused(
+                                        temporary_removed_desk_->toast_id());
 }
 
 void DesksController::TrackWindowOnAllDesks(aura::Window* window) {

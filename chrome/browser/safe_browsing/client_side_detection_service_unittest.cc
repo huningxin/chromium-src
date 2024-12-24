@@ -336,10 +336,12 @@ class ClientSideDetectionServiceTest
   testing::NiceMock<MockSession> session_;
 
  private:
-  void SendRequestDone(base::OnceClosure continuation_callback,
-                       GURL phishing_url,
-                       bool is_phishing,
-                       std::optional<net::HttpStatusCode> response_code) {
+  void SendRequestDone(
+      base::OnceClosure continuation_callback,
+      GURL phishing_url,
+      bool is_phishing,
+      std::optional<net::HttpStatusCode> response_code,
+      std::optional<IntelligentScanVerdict> intelligent_scan_verdict) {
     ASSERT_EQ(phishing_url, phishing_url_);
     is_phishing_ = is_phishing;
     std::move(continuation_callback).Run();
@@ -390,17 +392,28 @@ TEST_P(ClientSideDetectionServiceTest, SendClientReportPhishingRequest) {
 
   // Invalid response body from the server, but we will still track it as a
   // ping count.
+  auto histogram_tester = std::make_unique<base::HistogramTester>();
   SetClientReportPhishingResponse("invalid proto response", net::OK);
   EXPECT_FALSE(SendClientReportPhishingRequest(url, score, access_token));
+  histogram_tester->ExpectUniqueSample(
+      /*name=*/"SBClientPhishing.NetworkResult2",
+      /*sample=*/net::HTTP_OK,
+      /*expected_bucket_count=*/1);
 
   // Normal behavior with no access token.
+  histogram_tester = std::make_unique<base::HistogramTester>();
   ClientPhishingResponse response;
   response.set_phishy(true);
   SetClientReportPhishingResponse(response.SerializeAsString(), net::OK);
   EXPECT_TRUE(SendClientReportPhishingRequest(url, score, access_token));
+  histogram_tester->ExpectUniqueSample(
+      /*name=*/"SBClientPhishing.NetworkResult2",
+      /*sample=*/net::HTTP_OK,
+      /*expected_bucket_count=*/1);
 
   // This request will fail, but not because of the cap, but because the network
   // failed, but we will still log the number of pings sent.
+  histogram_tester = std::make_unique<base::HistogramTester>();
   EXPECT_FALSE(AtPhishingReportLimit());
   GURL second_url("http://b.com/");
   response.set_phishy(false);
@@ -408,6 +421,10 @@ TEST_P(ClientSideDetectionServiceTest, SendClientReportPhishingRequest) {
                                   net::ERR_FAILED);
   EXPECT_FALSE(
       SendClientReportPhishingRequest(second_url, score, access_token));
+  histogram_tester->ExpectUniqueSample(
+      /*name=*/"SBClientPhishing.NetworkResult2",
+      /*sample=*/net::ERR_FAILED,
+      /*expected_bucket_count=*/1);
 
   // We have sent 3 pings so far, which is the cap.
   EXPECT_TRUE(AtPhishingReportLimit());
@@ -764,11 +781,27 @@ TEST_P(ClientSideDetectionServiceTest, TestOnDeviceModelFetchSuccessCall) {
   CHECK(availability_observer);
 
   // Now that the delegate is observing, send `kConfigNotAvailableForFeature`
-  // first to the observer, which will not stop the observing.
+  // first to the observer, which will not stop the observing. We will then test
+  // for all the possible waitable reasons, which should also not stop
+  // observing.
   availability_observer->OnDeviceModelAvailabilityChanged(
       optimization_guide::ModelBasedCapabilityKey::kScamDetection,
       optimization_guide::OnDeviceModelEligibilityReason::
           kConfigNotAvailableForFeature);
+
+  availability_observer->OnDeviceModelAvailabilityChanged(
+      optimization_guide::ModelBasedCapabilityKey::kScamDetection,
+      optimization_guide::OnDeviceModelEligibilityReason::kModelToBeInstalled);
+
+  availability_observer->OnDeviceModelAvailabilityChanged(
+      optimization_guide::ModelBasedCapabilityKey::kScamDetection,
+      optimization_guide::OnDeviceModelEligibilityReason::
+          kSafetyModelNotAvailable);
+
+  availability_observer->OnDeviceModelAvailabilityChanged(
+      optimization_guide::ModelBasedCapabilityKey::kScamDetection,
+      optimization_guide::OnDeviceModelEligibilityReason::
+          kLanguageDetectionModelNotAvailable);
 
   histogram_tester.ExpectUniqueSample(
       "SBClientPhishing.OnDeviceModelDownloadSuccess", true, 0);
@@ -908,6 +941,8 @@ TEST_P(ClientSideDetectionServiceTest, TestSessionCreationFailure) {
   base::test::TestFuture<std::optional<ScamDetectionResponse>> future;
   csd_service_->InquireOnDeviceModel(&verdict, "", future.GetCallback());
 
+  histogram_tester.ExpectUniqueSample(
+      "SBClientPhishing.OnDeviceModelSessionCreationSuccess", false, 1);
   histogram_tester.ExpectTotalCount(
       "SBClientPhishing.OnDeviceModelSessionCreationTime", 0);
 }
@@ -985,6 +1020,8 @@ TEST_P(ClientSideDetectionServiceTest, TestSessionCreationSuccess) {
   base::test::TestFuture<std::optional<ScamDetectionResponse>> future;
   csd_service_->InquireOnDeviceModel(&verdict, "", future.GetCallback());
 
+  histogram_tester.ExpectUniqueSample(
+      "SBClientPhishing.OnDeviceModelSessionCreationSuccess", true, 1);
   histogram_tester.ExpectTotalCount(
       "SBClientPhishing.OnDeviceModelSessionCreationTime", 1);
 }
@@ -1076,6 +1113,8 @@ TEST_P(ClientSideDetectionServiceTest, TestSessionExecutionFailure) {
   base::test::TestFuture<std::optional<ScamDetectionResponse>> future;
   csd_service_->InquireOnDeviceModel(&verdict, "", future.GetCallback());
 
+  histogram_tester.ExpectUniqueSample(
+      "SBClientPhishing.OnDeviceModelSessionCreationSuccess", true, 1);
   histogram_tester.ExpectTotalCount(
       "SBClientPhishing.OnDeviceModelSessionCreationTime", 1);
   histogram_tester.ExpectTotalCount(
@@ -1169,6 +1208,8 @@ TEST_P(ClientSideDetectionServiceTest,
   base::test::TestFuture<std::optional<ScamDetectionResponse>> future;
   csd_service_->InquireOnDeviceModel(&verdict, "", future.GetCallback());
 
+  histogram_tester.ExpectUniqueSample(
+      "SBClientPhishing.OnDeviceModelSessionCreationSuccess", true, 1);
   histogram_tester.ExpectTotalCount(
       "SBClientPhishing.OnDeviceModelSessionCreationTime", 1);
 
@@ -1272,6 +1313,8 @@ TEST_P(ClientSideDetectionServiceTest,
   base::test::TestFuture<std::optional<ScamDetectionResponse>> future;
   csd_service_->InquireOnDeviceModel(&verdict, "", future.GetCallback());
 
+  histogram_tester.ExpectUniqueSample(
+      "SBClientPhishing.OnDeviceModelSessionCreationSuccess", true, 1);
   histogram_tester.ExpectTotalCount(
       "SBClientPhishing.OnDeviceModelSessionCreationTime", 1);
   histogram_tester.ExpectTotalCount(
@@ -1368,6 +1411,8 @@ TEST_P(ClientSideDetectionServiceTest,
   base::test::TestFuture<std::optional<ScamDetectionResponse>> future;
   csd_service_->InquireOnDeviceModel(&verdict, "", future.GetCallback());
 
+  histogram_tester.ExpectUniqueSample(
+      "SBClientPhishing.OnDeviceModelSessionCreationSuccess", true, 1);
   histogram_tester.ExpectTotalCount(
       "SBClientPhishing.OnDeviceModelSessionCreationTime", 1);
   histogram_tester.ExpectTotalCount(

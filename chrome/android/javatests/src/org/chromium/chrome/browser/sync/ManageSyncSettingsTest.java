@@ -10,6 +10,7 @@ import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.intent.Intents.intended;
 import static androidx.test.espresso.intent.Intents.intending;
 import static androidx.test.espresso.matcher.RootMatchers.isDialog;
+import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.hasSibling;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
@@ -32,6 +33,7 @@ import static java.util.Map.entry;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.Instrumentation.ActivityResult;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -41,6 +43,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.FragmentTransaction;
@@ -271,9 +274,10 @@ public class ManageSyncSettingsTest {
     }
 
     @Test
-    @SmallTest
-    @Feature({"Sync"})
-    public void testSyncAccountDataTypes() {
+    @LargeTest
+    @EnableFeatures({ChromeFeatureList.REPLACE_SYNC_PROMOS_WITH_SIGN_IN_PROMOS})
+    @DisableFeatures({ChromeFeatureList.LINKED_SERVICES_SETTING})
+    public void testAccountSettingsView() {
         // The types that should be default-enabled in transport mode depend on various flags.
         Set<String> expectedEnabledTypes =
                 new HashSet<>(
@@ -295,6 +299,7 @@ public class ManageSyncSettingsTest {
 
         mSyncTestRule.setUpAccountAndSignInForTesting();
         ManageSyncSettings fragment = startManageSyncPreferences();
+
         Collection<ChromeSwitchPreference> dataTypes = getAccountDataTypes(fragment).values();
         for (ChromeSwitchPreference dataType : dataTypes) {
             Assert.assertEquals(
@@ -303,6 +308,38 @@ public class ManageSyncSettingsTest {
                     dataType.isChecked());
             Assert.assertTrue(dataType.isEnabled());
         }
+
+        onView(withText(R.string.account_section_header)).check(matches(isDisplayed()));
+
+        scrollToAndVerifyPresence(R.string.account_section_history_toggle);
+
+        scrollToAndVerifyPresence(R.string.account_section_bookmarks_toggle);
+
+        scrollToAndVerifyPresence(R.string.account_section_reading_list_toggle);
+
+        scrollToAndVerifyPresence(R.string.account_section_addresses_toggle);
+
+        scrollToAndVerifyPresence(R.string.account_section_passwords_toggle);
+
+        scrollToAndVerifyPresence(R.string.account_section_payments_toggle);
+
+        scrollToAndVerifyPresence(R.string.account_section_settings_toggle);
+
+        scrollToAndVerifyPresence(R.string.account_section_footer);
+
+        scrollToAndVerifyPresence(R.string.sign_in_google_activity_controls_title);
+        onView(withText(R.string.account_advanced_header)).check(matches(isDisplayed()));
+        onView(withText(R.string.sign_in_google_activity_controls_summary))
+                .check(matches(isDisplayed()));
+
+        scrollToAndVerifyPresence(R.string.sync_encryption);
+
+        scrollToAndVerifyPresence(R.string.account_data_dashboard_title);
+        onView(withText(R.string.account_data_dashboard_subtitle)).check(matches(isDisplayed()));
+
+        scrollToAndVerifyPresence(R.string.manage_your_google_account);
+
+        scrollToAndVerifyPresence(R.string.account_android_device_accounts);
     }
 
     @Test
@@ -907,26 +944,14 @@ public class ManageSyncSettingsTest {
     @SmallTest
     @Feature({"Sync"})
     public void testPaymentIntegrationDisabledForChildUser() {
-        mSyncTestRule.setUpChildAccountAndEnableSyncForTesting();
+        // mSyncTestRule.setUpChildAccountAndEnableSyncForTesting();
+        mSyncTestRule.getSigninTestRule().addChildTestAccountThenWaitForSignin();
         ManageSyncSettings fragment = startManageSyncPreferences();
-        CheckBoxPreference paymentsIntegration =
-                (CheckBoxPreference)
-                        fragment.findPreference(ManageSyncSettings.PREF_SYNC_PAYMENTS_INTEGRATION);
+        ChromeSwitchPreference paymentsIntegration =
+                (ChromeSwitchPreference)
+                        fragment.findPreference(
+                                ManageSyncSettings.PREF_ACCOUNT_SECTION_PAYMENTS_TOGGLE);
 
-        // Payments integration should be disabled even though Sync Everything is on
-        Set<Integer> forcedUncheckedDataTypes = new HashSet<>();
-        forcedUncheckedDataTypes.add(UserSelectableType.PAYMENTS);
-        assertSyncOnState(fragment, forcedUncheckedDataTypes);
-
-        assertPaymentsIntegrationEnabled(false);
-        Assert.assertFalse(paymentsIntegration.isChecked());
-        Assert.assertFalse(paymentsIntegration.isEnabled());
-
-        // Turn off Sync Everything
-        ChromeSwitchPreference syncEverything = getSyncEverything(fragment);
-        mSyncTestRule.togglePreference(syncEverything);
-
-        // Payments integration should stay off
         assertPaymentsIntegrationEnabled(false);
         Assert.assertFalse(paymentsIntegration.isChecked());
         Assert.assertFalse(paymentsIntegration.isEnabled());
@@ -1097,9 +1122,11 @@ public class ManageSyncSettingsTest {
     @LargeTest
     @Feature({"Sync", "RenderTest"})
     public void testSigninSettingsTopAvatarWithNonDisplayableEmail() throws Exception {
-        mSyncTestRule
-                .getSigninTestRule()
-                .addAccountThenSignin(TestAccounts.TEST_ACCOUNT_NON_DISPLAYABLE_EMAIL);
+        SigninTestRule signinTestRule = mSyncTestRule.getSigninTestRule();
+        var childAccount = TestAccounts.CHILD_ACCOUNT_NON_DISPLAYABLE_EMAIL;
+        signinTestRule.addAccount(childAccount);
+        // Child accounts are automatically signed-in in the background.
+        signinTestRule.waitForSignin(childAccount);
         final ManageSyncSettings fragment = startManageSyncPreferences();
 
         ViewUtils.waitForVisibleView(withId(R.id.central_account_card));
@@ -1115,9 +1142,11 @@ public class ManageSyncSettingsTest {
     @LargeTest
     @Feature({"Sync", "RenderTest"})
     public void testSigninSettingsTopAvatarWithNonDisplayableEmailAndNoName() throws Exception {
-        mSyncTestRule
-                .getSigninTestRule()
-                .addAccountThenSignin(TestAccounts.TEST_ACCOUNT_NON_DISPLAYABLE_EMAIL_AND_NO_NAME);
+        SigninTestRule signinTestRule = mSyncTestRule.getSigninTestRule();
+        var childAccount = TestAccounts.TEST_ACCOUNT_NON_DISPLAYABLE_EMAIL_AND_NO_NAME;
+        signinTestRule.addAccount(childAccount);
+        // Child accounts are automatically signed-in in the background.
+        signinTestRule.waitForSignin(childAccount);
         final ManageSyncSettings fragment = startManageSyncPreferences();
 
         ViewUtils.waitForVisibleView(withId(R.id.central_account_card));
@@ -1171,6 +1200,9 @@ public class ManageSyncSettingsTest {
     @LargeTest
     @Feature({"Sync", "RenderTest"})
     @EnableFeatures({ChromeFeatureList.ENABLE_BATCH_UPLOAD_FROM_SETTINGS})
+    @DisableIf.Build(
+            sdk_is_greater_than = Build.VERSION_CODES.TIRAMISU,
+            message = "crbug.com/326040498")
     public void testSigninSettingsBatchUploadEntryDescriptionPassword() throws Exception {
         ReauthenticatorBridge.setInstanceForTesting(mReauthenticatorMock);
         when(mReauthenticatorMock.getBiometricAvailabilityStatus())
@@ -1213,6 +1245,9 @@ public class ManageSyncSettingsTest {
     @LargeTest
     @Feature({"Sync", "RenderTest"})
     @EnableFeatures({ChromeFeatureList.ENABLE_BATCH_UPLOAD_FROM_SETTINGS})
+    @DisableIf.Build(
+            sdk_is_greater_than = Build.VERSION_CODES.TIRAMISU,
+            message = "crbug.com/326040498")
     public void testSigninSettingsBatchUploadEntryDescriptionOther() throws Exception {
         ReauthenticatorBridge.setInstanceForTesting(mReauthenticatorMock);
         when(mReauthenticatorMock.getBiometricAvailabilityStatus())
@@ -1255,6 +1290,9 @@ public class ManageSyncSettingsTest {
     @LargeTest
     @Feature({"Sync", "RenderTest"})
     @EnableFeatures({ChromeFeatureList.ENABLE_BATCH_UPLOAD_FROM_SETTINGS})
+    @DisableIf.Build(
+            sdk_is_greater_than = Build.VERSION_CODES.TIRAMISU,
+            message = "crbug.com/326040498")
     public void testSigninSettingsBatchUploadEntryDescriptionPasswordAndOther() throws Exception {
         ReauthenticatorBridge.setInstanceForTesting(mReauthenticatorMock);
         when(mReauthenticatorMock.getBiometricAvailabilityStatus())
@@ -1537,60 +1575,6 @@ public class ManageSyncSettingsTest {
                     recyclerView.scrollToPosition(recyclerView.getAdapter().getItemCount() - 1);
                 });
         render(fragment, "advanced_sync_flow_bottom_view_from_sync_consent");
-    }
-
-    @Test
-    @LargeTest
-    @Feature({"Sync", "RenderTest"})
-    public void testAdvancedSyncFlowTopViewForChildUser() throws Exception {
-        mSyncTestRule.setUpChildAccountAndEnableSyncForTesting();
-        final ManageSyncSettings fragment = startManageSyncPreferences();
-        render(fragment, "advanced_sync_flow_top_view_child");
-    }
-
-    @Test
-    @LargeTest
-    @Feature({"Sync", "RenderTest"})
-    public void testAdvancedSyncFlowBottomViewForChildUser() throws Exception {
-        mSyncTestRule.setUpChildAccountAndEnableSyncForTesting();
-        final ManageSyncSettings fragment = startManageSyncPreferences();
-        ThreadUtils.runOnUiThreadBlocking(
-                () -> {
-                    RecyclerView recyclerView = fragment.getView().findViewById(R.id.recycler_view);
-                    // Sometimes the rendered image may not contain the scrollbar and cause
-                    // flakiness.
-                    // Hide the scrollbar altogether to reduce flakiness.
-                    recyclerView.setVerticalScrollBarEnabled(false);
-                    recyclerView.scrollToPosition(recyclerView.getAdapter().getItemCount() - 1);
-                });
-        render(fragment, "advanced_sync_flow_bottom_view_child");
-    }
-
-    @Test
-    @LargeTest
-    @Feature({"Sync", "RenderTest"})
-    public void testAdvancedSyncFlowFromSyncConsentTopViewForChildUser() throws Exception {
-        mSyncTestRule.setUpChildAccountAndEnableSyncForTesting();
-        final ManageSyncSettings fragment = startManageSyncPreferencesFromSyncConsentFlow();
-        render(fragment, "advanced_sync_flow_top_view_from_sync_consent_child");
-    }
-
-    @Test
-    @LargeTest
-    @Feature({"Sync", "RenderTest"})
-    public void testAdvancedSyncFlowFromSyncConsentBottomViewForChildUser() throws Exception {
-        mSyncTestRule.setUpChildAccountAndEnableSyncForTesting();
-        final ManageSyncSettings fragment = startManageSyncPreferencesFromSyncConsentFlow();
-        ThreadUtils.runOnUiThreadBlocking(
-                () -> {
-                    RecyclerView recyclerView = fragment.getView().findViewById(R.id.recycler_view);
-                    // Sometimes the rendered image may not contain the scrollbar and cause
-                    // flakiness.
-                    // Hide the scrollbar altogether to reduce flakiness.
-                    recyclerView.setVerticalScrollBarEnabled(false);
-                    recyclerView.scrollToPosition(recyclerView.getAdapter().getItemCount() - 1);
-                });
-        render(fragment, "advanced_sync_flow_bottom_view_from_sync_consent_child");
     }
 
     @Test
@@ -2235,5 +2219,11 @@ public class ManageSyncSettingsTest {
         // image diffs.
         ChromeRenderTestRule.sanitize(fragment.getView());
         mRenderTestRule.render(fragment.getView(), skiaGoldId);
+    }
+
+    private void scrollToAndVerifyPresence(@StringRes int textId) {
+        onView(withId(R.id.recycler_view))
+                .perform(RecyclerViewActions.scrollTo(hasDescendant(withText(textId))));
+        onView(withText(textId)).check(matches(isDisplayed()));
     }
 }

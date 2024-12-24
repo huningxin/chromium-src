@@ -115,6 +115,7 @@ class ResizeObserver;
 class ResizeObserverSize;
 class ScrollIntoViewOptions;
 class CheckVisibilityOptions;
+class ScrollMarkerPseudoElement;
 class ScrollToOptions;
 class SetHTMLOptions;
 class ShadowRoot;
@@ -1813,10 +1814,6 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   void DetachPrecedingPseudoElements(bool performing_reattach) {
     DetachPseudoElement(kPseudoIdScrollMarker, performing_reattach);
     DetachPseudoElement(kPseudoIdScrollMarkerGroupBefore, performing_reattach);
-    DetachPseudoElement(kPseudoIdScrollUpButton, performing_reattach);
-    DetachPseudoElement(kPseudoIdScrollDownButton, performing_reattach);
-    DetachPseudoElement(kPseudoIdScrollLeftButton, performing_reattach);
-    DetachPseudoElement(kPseudoIdScrollRightButton, performing_reattach);
     DetachPseudoElement(kPseudoIdMarker, performing_reattach);
     DetachPseudoElement(kPseudoIdCheckMark, performing_reattach);
     DetachPseudoElement(kPseudoIdBefore, performing_reattach);
@@ -1825,6 +1822,10 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   void DetachSucceedingPseudoElements(bool performing_reattach) {
     DetachPseudoElement(kPseudoIdPickerIcon, performing_reattach);
     DetachPseudoElement(kPseudoIdAfter, performing_reattach);
+    DetachPseudoElement(kPseudoIdScrollButtonBlockStart, performing_reattach);
+    DetachPseudoElement(kPseudoIdScrollButtonInlineStart, performing_reattach);
+    DetachPseudoElement(kPseudoIdScrollButtonBlockEnd, performing_reattach);
+    DetachPseudoElement(kPseudoIdScrollButtonInlineEnd, performing_reattach);
     DetachPseudoElement(kPseudoIdScrollMarkerGroupAfter, performing_reattach);
     DetachPseudoElement(kPseudoIdBackdrop, performing_reattach);
     DetachPseudoElement(kPseudoIdFirstLetter, performing_reattach);
@@ -2011,6 +2012,13 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   void SetElementArrayAttribute(
       const QualifiedName& name,
       const HeapVector<Member<Element>>* given_elements);
+
+  // Find the scroll-marker that should be active when told to scroll |this|
+  // into view.
+  ScrollMarkerPseudoElement* FindScrollMarkerForTargetedScroll();
+  // Let the appropriate scroll-marker-group know to pin its active
+  // scroll-marker due to a targeted scroll.
+  void NotifyScrollMarkerGroupOfTargetedScroll();
 
   QualifiedName tag_name_;
   // This `ComputedStyle` field is a hot accessed member. Keep uncompressed for

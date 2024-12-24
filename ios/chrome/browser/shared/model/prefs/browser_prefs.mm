@@ -129,10 +129,6 @@
 
 namespace {
 
-// Deprecated 12/2023.
-const char kSigninLastAccounts[] = "ios.signin.last_accounts";
-const char kSigninLastAccountsMigrated[] = "ios.signin.last_accounts_migrated";
-
 // Deprecated 01/2024.
 const char kAppStoreRatingTotalDaysOnChromeKey[] =
     "AppStoreRatingTotalDaysOnChrome";
@@ -195,6 +191,10 @@ constexpr char
 // Deprecated 11/2024
 constexpr char kEnableDoNotTrackIos[] = "enable_do_not_track";
 
+// Deprecated 12/2024.
+inline constexpr char kPageContentCollectionEnabled[] =
+    "page_content_collection.enabled";
+
 // Helper function migrating the preference `pref_name` of type "int" from
 // `defaults` to `pref_service`.
 void MigrateIntegerPreferenceFromUserDefaults(std::string_view pref_name,
@@ -208,23 +208,6 @@ void MigrateIntegerPreferenceFromUserDefaults(std::string_view pref_name,
   }
 
   pref_service->SetInteger(pref_name.data(), [value intValue]);
-  [defaults removeObjectForKey:key];
-}
-
-// Helper function migrating the preference `pref_name` of type "int" from
-// `defaults` to `pref_service` and to transform the "int" into "base::Time".
-void MigrateIntegerToTimePreferenceFromUserDefaults(std::string_view pref_name,
-                                                    PrefService* pref_service,
-                                                    NSUserDefaults* defaults) {
-  NSString* key = @(pref_name.data());
-  NSNumber* value =
-      base::apple::ObjCCast<NSNumber>([defaults objectForKey:key]);
-  if (!value) {
-    return;
-  }
-
-  pref_service->SetTime(pref_name.data(),
-                        base::Time::FromTimeT([value intValue]));
   [defaults removeObjectForKey:key];
 }
 
@@ -502,6 +485,7 @@ void RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
   registry->RegisterStringPref(prefs::kLastUsedProfile, std::string());
   registry->RegisterBooleanPref(prefs::kLegacyProfileHidden, false);
   registry->RegisterDictionaryPref(prefs::kLegacyProfileMap);
+  registry->RegisterListPref(prefs::kProfilesToRemove);
 
   [MemoryDebuggerManager registerLocalState:registry];
   [IncognitoReauthSceneAgent registerLocalState:registry];
@@ -703,6 +687,9 @@ void RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
 
   // Register pref used to determine if Browser Lockdown Mode is enabled.
   registry->RegisterBooleanPref(prefs::kBrowserLockdownModeEnabled, false);
+
+  registry->RegisterTimePref(
+      prefs::kIosSafetyCheckNotificationFirstPresentTimestamp, base::Time());
 
   // Preferences related to the Safety Check Notifications feature.
   registry->RegisterIntegerPref(prefs::kIosSafetyCheckNotificationsLastSent,
@@ -966,8 +953,6 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterBooleanPref(prefs::kDetectUnitsEnabled, true);
 
   registry->RegisterTimePref(prefs::kLastSigninTimestamp, base::Time());
-  registry->RegisterListPref(kSigninLastAccounts);
-  registry->RegisterBooleanPref(kSigninLastAccountsMigrated, false);
 
   // Preferences related to Content Notifications.
   registry->RegisterTimePref(prefs::kNotificationsPromoLastDismissed,
@@ -1086,6 +1071,9 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterBooleanPref(kEnableDoNotTrackIos, false);
 
   registry->RegisterIntegerPref(prefs::kChromeDataRegionSetting, 0);
+
+  // Deprecated 12/2024.
+  registry->RegisterBooleanPref(kPageContentCollectionEnabled, false);
 }
 
 // This method should be periodically pruned of year+ old migrations.
@@ -1148,14 +1136,6 @@ void MigrateObsoleteProfilePrefs(PrefService* prefs) {
   autofill::prefs::MigrateDeprecatedAutofillPrefs(prefs);
 
   NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-
-  // Added 12/2023.
-  prefs->ClearPref(kSigninLastAccounts);
-  prefs->ClearPref(kSigninLastAccountsMigrated);
-
-  // Added 12/2023.
-  MigrateIntegerToTimePreferenceFromUserDefaults(kLastCookieDeletionDate, prefs,
-                                                 defaults);
 
   // Added 01/2024.
   // Note that this key is an obsolete LocalState pref, it's here because it was
@@ -1279,6 +1259,9 @@ void MigrateObsoleteProfilePrefs(PrefService* prefs) {
 
   // Added 11/2024
   prefs->ClearPref(kEnableDoNotTrackIos);
+
+  // Added 12/2024.
+  prefs->ClearPref(kPageContentCollectionEnabled);
 }
 
 void MigrateObsoleteUserDefault() {

@@ -4,13 +4,14 @@
 
 #include "chrome/browser/ui/views/tabs/glic_button.h"
 
+#include "base/functional/bind.h"
+#include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/ui/browser_element_identifiers.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/views/tabs/tab_strip_control_button.h"
 #include "chrome/browser/ui/views/tabs/tab_strip_controller.h"
 #include "chrome/common/buildflags.h"
 #include "chrome/grit/generated_resources.h"
-#include "components/vector_icons/vector_icons.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/views/accessibility/view_accessibility.h"
@@ -24,9 +25,11 @@
 namespace glic {
 
 GlicButton::GlicButton(TabStripController* tab_strip_controller)
-    : TabStripControlButton(tab_strip_controller,
-                            PressedCallback(),
-                            vector_icons::kErrorOutlineIcon) {
+    : TabStripControlButton(
+          tab_strip_controller,
+          PressedCallback(base::BindRepeating(&GlicButton::LaunchUI,
+                                              base::Unretained(this))),
+          kGlicButtonIcon) {
   tab_strip_controller_ = tab_strip_controller;
   SetProperty(views::kElementIdentifierKey, kGlicButtonElementId);
 
@@ -46,12 +49,11 @@ GlicButton::GlicButton(TabStripController* tab_strip_controller)
 
 GlicButton::~GlicButton() = default;
 
-void GlicButton::NotifyClick(const ui::Event& event) {
-  TabStripControlButton::NotifyClick(event);
+void GlicButton::LaunchUI() {
 #if BUILDFLAG(ENABLE_GLIC)
   glic::GlicKeyedServiceFactory::GetGlicKeyedService(
       tab_strip_controller_->GetProfile())
-      ->LaunchUI();
+      ->LaunchUI(this);
 #endif  // BUILDFLAG(ENABLE_GLIC)
 }
 

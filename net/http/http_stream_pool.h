@@ -26,6 +26,7 @@
 #include "net/socket/next_proto.h"
 #include "net/socket/ssl_client_socket.h"
 #include "net/socket/stream_attempt.h"
+#include "net/socket/stream_socket_close_reason.h"
 #include "net/third_party/quiche/src/quiche/quic/core/quic_versions.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
 
@@ -49,25 +50,6 @@ class NET_EXPORT_PRIVATE HttpStreamPool
     kRespect,
     kIgnore,
   };
-
-  // Represents why a stream socket is closed.
-  // These values are persisted to logs. Entries should not be renumbered and
-  // numeric values should never be reused.
-  //
-  // LINT.IfChange(StreamCloseReason)
-  enum class StreamCloseReason {
-    kUnspecified = 0,
-    kCloseAllConnections = 1,
-    kIpAddressChanged = 2,
-    kSslConfigChanged = 3,
-    kCannotUseTcpBasedProtocols = 4,
-    kSpdySessionCreated = 5,
-    kQuicSessionCreated = 6,
-    kUsingExistingSpdySession = 7,
-    kUsingExistingQuicSession = 8,
-    kMaxValue = kUsingExistingQuicSession,
-  };
-  // LINT.ThenChange(//tools/metrics/histograms/metadata/net/enums.xml:StreamCloseReason)
 
   // Observes events on the HttpStreamPool and may intercept preconnects. Used
   // only for tests.
@@ -123,8 +105,9 @@ class NET_EXPORT_PRIVATE HttpStreamPool
       "max_stream_per_group";
   static constexpr std::string_view kConnectionAttemptDelayParamName =
       "connection_attempt_delay";
-  static constexpr std::string_view kEnableConsistencyCheckParamName =
-      "enable_consistency_check";
+  static constexpr std::string_view kVerboseNetLogParamName = "verbose_netlog";
+  static constexpr std::string_view kConsistencyCheckParamName =
+      "consistency_check";
 
   class NET_EXPORT_PRIVATE Job;
   class NET_EXPORT_PRIVATE JobController;
@@ -189,7 +172,7 @@ class NET_EXPORT_PRIVATE HttpStreamPool
 
   // Closes all streams in this pool and cancels all pending requests.
   void FlushWithError(int error,
-                      StreamCloseReason attempt_cancel_reason,
+                      StreamSocketCloseReason attempt_cancel_reason,
                       std::string_view net_log_close_reason_utf8);
 
   void CloseIdleStreams(std::string_view net_log_close_reason_utf8);
@@ -289,6 +272,11 @@ class NET_EXPORT_PRIVATE HttpStreamPool
   }
 
  private:
+  // Returns true when NetLog events should provide more fields.
+  // TODO(crbug.com/346835898): Remove this when we stabilize the
+  // implementation.
+  static bool VerboseNetLog();
+
   Group& GetOrCreateGroup(
       const HttpStreamKey& stream_key,
       std::optional<QuicSessionAliasKey> quic_session_alias_key = std::nullopt);

@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">အမှောင်နောက်ခံ ပိတ်ရန်</translation>
 <translation id="1807246157184219062">အလင်း</translation>
 <translation id="1808803439260407870">ဂန္ထဝင်အနုပညာ</translation>
+<translation id="181434555916624618">လောလောဆယ် လူပါသော ရလဒ်များကို ပြမည်မဟုတ်ပါ။ အခြားတောင်းဆိုချက်ဖြင့် စမ်းကြည့်ပါ။</translation>
 <translation id="1815850098929213707">ရွေးထားသောကီးမှာ <ph name="KEYS" /> ဖြစ်သည်။ ထိန်းချုပ်မှုကို ပြင်ရန် ခလုတ်ကိုတို့ပါ</translation>
 <translation id="1823120442877418684">အကြောင်းအရာ</translation>
 <translation id="1827738518074806965">ပန်းချီပြခန်း</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">ညာနားကြပ်တွင် ဘက်ထရီ <ph name="BATTERY_PERCENTAGE" />% ရှိသည်။</translation>
 <translation id="3340978935015468852">ဆက်တင်များ</translation>
 <translation id="3347558044552027859">ခေတ်မီ</translation>
+<translation id="3353477144743332882">အနှစ်ချုပ်နှင့် အမည်ပေးခြင်း မော်ဒယ် ဒေါင်းလုဒ်လုပ်ရန်</translation>
 <translation id="3359218928534347896">မိုက်ခရိုဖုန်း အသံပိတ် ခလုတ်</translation>
 <translation id="3360306038446926262">Windows</translation>
 <translation id="3361618936611118375">ဆူရှီ</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">မိဘ သုံးခွင့်</translation>
 <translation id="473775607612524610">အပ်ဒိတ်လုပ်ရန်</translation>
 <translation id="4744944742468440486">သင်ရွေးထားသည့်အရာနှင့် သက်ဆိုင်သည့် အချက်အလက်များ</translation>
+<translation id="4750394297954878236">အကြံပေးချက်များ</translation>
 <translation id="4771607256327216405">ကီးဘုတ် လင်းသွားခြင်း</translation>
 <translation id="4771923071974529837">မနက်ဖြန်</translation>
 <translation id="4773299976671772492">ဆိုင်းငံ့ထား</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">ဖြတ်လမ်းလင့်ခ် မရနိုင်ပါ။ <ph name="KEY" /> မပါဘဲ ဖြတ်လမ်းလင့်ခ်အသစ် နှိပ်ပါ။</translation>
 <translation id="5860033963881614850">ပိတ်ထား</translation>
 <translation id="5860491529813859533">ဖွင့်ရန်</translation>
+<translation id="5875913454160982848">စာသားမှတ်တမ်း မော်ဒယ် ဒေါင်းလုဒ်လုပ်ရန်</translation>
 <translation id="5876385649737594562">ရွေးရန် ဖွင့်ပါ</translation>
 <translation id="5877503382465267833"><ph name="RECORDING_NAME" /> ခဏရပ်ရန်</translation>
 <translation id="588258955323874662">မျက်နှာပြင် အပြည့်</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">ပိတ်ရန်</translation>
 <translation id="6040852767465482106">အမည်မသိ အထောက်အထား:</translation>
 <translation id="604124094241169006">အလိုအလျောက်</translation>
-<translation id="6042308850641462728">နောက်ထပ်</translation>
 <translation id="6048107060512778456">မအောင်မြင်ပါ - စာရွက်ညပ်နေသည်</translation>
 <translation id="6050189528197190982">ဖြူမဲစကေး</translation>
 <translation id="6054711098834486579">အိတ်စ်ပရက်ရှင်နစ်</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{ဆာဗာအမည်}other{ဆာဗာများအမည်}}</translation>
 <translation id="7135814714616751706">ဖြတ်လမ်းလင့်ခ်များ ရှာရန်</translation>
 <translation id="7138614237884624401">ရိုးရှင်းသော စာသား</translation>
+<translation id="7138668887584231801">အကျဉ်းချုပ်ရန် စာလုံး မလုံလောက်ပါ</translation>
 <translation id="7141470099673912333">အချက်အလက် လွှဲပြောင်းခြင်း</translation>
 <translation id="7143207342074048698">ချိတ်ဆက်နေသည်</translation>
 <translation id="7144878232160441200">ထပ်စမ်းရန်</translation>
@@ -1588,6 +1592,7 @@
 <translation id="8503836310948963452">နောက်ထပ် မိနစ်အနည်းငယ်သာ လိုသည်…</translation>
 <translation id="8505011850330200833">Gemini မော်ဒယ်သည် စာသားမှတ်တမ်းများ ဆောင်ရွက်ရန်နှင့် အနှစ်ချုပ်များ ပြုလုပ်ရန် သိုလှောင်ခန်းနေရာ ၂ GB လိုအပ်သည်</translation>
 <translation id="8508640263392900755">APN အသေးစိတ်</translation>
+<translation id="8509574872955173831">အနှစ်ချုပ်နှင့် အမည်ပေးခြင်းအကြောင်း ပိုမိုလေ့လာရန်</translation>
 <translation id="8522687886059337719">ယခု သင်သည် <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />နောက်ခံပုံ<ph name="END_LINK_WALLPAPER_SUBPAGE" /> အသစ်များနှင့် <ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />စခရင်နားချိန်ပုံ<ph name="END_LINK_SCREENSAVER_SUBPAGE" /> တို့ကို သုံးနိုင်ပြီ</translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">လက်ဖက်ရည်ဆိုင်</translation>
@@ -1724,7 +1729,6 @@
 <translation id="9133772297793293778">သင့်ကီးဘုတ်တွင် မွမ်းမံခလုတ် ၁-၄ ခုနှင့်အတူ အခြားခလုတ် ၁ ခုကို နှိပ်ပါ။ တည်းဖြတ်မုဒ်မှ ထွက်ရန် Alt + Esc နှိပ်ပါ။</translation>
 <translation id="9137526406337347448">Google ဝန်ဆောင်မှုများ</translation>
 <translation id="9138630967333032450">ဘယ်ဘက် shift</translation>
-<translation id="9147928237330776930">အကျဉ်းချုပ်ရန် စာသား နည်းလွန်းနေသည်</translation>
 <translation id="9149391708638971077">မှတ်ဉာဏ်စစ်ဆေးရန်</translation>
 <translation id="9159524746324788320">ဟမ်ဘာဂါ</translation>
 <translation id="9161276708550942948">space ကီး</translation>

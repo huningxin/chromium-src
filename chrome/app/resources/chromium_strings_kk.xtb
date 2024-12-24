@@ -19,7 +19,6 @@
 <translation id="1185134272377778587">Chromium туралы ақпарат</translation>
 <translation id="1188705220418984327">Терезені бөлісу үшін жүйе параметрлерінде Chromium-ге экран жазуға рұқсат беріңіз.</translation>
 <translation id="1203500561924088507">Орнатқаныңыз үшін рақмет. <ph name="BUNDLE_NAME" /> пайдаланбас бұрын браузерді жауып, қайта ашуыңыз керек.</translation>
-<translation id="1235768345431527125">Ақпаратыңызды қарау үшін аккаунтқа кіруіңіз керек. Болмаса Chromium-ді аккаунтқа кірмей пайдаланыңыз.</translation>
 <translation id="1262876892872089030">Бұл қойынды әрекетсіз тұрған кезде, Chromium жылдам жұмыс істеуі үшін, жад босатылды. Сіз бұл сайтты әрекетсіз тұру тізімінен әрдайым шығарып отыру опциясын таңдай аласыз.</translation>
 <translation id="1265577313130862557">Chromium жүктеп алуды блоктады, себебі бұл файл қауіпті.</translation>
 <translation id="126567311906253476">Gmail не YouTube сияқты Google қызметтеріне <ph name="USER_EMAIL" /> көмегімен кірген кезде, Chromium-ге сол аккаунтпен автоматты түрде кіруге болады.</translation>
@@ -59,6 +58,7 @@
 <translation id="1779356040007214683">Chromium қауіпсіз ету үшін <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> ішінде көрсетілмеген және сізге білдірмей қосылған болуы мүмкін кейбір кеңейтімдерді өшірдік.</translation>
 <translation id="1808667845054772817">Chromium қайта орнату</translation>
 <translation id="1820835682567584003">Chromium <ph name="AUTHENTICATION_PURPOSE" /> қолданып көрейін деп жатыр</translation>
+<translation id="1838374766361614909">Іздеуді тазарту</translation>
 <translation id="18552579716432081">Браузерді пайдалану деректерін Google аккаунтында сақтай отырып, тек осы құрылғыдан жою үшін <ph name="BEGIN_LINK" />Chromium-де аккаунттан шығыңыз<ph name="END_LINK" />.</translation>
 <translation id="185970820835152459">Кірген Google аккаунттарыңызды басқара аласыз. Google аккаунттарыңыз Chromium браузері, Play Store, Gmail және тағы басқа қызметтерде пайдаланылады. Егер отбасы мүшесі сияқты әлдебіреудің аккаунтын қосқыңыз келсе, жаңа пайдаланушыны <ph name="DEVICE_TYPE" /> құрылғыңызға қосыңыз. <ph name="LINK_BEGIN" />Толығырақ<ph name="LINK_END" /></translation>
 <translation id="1862852878885210965">"Сурет іздеу" функциясымен іздеу</translation>
@@ -68,6 +68,7 @@
 <translation id="1896836275755235458">Chromium браузері біркелкі айналдыру және бейнекадр жиілігі сияқты фондық әрекеттерді және визуалдық әсерлерді шектеу арқылы батарея қуатын үнемдейді. <ph name="BEGIN_LINK" />Қуат үнемдеу туралы толық ақпарат<ph name="END_LINK" /></translation>
 <translation id="1900969832270057921">"Chromium-ді жаңарту құралы" қызметі</translation>
 <translation id="1911763535808217981">Бұл функцияны өшіріп, Chromium браузеріне кірместен Gmail сияқты Google сайттарын пайдалана беруіңізге болады</translation>
+<translation id="1916451563296275579">Chromium-нен бұл қолданбалар деректерін өшіру</translation>
 <translation id="1929939181775079593">Chromium жауап бермейді. Қазір қайта іске қосасыз ба?</translation>
 <translation id="1933341829955786215">Ұйымыңыз (<ph name="MANAGER" />) Chromium-ге кіруді талап етеді</translation>
 <translation id="193439633299369377">Жаңарту күшіне енуі үшін ChromiumOS жүйесін өшіріп қосу керек.</translation>
@@ -94,6 +95,7 @@
 <translation id="2199210295479376551">Аккаунтты Chromium-нен өшіру</translation>
 <translation id="2210682093923538346">Сайт қауіпті. Chromium хабарландыруларды өшірді.</translation>
 <translation id="2236949375853147973">Әрекеттерім</translation>
+<translation id="2238130810669087193">Мекенжайлар мен басқа ақпаратты барлық құрылғыдан алу үшін Chromium аккаунтына кіріңіз. Аккаунтқа кіргеннен кейін, бұл мекенжай Google аккаунтыңызға сақталады.</translation>
 <translation id="2240214816234246077">Жақында кірмедіңіз. Chromium <ph name="PERMISSION_1" />, <ph name="PERMISSION_2" /> рұқсаттарын өшірді.</translation>
 <translation id="2241627712206172106">Компьютерді бөлісетін болсаңыз, достарыңыз интернетке бөлек кіріп, Chromium жүйесін қалауынша орната алады.</translation>
 <translation id="2313870531055795960">URL мекенжайларын Chromium браузерінде сақталған қауіпсіз емес сайттар тізімімен салыстырып тексереді. Егер сайт құпия сөзіңізді ұрлағысы келсе немесе зиянды файлды жүктеп алсаңыз, Chromium браузері URL мекенжайларын, сондай-ақ бет контенті бөліктерін Safe Browsing қызметіне жіберуі мүмкін.</translation>
@@ -205,7 +207,6 @@
 <translation id="3802055581630249637">Chromium сіз кіруіңіз мүмкін беттерді алдын ала жүктейді, сонда оларға кірген кезіңізде, тезірек жүктеледі.</translation>
 <translation id="3830894615770080216">ChromiumOS жүйесі</translation>
 <translation id="3848258323044014972"><ph name="PAGE_TITLE" /> – Chromium</translation>
-<translation id="386822487697155367">ChromiumOS туралы анықтама алу</translation>
 <translation id="3871664619793219264"><ph name="ACCOUNT_EMAIL" /> аккаунтынан Chromium браузерінің мәліметтерін алыңыз.</translation>
 <translation id="3885770153807205175">Тіл таңдағыш</translation>
 <translation id="388648406173476553">Chromium-ді реттеу және басқару. Назар аударуыңыз қажет. Толығырақ ақпарат алу үшін басыңыз.</translation>
@@ -405,6 +406,7 @@
 <translation id="6455857529632101747">Chromium профильдеріне қош келдіңіз!</translation>
 <translation id="6466344609055215035">Аккаунтты Chromium-нен өшіру</translation>
 <translation id="6475912303565314141">Сонымен қатар Chromium іске қосылғанда қайсы бет көрсетілуін бақылайды.</translation>
+<translation id="648062525172759633">Бұл беттер Chromium әзірлеушілерінің қолданысына арналған және белсенді түрде жүргізілмеуі не сыналмауы мүмкін. Оларды қосу үшін <ph name="BEGIN_LINK" />chrome://chrome-urls<ph name="LINK_END" /> сайтына өтіп, түзету беттерін қосатын түймені басып, осы бетке қайтып келіңіз.</translation>
 <translation id="648319183876919572">Күшейтілген Safe Browsing-нің қауіпті веб-сайттар мен файлдардан қорғау қабілеті жоғарырақ.</translation>
 <translation id="6510925080656968729">Chromium жою</translation>
 <translation id="651535675648445253">Перне тіркесімдері Chromium-нен ашылады.</translation>
@@ -513,6 +515,7 @@ Chromium параметрлеріңізді қалпына келтіре алм
 <translation id="7877292582355102282"><ph name="BEGIN_BOLD" />Дерек қалай басқарылады:<ph name="END_BOLD" /> құпиялығыңызды сақтау үшін 4 аптадан көп көрсетілген қызығушылықтарды автоматты түрде жойып отырамыз. Интернетті шолу кезінде белгілі бір қызығушылық тізімде қайтадан шығуы мүмкін. Бұл ретте Chromium-ның ескергенін қаламаған қызығушылықтарды өшіруге болады.</translation>
 <translation id="7888981273428720788">Chromium-ді әдепкі браузер етіп орнату</translation>
 <translation id="7934340546140346950">Мүмкін болса, Chromium қауіпті байланыстарды HTTPS кеңейтіміне автоматты түрде жаңартады.</translation>
+<translation id="7935734571048689933">Chromium басқарылады</translation>
 <translation id="7937630085815544518">Chromium жүйесіне <ph name="USER_EMAIL_ADDRESS" /> ретінде кірдіңіз. Қайта кіру үшін бірдей аккаунтты пайдаланыңыз.</translation>
 <translation id="7975919845073681630">Бұл – Chromium браузерінің қайта орнатылған нұсқасы және әдепкі браузер бола алмайды.</translation>
 <translation id="7997934263947464652">Белгісіз дереккөздерден алынған кеңейтім, қолданба, тақырыптар құрылғыңызға зиянын тигізуі мүмкін. Chromium оларды тек <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> дүкенінен орнатуды ұсынады.</translation>

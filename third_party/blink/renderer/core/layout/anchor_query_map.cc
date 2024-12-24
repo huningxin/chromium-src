@@ -4,6 +4,7 @@
 
 #include "third_party/blink/renderer/core/layout/anchor_query_map.h"
 
+#include "third_party/blink/renderer/core/dom/element.h"
 #include "third_party/blink/renderer/core/layout/geometry/writing_mode_converter.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_cursor.h"
 #include "third_party/blink/renderer/core/layout/logical_fragment_link.h"
@@ -14,8 +15,7 @@ namespace blink {
 namespace {
 
 // Represents a fragmentainer. This is in the logical coordinate system
-// because the size of the fragmentation context may not have determined yet.
-// In that case, physical coordinates can't be computed yet.
+// for convenience reasons.
 struct FragmentainerContext {
   STACK_ALLOCATED();
 
@@ -31,10 +31,10 @@ struct FragmentainerContext {
 // coordinate system for the block-fragmented out-of-flow positioned objects.
 struct StitchedAnchorReference
     : public GarbageCollected<StitchedAnchorReference> {
-  StitchedAnchorReference(const LayoutObject& layout_object,
+  StitchedAnchorReference(const Element& element,
                           const LogicalRect& rect,
                           const FragmentainerContext& fragmentainer)
-      : layout_object(&layout_object),
+      : element(&element),
         rect_in_first_fragmentainer(rect),
         first_fragmentainer_offset(fragmentainer.offset),
         first_fragmentainer_stitched_offset(fragmentainer.stitched_offset) {}
@@ -45,10 +45,12 @@ struct StitchedAnchorReference
     return stitched_rect;
   }
 
-  LogicalAnchorReference* GetStitchedAnchorReference() const {
-    DCHECK(layout_object);
-    return MakeGarbageCollected<LogicalAnchorReference>(
-        *layout_object, StitchedRect(), /* is_out_of_flow */ false, nullptr);
+  PhysicalAnchorReference* GetStitchedAnchorReference(
+      const WritingModeConverter& converter) const {
+    PhysicalRect physical_rect = converter.ToPhysical(StitchedRect());
+
+    return MakeGarbageCollected<PhysicalAnchorReference>(
+        *element, physical_rect, /* is_out_of_flow */ false, nullptr);
   }
 
   void Unite(const LogicalRect& other_rect,
@@ -62,9 +64,9 @@ struct StitchedAnchorReference
     rect_in_first_fragmentainer.Unite(other_rect_in_first_fragmentainer);
   }
 
-  void Trace(Visitor* visitor) const { visitor->Trace(layout_object); }
+  void Trace(Visitor* visitor) const { visitor->Trace(element); }
 
-  Member<const LayoutObject> layout_object;
+  Member<const Element> element;
   // The |rect_in_first_fragmentainer| is relative to the first fragmentainer,
   // so that it can a) unite following fragments in the physical coordinate
   // system, and b) compute the result in the stitched coordinate system.
@@ -75,18 +77,21 @@ struct StitchedAnchorReference
 };
 
 // This creates anchor queries in the stitched coordinate system. The result
-// can be converted to a |LogicalAnchorQuery|.
+// can be converted to a |PhysicalAnchorQuery|.
 struct StitchedAnchorQuery : public GarbageCollected<StitchedAnchorQuery>,
                              public AnchorQueryBase<StitchedAnchorReference> {
   using Base = AnchorQueryBase<StitchedAnchorReference>;
 
-  // Convert |this| to a |LogicalAnchorQuery|. The result is a regular
-  // |LogicalAnchorQuery| except that its coordinate system is stitched
+  // Convert |this| to a |PhysicalAnchorQuery|. The result is a regular
+  // |PhysicalAnchorQuery| except that its coordinate system is stitched
   // (i.e., as if they weren't fragmented.)
-  LogicalAnchorQuery* GetStitchedAnchorQuery() const {
-    auto* anchor_query = MakeGarbageCollected<LogicalAnchorQuery>();
-    for (const auto entry : *this)
-      anchor_query->Set(entry.key, entry.value->GetStitchedAnchorReference());
+  PhysicalAnchorQuery* GetStitchedAnchorQuery(
+      const WritingModeConverter& converter) const {
+    auto* anchor_query = MakeGarbageCollected<PhysicalAnchorQuery>();
+    for (const auto entry : *this) {
+      anchor_query->Set(entry.key,
+                        entry.value->GetStitchedAnchorReference(converter));
+    }
     return anchor_query;
   }
 
@@ -104,8 +109,8 @@ struct StitchedAnchorQuery : public GarbageCollected<StitchedAnchorQuery>,
     if (!anchor_query)
       return;
     for (auto entry : *anchor_query) {
-      DCHECK(entry.value->layout_object);
-      AddAnchorReference(entry.key, *entry.value->layout_object,
+      DCHECK(entry.value->GetLayoutObject());
+      AddAnchorReference(entry.key, *entry.value->GetLayoutObject(),
                          entry.value->rect + offset_from_fragmentainer,
                          fragmentainer, Conflict::kLastInCallOrder);
     }
@@ -119,16 +124,18 @@ struct StitchedAnchorQuery : public GarbageCollected<StitchedAnchorQuery>,
     const LogicalRect rect_in_fragmentainer =
         fragmentainer.converter.ToLogical(physical_rect_in_fragmentainer);
     auto* new_value = MakeGarbageCollected<StitchedAnchorReference>(
-        new_object, rect_in_fragmentainer, fragmentainer);
+        *To<Element>(new_object.GetNode()), rect_in_fragmentainer,
+        fragmentainer);
     const auto result = Base::insert(key, new_value);
     if (result.is_new_entry)
       return;
 
     // If this is a fragment of the existing box, unite it with other fragments.
     StitchedAnchorReference* existing = *result.stored_value;
-    const LayoutObject* existing_object = existing->layout_object;
+    const Element* existing_element = existing->element;
+    const LayoutObject* existing_object = existing_element->GetLayoutObject();
     DCHECK(existing_object);
-    if (existing_object == &new_object) {
+    if (existing_element == new_object.GetNode()) {
       existing->Unite(rect_in_fragmentainer, fragmentainer.offset);
       return;
     }
@@ -152,13 +159,13 @@ struct StitchedAnchorQuery : public GarbageCollected<StitchedAnchorQuery>,
 };
 
 // This collects |StitchedAnchorQuery| for each containing block.
-struct StitchedAnchorQueries {
+struct StitchedAnchorQueryCollector {
   STACK_ALLOCATED();
 
  public:
-  StitchedAnchorQueries(const LayoutBox& root,
-                        const HeapHashSet<Member<const LayoutObject>>&
-                            anchored_oof_containers_and_ancestors)
+  StitchedAnchorQueryCollector(const LayoutBox& root,
+                               const HeapHashSet<Member<const LayoutObject>>&
+                                   anchored_oof_containers_and_ancestors)
       : anchored_oof_containers_and_ancestors_(
             anchored_oof_containers_and_ancestors),
         root_(root) {}
@@ -307,7 +314,7 @@ struct StitchedAnchorQueries {
       }
       if (fragment.IsImplicitAnchor()) {
         query.AddAnchorReference(
-            layout_object, *fragment.GetLayoutObject(),
+            To<Element>(layout_object->GetNode()), *fragment.GetLayoutObject(),
             {offset_from_fragmentainer, fragment.Size()}, fragmentainer,
             StitchedAnchorQuery::Conflict::kOverwriteIfAfter);
       }
@@ -335,16 +342,19 @@ struct StitchedAnchorQueries {
 
 }  // namespace
 
-LogicalAnchorQueryMap::LogicalAnchorQueryMap(
+StitchedAnchorQueries::StitchedAnchorQueries(
     const LayoutBox& root_box,
+    LogicalSize container_size,
     const LogicalFragmentLinkVector& children,
     WritingDirectionMode writing_direction)
-    : root_box_(root_box), writing_direction_(writing_direction) {
+    : root_box_(root_box),
+      container_size_(container_size),
+      writing_direction_(writing_direction) {
   DCHECK(&root_box);
   SetChildren(children);
 }
 
-void LogicalAnchorQueryMap::SetChildren(
+void StitchedAnchorQueries::SetChildren(
     const LogicalFragmentLinkVector& children) {
   children_ = &children;
 
@@ -361,29 +371,31 @@ void LogicalAnchorQueryMap::SetChildren(
   }
 }
 
-const LogicalAnchorQuery& LogicalAnchorQueryMap::AnchorQuery(
+const PhysicalAnchorQuery* StitchedAnchorQueries::AnchorQuery(
     const LayoutObject& containing_block) const {
   DCHECK(&containing_block);
   DCHECK(containing_block.CanContainAbsolutePositionObjects() ||
          containing_block.CanContainFixedPositionObjects());
 
-  if (!has_anchor_queries_)
-    return LogicalAnchorQuery::Empty();
+  if (!has_anchor_queries_) {
+    return nullptr;
+  }
 
   // Update |queries_| if it hasn't computed for |containing_block|.
   if (!computed_for_ || !computed_for_->IsDescendantOf(&containing_block))
     Update(containing_block);
 
   const auto& it = queries_.find(&containing_block);
-  if (it != queries_.end())
-    return *it->value;
-  return LogicalAnchorQuery::Empty();
+  if (it != queries_.end()) {
+    return it->value;
+  }
+  return nullptr;
 }
 
 // Update |queries_| for the given |layout_object| and its ancestors. This is
 // `const`, modifies `mutable` caches only, so that other `const` functions such
 // as |AnchorQuery| can call.
-void LogicalAnchorQueryMap::Update(const LayoutObject& layout_object) const {
+void StitchedAnchorQueries::Update(const LayoutObject& layout_object) const {
   // Compute descendants to collect anchor queries from. This helps reducing the
   // number of descendants to traverse.
   HeapHashSet<Member<const LayoutObject>> anchored_oof_containers_and_ancestors;
@@ -393,10 +405,12 @@ void LogicalAnchorQueryMap::Update(const LayoutObject& layout_object) const {
   }
 
   // Traverse descendants and collect anchor queries for each containing block.
-  StitchedAnchorQueries stitched_anchor_queries(
+  StitchedAnchorQueryCollector stitched_anchor_queries(
       root_box_, anchored_oof_containers_and_ancestors);
   stitched_anchor_queries.AddFragmentainerChildren(*children_,
                                                    writing_direction_);
+
+  WritingModeConverter converter(writing_direction_, container_size_);
 
   // TODO(kojii): Currently this clears and rebuilds all anchor queries on
   // incremental updates. It may be possible to reduce the computation when
@@ -404,7 +418,7 @@ void LogicalAnchorQueryMap::Update(const LayoutObject& layout_object) const {
   queries_.clear();
   for (const auto& it : stitched_anchor_queries.anchor_queries_) {
     const auto result =
-        queries_.insert(it.key, it.value->GetStitchedAnchorQuery());
+        queries_.insert(it.key, it.value->GetStitchedAnchorQuery(converter));
     DCHECK(result.is_new_entry);
   }
 

@@ -243,6 +243,7 @@ test("components_unittests") {
     "//components/language/core/common:unit_tests",
     "//components/language/core/language_model:unit_tests",
     "//components/language_detection/core:unit_tests",
+    "//components/language_detection/core/browser:unit_tests",
     "//components/lens:unit_tests",
     "//components/leveldb_proto:unit_tests",
     "//components/local_state:unit_tests",
@@ -283,6 +284,7 @@ test("components_unittests") {
     "//components/password_manager/core/browser/well_known_change_password:unit_tests",
     "//components/password_manager/core/common:unit_tests",
     "//components/payments/core:unit_tests",
+    "//components/persistent_cache:unit_tests",
     "//components/plus_addresses:unit_tests",
     "//components/plus_addresses/metrics:unit_tests",
     "//components/plus_addresses/settings:unit_tests",
@@ -661,6 +663,7 @@ test("components_unittests") {
       "//components/paint_preview/browser/android:java",
       "//components/paint_preview/player/android:unit_tests",
       "//components/payments/content/android",
+      "//components/payments/content/android/ui",
       "//components/permissions/android:java",
       "//components/policy/android:native_test_support_java",
       "//components/policy/android:policy_java",
@@ -728,7 +731,6 @@ test("components_unittests") {
       "//components/commerce/core:account_checker_unittests",
       "//components/commerce/core:commerce_heuristics_data_unittests",
       "//components/commerce/core:feature_list_unittests",
-      "//components/commerce/core:heuristics_provider_unittests",
       "//components/commerce/core/subscriptions:subscriptions_unit_tests",
       "//components/commerce/core/webui:unit_tests",
     ]
@@ -745,8 +747,6 @@ test("components_unittests") {
   if (is_chromeos) {
     deps += [
       "//components/account_manager_core:unit_tests",
-      "//components/arc:unit_tests",
-      "//components/arc/common:unit_tests",
       "//components/cross_device/nearby:unit_tests",
       "//components/desks_storage:unit_tests",
       "//components/guest_os:unit_tests",
@@ -889,7 +889,7 @@ test("components_unittests") {
 repack("components_tests_pak") {
   sources = [
     "$root_gen_dir/components/arc/input_overlay_resources.pak",
-    "$root_gen_dir/components/autofill/core/browser/autofill_address_rewriter_resources.pak",
+    "$root_gen_dir/components/autofill/core/browser/geo/autofill_address_rewriter_resources.pak",
     "$root_gen_dir/components/components_resources.pak",
     "$root_gen_dir/components/metrics/metrics_server_urls.pak",
     "$root_gen_dir/components/omnibox/resources/omnibox_pedal_synonyms_en-US.pak",
@@ -980,6 +980,7 @@ if (use_blink) {
       "dom_distiller/content/browser/test/dom_distiller_js_browsertest.cc",
       "dom_distiller/content/browser/test/test_util.cc",
       "dom_distiller/content/browser/test/test_util.h",
+      "optimization_guide/content/browser/page_content_proto_provider_browsertest.cc",
       "optimization_guide/content/renderer/page_text_agent_browsertest.cc",
       "paint_preview/renderer/paint_preview_recorder_browsertest.cc",
       "ukm/content/source_url_recorder_browsertest.cc",
@@ -1026,6 +1027,8 @@ if (use_blink) {
       "//components/input:browser_tests",
       "//components/js_injection/browser:browser_tests",
       "//components/metrics:content",
+      "//components/network_session_configurator/common:common",
+      "//components/optimization_guide/content/browser:browser",
       "//components/optimization_guide/content/renderer",
       "//components/paint_preview/renderer",
       "//components/password_manager/content/browser",

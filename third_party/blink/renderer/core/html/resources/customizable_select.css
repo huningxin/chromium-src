@@ -11,7 +11,7 @@
 select:not(:-internal-list-box) {
   font: -internal-appearance-auto-base-select(-webkit-small-control, inherit);
   color: -internal-appearance-auto-base-select(FieldText, inherit);
-  background-color: -internal-appearance-auto-base-select(Field, color-mix(in lab, currentColor 10%, transparent));
+  background-color: -internal-appearance-auto-base-select(Field, transparent);
   border: 1px solid -internal-appearance-auto-base-select(light-dark(#767676, #858585), currentColor);
   padding-block: -internal-appearance-auto-base-select(0, 0.25em);
   padding-inline: -internal-appearance-auto-base-select(0, 0.5em);
@@ -29,7 +29,7 @@ select:not(:-internal-list-box) {
 
   display: -internal-appearance-auto-base-select(inline-block, inline-flex);
   gap: -internal-appearance-auto-base-select(initial, 0.5em);
-  border-radius: -internal-appearance-auto-base-select(0, 0.25em);
+  border-radius: -internal-appearance-auto-base-select(0, 0.5em);
 
   align-items: -internal-appearance-auto-base-select(center, unset);
 }
@@ -40,10 +40,10 @@ select:not(:-internal-list-box) > button:first-child {
 }
 
 select:not(:-internal-list-box):enabled:hover {
-  background-color: -internal-appearance-auto-base-select(Field, color-mix(in lab, currentColor 20%, transparent));
+  background-color: -internal-appearance-auto-base-select(Field, color-mix(in lab, currentColor 10%, transparent));
 }
 select:not(:-internal-list-box):enabled:active {
-  background-color: -internal-appearance-auto-base-select(Field, color-mix(in lab, currentColor 30%, transparent));
+  background-color: -internal-appearance-auto-base-select(Field, color-mix(in lab, currentColor 20%, transparent));
 }
 
 /* Without this rule, we would be changing the styles for disabled
@@ -85,20 +85,6 @@ select:not(:-internal-list-box)::picker(select) {
     block-start span-inline-start;
 }
 
-/* This rule is here to ensure that we can get a ComputedStyle for
- * ::picker(select). Without this, the [popover] UA style would make it
- * display:none, which would mean that we wouldn't get a ComputedStyle, which
- * would mean that we can't detect the author opting in with
- * appearance:base-select on this element. This element is hidden when it isn't
- * popover open via LayoutFlexibleBox::IsChildAllowed. This also means that the
- * author can't force it to become visible while it is popover closed by
- * putting display:block on it, but hopefully that's OK.
- * TODO(crbug.com/364348901): Remove this.
- */
-select::picker(select) {
-  display: block !important;
-}
-
 select:not(:-internal-list-box) option {
   /* min-size rules ensure that we meet accessibility guidelines for minimum target size.
    * https://github.com/openui/open-ui/issues/1026
@@ -117,10 +103,10 @@ select:not(:-internal-list-box) option {
 }
 
 select:not(:-internal-list-box) option:enabled:hover {
-  background-color: color-mix(in lab, currentColor 20%, transparent);
+  background-color: color-mix(in lab, currentColor 10%, transparent);
 }
 select:not(:-internal-list-box) option:enabled:active {
-  background-color: color-mix(in lab, currentColor 30%, transparent);
+  background-color: color-mix(in lab, currentColor 20%, transparent);
 }
 select:not(:-internal-list-box) option:disabled {
   color: -internal-appearance-auto-base-select(inherit, color-mix(in lab, currentColor 50%, transparent));
@@ -157,7 +143,7 @@ select::-internal-select-autofill-preview-text {
   white-space: nowrap;
 }
 
-select:not(-internal-list-box)::picker-icon {
+select:not(:-internal-list-box)::picker-icon {
   content: -internal-appearance-auto-base-select(none, counter(fake-counter-name, disclosure-open));
   /* We don't have to use -internal-appearance-auto-base-select() here because
    * the pseudo-element won't get generated unless the content property is set. */

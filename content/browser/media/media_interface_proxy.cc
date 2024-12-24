@@ -18,7 +18,6 @@
 #include "base/time/time.h"
 #include "base/unguessable_token.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "content/browser/media/cdm_storage_common.h"
 #include "content/browser/renderer_host/render_frame_host_delegate.h"
 #include "content/browser/renderer_host/render_frame_host_impl.h"
@@ -206,6 +205,10 @@ class FrameInterfaceFactoryImpl : public media::mojom::FrameInterfaceFactory,
   void GetCdmOrigin(GetCdmOriginCallback callback) override {
     return std::move(callback).Run(
         render_frame_host_->GetLastCommittedOrigin());
+  }
+
+  void GetPageUkmSourceId(GetPageUkmSourceIdCallback callback) override {
+    return std::move(callback).Run(render_frame_host_->GetPageUkmSourceId());
   }
 
   void BindEmbedderReceiver(mojo::GenericPendingReceiver receiver) override {
@@ -438,13 +441,7 @@ void MediaInterfaceProxy::CreateCdm(const media::CdmConfig& cdm_config,
 
   // Handle `use_hw_secure_codecs` cases first.
 #if BUILDFLAG(USE_CHROMEOS_PROTECTED_MEDIA)
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  bool enable_cdm_factory_daemon =
-      base::CommandLine::ForCurrentProcess()->HasSwitch(
-          switches::kLacrosUseChromeosProtectedMedia);
-#else   // BUILDFLAG(IS_CHROMEOS_LACROS)
   bool enable_cdm_factory_daemon = true;
-#endif  // else BUILDFLAG(IS_CHROMEOS_LACROS)
 #if defined(ARCH_CPU_ARM_FAMILY)
   if (!base::FeatureList::IsEnabled(media::kEnableArmHwdrm)) {
     enable_cdm_factory_daemon = false;

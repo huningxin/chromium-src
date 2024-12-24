@@ -24,7 +24,6 @@
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/color_palette.h"
 #include "ui/gfx/font_list.h"
-#include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/views/accessibility/view_accessibility.h"
 #include "ui/views/border.h"
@@ -35,6 +34,7 @@
 #include "ui/views/layout/fill_layout.h"
 #include "ui/views/layout/flex_layout.h"
 #include "ui/views/layout/layout_manager.h"
+#include "ui/views/layout/layout_manager_base.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/layout/layout_types.h"
 #include "ui/views/view_class_properties.h"
@@ -96,10 +96,12 @@ TabbedPaneTab::TabbedPaneTab(TabbedPaneTabStrip* tab_strip,
   if (tab_strip_->HasIconStyle()) {
     auto icon = std::make_unique<views::ImageView>(
         GetImageModelForTab(GetIconTitleColor()));
-    icon->SetProperty(views::kMarginsKey,
-                      gfx::Insets::TLBR(0, 0, 0, kIconRightMargin));
     icon_view_ = icon.get();
     AddChildView(std::move(icon));
+
+    // If there is a icon, there should be spacing between the icon & title.
+    title_->SetProperty(views::kMarginsKey,
+                        gfx::Insets::TLBR(0, kDefaultTitleLeftMargin, 0, 0));
   }
 
   AddChildView(std::move(title_label));
@@ -155,9 +157,20 @@ void TabbedPaneTab::SetTitleText(const std::u16string& text) {
   PreferredSizeChanged();
 }
 
+void TabbedPaneTab::SetTitleMargin(const gfx::Insets& margin) {
+  title_->SetProperty(views::kMarginsKey, margin);
+}
+
+void TabbedPaneTab::SetIconMargin(const gfx::Insets& margin) {
+  if (icon_view_) {
+    icon_view_->SetProperty(views::kMarginsKey, margin);
+  }
+}
+
 bool TabbedPaneTab::OnMousePressed(const ui::MouseEvent& event) {
-  if (GetEnabled() && event.IsOnlyLeftMouseButton())
+  if (GetEnabled() && event.IsOnlyLeftMouseButton()) {
     tab_strip_->SelectTab(this);
+  }
   return true;
 }
 
@@ -167,6 +180,19 @@ void TabbedPaneTab::OnMouseEntered(const ui::MouseEvent& event) {
 
 void TabbedPaneTab::OnMouseExited(const ui::MouseEvent& event) {
   SetState(selected() ? State::kActive : State::kInactive);
+}
+
+void TabbedPaneTab::UpdateEnabledColor(bool enabled) {
+  if (enabled) {
+    UpdateTitleColor();
+    UpdateIconColor();
+  } else {
+    title_->SetEnabledColorId(ui::kColorTabForegroundDisabled);
+    if (icon_view_) {
+      icon_view_->SetImage(
+          GetImageModelForTab(ui::kColorTabForegroundDisabled));
+    }
+  }
 }
 
 void TabbedPaneTab::OnGestureEvent(ui::GestureEvent* event) {
@@ -193,7 +219,7 @@ gfx::Size TabbedPaneTab::CalculatePreferredSize(
   // horizontal orientation.
   if (tab_strip_->HasIconStyle() &&
       tab_strip_->GetOrientation() == TabbedPane::Orientation::kHorizontal) {
-    width += icon_view_->GetPreferredSize({}).width() + kIconRightMargin;
+    width += icon_view_->GetPreferredSize({}).width() + kDefaultTitleLeftMargin;
   }
 
   if (tab_strip_->GetStyle() == TabbedPane::TabStripStyle::kHighlight &&
@@ -209,8 +235,9 @@ bool TabbedPaneTab::HandleAccessibleAction(
   // If the assistive tool sends kSetSelection, handle it like kDoDefault.
   // These generate a click event handled in TabbedPaneTab::OnMousePressed.
   ui::AXActionData action_data_copy(action_data);
-  if (action_data.action == ax::mojom::Action::kSetSelection)
+  if (action_data.action == ax::mojom::Action::kSetSelection) {
     action_data_copy.action = ax::mojom::Action::kDoDefault;
+  }
   return View::HandleAccessibleAction(action_data_copy);
 }
 
@@ -372,7 +399,8 @@ void TabbedPaneTab::UpdateAccessibleSelection() {
 
 ui::ImageModel TabbedPaneTab::GetImageModelForTab(ui::ColorId color_id) const {
   DCHECK(icon_for_tab_);
-  return ui::ImageModel::FromVectorIcon(*icon_for_tab_, color_id, kIconSize);
+  return ui::ImageModel::FromVectorIcon(*icon_for_tab_, color_id,
+                                        kDefaultIconSize);
 }
 
 ui::ColorId TabbedPaneTab::GetIconTitleColor() const {
@@ -431,21 +459,25 @@ TabbedPaneTabStrip::TabbedPaneTabStrip(TabbedPane::Orientation orientation,
 
 TabbedPaneTabStrip::~TabbedPaneTabStrip() = default;
 
-void TabbedPaneTabStrip::AddTab(const std::u16string& title,
-                                const gfx::VectorIcon* tab_icon) {
-  AddTabAt(title, tab_icon, GetTabCount());
+TabbedPaneTab* TabbedPaneTabStrip::AddTab(const std::u16string& title,
+                                          const gfx::VectorIcon* tab_icon) {
+  auto* tab = AddTabAt(title, tab_icon, GetTabCount());
 
   // Always select the first tab.
   if (!GetSelectedTab()) {
     SelectTab(GetTabAtIndex(0));
   }
+
+  return tab;
 }
 
-void TabbedPaneTabStrip::AddTabAt(const std::u16string& title,
-                                  const gfx::VectorIcon* tab_icon,
-                                  size_t index) {
-  AddChildViewAt(std::make_unique<TabbedPaneTab>(this, title, tab_icon), index);
+TabbedPaneTab* TabbedPaneTabStrip::AddTabAt(const std::u16string& title,
+                                            const gfx::VectorIcon* tab_icon,
+                                            size_t index) {
+  auto* tab = AddChildViewAt(
+      std::make_unique<TabbedPaneTab>(this, title, tab_icon), index);
   PreferredSizeChanged();
+  return tab;
 }
 
 void TabbedPaneTabStrip::AnimationProgressed(const gfx::Animation* animation) {
@@ -455,6 +487,16 @@ void TabbedPaneTabStrip::AnimationProgressed(const gfx::Animation* animation) {
 void TabbedPaneTabStrip::AnimationEnded(const gfx::Animation* animation) {
   if (animation == expand_animation_.get()) {
     contract_animation_->Start();
+  }
+}
+
+void TabbedPaneTabStrip::SetEnabled(bool enabled) {
+  if (GetEnabled() == enabled) {
+    return;
+  }
+  View::SetEnabled(enabled);
+  for (size_t i = 0; i < GetTabCount(); ++i) {
+    GetTabAtIndex(i)->UpdateEnabledColor(enabled);
   }
 }
 
@@ -621,10 +663,11 @@ size_t TabbedPaneTabStrip::GetIndexForTab(TabbedPaneTab* tab) const {
 }
 
 size_t TabbedPaneTabStrip::GetSelectedTabIndex() const {
-  for (size_t i = 0; i < children().size(); ++i)
+  for (size_t i = 0; i < children().size(); ++i) {
     if (GetTabAtIndex(i)->selected()) {
       return i;
     }
+  }
   return kNoSelectedTab;
 }
 
@@ -634,6 +677,11 @@ size_t TabbedPaneTabStrip::GetTabCount() const {
 
 void TabbedPaneTabStrip::SetDefaultFlex(int flex) {
   static_cast<BoxLayout*>(GetLayoutManager())->SetDefaultFlex(flex);
+}
+
+void TabbedPaneTabStrip::SetTabSpacing(int spacing) {
+  static_cast<BoxLayout*>(GetLayoutManager())
+      ->set_between_child_spacing(spacing);
 }
 
 TabbedPane::Orientation TabbedPaneTabStrip::GetOrientation() const {
@@ -666,6 +714,11 @@ void TabbedPaneTabStrip::UpdateAccessibleName() {
   }
 }
 
+void TabbedPaneTabStrip::SetDrawTabDivider(bool draw) {
+  draw_tab_divider_ = draw;
+  SchedulePaint();
+}
+
 void TabbedPaneTabStrip::OnPaintBorder(gfx::Canvas* canvas) {
   // Do not draw border line in kHighlight mode.
   if (GetStyle() == TabbedPane::TabStripStyle::kHighlight) {
@@ -691,8 +744,16 @@ void TabbedPaneTabStrip::OnPaintBorder(gfx::Canvas* canvas) {
     rect = gfx::Rect(max_cross_axis - kUnselectedBorderThickness, 0,
                      kUnselectedBorderThickness, height());
   }
-  canvas->FillRect(rect,
-                   GetColorProvider()->GetColor(ui::kColorTabContentSeparator));
+
+  if (draw_tab_divider_) {
+    canvas->FillRect(
+        rect, GetColorProvider()->GetColor(ui::kColorTabContentSeparator));
+  }
+
+  // No need to draw the selection marker if the tab strip is disabled.
+  if (!GetEnabled()) {
+    return;
+  }
 
   TabbedPaneTab* tab = GetSelectedTab();
   if (!tab) {
@@ -785,8 +846,9 @@ TabbedPane::TabbedPane(TabbedPane::Orientation orientation,
                        bool scrollable) {
   CHECK(IsValidOrientationStyleCombo(orientation, style));
 
-  if (orientation == TabbedPane::Orientation::kHorizontal)
+  if (orientation == TabbedPane::Orientation::kHorizontal) {
     SetOrientation(views::LayoutOrientation::kVertical);
+  }
 
   auto tab_strip =
       std::make_unique<TabbedPaneTabStrip>(orientation, style, this);
@@ -909,6 +971,10 @@ void TabbedPane::UpdateAccessibleName() {
   } else {
     GetViewAccessibility().RemoveName();
   }
+}
+
+void TabbedPane::SetDrawTabDivider(bool draw) {
+  tab_strip_->SetDrawTabDivider(draw);
 }
 
 TabbedPaneTab* TabbedPane::GetSelectedTab() {

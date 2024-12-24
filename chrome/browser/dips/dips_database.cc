@@ -33,7 +33,7 @@ namespace {
 
 BASE_FEATURE(kSqlWALModeOnDipsDatabase,
              "SqlWALModeOnDipsDatabase",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // NOTE: This is flag is intended for local testing and debugging only.
 BASE_FEATURE(kDisableExclusiveLockingOnDipsDatabase,
@@ -109,7 +109,8 @@ DIPSDatabase::DIPSDatabase(const std::optional<base::FilePath>& db_path)
   if (base::FeatureList::IsEnabled(kDisableExclusiveLockingOnDipsDatabase)) {
     db_options.exclusive_locking = false;
   }
-  db_ = std::make_unique<sql::Database>(db_options, /*tag=*/"DIPS");
+
+  db_ = std::make_unique<sql::Database>(db_options, sql::Database::Tag("DIPS"));
 
   base::AssertLongCPUWorkAllowed();
   if (db_path.has_value()) {

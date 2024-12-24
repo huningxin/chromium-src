@@ -42,6 +42,7 @@
 #include "headless/lib/browser/headless_browser_main_parts.h"
 #include "headless/public/switches.h"
 #include "printing/buildflags/buildflags.h"
+#include "third_party/blink/public/common/peerconnection/webrtc_ip_handling_policy.h"
 #include "third_party/blink/public/common/renderer_preferences/renderer_preferences.h"
 #include "third_party/blink/public/mojom/window_features/window_features.mojom.h"
 #include "third_party/skia/include/core/SkBitmap.h"
@@ -231,7 +232,8 @@ class HeadlessWebContentsImpl::Delegate : public content::WebContentsDelegate {
   }
 
   content::PreloadingEligibility IsPrerender2Supported(
-      content::WebContents& web_contents) override {
+      content::WebContents& web_contents,
+      content::PreloadingTriggerType trigger_type) override {
     return base::FeatureList::IsEnabled(features::kPrerender2InHeadlessMode)
                ? content::PreloadingEligibility::kEligible
                : content::PreloadingEligibility::
@@ -416,8 +418,8 @@ HeadlessWebContentsImpl::HeadlessWebContentsImpl(
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
   if (command_line->HasSwitch(::switches::kForceWebRtcIPHandlingPolicy)) {
     web_contents_->GetMutableRendererPrefs()->webrtc_ip_handling_policy =
-        command_line->GetSwitchValueASCII(
-            ::switches::kForceWebRtcIPHandlingPolicy);
+        blink::ToWebRTCIPHandlingPolicy(command_line->GetSwitchValueASCII(
+            ::switches::kForceWebRtcIPHandlingPolicy));
   }
 
   web_contents_->SetDelegate(web_contents_delegate_.get());

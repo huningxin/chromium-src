@@ -471,6 +471,14 @@ For more settings that use data to improve your Chrome experience, go to <ph nam
         Address bar
       </message>
 
+      <message name="IDS_ADDRESS_BAR_SETTINGS_DESCRIPTION" desc="TODO">
+        You can also touch and hold the address bar to change the position.
+      </message>
+
+      <message name="IDS_ADDRESS_BAR_SETTINGS_DESCRIPTION_FOLDABLE" desc="TODO">
+        When your device is folded, you can choose an option or touch and hold the address bar to change the position.
+      </message>
+
       <message name="IDS_ADDRESS_BAR_SETTINGS_TOP" desc="Title for the toggle that will show the address bar on the top. [CHAR_LIMIT=32]">
         Top
       </message>
@@ -1022,14 +1030,17 @@ For more settings that use data to improve your Chrome experience, go to <ph nam
         Passwords will stop working soon because Google Play services isn’t available. To use passwords saved in your Google Account, sign in using another device, or go to passwords.google.com.
       </message>
       <!-- Acknowledge grouped credential bottom sheet -->
+      <message name="IDS_ACK_GROUPED_CRED_SHEET_OPENED" desc="The accessibility string to be announced by TalkBack right after the bottom sheet is opened.">
+        Password suggestion confirmation
+      </message>
       <message name="IDS_ACK_GROUPED_CRED_SHEET_TITLE" desc="The title of the bottom sheet verifying that user wants to use the password saved for another web site or app grouped with the current web site.">
         Use your <ph name="PROVIDER">%1$s<ex>example.com</ex></ph> password?
       </message>
       <message name="IDS_ACK_GROUPED_CRED_SHEET_DESC" desc="The text in the bottom sheet verifying that user wants to use the password saved for another web site or app grouped with the current web site.">
         <ph name="BEGIN_BOLD1">&lt;b1&gt;</ph><ph name="PROVIDER1">%1$s<ex>example.com</ex></ph><ph name="END_BOLD1">&lt;/b1&gt;</ph> and <ph name="BEGIN_BOLD2">&lt;b2&gt;</ph><ph name="PROVIDER2">%2$s<ex>example.com</ex></ph><ph name="END_BOLD2">&lt;/b2&gt;</ph> seem to be related. Make sure you trust <ph name="BEGIN_BOLD3">&lt;b3&gt;</ph><ph name="PROVIDER2">%2$s<ex>example.com</ex></ph><ph name="END_BOLD3">&lt;/b3&gt;</ph> before using your password.
       </message>
-      <message name="IDS_ACK_GROUPED_CRED_SHEET_ACCEPTED" desc="The accessibility string announced after accpting the bottom sheet verifying that user wants to use the password saved for another web site or app grouped with the current web site.">
-        Password used.
+      <message name="IDS_ACK_GROUPED_CRED_SHEET_CLOSED" desc="The accessibility string announced after closing the bottom sheet verifying that user wants to use the password saved for another web site or app grouped with the current web site.">
+        Password suggestion is closed.
       </message>
 
       <!-- Lock Screen Fragment -->
@@ -3297,6 +3308,15 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
       <message name="IDS_NOTIFICATION_MANAGE_BUTTON" desc="Text of a button shown on notifications, that opens the Chrome notifications settings page. This allows users to edit notification settings when a site asks them to allow notifications. [CHAR_LIMIT=9]">
         Manage
       </message>
+      <message name="IDS_NOTIFICATION_WARNING_TITLE" desc="Title of a warning notification informing the user that the notification may be suspicious.">
+        Possible spam
+      </message>
+      <message name="IDS_NOTIFICATION_WARNING_BODY" desc="Body text of a warning notification informing the user that the notification from the domain may be suspicious.">
+        Chrome detected possible spam from <ph name="DOMAIN">%1$s<ex>example.com</ex></ph>.
+      </message>
+      <message name="IDS_NOTIFICATION_SHOW_ORIGINAL_BUTTON" desc="Text of a button shown on suspicious notifications, allowing the user to see the contents of the original notification instead of the warning.">
+        Show notification
+      </message>
 
       <!-- Download UI -->
       <message name="IDS_DOWNLOAD_NOTIFICATION_PENDING" desc="Download notification to be displayed when a download has been scheduled but has not started being fetched from the network.">
@@ -3986,9 +4006,6 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
       </message>
       <message name="IDS_NTP_MANAGE_INTERESTS" desc="Content description to manage settings from the feed header overflow menu.">
         Manage interests
-      </message>
-      <message name="IDS_NTP_MANAGE_REACTIONS" desc="Content description to manage feed reactions from the feed header overflow menu.">
-        Manage reactions
       </message>
       <message name="IDS_NTP_MANAGE_FEED" desc="Menu item to manage feed settings from the feed header overflow menu.">
         Manage
@@ -5775,22 +5792,6 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
         Submit <ph name="ONE_TIME_CODE">%1$s<ex>123</ex></ph> to <ph name="ORIGIN">%2$s<ex>example.com</ex></ph>?
       </message>
 
-      <!-- Interventions -->
-      <message name="IDS_REDIRECT_BLOCKED_MESSAGE" desc="The message stating that a redirect (noun) was blocked on this page. This will be followed on a separate line with the address the user was being redirected to.">
-         Redirect blocked:
-      </message>
-      <message name="IDS_REDIRECT_BLOCKED_SHORT_MESSAGE" desc="The short message stating that a redirect (noun) was blocked on this page.">
-         Redirect blocked.
-      </message>
-      <message name="IDS_ALWAYS_ALLOW_REDIRECTS" desc="The infobar button text allowing a user to always allow redirects (noun) after they were blocked on this page.">
-        Always allow
-      </message>
-      <message name="IDS_NEAR_OOM_INTERVENTION_MESSAGE" desc="The message stating that the browser intervened to stop the page using too much memory.">
-         This page uses too much memory, so Chrome paused it.
-      </message>
-      <message name="IDS_NEAR_OOM_INTERVENTION_DECLINE" desc="The text of the button letting the user decline the browser's intervention, so that the page can resume what it was doing.">
-         Resume
-      </message>
       <!-- Usage Stats strings -->
       <message name="IDS_USAGE_STATS_CONSENT_TITLE" desc="Title for activity authorizing Digital Wellbeing to access Chrome usage data">
         Show your Chrome activity in Digital Wellbeing?
@@ -6322,6 +6323,25 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
       <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_TITLE" desc="Text for the HTTPS-First Mode toggle in settings.">
         Always use secure connections
       </message>
+      <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_DESCRIPTION" desc="Secondary, continued explanation of HTTPS-Only Mode in Security settings">
+        For sites that don’t support secure connections, get warned before visiting the site
+      </message>
+      <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_WITH_ADVANCED_PROTECTION_DESCRIPTION" desc="Secondary, continued explanation of HTTPS-Only Mode in Security settings when the user can't change the setting">
+        For sites that don’t support secure connections, get warned before visiting the site. You can’t change this setting because you have Advanced Protection enabled.
+      </message>
+      <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_DISABLED_LABEL" desc="Label shown under main HTTPS-First Mode title ('Always use secure connections') when the feature is turned off.">
+        Off
+      </message>
+      <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_ENABLED_STRICT_LABEL" desc="Label for radio button to enable the stricter form of HTTPS-First Mode">
+        Warns you for insecure public &amp; private sites
+      </message>
+      <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_ENABLED_STRICT_SUBLABEL" desc="Secondary, continued explanation for the stricter form of HTTPS-First Mode">
+        Private sites might include things like your company’s intranet
+      </message>
+      <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_ENABLED_BALANCED_LABEL" desc="Label for radio button to enable the less-strict form of HTTPS-First Mode">
+        Warns you for insecure public sites
+      </message>
+      <!-- Old HTTPS-First Mode settings strings. TODO(crbug.com/349860796): Remove after new settings are fully rolled out. -->
       <message name="IDS_SETTINGS_HTTPS_FIRST_MODE_SUMMARY" desc="Secondary, continued explanation of HTTPS-First Mode in settings.">
         Use HTTPS whenever possible and get warned before loading sites that don’t support it
       </message>
@@ -6394,10 +6414,6 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
       </message>
       <message name="IDS_PASSWORD_MANAGER_DROPDOWN_BUTTON_DESCRIPTION" desc="This is a description that will be used for the TalkBack to describe the button with the down arrow that opens a dropdown with a list of items.">
         Select from the dropdown list
-      </message>
-      <!-- Price tracking strings -->
-      <message name="IDS_PRICE_DROP_SPOTTED_IPH" desc="This text appears in the IPH when a user opens a new tab page and an item in any of their open tabs has a price drop.">
-        Price drop spotted
       </message>
       <!-- Partial Custom Tab accessibility -->
       <message name="IDS_ACCESSIBILITY_PARTIAL_CUSTOM_TAB_BOTTOM_SHEET" desc="Content description for partial custom tab of bottom sheet type">
@@ -6924,30 +6940,6 @@ To change this setting, <ph name="BEGIN_LINK">BEGIN_LINK</ph>delete the Chrome d
       </message>
       <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_BOTTOM_SHEET_ACCESSIBILITY_CLOSED" desc="Accessibility string that describes that the recent activity bottom sheet has closed.">
         Recent activity bottom sheet closed
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_USER_SELF" desc="Text on a recent activity bottom sheet row that indicates that the user themselves took an action, e.g. user themselves changed the tab as opposed to another user changing the tab. Used as the first part of another string.">
-        You
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_TAB_ADDED" desc="Text on a recent activity bottom sheet row that says user added a tab.">
-        <ph name="USER_DISPLAY_NAME">%1$s<ex>User 1</ex></ph> added a tab
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_TAB_REMOVED" desc="Text on a recent activity bottom sheet row that says user removed a tab.">
-        <ph name="USER_DISPLAY_NAME">%1$s<ex>User 1</ex></ph> removed a tab
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_TAB_UPDATED" desc="Text on a recent activity bottom sheet row that says user updated a tab.">
-        <ph name="USER_DISPLAY_NAME">%1$s<ex>User 1</ex></ph> changed a tab
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_TAB_GROUP_NAME_UPDATED" desc="Text on a recent activity bottom sheet row that says user updated the tab group name.">
-        <ph name="USER_DISPLAY_NAME">%1$s<ex>User 1</ex></ph> changed the group name
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_TAB_GROUP_COLOR_UPDATED" desc="Text on a recent activity bottom sheet row that says user updated the tab group color.">
-        <ph name="USER_DISPLAY_NAME">%1$s<ex>User 1</ex></ph> changed the group color
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_USER_JOINED_GROUP" desc="Text on a recent activity bottom sheet row that says user joined the group.">
-        <ph name="USER_DISPLAY_NAME">%1$s<ex>User 1</ex></ph> joined the group
-      </message>
-      <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_USER_LEFT_GROUP" desc="Text on a recent activity bottom sheet row that says user left the group.">
-        <ph name="USER_DISPLAY_NAME">%1$s<ex>User 1</ex></ph> left the group
       </message>
       <message name="IDS_DATA_SHARING_RECENT_ACTIVITY_DESCRIPTION_FULL" desc="The description text on a recent activity bottom sheet row that has two halfs: an URL or email or group name on first half, and a relative time duration on the second half.">
         <ph name="DESCRIPTION_FIRST_HALF">%1$s<ex>google.com</ex></ph> \u2022 <ph name="TIMESTMAP">%2$s<ex>8h ago</ex></ph>

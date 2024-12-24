@@ -6,7 +6,7 @@
 
 #include "base/values.h"
 #include "chrome/browser/browser_process.h"
-#include "chrome/common/pref_names.h"
+#include "chrome/browser/glic/glic_pref_names.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "ui/base/accelerators/accelerator.h"
@@ -32,16 +32,20 @@ GlicConfiguration::GlicConfiguration(Observer* manager) : manager_(manager) {
 GlicConfiguration::~GlicConfiguration() = default;
 
 // static
-void GlicConfiguration::RegisterPrefs(PrefRegistrySimple* registry) {
+void GlicConfiguration::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
   registry->RegisterBooleanPref(prefs::kGlicLauncherEnabled, false);
-  registry->RegisterBooleanPref(prefs::kGlicMicrophoneEnabled, false);
-  registry->RegisterBooleanPref(prefs::kGlicGeolocationEnabled, false);
-  registry->RegisterBooleanPref(prefs::kGlicTabContextEnabled, false);
   registry->RegisterDictionaryPref(
       prefs::kGlicLauncherGlobalHotkey,
       base::Value::Dict()
           .Set(kHotkeyKeyCode, ui::KeyboardCode::VKEY_UNKNOWN)
           .Set(kHotkeyModifiers, ui::EF_NONE));
+}
+
+// static
+void GlicConfiguration::RegisterProfilePrefs(PrefRegistrySimple* registry) {
+  registry->RegisterBooleanPref(prefs::kGlicMicrophoneEnabled, false);
+  registry->RegisterBooleanPref(prefs::kGlicGeolocationEnabled, false);
+  registry->RegisterBooleanPref(prefs::kGlicTabContextEnabled, false);
 }
 
 bool GlicConfiguration::IsEnabled() {

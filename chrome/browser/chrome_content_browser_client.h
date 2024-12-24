@@ -226,7 +226,8 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
       std::vector<std::string>* additional_schemes) override;
   network::mojom::IPAddressSpace DetermineAddressSpaceFromURL(
       const GURL& url) override;
-  bool LogWebUIUrl(const GURL& web_ui_url) override;
+  void LogWebUIUsage(
+      std::variant<content::WebUI*, GURL> webui_variant) override;
   bool IsWebUIAllowedToMakeNetworkRequests(const url::Origin& origin) override;
   bool IsHandledURL(const GURL& url) override;
   bool HasCustomSchemeHandler(content::BrowserContext* browser_context,
@@ -1132,6 +1133,10 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
   void OnTracingServiceStarted() override;
   void OnTracingServiceStopped() override;
 #endif
+
+  std::unique_ptr<content::WebUIController> OverrideForInternalWebUI(
+      content::WebUI* web_ui,
+      const GURL& url) override;
 
   void SetSamplingProfiler(
       std::unique_ptr<MainThreadStackSamplingProfiler> sampling_profiler);

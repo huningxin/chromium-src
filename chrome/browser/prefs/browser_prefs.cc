@@ -247,7 +247,6 @@
 
 #if BUILDFLAG(IS_ANDROID)
 #include "chrome/browser/accessibility/accessibility_prefs/android/accessibility_prefs_controller.h"
-#include "chrome/browser/android/bookmarks/partner_bookmarks_shim.h"
 #include "chrome/browser/android/ntp/recent_tabs_page_prefs.h"
 #include "chrome/browser/android/oom_intervention/oom_intervention_decider.h"
 #include "chrome/browser/android/preferences/browser_prefs_android.h"
@@ -257,6 +256,7 @@
 #include "chrome/browser/lens/android/lens_prefs.h"
 #include "chrome/browser/media/android/cdm/media_drm_origin_id_manager.h"
 #include "chrome/browser/notifications/notification_channels_provider_android.h"
+#include "chrome/browser/partnerbookmarks/partner_bookmarks_shim.h"
 #include "chrome/browser/password_manager/android/password_manager_android_util.h"
 #include "chrome/browser/readaloud/android/prefs.h"
 #include "chrome/browser/ssl/known_interception_disclosure_infobar_delegate.h"
@@ -546,7 +546,7 @@
 #include "components/enterprise/data_controls/core/browser/prefs.h"
 #endif
 
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
+#if BUILDFLAG(ENABLE_GLIC)
 #include "chrome/browser/glic/launcher/glic_configuration.h"
 #endif
 
@@ -1169,7 +1169,13 @@ const char kCryptAuthEnrollmentUserPublicKey[] =
 const char kCryptAuthEnrollmentUserPrivateKey[] =
     "cryptauth.enrollment.user_private_key";
 const char kLacrosLaunchOnLogin[] = "lacros.launch_on_login";
+const char kLacrosLaunchSwitch[] = "lacros_launch_switch";
+const char kLacrosSelection[] = "lacros_selection";
 #endif
+
+// Deprecated 12/2024.
+inline constexpr char kPageContentCollectionEnabled[] =
+    "page_content_collection.enabled";
 
 // Register local state used only for migration (clearing or moving to a new
 // key).
@@ -1280,6 +1286,12 @@ void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
 
   // Deprecated 11/2024.
   registry->RegisterIntegerPref(kOnDeviceModelTimeoutCount, 0);
+
+#if BUILDFLAG(IS_CHROMEOS)
+  // Deprecated 12/2024.
+  registry->RegisterIntegerPref(kLacrosLaunchSwitch, 0);
+  registry->RegisterIntegerPref(kLacrosSelection, 0);
+#endif
 }
 
 // Register prefs used only for migration (clearing or moving to a new key).
@@ -1663,6 +1675,9 @@ void RegisterProfilePrefsForMigration(
                                std::string());
   registry->RegisterBooleanPref(kLacrosLaunchOnLogin, false);
 #endif
+
+  // Deprecated 12/2024.
+  registry->RegisterBooleanPref(kPageContentCollectionEnabled, false);
 }
 
 }  // namespace
@@ -1985,9 +2000,11 @@ void RegisterLocalState(PrefRegistrySimple* registry) {
 
   registry->RegisterIntegerPref(prefs::kChromeDataRegionSetting, 0);
 
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
-  glic::GlicConfiguration::RegisterPrefs(registry);
+#if BUILDFLAG(ENABLE_GLIC)
+  glic::GlicConfiguration::RegisterLocalStatePrefs(registry);
 #endif
+
+  registry->RegisterIntegerPref(prefs::kToastAlertLevel, 0);
 
   // This is intentionally last.
   RegisterLocalStatePrefsForMigration(registry);
@@ -2020,6 +2037,9 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   dom_distiller::DistilledPagePrefs::RegisterProfilePrefs(registry);
   DownloadPrefs::RegisterProfilePrefs(registry);
   fingerprinting_protection_filter::prefs::RegisterProfilePrefs(registry);
+#if BUILDFLAG(ENABLE_GLIC)
+  glic::GlicConfiguration::RegisterProfilePrefs(registry);
+#endif
   permissions::PermissionHatsTriggerHelper::RegisterProfilePrefs(registry);
   history_clusters::prefs::RegisterProfilePrefs(registry);
   HostContentSettingsMap::RegisterProfilePrefs(registry);
@@ -2159,6 +2179,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   bookmarks_webui::RegisterProfilePrefs(registry);
   browser_sync::ForeignSessionHandler::RegisterProfilePrefs(registry);
   BrowserUserEducationStorageService::RegisterProfilePrefs(registry);
+  captions::LiveCaptionController::RegisterProfilePrefs(registry);
   captions::LiveTranslateController::RegisterProfilePrefs(registry);
   ChromeAuthenticatorRequestDelegate::RegisterProfilePrefs(registry);
   commerce::CommerceUiTabHelper::RegisterProfilePrefs(registry);
@@ -2197,10 +2218,6 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   toolbar::RegisterProfilePrefs(registry);
   UnifiedAutoplayConfig::RegisterProfilePrefs(registry);
   user_notes::RegisterProfilePrefs(registry);
-
-#if !BUILDFLAG(IS_CHROMEOS_LACROS)
-  captions::LiveCaptionController::RegisterProfilePrefs(registry);
-#endif  // !BUILDFLAG(IS_CHROMEOS_LACROS)
 #endif  // BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(IS_CHROMEOS)
@@ -2579,6 +2596,12 @@ void MigrateObsoleteLocalStatePrefs(PrefService* local_state) {
   // Added 11/2024
   optimization_guide::model_execution::prefs::MigrateLegacyUsagePrefs(
       local_state);
+
+  // Added 12/2024
+#if BUILDFLAG(IS_CHROMEOS)
+  local_state->ClearPref(kLacrosLaunchSwitch);
+  local_state->ClearPref(kLacrosSelection);
+#endif
 
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_LOCAL_STATE_PREFS
@@ -2997,6 +3020,9 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   profile_prefs->ClearPref(kCryptAuthEnrollmentUserPrivateKey);
   profile_prefs->ClearPref(kLacrosLaunchOnLogin);
 #endif
+
+  // Added 12/2024.
+  profile_prefs->ClearPref(kPageContentCollectionEnabled);
 
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_PROFILE_PREFS

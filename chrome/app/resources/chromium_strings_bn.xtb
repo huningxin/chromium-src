@@ -17,7 +17,6 @@
 <translation id="1185134272377778587">Chromium সম্পর্কে</translation>
 <translation id="1188705220418984327">আপনার উইন্ডো শেয়ার করতে, সিস্টেম প্রেফারেন্স থেকে Chromium-এর জন্য স্ক্রিন রেকর্ডিং চালু করতে হবে।</translation>
 <translation id="1203500561924088507">ইনস্টল করার জন্য ধন্যবাদ। <ph name="BUNDLE_NAME" /> ব্যবহার করার আগে আপনাকে অবশ্যই ব্রাউজার রিস্টার্ট করতে হবে।</translation>
-<translation id="1235768345431527125">আপনার অ্যাকাউন্ট অ্যাক্সেস করতে সাইন-ইন করতে পারবেন অথবা কোনও অ্যাকাউন্ট ছাড়া Chromium ব্যবহার করুন</translation>
 <translation id="1262876892872089030">Chromium যাতে দ্রুত কাজ করে সেই জন্য এই ট্যাব বন্ধ থাকাকালীন মেমরি খালি করা হয়েছে। এই সাইটটি অ্যাক্টিভ রাখার বিকল্প সব সময় বেছে নিতে পারবেন।</translation>
 <translation id="1265577313130862557">এই ফাইলটি বিপজ্জনক, তাই Chromium এই ডাউনলোডটি ব্লক করে দিয়েছে</translation>
 <translation id="126567311906253476">Gmail বা YouTube-এর মতো Google পরিষেবায় <ph name="USER_EMAIL" /> দিয়ে সাইন-ইন করার সময় আপনি একই অ্যাকাউন্ট দিয়ে Chromium-এ অটোমেটিক সাইন-ইন করতে পারবেন</translation>
@@ -58,6 +57,7 @@
 <translation id="1779356040007214683">Chromium কে আরও নিরাপদ করতে, আমরা কিছু এক্সটেনশান অক্ষম করেছি যা <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> এ তালিকাবদ্ধ করা হয়নি এবং হয়ত আপনাকে না জানিয়ে যোগ করা হয়েছে৷</translation>
 <translation id="1808667845054772817">Chromium আবার ইন্সটল করুন</translation>
 <translation id="1820835682567584003">Chromium <ph name="AUTHENTICATION_PURPOSE" />-এর চেষ্টা করছে</translation>
+<translation id="1838374766361614909">সার্চ সাফ করুন</translation>
 <translation id="18552579716432081">শুধুমাত্র এই ডিভাইস থেকে ব্রাউজ করা ডেটা মুছে দিতে, তা নিজের Google অ্যাকাউন্টে রেখে দেওয়ার সময়, <ph name="BEGIN_LINK" />Chromium থেকে সাইন-আউট করুন<ph name="END_LINK" />।</translation>
 <translation id="185970820835152459">আপনার সাইন-ইন করা Google অ্যাকাউন্ট ম্যানেজ করতে পারবেন। Chromium ব্রাউজার, Play Store, Gmail সহ আরও অনেক কিছুর জন্য আপনার Google অ্যাকাউন্ট ব্যবহার করা হয়। পরিবারের সদস্যের মতো অন্য কারও অ্যাকাউন্ট যোগ করতে চাইলে, তার পরিবর্তে আপনার <ph name="DEVICE_TYPE" />-এ নতুন ব্যক্তিকে যোগ করুন। <ph name="LINK_BEGIN" />আরও জানুন<ph name="LINK_END" /></translation>
 <translation id="1862852878885210965">'ছবি সার্চ করা' ফিচারের মাধ্যমে সার্চ করুন</translation>
@@ -67,6 +67,7 @@
 <translation id="1896836275755235458">স্মুথ স্ক্রলিং ও ভিডিও ফ্রেম রেটের মতো ব্যাকগ্রাউন্ড অ্যাক্টিভিটি ও ভিজ্যুয়াল এফেক্টকে সীমিত করার মাধ্যমে Chromium ব্যাটারির চার্জ সাশ্রয় করে। <ph name="BEGIN_LINK" />পাওয়ার সেভার সম্পর্কে আরও জানুন<ph name="END_LINK" /></translation>
 <translation id="1900969832270057921">Chromium আপডেটার পরিষেবা</translation>
 <translation id="1911763535808217981">এটি বন্ধ করার মানে হল, আপনি Chromium-এ সাইন-ইন না করে Gmail এর মতো Google সাইটগুলিতে সাইন-ইন করতে পারেন</translation>
+<translation id="1916451563296275579">Chromium থেকে এইসব অ্যাপ ডেটা সরিয়ে দিন</translation>
 <translation id="1929939181775079593">Chromium সাড়া দিচ্ছে না৷ আবার শুরু করবেন?</translation>
 <translation id="1933341829955786215">আপনার সংস্থা, <ph name="MANAGER" />-এর প্রয়োজন অনুযায়ী, আপনাকে Chromium-এ সাইন-ইন করতে হবে</translation>
 <translation id="193439633299369377">আপডেটটি প্রয়োগ করতে ChromiumOS আবার চালু করা প্রয়োজন।</translation>
@@ -93,6 +94,7 @@
 <translation id="2199210295479376551">Chromium থেকে অ্যাকাউন্ট সরান</translation>
 <translation id="2210682093923538346">বিপজ্জনক সাইট। Chromium বিজ্ঞপ্তি পাওয়ার অনুমতি সরিয়ে দিয়েছে।</translation>
 <translation id="2236949375853147973">আমার অ্যাক্টিভিটি</translation>
+<translation id="2238130810669087193">নিজের সব ডিভাইসে ঠিকানা ও আরও অনেক কিছু পেতে, Chromium-এ সাইন-ইন করুন। সাইন-ইন করার পরে, আপনার Google অ্যাকাউন্টে এই ঠিকানা সেভ করা হবে।</translation>
 <translation id="2240214816234246077">আপনি সম্প্রতি ভিজিট করেননি। Chromium <ph name="PERMISSION_1" />, <ph name="PERMISSION_2" /> সম্পর্কিত অনুমতি সরিয়ে দিয়েছে</translation>
 <translation id="2241627712206172106">যদি আপনি একটি কম্পিউটার শেয়ার করেন, তাহলে বন্ধু ও পরিবারের লোকজন পৃথকভাবে ব্রাউজ করতে পারবেন এবং তাদের ইচ্ছা অনুযায়ী Chromium-এর সেট-আপ করতে পারবেন৷</translation>
 <translation id="2313870531055795960">Chromium-এ স্টোর করা নিরাপদ নয় এমন সাইটের তালিকা থেকে সেগুলির URL গুলি পরীক্ষা করে দেখে। যদি কোনও সাইট আপনার পাসওয়ার্ড চুরি করার চেষ্টা করে বা আপনি কোনও ক্ষতিকারক ফাইল ডাউনলোড করলে, Safe Browsing-এ Chromium পৃষ্ঠার কিছু কন্টেন্ট সহ URL গুলিও হয়ত পাঠাতে পারে।</translation>
@@ -204,7 +206,6 @@
 <translation id="3802055581630249637">আপনি দেখতে পারেন এমন পৃষ্ঠা Chromium প্রিলোড করে, যাতে আপনি দেখার সময় সেগুলি আরও দ্রুত লোড হতে পারে</translation>
 <translation id="3830894615770080216">ChromiumOS সিস্টেম</translation>
 <translation id="3848258323044014972"><ph name="PAGE_TITLE" /> - Chromium</translation>
-<translation id="386822487697155367">ChromiumOS সম্পর্কে সহায়তা পান</translation>
 <translation id="3871664619793219264"><ph name="ACCOUNT_EMAIL" /> থেকে আপনার Chromium ব্রাউজারের আইটেম পান</translation>
 <translation id="3885770153807205175">ভাষা বাছাইকারী</translation>
 <translation id="388648406173476553">Chromium কাস্টমাইজ ও নিয়ন্ত্রণ করুন। একটি বিষয়ে আপনার নজর দেওয়া দরকার - বিস্তারিত বিবরণের জন্য ক্লিক করুন।</translation>
@@ -404,6 +405,7 @@
 <translation id="6455857529632101747">Chromium প্রোফাইল-এ স্বাগতম</translation>
 <translation id="6466344609055215035">Chromium থেকে অ্যাকাউন্ট সরান</translation>
 <translation id="6475912303565314141">আপনি Chromium শুরু করলে কোন পৃষ্ঠাটি দেখানো হবে তাও এটি নিয়ন্ত্রণ করে।</translation>
+<translation id="648062525172759633">এইসব পৃষ্ঠা Chromium ডেভেলপারদের ব্যবহার করার উদ্দেশ্যে তৈরি এবং এগুলি হয়ত সক্রিয়ভাবে রক্ষণাবেক্ষণ বা পরীক্ষা করা হয় না। এগুলি চালু করতে <ph name="BEGIN_LINK" />chrome://chrome-urls<ph name="LINK_END" /> লিঙ্কে যান, ডিবাগ পৃষ্ঠা চালু করতে বোতামে ক্লিক করে আবার এই পৃষ্ঠায় নেভিগেট করুন।</translation>
 <translation id="648319183876919572">উন্নত Safe Browsing আপনাকে বিপজ্জনক ওয়েবসাইট, ডাউনলোড থেকে আরও সুরক্ষা দেয়</translation>
 <translation id="6510925080656968729">Chromium আনইনস্টল করুন</translation>
 <translation id="651535675648445253">শর্টকার্ট Chromium-এ খোলে</translation>
@@ -510,6 +512,7 @@ Chromium আপনার সেটিংস পুনরুদ্ধার ক�
 <translation id="7877292582355102282"><ph name="BEGIN_BOLD" />আপনি কীভাবে ডেটা ম্যানেজ করতে পারেন:<ph name="END_BOLD" /> আপনার গোপনীয়তা রক্ষা করতে, আমরা ৪ সপ্তাহের বেশি পুরনো আপনার আগ্রহগুলি অটোমেটিক মুছে ফেলি। আপনি ব্রাউজিং চালিয়ে যাওয়ার সাথে সাথে তালিকায় আবার আগ্রহগুলি দেখা যেতে পারে। অথবা, আপনি যে আগ্রহগুলি Chromium বিবেচনা করুক বলে চান না সেগুলি সরিয়ে দিতে পারেন।</translation>
 <translation id="7888981273428720788">Chromium-কে ডিফল্ট ব্রাউজার হিসেবে সেট করুন</translation>
 <translation id="7934340546140346950">যখনই সম্ভব Chromium, HTTPS-এ অসুরক্ষিত কানেকশন অটোমেটিক আপগ্রেড করে</translation>
+<translation id="7935734571048689933">Chromium ম্যানেজ করা হয়</translation>
 <translation id="7937630085815544518">আপনি <ph name="USER_EMAIL_ADDRESS" /> হিসাবে Chromium-এ প্রবেশ করেছেন৷ আবার সাইন-ইন করতে একই অ্যাকাউন্ট ব্যবহার করুন৷</translation>
 <translation id="7975919845073681630">এটা Chromium এর সেকেন্ডারি ইনস্টলেশন এবং একে আপনার ডিফল্ট ব্রাউজার করা যাবে না।</translation>
 <translation id="7997934263947464652">অজানা সোর্স থেকে এক্সটেনশন, অ্যাপ এবং থিম আপনার ডিভাইসের ক্ষতি করতে পারে। Chromium শুধুমাত্র <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> থেকে সেগুলি ইনস্টল করার সাজেশন দেয়</translation>

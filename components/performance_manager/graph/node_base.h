@@ -92,78 +92,107 @@ class NodeBase {
   // are set but not publicly visible.
 
   // Step 1:
-  // Initializes the `graph_` pointer. Node must be in the kNotInGraph state,
-  // and will transition to kInitializingProperties immediately after this call.
+  // Initializes the `graph_` pointer. Node must be in the kNotInGraph state.
   void SetGraphPointer(GraphImpl* graph);
 
   // Step 2:
+  // Node enters kInitializingNotInGraph state: nodes may modify their
+  // properties that don't affect the graph topology but *not* cause any
+  // notifications to be emitted that refer to the node, since public observers
+  // have not been notified that the node was added to the graph via
+  // OnBeforeNodeAdded and OnNodeAdded yet.
+
   // Called after `graph_` is set, a good opportunity to initialize node state.
-  // The node will be in the kInitializingProperties state during this call.
-  // Nodes may modify their properties that don't affect the graph topology but
-  // *not* cause notifications to be emitted. After this the state transitions
-  // to kInitializedNotInGraph.
   virtual void OnInitializingProperties();
 
   // Step 3:
-  // OnBeforeNodeAdded notifications are dispatched. The node must not be
-  // modified during any of these notifications. The node is in the
-  // kInitializingNotInGraph state, and will transition to kInitializingEdges.
+  // OnBeforeNodeAdded notifications are dispatched. The public observer method
+  // can read and update the node state, but sees no incoming or outgoing edges.
+  // The graph is in a consistent state that doesn't include this node.
 
   // Step 4:
+  // Node enters kInitializingEdges state: nodes may modify their properties
+  // that link to other nodes but *not* cause any notifications to be emitted
+  // that refer to the node, since public observers have not been notified that
+  // the node was added to the graph via OnNodeAdded yet.
+
   // Called after properties are initialized, for nodes to update incoming edges
-  // to fully join the graph. The node will be in the kInitializingEdges state
-  // during this call, and will transition to kJoiningGraph immediately
-  // afterward. Nodes may modify their properties that link to other nodes but
-  // *not* cause notifications to be emitted.
+  // to fully join the graph.
   virtual void OnInitializingEdges();
 
   // Step 5:
-  // OnNodeAdded notifications are dispatched. The node must not be modified
-  // during any of these notifications. The node is in the kJoingGraph state.
-  // TODO(crbug.com/40640034 ): Loosen this restriction to parallel
-  // OnBeforeLeavingGraph()?
+  // Node enters kJoiningGraph state: the node must not be modified, since
+  // observers will now be notified of its initial state in the graph, and each
+  // observer should see the same state.
+
+  // OnNodeAdded notifications are dispatched.
 
   // Step 6:
+  // Node enters kActiveInGraph state: the node may make property changes, and
+  // these changes may cause notifications to be dispatched.
+
+  // Called just after sending OnNodeAdded notifications, for nodes to perform
+  // initialization that causes notifications to be dispatched. For example,
+  // this could be used to set up an "opener" relationship between a PageNode
+  // and FrameNode: when OnPageNodeAdded() was called, the graph was in the
+  // valid state where both FrameNode and PageNode exist but the PageNode has
+  // no opener. Then this function sets the FrameNode as the opener and sends
+  // the OnOpenerFrameNodeChanged notification.
+  virtual void OnAfterJoiningGraph();
+
   // The node lives in the graph normally at this point, in the kActiveInGraph
   // state.
 
   // Step 7:
-  // Called just before leaving |graph_|. The node will be in the kActiveInGraph
-  // state during this call. The node may make property changes, and these
-  // changes may cause notifications to be dispatched. This must leave the node
-  // and the graph in a consistent state since the node is still in the graph.
-  // For example if this is used to sever the "opener" relationship between a
-  // PageNode and a FrameNode, it must send the OnOpenerFrameNodeChanged
-  // notification, and leave the PageNode and FrameNode in the valid state they
-  // would have when the page has no opener.
+  // Called just before sending OnBeforeNodeRemoved notifications, for nodes to
+  // perform cleanup that causes notifications to be dispatched. This must leave
+  // the node and the graph in a consistent state since the node is still in the
+  // graph. For example if this is used to sever the "opener" relationship
+  // between a PageNode and a FrameNode, it must send the
+  // OnOpenerFrameNodeChanged notification, and leave the PageNode and FrameNode
+  // in the valid state they would have when the page has no opener.
   virtual void OnBeforeLeavingGraph();
 
   // Step 8:
-  // Node removed notifications are dispatched. The node must not be modified
-  // during any of these notifications. The node is in the kLeavingGraph state.
+  // Node enters kLeavingGraph state: the node must not be modified, since it's
+  // about to be deleted. Observers will commonly use OnBeforeNodeRemoved
+  // notifications to clean up, and each observer should see the same state.
+
+  // OnBeforeNodeRemoved notifications are dispatched.
 
   // Step 9:
-  // Called while leaving |graph_|, a good opportunity to uninitialize node
-  // state. The node will be in the kUninitializing state during this call.
-  // Nodes may modify their properties but *not* cause notifications that have
-  // this node as a parameter to be emitted, because from the public viewpoint
-  // the node is already gone.
-  virtual void OnUninitializing();
+  // Node enters kUninitializingEdges state: nodes may modify their properties
+  // that link to other nodes but *not* cause any notifications to be emitted
+  // that refer to the node, since public observers have already been notified
+  // that the node is being removed from the graph via OnBeforeNodeRemoved.
+
+  // Called while leaving `graph_`, to sever the node from the graph by updating
+  // incoming edges.
+  virtual void OnUninitializingEdges();
 
   // Step 10:
-  // Called as this node is leaving |graph_|. Any private node-attached data
-  // should be destroyed at this point. The node is in the kUninitializing
-  // state.
-  virtual void RemoveNodeAttachedData() = 0;
+  // Node enters kLeftGraph state: the node must not be modified, since it's
+  // about to be deleted. Any property changes would only be visible to other
+  // OnNodeRemoved observers, and their effects shouldn't depend on the order
+  // that observers are triggered.
+
+  // OnNodeRemoved notifications are dispatched. The public observer method sees
+  // the node's final properties but no incoming or outgoing edges. The graph is
+  // in a consistent state that doesn't include this node.
 
   // Step 11:
-  // Leaves the graph that this node is a part of. The node is in the
-  // kUninitializing state during this call, and will be in the kNotInGraph
-  // state immediately afterwards.
-  void LeaveGraph();
+  // Called after the node's edges have been severed from the graph, a good
+  // opportunity to uninitialize node state. This is a pure virtual since almost
+  // all node classes must implement it to destroy private node-attached data.
+  virtual void CleanUpNodeState() = 0;
 
-  // Assigned when JoinGraph() is called, up until LeaveGraph() is called, where
-  // it is reset to null.
+  // Step 12:
+  // Resets the graph pointer. The node is in the kLeftGraph state during this
+  // call, and will be in the kNotInGraph state immediately afterwards.
+  void ClearGraphPointer();
+
+  // Assigned when SetGraphPointer() is called, up until ClearGraphPointer() is
+  // called, where it is reset to null.
   raw_ptr<GraphImpl> graph_ GUARDED_BY_CONTEXT(sequence_checker_) = nullptr;
 
   SEQUENCE_CHECKER(sequence_checker_);
@@ -176,10 +205,6 @@ class PublicNodeImpl : public PublicNodeClass {
   // Node implementation:
   Graph* GetGraph() const override {
     return static_cast<const NodeImplClass*>(this)->graph();
-  }
-  NodeState GetNodeState() const override {
-    return static_cast<const NodeBase*>(static_cast<const NodeImplClass*>(this))
-        ->GetNodeState();
   }
   uintptr_t GetImplType() const override { return NodeBase::kNodeBaseType; }
   const void* GetImpl() const override {

@@ -41,6 +41,10 @@ void RecordGroupDeletedMetric(const SavedTabGroup& removed_group) {
 
   base::RecordAction(
       base::UserMetricsAction("TabGroups_SavedTabGroups_Deleted"));
+
+  if (removed_group.is_shared_tab_group()) {
+    base::UmaHistogramBoolean("TabGroups.Shared.GroupDeleted", true);
+  }
 }
 
 // Compare function for 2 SavedTabGroup.
@@ -221,6 +225,17 @@ void SavedTabGroupModel::MakeTabGroupSharedForTesting(
     CollaborationId collaboration_id) {
   SavedTabGroup* const group = GetMutableGroup(local_group_id);
   group->SetCollaborationId(std::move(collaboration_id));
+}
+
+void SavedTabGroupModel::SetIsTransitioningToSaved(
+    const LocalTabGroupID& local_group_id,
+    bool is_transitioning_to_saved) {
+  SavedTabGroup* const group = GetMutableGroup(local_group_id);
+  group->SetIsTransitioningToSaved(is_transitioning_to_saved);
+  for (auto& observer : observers_) {
+    observer.SavedTabGroupUpdatedLocally(group->saved_guid(),
+                                         /*tab_guid=*/std::nullopt);
+  }
 }
 
 void SavedTabGroupModel::AddedFromSync(SavedTabGroup saved_group) {
@@ -410,6 +425,7 @@ void SavedTabGroupModel::RemoveTabFromGroupLocally(const base::Uuid& group_id,
 
   // Remove the group from the model if the last tab will be removed from it.
   if (group.saved_tabs().size() == 1) {
+    base::UmaHistogramBoolean("TabGroups.Shared.LastTabClosed", true);
     RemovedLocally(group_id);
     return;
   }

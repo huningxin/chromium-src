@@ -103,19 +103,19 @@ BASE_FEATURE(kFewerUpdateConfirmations,
 // when saving or updating passwords.
 BASE_FEATURE(kIOSPromoRefreshedPasswordBubble,
              "IOSPromoRefreshedPasswordBubble",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // This feature controls whether the user can be shown the Chrome for iOS promo
 // when saving or updating addresses.
 BASE_FEATURE(kIOSPromoAddressBubble,
              "IOSPromoAddressBubble",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // This feature controls whether the user can be shown the Chrome for iOS promo
 // when saving or updating payments.
 BASE_FEATURE(kIOSPromoPaymentBubble,
              "IOSPromoPaymentBubble",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 const base::FeatureParam<std::string> kIOSPromoPasswordBubbleQRCodeURL{
     &kIOSPromoRefreshedPasswordBubble, "password_promo_qr_code_url",
@@ -182,12 +182,6 @@ BASE_FEATURE(kPressAndHoldEscToExitBrowserFullscreen,
              "PressAndHoldEscToExitBrowserFullscreen",
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif
-
-// Enable responsive toolbar. Toolbar buttons overflow to a chevron button when
-// the browser width is resized smaller than normal.
-BASE_FEATURE(kResponsiveToolbar,
-             "ResponsiveToolbar",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kSidePanelResizing,
              "SidePanelResizing",

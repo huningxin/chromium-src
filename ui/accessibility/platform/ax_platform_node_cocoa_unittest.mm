@@ -396,21 +396,36 @@ TEST_P(AXPlatformNodeCocoaTest, TestCocoaActionListLayout) {
 
 // Tests that the correct methods are enabled based on migration mode.
 TEST_P(AXPlatformNodeCocoaTest, TestRespondsToSelector) {
-  NSArray<NSString*>* array = @[
+  // New API that was implementated since the creation of the flag goes here.
+  NSArray<NSString*>* selectors_enabled_when_migrated = @[
     @"accessibilityColumnCount", @"accessibilityDisclosedByRow",
     @"accessibilityDisclosedRows", @"accessibilityDisclosureLevel",
     @"accessibilityHeader", @"accessibilityIndex", @"accessibilityRowCount",
-    @"accessibilitySortDirection", @"isAccessibilityDisclosed",
+    @"accessibilitySortDirection", @"accessibilitySplitters",
+    @"accessibilityToolbarButton", @"isAccessibilityDisclosed",
     @"isAccessibilityExpanded", @"isAccessibilityFocused"
+  ];
+
+  // Old API for which the new API was implemented prior to the creation of the
+  // flag goes here.
+  NSArray<NSString*>* selectors_disabled_when_migrated = @[
+    @"AXInsertionPointLineNumber", @"AXNumberOfCharacters",
+    @"AXPlaceholderValue", @"AXSelectedText", @"AXSelectedTextRange",
+    @"AXVisibleCharacterRange"
   ];
 
   AXPlatformNodeCocoa* node = [[AXPlatformNodeCocoa alloc] initWithNode:nil];
 
   bool migration_enabled = features::IsMacAccessibilityAPIMigrationEnabled();
 
-  for (NSString* newAPIMethodName in array) {
-    EXPECT_EQ([node respondsToSelector:NSSelectorFromString(newAPIMethodName)],
+  for (NSString* selectorName in selectors_enabled_when_migrated) {
+    EXPECT_EQ([node respondsToSelector:NSSelectorFromString(selectorName)],
               migration_enabled);
+  }
+
+  for (NSString* selectorName in selectors_disabled_when_migrated) {
+    EXPECT_EQ([node respondsToSelector:NSSelectorFromString(selectorName)],
+              !migration_enabled);
   }
 }
 
@@ -452,6 +467,21 @@ TEST_P(AXPlatformNodeCocoaTestNewAPI,
     EXPECT_TRUE([AXPlatformNodeCocoa
         isAttributeAvailableThroughNewAccessibilityAPI:attributeName]);
   }
+}
+
+// accessibilityCellForColumn.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityCellForColumn) {
+  ui::TestAXTreeUpdate update(std::string(R"HTML(
+    ++1 kTable
+    ++++2 kRow
+    ++++++3 kCell
+  )HTML"));
+  Init(update);
+
+  AXPlatformNodeCocoa* table = GetCocoaNode(1);
+  AXPlatformNodeCocoa* cell = GetCocoaNode(3);
+  EXPECT_EQ([[table accessibilityCellForColumn:0 row:0] node]->GetUniqueId(),
+            [cell node]->GetUniqueId());
 }
 
 // accessibilityColumns on a table.
@@ -767,6 +797,18 @@ TEST_P(AXPlatformNodeCocoaTest, AccessibilityVisibleRows) {
             [row node]->GetUniqueId());
 }
 
+// accessibilityStringForRange
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityStringForRange) {
+  Init(std::string(R"HTML(
+    ++1 kRootWebArea
+    ++++2 kStaticText name="heybullfrog"
+  )HTML"));
+
+  AXPlatformNodeCocoa* text_field = GetCocoaNode(2);
+  NSString* string = [text_field accessibilityStringForRange:NSMakeRange(0, 3)];
+  EXPECT_TRUE([string isEqualToString:@"hey"]);
+}
+
 // Non-header cells should not support accessibilitySortDirection, even if
 // there's a sort direction in the AXNodeData. Their sort order is "unknown".
 TEST_P(AXPlatformNodeCocoaTest, AccessibilitySortDirectionOnCell) {
@@ -1035,8 +1077,16 @@ TEST_P(AXPlatformNodeCocoaTestNewAPI,
       [AXPlatformNodeCocoa newAccessibilityAPIMethodToAttributeMap];
   AXPlatformNodeCocoa* node = [[AXPlatformNodeCocoa alloc] initWithNode:nil];
   for (NSString* selector_string in map) {
-    EXPECT_TRUE(
-        [node respondsToSelector:NSSelectorFromString(selector_string)]);
+    SEL selector = NSSelectorFromString(selector_string);
+    if ([node conditionallyRespondsToSelector:selector]) {
+      EXPECT_TRUE([node respondsToSelector:selector])
+          << "Selector '" << base::SysNSStringToUTF8(selector_string)
+          << "' was not found.";
+    } else {
+      EXPECT_FALSE([node respondsToSelector:selector])
+          << "Selector '" << base::SysNSStringToUTF8(selector_string)
+          << "' was unexpectedly found.";
+    }
   }
 }
 
@@ -1141,6 +1191,26 @@ TEST_P(AXPlatformNodeCocoaTest,
   Init(root);
   AXPlatformNodeCocoa* node = GetCocoaNode(GetRoot());
   EXPECT_EQ([node accessibilityInsertionPointLineNumber], 0);
+}
+
+// `accessibilitySplitters` is implemented but always returns nil.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilitySplitters) {
+  AXNodeData root = AXNodeData();
+  root.id = 1;
+  root.role = ax::mojom::Role::kGroup;
+  Init(root);
+  AXPlatformNodeCocoa* node = GetCocoaNode(GetRoot());
+  EXPECT_EQ([node accessibilitySplitters], nil);
+}
+
+// `accessibilityToolbarButton` is implemented but always returns nil.
+TEST_P(AXPlatformNodeCocoaTest, AccessibilityToolbarButton) {
+  AXNodeData root = AXNodeData();
+  root.id = 1;
+  root.role = ax::mojom::Role::kWindow;
+  Init(root);
+  AXPlatformNodeCocoa* node = GetCocoaNode(GetRoot());
+  EXPECT_EQ([node accessibilityToolbarButton], nil);
 }
 
 }  // namespace ui

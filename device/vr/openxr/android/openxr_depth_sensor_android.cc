@@ -10,6 +10,7 @@
 #include "device/vr/openxr/android/openxr_depth_sensor_android.h"
 
 #include <array>
+#include <concepts>
 #include <memory>
 #include <set>
 
@@ -149,7 +150,15 @@ inline size_t buffer_location(size_t col, size_t row, size_t row_size) {
 
 template <typename T>
 inline void WriteToSpanStart(base::span<uint8_t> output, T val) {
-  output.first<sizeof(T)>().copy_from(base::byte_span_from_ref(val));
+  base::span<const uint8_t> val_span;
+  if constexpr (std::floating_point<T>) {
+    // Floating point types do not have unique object representations, but this
+    // code does not appear to be hashing them, so allow it.
+    val_span = base::byte_span_from_ref(base::allow_nonunique_obj, val);
+  } else {
+    val_span = base::byte_span_from_ref(val);
+  }
+  output.first<sizeof(T)>().copy_from(val_span);
 }
 
 // Helper function to copy depth data on the CPU. This expects to receive the
@@ -195,15 +204,18 @@ void CopyDepthData(base::span<const float> input,
     for (size_t x = 0; x < width; x++) {
       // Assign a z value of 1 to convert from cartesian (screen) coordinates to
       // a homogeneous Euclidean (2D) coordinate space.
+      // Add a negative to the y coordinate because y=0 corresponds to the top
+      // of the image, i.e. 1 in clip space.
       const gfx::Point3F eye_screen_clip_coord{
-          ToClipSpace(ToTexCoord(x, width)), ToClipSpace(ToTexCoord(y, height)),
-          1};
+          ToClipSpace(ToTexCoord(x, width)),
+          -ToClipSpace(ToTexCoord(y, height)), 1};
       const gfx::Point3F depth_screen_clip_coord =
           depth_screen_from_eye_screen.MapPoint(eye_screen_clip_coord);
 
+      // Revert the -y to sample into the OpenXR depth texture.
       const gfx::PointF depth_screen_texture_coord(
           FromClipSpace(depth_screen_clip_coord.x()),
-          FromClipSpace(depth_screen_clip_coord.y()));
+          FromClipSpace(-depth_screen_clip_coord.y()));
 
       // If x or y is less than 0 it's out of bounds and we should ignore it.
       // We'll convert back to whole buffer coordinates before checking the

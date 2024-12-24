@@ -9,7 +9,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.never;
@@ -56,7 +55,8 @@ import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.magic_stack.ModuleDelegate.ModuleType;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.profiles.ProfileManager;
-import org.chromium.chrome.browser.segmentation_platform.SegmentationPlatformServiceFactory;
+import org.chromium.chrome.browser.segmentation_platform.client_util.HomeModulesRankingHelper;
+import org.chromium.chrome.browser.segmentation_platform.client_util.HomeModulesRankingHelperJni;
 import org.chromium.components.browser_ui.styles.SemanticColorUtils;
 import org.chromium.components.browser_ui.widget.displaystyle.DisplayStyleObserver;
 import org.chromium.components.browser_ui.widget.displaystyle.HorizontalDisplayStyle;
@@ -105,6 +105,7 @@ public class HomeModulesCoordinatorUnitTest {
     @Mock private HomeModulesMediator mMediator;
     @Mock private ModelList mModel;
     @Mock private ModuleProvider mModuleProvider;
+    @Mock private HomeModulesRankingHelper.Natives mHomeModulesRankingHelperJniMock;
 
     @Captor private ArgumentCaptor<DisplayStyleObserver> mDisplayStyleObserver;
     @Captor private ArgumentCaptor<Callback<Profile>> mProfileObserver;
@@ -129,9 +130,11 @@ public class HomeModulesCoordinatorUnitTest {
         when(mHomeModulesConfigManager.getEnabledModuleSet())
                 .thenReturn(new HashSet<>(Set.of(ModuleType.PRICE_CHANGE, ModuleType.SINGLE_TAB)));
         ProfileManager.setLastUsedProfileForTesting(mProfile);
-        SegmentationPlatformServiceFactory.setForTests(mSegmentationPlatformService);
+        HomeModulesRankingHelperJni.setInstanceForTesting(mHomeModulesRankingHelperJniMock);
 
         FeatureList.TestValues testValues = new FeatureList.TestValues();
+        testValues.addFeatureFlagOverride(
+                ChromeFeatureList.SEGMENTATION_PLATFORM_EPHEMERAL_CARD_RANKER, true);
         testValues.addFeatureFlagOverride(
                 ChromeFeatureList.SEGMENTATION_PLATFORM_ANDROID_HOME_MODULE_RANKER, true);
         testValues.addFeatureFlagOverride(
@@ -344,11 +347,23 @@ public class HomeModulesCoordinatorUnitTest {
     public void testOnViewCreated() {
         mCoordinator = createCoordinator(/* skipInitProfile= */ true);
         mCoordinator.setMediatorForTesting(mMediator);
-        when(mMediator.getModuleProvider(ModuleType.EDUCATIONAL_TIP)).thenReturn(mModuleProvider);
+        when(mMediator.getModuleProvider(ModuleType.SINGLE_TAB)).thenReturn(mModuleProvider);
         when(mView.getLayoutParams()).thenReturn(mLayoutParams);
 
-        mCoordinator.onViewCreated(ModuleType.EDUCATIONAL_TIP, mView);
+        mCoordinator.onViewCreated(ModuleType.SINGLE_TAB, mView);
         verify(mModuleProvider).onViewCreated();
+        verify(mMediator).onModuleViewCreated(eq(ModuleType.SINGLE_TAB));
+    }
+
+    @Test
+    @SmallTest
+    public void testOnModuleClicked() {
+        mCoordinator = createCoordinator(/* skipInitProfile= */ true);
+        mCoordinator.setMediatorForTesting(mMediator);
+
+        when(mMediator.getModuleRank(eq(ModuleType.SINGLE_TAB))).thenReturn(0);
+        mCoordinator.onModuleClicked(ModuleType.SINGLE_TAB);
+        verify(mMediator).onModuleClicked(eq(ModuleType.SINGLE_TAB));
     }
 
     private void setupAndVerifyTablets() {
@@ -375,10 +390,13 @@ public class HomeModulesCoordinatorUnitTest {
 
     private void showWithSegmentation(Callback<Boolean> callback) {
         mCoordinator.show(callback);
-        verify(mSegmentationPlatformService)
+        // TODO(ssid): Move this to a utility of Helper instead of tests mocking the jni.
+        verify(mHomeModulesRankingHelperJniMock)
                 .getClassificationResult(
-                        anyString(), any(), any(), mClassificationResultCaptor.capture());
-        ClassificationResult result = new ClassificationResult(PredictionStatus.FAILED, null);
+                        any(), any(), any(), mClassificationResultCaptor.capture());
+        String[] orderedLabels = {"SingleTab", "TabResumption"};
+        ClassificationResult result =
+                new ClassificationResult(PredictionStatus.SUCCEEDED, orderedLabels);
         mClassificationResultCaptor.getValue().onResult(result);
     }
 }

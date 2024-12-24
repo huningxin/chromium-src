@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">ጠቆር ያለ ገጽታን አሰናክል</translation>
 <translation id="1807246157184219062">ብርሃን</translation>
 <translation id="1808803439260407870">ታዋቂ ሥነ ጥበብ</translation>
+<translation id="181434555916624618">ለአሁን ሰዎች ያሏቸው ውጤቶች አይታዩም። ሌላ ጥያቄ ይሞክሩ።</translation>
 <translation id="1815850098929213707">የተመረጠው ቁልፍ <ph name="KEYS" /> ነው። መቆጣጠሪያውን ለማርትዕ አዝራሩን መታ ያድርጉት</translation>
 <translation id="1823120442877418684">ገጸ ባህሪያት</translation>
 <translation id="1827738518074806965">የሥነ ጥበብ ማዕከል</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">መሣሪያ <ph name="BATTERY_PERCENTAGE" />% የቀኝ ጆሮ ማዳመጫ ባትሪ አለው።</translation>
 <translation id="3340978935015468852">ቅንብሮች</translation>
 <translation id="3347558044552027859">ዘመናዊ</translation>
+<translation id="3353477144743332882">ማጠቃለያ እና የስም ፈጠራ ሁነታን አውርድ</translation>
 <translation id="3359218928534347896">የማይክሮፎን ድምጸ-ከል መቀያየሪያ</translation>
 <translation id="3360306038446926262">Windows</translation>
 <translation id="3361618936611118375">ሱሺ</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">የወላጅ መዳረሻ</translation>
 <translation id="473775607612524610">አዘምን</translation>
 <translation id="4744944742468440486">ከእርስዎ ምርጫ ጋር የተዛመደ መረጃ</translation>
+<translation id="4750394297954878236">የአስተያየት ጥቆማዎች</translation>
 <translation id="4771607256327216405">የቁልፍ ሰሌዳ ፈካ ማለት</translation>
 <translation id="4771923071974529837">ነገ</translation>
 <translation id="4773299976671772492">ቆሟል</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">አቋራጭ አይገኝም። <ph name="KEY" /> የሌለው አዲስ አቋራጭ ይጫኑ።</translation>
 <translation id="5860033963881614850">አጥፋ</translation>
 <translation id="5860491529813859533">አብራ</translation>
+<translation id="5875913454160982848">ወደ ጽሑፍ ግልባጭ ሁነታን አውርድ</translation>
 <translation id="5876385649737594562">አማራጮችን ለመምረጥ ያብሩ</translation>
 <translation id="5877503382465267833"><ph name="RECORDING_NAME" /> ባለበት አቁም</translation>
 <translation id="588258955323874662">ሙሉ ገፅ ዕይታ</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">ዝጋ</translation>
 <translation id="6040852767465482106">ስም-አልባ መታወቂያ</translation>
 <translation id="604124094241169006">ራስ-ሰር</translation>
-<translation id="6042308850641462728">ተጨማሪ</translation>
 <translation id="6048107060512778456">አልተሳካም - የወረቀት መታጨቅ</translation>
 <translation id="6050189528197190982">ግራጫማ ምጥጥን</translation>
 <translation id="6054711098834486579">ኤክስፕሬሽኒስት</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{የስም አገልጋይ}one{የስም አገልጋዩች}other{የስም አገልጋዩች}}</translation>
 <translation id="7135814714616751706">የፍለጋ አቋራጮች</translation>
 <translation id="7138614237884624401">ቀላል ጽሑፍ</translation>
+<translation id="7138668887584231801">ለማጠቃለል በቂ ቃላት የሉም</translation>
 <translation id="7141470099673912333">Content Transfer</translation>
 <translation id="7143207342074048698">በመያያዝ ላይ</translation>
 <translation id="7144878232160441200">እንደገና ሞክር</translation>
@@ -1588,6 +1592,7 @@
 <translation id="8503836310948963452">ጥቂት ተጨማሪ ደቂቃዎች ብቻ...</translation>
 <translation id="8505011850330200833">የGemini ሞዴል ጽሁፍ ግልባጮችን ለማሰናዳት እና ማጠቃለያዎችን ለመፍጠር 2ጊባ ማከማቻ ያስፈልገዋል</translation>
 <translation id="8508640263392900755">የኤፒኤን ዝርዝሮች</translation>
+<translation id="8509574872955173831">ስለ ማጠቃለያ እና የስም ፈጠራ የበለጠ ይወቁ</translation>
 <translation id="8522687886059337719">አሁን <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />የልጣፎች<ph name="END_LINK_WALLPAPER_SUBPAGE" /> እና <ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />የማያ ገፅ ቆጣቢ<ph name="END_LINK_SCREENSAVER_SUBPAGE" /> መዳረሻ አለዎት</translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">የሻይ ቤት</translation>
@@ -1724,7 +1729,6 @@
 <translation id="9133772297793293778">በእርስዎ የቁልፎች ሰሌዳ ላይ ከ1-4 አሻሻዮችን እና 1 ሌላ ቁልፍን ይጫኑ። ከአርትዖት ሁነታ ለመውጣት alt + esc ይጫኑ።</translation>
 <translation id="9137526406337347448">Google አገልግሎቶች</translation>
 <translation id="9138630967333032450">የግራ ቀያይር</translation>
-<translation id="9147928237330776930">ለማጠቃለል በጣም ጥቂት ቃላት</translation>
 <translation id="9149391708638971077">የማህደረ ትውስታ ሙከራን አሂድ</translation>
 <translation id="9159524746324788320">ሃምበርገሮች</translation>
 <translation id="9161276708550942948">ክፍተት</translation>

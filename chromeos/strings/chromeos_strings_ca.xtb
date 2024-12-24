@@ -196,6 +196,7 @@
 <translation id="1801418420130173017">Desactiva el tema fosc</translation>
 <translation id="1807246157184219062">Clar</translation>
 <translation id="1808803439260407870">Art clàssic</translation>
+<translation id="181434555916624618">De moment, no es mostraran resultats amb persones. Prova-ho amb una altra indicació.</translation>
 <translation id="1815850098929213707">La tecla seleccionada és <ph name="KEYS" />. Toca el botó per editar el control.</translation>
 <translation id="1823120442877418684">Temes</translation>
 <translation id="1827738518074806965">Galeria d'art</translation>
@@ -483,6 +484,7 @@
 <translation id="3340011300870565703">L'auricular dret del dispositiu té un <ph name="BATTERY_PERCENTAGE" />% de bateria.</translation>
 <translation id="3340978935015468852">configuració</translation>
 <translation id="3347558044552027859">moderna</translation>
+<translation id="3353477144743332882">Baixa el model de creació de noms i resums</translation>
 <translation id="3359218928534347896">commuta el silenci del micròfon</translation>
 <translation id="3360306038446926262">Finestres</translation>
 <translation id="3361618936611118375">sushi</translation>
@@ -768,6 +770,7 @@
 <translation id="4731797938093519117">Accés parental</translation>
 <translation id="473775607612524610">Actualitza</translation>
 <translation id="4744944742468440486">Informació relacionada amb la teva selecció</translation>
+<translation id="4750394297954878236">Suggeriments</translation>
 <translation id="4771607256327216405">brillantor del teclat</translation>
 <translation id="4771923071974529837">demà</translation>
 <translation id="4773299976671772492">En pausa</translation>
@@ -998,6 +1001,7 @@
 <translation id="5859969039821714932">La drecera no està disponible. Prem una drecera nova sense <ph name="KEY" />.</translation>
 <translation id="5860033963881614850">Desactivat</translation>
 <translation id="5860491529813859533">Activa</translation>
+<translation id="5875913454160982848">Baixa el model de transcripció</translation>
 <translation id="5876385649737594562">Activa per seleccionar les opcions</translation>
 <translation id="5877503382465267833">Posa en pausa <ph name="RECORDING_NAME" /></translation>
 <translation id="588258955323874662">Pantalla completa</translation>
@@ -1037,7 +1041,6 @@
 <translation id="6040143037577758943">Tanca</translation>
 <translation id="6040852767465482106">Identitat anònima</translation>
 <translation id="604124094241169006">Automàtic</translation>
-<translation id="6042308850641462728">Més</translation>
 <translation id="6048107060512778456">Error: embús de paper</translation>
 <translation id="6050189528197190982">Escala de grisos</translation>
 <translation id="6054711098834486579">expressionista</translation>
@@ -1293,6 +1296,7 @@
 <translation id="7134436342991564651">{0,plural, =1{Servidor de noms}other{Servidors de noms}}</translation>
 <translation id="7135814714616751706">Cerca dreceres</translation>
 <translation id="7138614237884624401">Text simplificat</translation>
+<translation id="7138668887584231801">No hi ha prou paraules per fer un resum</translation>
 <translation id="7141470099673912333">Transferència de contingut</translation>
 <translation id="7143207342074048698">Connectant</translation>
 <translation id="7144878232160441200">Torna-ho a provar</translation>
@@ -1588,6 +1592,7 @@ Baixa el model de transcripció (fins a 100 MB) per obtenir aquestes transcripci
 <translation id="8503836310948963452">Només queden uns quants minuts...</translation>
 <translation id="8505011850330200833">El model de Gemini requereix 2 GB d'emmagatzematge per processar les transcripcions i crear resums</translation>
 <translation id="8508640263392900755">Detalls de l'APN</translation>
+<translation id="8509574872955173831">Més informació sobre la creació de noms i resums</translation>
 <translation id="8522687886059337719">Ara tens accés als nous <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />fons de pantalla<ph name="END_LINK_WALLPAPER_SUBPAGE" /> i <ph name="BEGIN_LINK_SCREENSAVER_SUBPAGE" />estalvis de pantalla<ph name="END_LINK_SCREENSAVER_SUBPAGE" /></translation>
 <translation id="8528615187455571738">Crosvm</translation>
 <translation id="852896705346853285">saló de te</translation>
@@ -1724,7 +1729,6 @@ Baixa el model de transcripció (fins a 100 MB) per obtenir aquestes transcripci
 <translation id="9133772297793293778">Prem d'1 a 4 tecles modificadores i una altra tecla del teclat. Per sortir del mode d'edició, prem Alt+Esc.</translation>
 <translation id="9137526406337347448">Serveis de Google</translation>
 <translation id="9138630967333032450">Maj esquerra</translation>
-<translation id="9147928237330776930">Hi ha massa poques paraules per resumir</translation>
 <translation id="9149391708638971077">Executa la prova de memòria</translation>
 <translation id="9159524746324788320">hamburgueses</translation>
 <translation id="9161276708550942948">espai</translation>

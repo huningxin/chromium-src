@@ -101,6 +101,7 @@ import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.url.GURL;
 import org.chromium.url.JUnitTestGURLs;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -143,7 +144,7 @@ public class DataSharingTabManagerUnitTest {
     @Mock private DataSharingService mDataSharingService;
     @Mock private MessagingBackendService mMessagingBackendService;
     @Mock private DataSharingUIDelegate mDataSharingUiDelegate;
-    @Mock private DataSharingTabSwitcherDelegate mDataSharingTabSwitcherDelegate;
+    @Mock private DataSharingTabGroupsDelegate mDataSharingTabGroupsDelegate;
     @Mock private Profile mProfile;
     @Mock private TabModelSelector mTabModelSelector;
     @Mock private BottomSheetController mBottomSheetController;
@@ -182,7 +183,7 @@ public class DataSharingTabManagerUnitTest {
         mDataSharingTabManager =
                 new DataSharingTabManager(
                         mTabModelSelectorSupplier,
-                        mDataSharingTabSwitcherDelegate,
+                        mDataSharingTabGroupsDelegate,
                         mBottomSheetControllerSupplier,
                         mShareDelegateSupplier,
                         mWindowAndroid,
@@ -197,10 +198,12 @@ public class DataSharingTabManagerUnitTest {
         mSavedTabGroup.collaborationId = COLLABORATION_ID1;
         mSavedTabGroup.localId = LOCAL_ID;
         mSavedTabGroup.savedTabs = SyncedGroupTestHelper.tabsFromIds(TAB_ID);
+        mSavedTabGroup.savedTabs.get(0).url = new GURL("https://www.example.com/");
 
         when(mDataSharingService.getUiDelegate()).thenReturn(mDataSharingUiDelegate);
         when(mProfile.getOriginalProfile()).thenReturn(mProfile);
         when(mWindowAndroid.getModalDialogManager()).thenReturn(mModalDialogManager);
+        when(mWindowAndroid.getContext()).thenReturn(new WeakReference<>(mActivity));
 
         mActivityScenarioRule.getScenario().onActivity(this::onActivityCreated);
     }
@@ -254,7 +257,7 @@ public class DataSharingTabManagerUnitTest {
         mDataSharingTabManager =
                 new DataSharingTabManager(
                         mTabModelSelectorSupplier,
-                        mDataSharingTabSwitcherDelegate,
+                        mDataSharingTabGroupsDelegate,
                         mBottomSheetControllerSupplier,
                         mShareDelegateSupplier,
                         mWindowAndroid,
@@ -287,7 +290,7 @@ public class DataSharingTabManagerUnitTest {
         doReturn(true).when(mTabGroupModelFilter).isTabInTabGroup(tab);
 
         mDataSharingTabManager.initiateJoinFlow(mActivity, TEST_URL);
-        verify(mDataSharingTabSwitcherDelegate).openTabGroupWithTabId(TAB_ID);
+        verify(mDataSharingTabGroupsDelegate).openTabGroupWithTabId(TAB_ID);
     }
 
     @Test
@@ -300,7 +303,7 @@ public class DataSharingTabManagerUnitTest {
         mDataSharingTabManager.initiateJoinFlow(mActivity, TEST_URL);
 
         verify(mTabGroupUiActionHandler).openTabGroup(SYNC_GROUP_ID1);
-        verify(mDataSharingTabSwitcherDelegate).openTabGroupWithTabId(TAB_ID);
+        verify(mDataSharingTabGroupsDelegate).openTabGroupWithTabId(TAB_ID);
     }
 
     @Test
@@ -491,6 +494,9 @@ public class DataSharingTabManagerUnitTest {
     @Test
     @EnableFeatures({ChromeFeatureList.DATA_SHARING_ANDROID_V2})
     public void testCreateFlowWithNewTabGroup() {
+        mDataSharingTabManager
+                .getBulkFaviconUtilForTesting()
+                .setFaviconHelperForTesting(mFaviconHelper);
         doReturn(mProfile).when(mProfile).getOriginalProfile();
         doReturn(null).when(mTabGroupSyncService).getGroup(LOCAL_ID);
 
@@ -531,6 +537,9 @@ public class DataSharingTabManagerUnitTest {
     @Test
     @EnableFeatures({ChromeFeatureList.DATA_SHARING_ANDROID_V2})
     public void testCreateFlowCancelled() {
+        mDataSharingTabManager
+                .getBulkFaviconUtilForTesting()
+                .setFaviconHelperForTesting(mFaviconHelper);
         doReturn(mProfile).when(mProfile).getOriginalProfile();
         doReturn(null).when(mTabGroupSyncService).getGroup(LOCAL_ID);
 

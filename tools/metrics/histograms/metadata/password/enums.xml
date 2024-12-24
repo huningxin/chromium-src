@@ -155,7 +155,7 @@ chromium-metrics-reviews@google.com.
   <int value="8" label="Password manager"/>
   <int value="9" label="iOS"/>
   <int value="10" label="Manual fallback address"/>
-  <int value="11" label="Manual fallback payments"/>
+  <int value="11" label="(Deprecated in M133) Manual fallback payments"/>
   <int value="12" label="Manual fallback passwords"/>
   <int value="13" label="(Deprecated in M133) Manual fallback plus addresses"/>
   <int value="14" label="Show prompt after dialog closed non manual fallback"/>
@@ -481,6 +481,17 @@ chromium-metrics-reviews@google.com.
              policy"/>
 </enum>
 
+<!-- LINT.IfChange(LoginDbDeprecationExportResult) -->
+
+<enum name="LoginDbDeprecationExportResult">
+  <int value="0" label="Success"/>
+  <int value="1" label="No passwords"/>
+  <int value="2" label="Error fetching paswords"/>
+  <int value="3" label="File write error"/>
+</enum>
+
+<!-- LINT.ThenChange(/components/password_manager/core/browser/export/login_db_deprecation_password_exporter.h:LoginDbDeprecationExportResult) -->
+
 <enum name="LoginsChangedTrigger">
   <summary>
     Triggers that may indirectly cause PasswordStore observers notifications
@@ -546,6 +557,7 @@ chromium-metrics-reviews@google.com.
   <int value="26" label="Passkey not accepted confirmation bubble"/>
   <int value="27" label="Password access loss warning"/>
   <int value="28" label="Passkey upgrade bubble"/>
+  <int value="29" label="Password change state information bubble"/>
 </enum>
 
 <enum name="OutdatedGMSDialogDismissalReason">

@@ -1,3 +1,7 @@
+# Copyright 2024 The Chromium Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
 source_set("launcher") {
   sources = [
     "glic_background_mode_manager.h",
@@ -5,14 +9,11 @@ source_set("launcher") {
     "glic_controller.h",
   ]
 
-  # TODO(crbug.com/378487333): Replace extensions build target to use the
-  # updated version in ui/base
   deps = [
     "//base",
-    "//chrome/browser/extensions:extensions",
     "//components/prefs",
-    "//extensions/common:common",
     "//ui/base",
+    "//ui/base/accelerators/global_accelerator_listener",
   ]
 }
 
@@ -27,20 +28,17 @@ source_set("impl") {
 
   public_deps = [ "//chrome/browser:browser_public_dependencies" ]
 
-  # TODO(crbug.com/378487333): Replace extensions build target to use the
-  # updated version in ui/base/
   deps = [
     ":launcher",
     "//chrome/app:command_ids",
     "//chrome/app:generated_resources",
+    "//chrome/app/vector_icons",
     "//chrome/browser:browser_process",
-    "//chrome/browser/extensions:extensions",
     "//chrome/browser/glic",
     "//chrome/browser/ui",
-    "//chrome/common:constants",
     "//components/keep_alive_registry",
-    "//components/vector_icons",
     "//ui/base",
+    "//ui/base/accelerators/global_accelerator_listener",
     "//ui/gfx",
   ]
 }
@@ -57,8 +55,8 @@ source_set("browser_tests") {
     "//chrome/browser",
     "//chrome/browser:browser_process",
     "//chrome/browser:global_features",
+    "//chrome/browser/glic",
     "//chrome/common:chrome_features",
-    "//chrome/common:constants",
     "//chrome/test:test_support_ui",
     "//components/keep_alive_registry",
     "//components/prefs",

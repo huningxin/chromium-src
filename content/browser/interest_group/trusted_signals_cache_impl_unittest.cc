@@ -364,7 +364,8 @@ class TestTrustedSignalsCache : public TrustedSignalsCacheImpl {
   }
 
   size_t num_pending_fetches() const {
-    return trusted_bidding_signals_fetches_.size();
+    return trusted_bidding_signals_fetches_.size() +
+           trusted_scoring_signals_fetches_.size();
   }
 
  private:
@@ -1131,8 +1132,11 @@ class TrustedSignalsCacheTest : public testing::Test {
   // Returns a pair of a handle and `partition_id`. This pattern reduces
   // boilerplate a bit, at the cost of making types at callsites a little less
   // clear.
+  //
+  // If `start_fetch` is true, calls StartFetch() on the handle.
   std::pair<scoped_refptr<TestTrustedSignalsCache::Handle>, int>
-  RequestTrustedSignals(const BiddingParams& bidding_params) {
+  RequestTrustedSignals(const BiddingParams& bidding_params,
+                        bool start_fetch = true) {
     int partition_id = -1;
     // There should only be a single name for each request. It's a std::set
     // solely for the ValidateFetchParams family of methods.
@@ -1149,13 +1153,17 @@ class TrustedSignalsCacheTest : public testing::Test {
     CHECK(handle);
     CHECK(!handle->compression_group_token().is_empty());
     CHECK_GE(partition_id, 0);
+    if (start_fetch) {
+      handle->StartFetch();
+    }
 
     return std::pair(std::move(handle), partition_id);
   }
 
   // Same as above, but for scoring signals.
   std::pair<scoped_refptr<TestTrustedSignalsCache::Handle>, int>
-  RequestTrustedSignals(const ScoringParams& scoring_params) {
+  RequestTrustedSignals(const ScoringParams& scoring_params,
+                        bool start_fetch = true) {
     int partition_id = -1;
     auto handle = trusted_signals_cache_->RequestTrustedScoringSignals(
         scoring_params.main_frame_origin, scoring_params.script_origin,
@@ -1168,6 +1176,9 @@ class TrustedSignalsCacheTest : public testing::Test {
     CHECK(handle);
     CHECK(!handle->compression_group_token().is_empty());
     CHECK_GE(partition_id, 0);
+    if (start_fetch) {
+      handle->StartFetch();
+    }
 
     return std::pair(std::move(handle), partition_id);
   }
@@ -1308,6 +1319,214 @@ TYPED_TEST(TrustedSignalsCacheTest, GetAfterFetchFails) {
   client.WaitForError();
 }
 
+// Check that fetches are automatically started after kAutoStartDelay has
+// elapsed.
+TYPED_TEST(TrustedSignalsCacheTest, AutoStart) {
+  base::TimeDelta kTinyTime = base::Milliseconds(1);
+
+  auto params = this->CreateDefaultParams();
+  auto [handle, partition_id] =
+      this->RequestTrustedSignals(params, /*start_fetch=*/false);
+
+  // Request should only start once `kAutoStartDelay` has elapsed
+  this->task_environment_.FastForwardBy(
+      TrustedSignalsCacheImpl::kAutoStartDelay - kTinyTime);
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+  this->task_environment_.FastForwardBy(kTinyTime);
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 1u);
+
+  auto fetch = this->WaitForSignalsFetch();
+  ValidateFetchParams(fetch, params, /*expected_compression_group_id=*/0,
+                      partition_id);
+  RespondToFetchWithSuccess(fetch);
+
+  TestTrustedSignalsCacheClient client(handle, this->cache_mojo_pipe_);
+  client.WaitForSuccess();
+}
+
+// Check that fetches are automatically started after kAutoStartDelay, even if a
+// second request is merged into it.
+TYPED_TEST(TrustedSignalsCacheTest, AutoStartTwoRequests) {
+  base::TimeDelta kTinyTime = base::Milliseconds(1);
+
+  auto params = this->CreateDefaultParams();
+  auto [handle1, partition_id1] =
+      this->RequestTrustedSignals(params, /*start_fetch=*/false);
+
+  // After a delay less than `kAutoStartDelay`, create a second request that
+  // matches the first one. The old fetch should be reused.
+  this->task_environment_.FastForwardBy(
+      TrustedSignalsCacheImpl::kAutoStartDelay - kTinyTime);
+  auto [handle2, partition_id2] =
+      this->RequestTrustedSignals(params, /*start_fetch=*/false);
+  EXPECT_EQ(handle1, handle2);
+  EXPECT_EQ(partition_id1, partition_id2);
+
+  // No fetches should have been started.
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+
+  // After exactly `kAutoStartDelay`, the fetch should be started.
+  this->task_environment_.FastForwardBy(kTinyTime);
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 1u);
+
+  auto fetch = this->WaitForSignalsFetch();
+  ValidateFetchParams(fetch, params, /*expected_compression_group_id=*/0,
+                      partition_id1);
+  RespondToFetchWithSuccess(fetch);
+
+  TestTrustedSignalsCacheClient client(handle1, this->cache_mojo_pipe_);
+  client.WaitForSuccess();
+}
+
+// Check that manually starting a request that has already automatically started
+// doesn't cause any issues.
+TYPED_TEST(TrustedSignalsCacheTest, AutoStartThenManuallyStart) {
+  auto params = this->CreateDefaultParams();
+  auto [handle, partition_id] =
+      this->RequestTrustedSignals(params, /*start_fetch=*/false);
+
+  this->task_environment_.FastForwardBy(
+      TrustedSignalsCacheImpl::kAutoStartDelay);
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 1u);
+
+  // This should not cause another fetch to be started, nor cause a crash.
+  handle->StartFetch();
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 1u);
+
+  // Can safely call StartFetch() more than once, and no new fetches should be
+  // started.
+  handle->StartFetch();
+  handle->StartFetch();
+  handle->StartFetch();
+  handle->StartFetch();
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 1u);
+
+  auto fetch = this->WaitForSignalsFetch();
+  ValidateFetchParams(fetch, params, /*expected_compression_group_id=*/0,
+                      partition_id);
+  RespondToFetchWithSuccess(fetch);
+
+  TestTrustedSignalsCacheClient client(handle, this->cache_mojo_pipe_);
+  client.WaitForSuccess();
+}
+
+// Check that the auto-start delay passing after a request was manually started
+// doesn't cause issues. Test 3 cases: Auto start duration passes while Fetch is
+// live, after Fetch has completed but cache entry is still live, and after
+// cache entry has been destroyed.
+TYPED_TEST(TrustedSignalsCacheTest, ManuallyStartThenAutoStart) {
+  enum class TestCase {
+    kAutoStartDuringFetch,
+    kAutoStartAfterFetch,
+    kAutoStartAfterHandleDestroyed,
+  };
+
+  for (TestCase test_case :
+       {TestCase::kAutoStartDuringFetch, TestCase::kAutoStartAfterFetch,
+        TestCase::kAutoStartAfterHandleDestroyed}) {
+    SCOPED_TRACE(static_cast<int>(test_case));
+
+    // Start with a clean slate for each test.
+    this->CreateCache();
+
+    auto params = this->CreateDefaultParams();
+    // Create request and start the fetch.
+    auto [handle, partition_id] = this->RequestTrustedSignals(params);
+
+    // Wait for fetch creation.
+    auto fetch = this->WaitForSignalsFetch();
+    ValidateFetchParams(fetch, params, /*expected_compression_group_id=*/0,
+                        partition_id);
+
+    if (test_case == TestCase::kAutoStartDuringFetch) {
+      this->task_environment_.FastForwardBy(
+          TrustedSignalsCacheImpl::kAutoStartDelay);
+    }
+    EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+
+    RespondToFetchWithSuccess(fetch);
+    if (test_case == TestCase::kAutoStartAfterFetch) {
+      this->task_environment_.FastForwardBy(
+          TrustedSignalsCacheImpl::kAutoStartDelay);
+    }
+    EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+
+    TestTrustedSignalsCacheClient client(handle, this->cache_mojo_pipe_);
+    client.WaitForSuccess();
+
+    handle.reset();
+    if (test_case == TestCase::kAutoStartAfterHandleDestroyed) {
+      this->task_environment_.FastForwardBy(
+          TrustedSignalsCacheImpl::kAutoStartDelay);
+    }
+    EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+  }
+}
+
+// Test the case where a Handle is destroyed without ever calling StartFetch()
+// on it.
+TYPED_TEST(TrustedSignalsCacheTest, HandleDestroyedWithoutStartingFetch) {
+  enum class TestCase {
+    kCancelBeforeCoordinatorKeyCallback,
+
+    // Two cases where the Handle is cancelled while waiting on the
+    // GetCoordinatorKeyCallback:
+    // 1) The case where the callback is never invoked
+    // 2) The case where it's invoked after cancellation.
+    kCancelDuringCoordinatorKeyCallback,
+    kCancelDuringCoordinatorKeyCallbackAndInvokeCallback,
+
+    kCancelAfterCoordinatorKeyCallback,
+  };
+
+  for (TestCase test_case :
+       {TestCase::kCancelBeforeCoordinatorKeyCallback,
+        TestCase::kCancelDuringCoordinatorKeyCallback,
+        TestCase::kCancelDuringCoordinatorKeyCallbackAndInvokeCallback,
+        TestCase::kCancelAfterCoordinatorKeyCallback}) {
+    SCOPED_TRACE(static_cast<int>(test_case));
+
+    // Start with a clean slate for each test. Not strictly necessary, but
+    // limits what's under test a bit.
+    this->CreateCache();
+    this->trusted_signals_cache_->set_get_coordinator_key_mode(
+        TestTrustedSignalsCache::GetCoordinatorKeyMode::kStashCallback);
+
+    auto [handle, partition_id] = this->RequestTrustedSignals(
+        this->CreateDefaultParams(), /*start_fetch=*/false);
+    base::OnceCallback<void(
+        base::expected<BiddingAndAuctionServerKey, std::string>)>
+        callback;
+    if (test_case != TestCase::kCancelBeforeCoordinatorKeyCallback) {
+      callback = this->trusted_signals_cache_->WaitForCoordinatorKeyCallback();
+      if (test_case == TestCase::kCancelAfterCoordinatorKeyCallback) {
+        std::move(callback).Run(BiddingAndAuctionServerKey{"key", /*id=*/1});
+      }
+    }
+
+    // Destroy the handle, after getting a copy of the
+    // `compression_group_token`.
+    base::UnguessableToken compression_group_token =
+        handle->compression_group_token();
+    handle.reset();
+
+    // No fetches should have been started.
+    this->task_environment_.FastForwardBy(
+        TrustedSignalsCacheImpl::kAutoStartDelay - base::Milliseconds(1));
+    EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+
+    TestTrustedSignalsCacheClient client(compression_group_token,
+                                         this->cache_mojo_pipe_);
+    client.WaitForError(kRequestCancelledError);
+
+    if (test_case ==
+        TestCase::kCancelDuringCoordinatorKeyCallbackAndInvokeCallback) {
+      // Invoking the GetCoordinatorKeyCallback late should not crash.
+      std::move(callback).Run(BiddingAndAuctionServerKey{"key", /*id=*/1});
+    }
+  }
+}
+
 // Test the case where a GetTrustedSignals() request waiting on a fetch when the
 // Handle is destroyed.
 TYPED_TEST(TrustedSignalsCacheTest, HandleDestroyedAfterGet) {
@@ -1319,7 +1538,7 @@ TYPED_TEST(TrustedSignalsCacheTest, HandleDestroyedAfterGet) {
 
   TestTrustedSignalsCacheClient client(handle, this->cache_mojo_pipe_);
   // Wait fo the request to hit the cache.
-  base::RunLoop().RunUntilIdle();
+  this->task_environment_.RunUntilIdle();
 
   handle.reset();
   client.WaitForError(kRequestCancelledError);
@@ -1480,6 +1699,32 @@ TYPED_TEST(TrustedSignalsCacheTest, ReRequestSignalsReused) {
   EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
 }
 
+// Check that re-requesting trusted bidding with the same arguments returns the
+// same handle and IDs. Only starts the fetch after the second request.
+TYPED_TEST(TrustedSignalsCacheTest, ReRequestSignalsReusedLateStartFetch) {
+  auto params = this->CreateDefaultParams();
+  auto [handle1, partition_id1] =
+      this->RequestTrustedSignals(params, /*start_fetch=*/false);
+  auto [handle2, partition_id2] =
+      this->RequestTrustedSignals(params, /*start_fetch=*/true);
+  EXPECT_EQ(handle1, handle2);
+  EXPECT_EQ(partition_id1, partition_id2);
+
+  // Wait for Fetcher.
+  auto fetch = this->WaitForSignalsFetch();
+  ValidateFetchParams(fetch, params, /*expected_compression_group_id=*/0,
+                      partition_id1);
+
+  // Complete the request.
+  RespondToFetchWithSuccess(fetch);
+
+  TestTrustedSignalsCacheClient client(handle1, this->cache_mojo_pipe_);
+  client.WaitForSuccess();
+
+  // No pending fetches should have been created after the first.
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+}
+
 // Check that re-requesting trusted bidding with the same arguments returns a
 // different ID, when all Handles have been destroyed. Tests all points at which
 // a Handle may be deleted.
@@ -1517,7 +1762,7 @@ TYPED_TEST(TrustedSignalsCacheTest, ReRequestSignalsNotReused) {
   EXPECT_NE(compression_group_token2, compression_group_token3);
   TestTrustedSignalsCacheClient client3(handle3, this->cache_mojo_pipe_);
   // Wait for the request from `client3` to make it to the cache.
-  base::RunLoop().RunUntilIdle();
+  this->task_environment_.RunUntilIdle();
 
   // Wait for another fetch request, send a response, and retrieve it over the
   // Mojo pipe.
@@ -1539,7 +1784,7 @@ TYPED_TEST(TrustedSignalsCacheTest, ReRequestSignalsNotReused) {
   EXPECT_NE(compression_group_token3, compression_group_token4);
   TestTrustedSignalsCacheClient client4(handle4, this->cache_mojo_pipe_);
   // Wait for the request from `client4` to make it to the cache.
-  base::RunLoop().RunUntilIdle();
+  this->task_environment_.RunUntilIdle();
   // Wait for the fetch.
   auto fetch4 = this->WaitForSignalsFetch();
   // Destroy the handle, which should fail the request.
@@ -2724,7 +2969,7 @@ TYPED_TEST(TrustedSignalsCacheTest, DifferentParamsCancelBothBeforeFetchStart) {
     handle1.reset();
     handle2.reset();
 
-    base::RunLoop().RunUntilIdle();
+    this->task_environment_.RunUntilIdle();
     EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
   }
 }
@@ -2838,7 +3083,7 @@ TYPED_TEST(TrustedSignalsCacheTest, CancelledDuringGetCoordinatorKey) {
     }
 
     // Let any pending async callbacks complete.
-    base::RunLoop().RunUntilIdle();
+    this->task_environment_.RunUntilIdle();
 
     // Teardown will check that the fetcher saw no unaccounted for requests.
   }
@@ -2994,6 +3239,37 @@ TYPED_TEST(TrustedSignalsCacheTest,
       }
     }
   }
+}
+
+// Test the case where the attempt to get the coordinator key is received before
+// StartFetch is called on a Handle.
+TYPED_TEST(TrustedSignalsCacheTest,
+           CoordinatorKeyReceivedBeforeStartFetchCalled) {
+  this->trusted_signals_cache_->set_get_coordinator_key_mode(
+      TestTrustedSignalsCache::GetCoordinatorKeyMode::kStashCallback);
+
+  auto params = this->CreateDefaultParams();
+  auto [handle, partition_id] =
+      this->RequestTrustedSignals(params, /*start_fetch=*/false);
+
+  auto callback = this->trusted_signals_cache_->WaitForCoordinatorKeyCallback();
+  std::move(callback).Run(BiddingAndAuctionServerKey{
+      /*key=*/this->kCoordinator.Serialize(), /*id=*/1});
+
+  // No fetch should have been started yet.
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 0u);
+
+  // Calling StartFetch() on the handle should immediately trigger a fetch.
+  handle->StartFetch();
+  EXPECT_EQ(this->trusted_signals_cache_->num_pending_fetches(), 1u);
+
+  auto fetch = this->WaitForSignalsFetch();
+  ValidateFetchParams(fetch, params, /*expected_compression_group_id=*/0,
+                      partition_id);
+  RespondToFetchWithSuccess(fetch);
+
+  TestTrustedSignalsCacheClient client(handle, this->cache_mojo_pipe_);
+  client.WaitForSuccess();
 }
 
 // Check that requesting signals over a pipe with the wrong `script_origin`

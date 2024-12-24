@@ -35050,6 +35050,14 @@ should be able to be added at any place in this file.
   <description>User opened Ad measurement subpage.</description>
 </action>
 
+<action name="Settings.PrivacySandbox.AdMeasurement.PrivacyPolicyLinkClicked">
+  <owner>jacobstanley@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    User clicked on the Privacy Policy link in the Ad Measurement setting page.
+  </description>
+</action>
+
 <action name="Settings.PrivacySandbox.AdPersonalization.LearnMoreClicked">
   <owner>dullweber@google.com</owner>
   <owner>sauski@google.com</owner>
@@ -35087,6 +35095,14 @@ should be able to be added at any place in this file.
     User removed a topic that was previously in their allowed topics list.
     TODO(crbug.com/40244046): Deprecate this action in favor of
     Settings.PrivacySandbox.Topics.TopicRemoved after the feature is launched.
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.AdTopics.PrivacyPolicyLinkClicked">
+  <owner>jacobstanley@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    User clicked on the Privacy Policy link in the Ad Topics setting page.
   </description>
 </action>
 
@@ -35197,6 +35213,22 @@ should be able to be added at any place in this file.
   <description>User is shown the Privacy Sandbox consent.</description>
 </action>
 
+<action name="Settings.PrivacySandbox.ConsentDialog.AckClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox consent accept button click.
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.ConsentDialog.NoClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox consent no button click.
+  </description>
+</action>
+
 <action name="Settings.PrivacySandbox.Fledge.AllSitesOpened">
   <owner>rubindl@google.com</owner>
   <owner>sauski@google.com</owner>
@@ -35290,6 +35322,24 @@ should be able to be added at any place in this file.
   <description>User acknowledged the Privacy Sandbox notice.</description>
 </action>
 
+<action name="Settings.PrivacySandbox.Notice.AdsMeasurementLearnMoreClosed">
+  <owner>jacobstanley@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    User closed the Ads Measurement Learn More in the Privacy Sandbox Notice.
+    This is part of the Ads API UX Enhancements.
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.Notice.AdsMeasurementLearnMoreExpanded">
+  <owner>jacobstanley@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    User expanded the Ads Measurement Learn More in the Privacy Sandbox Notice.
+    This is part of the Ads API UX Enhancements.
+  </description>
+</action>
+
 <action name="Settings.PrivacySandbox.Notice.ClosedNoInteraction">
   <owner>harrisonsean@chromium.org</owner>
   <owner>sauski@google.com</owner>
@@ -35374,6 +35424,56 @@ should be able to be added at any place in this file.
   <owner>msramek@chromium.org</owner>
   <owner>kartoffel-core@google.com</owner>
   <description>User is shown the Privacy Sandbox notice.</description>
+</action>
+
+<action name="Settings.PrivacySandbox.Notice.SiteSuggestedAdsLearnMoreClosed">
+  <owner>jacobstanley@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    User closed the Site Suggested Ads Learn More in the Privacy Sandbox Notice.
+    This is part of the Ads API UX Enhancements.
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.Notice.SiteSuggestedAdsLearnMoreExpanded">
+  <owner>jacobstanley@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    User expanded the Site Suggested Ads Learn More in the Privacy Sandbox
+    Notice. This is part of the Ads API UX Enhancements.
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.NoticeEeaDialog.AckClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox notice accept button click (EEA region).
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.NoticeEeaDialog.OpenSettingsClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox notice settings button click (EEA region).
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.NoticeRowDialog.AckClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox notice accept button click (ROW region).
+  </description>
+</action>
+
+<action name="Settings.PrivacySandbox.NoticeRowDialog.OpenSettingsClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox notice settings button click (ROW region).
+  </description>
 </action>
 
 <action name="Settings.PrivacySandbox.OpenedFromCookiesPageToast">
@@ -35484,6 +35584,33 @@ should be able to be added at any place in this file.
   <owner>kartoffel-core@google.com</owner>
   <owner>kartoffel-core-eng@google.com</owner>
   <description>Restricted Privacy Sandbox notice is shown.</description>
+</action>
+
+<action name="Settings.PrivacySandbox.RestrictedNoticeDialog.AckClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox restricted notice accept button click.
+  </description>
+</action>
+
+<action
+    name="Settings.PrivacySandbox.RestrictedNoticeDialog.OpenSettingsClicked">
+  <owner>aashnas@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    Recorded on privacy sandbox restricted notice settings button click.
+  </description>
+</action>
+
+<action
+    name="Settings.PrivacySandbox.SiteSuggestedAds.PrivacyPolicyLinkClicked">
+  <owner>jacobstanley@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <description>
+    User clicked on the Privacy Policy link in the Site Suggested Ads setting
+    page.
+  </description>
 </action>
 
 <action name="Settings.PrivacySandbox.SpamFraud.Opened">
@@ -43198,12 +43325,22 @@ should be able to be added at any place in this file.
   <description>Please enter the description of this user action.</description>
 </action>
 
+<action name="Tabs.ArchivedDuplicateTab">
+  <owner>bjfong@google.com</owner>
+  <owner>wylieb@chromium.org</owner>
+  <owner>clank-tab-dev@google.com</owner>
+  <description>
+    Recorded when a duplicate tab that is not the most recently used copy is
+    archived. This is happens when tabs share the same URL.
+  </description>
+</action>
+
 <action name="Tabs.ArchivedTabAutoDeleted">
   <owner>wylieb@chromium.org</owner>
   <owner>clank-tab-dev@google.com</owner>
   <description>
     Recorded when an archived tab is deleted. This happens when the tab's last
-    archived tab exceeds the limit for auto-deletion.
+    archived time exceeds the limit for auto-deletion.
   </description>
 </action>
 
@@ -47016,6 +47153,7 @@ should be able to be added at any place in this file.
       label="For Follow While-Browsing IPH feature."/>
   <suffix name="GenericAlwaysTriggerHelpUiFeature"
       label="For generic always show help UI feature."/>
+  <suffix name="GlicPromo" label="For Glic feature."/>
   <suffix name="GlobalMediaControls" label="For GlobalMediaControls feature."/>
   <suffix name="GMCCastStartStop"
       label="For Global Media Controls Cast start and stop feature."/>

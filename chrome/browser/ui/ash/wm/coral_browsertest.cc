@@ -171,17 +171,16 @@ IN_PROC_BROWSER_TEST_F(CoralBrowserTest, PostLoginLaunch) {
   BrowserList* browsers = BrowserList::GetInstance();
   ASSERT_EQ(browsers->size(), 4u);
   // Verify the chrome browser.
-  EXPECT_TRUE(
-      base::ranges::any_of(*browsers, [](Browser* browser) {
-        TabStripModel* tab_strip_model = browser->tab_strip_model();
-        return tab_strip_model->count() == 3 &&
-               tab_strip_model->GetWebContentsAt(0)->GetVisibleURL() ==
-                   GURL("https://www.reddit.com/") &&
-               tab_strip_model->GetWebContentsAt(1)->GetVisibleURL() ==
-                   GURL("https://www.figma.com/") &&
-               tab_strip_model->GetWebContentsAt(2)->GetVisibleURL() ==
-                   GURL("https://www.notion.so/");
-      }));
+  EXPECT_TRUE(base::ranges::any_of(*browsers, [](Browser* browser) {
+    TabStripModel* tab_strip_model = browser->tab_strip_model();
+    return tab_strip_model->count() == 3 &&
+           tab_strip_model->GetWebContentsAt(0)->GetVisibleURL() ==
+               GURL("https://www.reddit.com/") &&
+           tab_strip_model->GetWebContentsAt(1)->GetVisibleURL() ==
+               GURL("https://www.figma.com/") &&
+           tab_strip_model->GetWebContentsAt(2)->GetVisibleURL() ==
+               GURL("https://www.notion.so/");
+  }));
 
   // Verify the PWA.
   EXPECT_TRUE(base::ranges::any_of(*browsers, [](Browser* browser) {
@@ -342,7 +341,8 @@ IN_PROC_BROWSER_TEST_F(CoralBrowserTest, MoveAppsToNewDesk) {
 IN_PROC_BROWSER_TEST_F(CoralBrowserTest, AsyncGroupTitle) {
   // Create a test coral group with a pending title.
   std::vector<coral::mojom::GroupPtr> test_groups;
-  test_groups.push_back(CreateTestGroup({{"example", "www.example.com"}}));
+  test_groups.push_back(
+      CreateTestGroup({{"example", GURL("www.example.com")}}));
   OverrideTestResponse(std::move(test_groups));
 
   // Set up a callback for a birch data fetch.
@@ -370,6 +370,8 @@ IN_PROC_BROWSER_TEST_F(CoralBrowserTest, AsyncGroupTitle) {
   BirchCoralProvider::Get()->TitleUpdated(base::Token(), "Updated Title");
   ASSERT_TRUE(coral_chip->title()->GetVisible());
   EXPECT_EQ(coral_chip->title()->GetText(), u"Updated Title");
+  EXPECT_EQ(coral_chip->GetAccessibleName(),
+            u"Updated Title Organize in a new desk");
 }
 
 // Tests that the chip will show placeholder title when corresponding group
@@ -377,7 +379,8 @@ IN_PROC_BROWSER_TEST_F(CoralBrowserTest, AsyncGroupTitle) {
 IN_PROC_BROWSER_TEST_F(CoralBrowserTest, GroupTitleLoadingFail) {
   // Create a test coral group with a pending title.
   std::vector<coral::mojom::GroupPtr> test_groups;
-  test_groups.push_back(CreateTestGroup({{"example", "www.example.com"}}));
+  test_groups.push_back(
+      CreateTestGroup({{"example", GURL("www.example.com")}}));
   OverrideTestResponse(std::move(test_groups));
 
   // Set up a callback for a birch data fetch.
@@ -405,6 +408,8 @@ IN_PROC_BROWSER_TEST_F(CoralBrowserTest, GroupTitleLoadingFail) {
   BirchCoralProvider::Get()->TitleUpdated(base::Token(), "");
   ASSERT_TRUE(coral_chip->title()->GetVisible());
   EXPECT_EQ(coral_chip->title()->GetText(), u"Suggested Group");
+  EXPECT_EQ(coral_chip->GetAccessibleName(),
+            u"Suggested Group Organize in a new desk");
 }
 
 // Tests that the coral chip gets updated while corresponding tab/app items are

@@ -413,6 +413,9 @@ class BrowserView : public BrowserWindow,
   // window-controls-overlay.
   bool AppUsesWindowControlsOverlay() const;
 
+  // Returns true when an app's effective display mode is tabbed.
+  bool AppUsesTabbed() const;
+
   // Returns true when an app's effective display mode is borderless.
   bool AppUsesBorderlessMode() const;
 
@@ -988,8 +991,7 @@ class BrowserView : public BrowserWindow,
   // If the Window Placement experiment is enabled, fullscreen may be requested
   // on a particular display. In that case, |display_id| is the display's id;
   // otherwise, display::kInvalidDisplayId indicates no display is specified.
-  void ProcessFullscreen(bool fullscreen,
-                         int64_t display_id);
+  void ProcessFullscreen(bool fullscreen, int64_t display_id);
 
   // Request the underlying platform to make the window fullscreen.
   void RequestFullscreen(bool fullscreen, int64_t display_id);

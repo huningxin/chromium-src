@@ -13,13 +13,13 @@
 #include "components/autofill/content/browser/content_autofill_driver.h"
 #include "components/autofill/content/browser/test_autofill_client_injector.h"
 #include "components/autofill/content/browser/test_autofill_driver_injector.h"
-#include "components/autofill/core/browser/autofill_external_delegate.h"
-#include "components/autofill/core/browser/autofill_test_utils.h"
-#include "components/autofill/core/browser/browser_autofill_manager.h"
-#include "components/autofill/core/browser/browser_autofill_manager_test_api.h"
-#include "components/autofill/core/browser/filling_product.h"
+#include "components/autofill/core/browser/filling/filling_product.h"
+#include "components/autofill/core/browser/foundations/browser_autofill_manager.h"
+#include "components/autofill/core/browser/foundations/browser_autofill_manager_test_api.h"
+#include "components/autofill/core/browser/suggestions/suggestion.h"
+#include "components/autofill/core/browser/test_utils/autofill_test_utils.h"
+#include "components/autofill/core/browser/ui/autofill_external_delegate.h"
 #include "components/autofill/core/browser/ui/popup_open_enums.h"
-#include "components/autofill/core/browser/ui/suggestion.h"
 #include "components/autofill/core/common/aliases.h"
 #include "components/autofill/core/common/autofill_test_utils.h"
 #include "components/autofill/core/common/form_data.h"
@@ -151,7 +151,7 @@ IN_PROC_BROWSER_TEST_F(ChromeAutofillClientBrowserTest,
   FormData form = test::CreateTestAddressFormData();
   test_api(form).field(0).set_bounds(gfx::RectF(10, 10));
   client()->ShowAutofillFieldIphForFeature(
-      form.fields()[0], AutofillClient::IphFeature::kPredictionImprovements);
+      form.fields()[0], AutofillClient::IphFeature::kAutofillAi);
 
   // Set the bounds such that the Autofill Popup would overlap with the IPH (the
   // IPH is displayed right below `form.fields[0]`, whose bounds are set above).

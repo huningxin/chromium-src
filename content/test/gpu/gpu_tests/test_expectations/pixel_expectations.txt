@@ -9,7 +9,7 @@
 #         win win8 win10 win11 ]
 # Devices
 # tags: [ android-nexus-5x android-pixel-2 android-pixel-4
-#             android-pixel-6 android-shield-android-tv android-sm-a135m
+#             android-pixel-6 android-shield-android-tv android-sm-a137f
 #             android-sm-a235m android-sm-s911u1
 #         chromeos-board-amd64-generic chromeos-board-eve chromeos-board-jacuzzi
 #             chromeos-board-octopus chromeos-board-volteer
@@ -25,7 +25,6 @@
 #         release release-x64
 #         fuchsia-chrome
 #         web-engine-shell
-#         lacros-chrome
 #         cros-chrome ]
 # GPU
 # tags: [ amd amd-0x6613 amd-0x679e amd-0x67ef amd-0x6821 amd-0x7340
@@ -256,8 +255,8 @@ crbug.com/1426664 [ monterey ] Pixel_WebGPU* [ Skip ]
 [ win ] Pixel_RenderPasses [ Skip ]
 [ fuchsia ] Pixel_RenderPasses [ Skip ]
 
-# This test ensures correctness of a delegated compositing implementation,
-# enabled today in Lacros. So far verified only on ChromeOS and MacOS.
+# This test ensures correctness of a delegated compositing implementation.
+# So far verified only on ChromeOS and MacOS.
 [ linux ] Pixel_PerspectiveTest [ Skip ]
 [ android ] Pixel_PerspectiveTest [ Skip ]
 [ win ] Pixel_PerspectiveTest [ Skip ]
@@ -269,6 +268,10 @@ crbug.com/1426664 [ monterey ] Pixel_WebGPU* [ Skip ]
 # This test specifies to use GL for the ANGLE backend, which conflicts with
 # Graphite since Metal is required for that on Mac.
 [ mac graphite-enabled ] Pixel_OffscreenCanvasIBRCWorkerAngleGL [ Skip ]
+
+# Relies on WebglExtension_EXT_color_buffer_half_float, which is not available
+# on these devices.
+crbug.com/1372155 [ android android-sm-a137f ] Pixel_WebGLFloat [ Skip ]
 
 ###############################
 # Temporary Skip Expectations #
@@ -337,7 +340,7 @@ crbug.com/364179193 [ linux ] Pixel_Video_Media_Stream_Incompatible_Stride [ Ski
 [ android android-pixel-2 ] Pixel_SVGHuge [ Slow ]
 [ android android-pixel-4 ] Pixel_SVGHuge [ Slow ]
 [ android android-shield-android-tv ] Pixel_SVGHuge [ Slow ]
-[ android android-sm-a135m ] Pixel_SVGHuge [ Slow ]
+[ android android-sm-a137f ] Pixel_SVGHuge [ Slow ]
 [ android android-sm-a235m ] Pixel_SVGHuge [ Slow ]
 # Also applies to Windows arm64.
 [ win qualcomm-0x41333430 ] Pixel_SVGHuge [ Slow ]
@@ -408,17 +411,11 @@ crbug.com/1290953 [ android android-pixel-4 android-webview-instrumentation ] Pi
 
 crbug.com/1345777 [ android ] Pixel_VideoStreamFromWebGLCanvas [ Skip ]
 
+crbug.com/40241616 [ android android-sm-a137f ] Pixel_CanvasLowLatencyWebGLAlphaFalse [ Failure ]
 crbug.com/1372141 [ android android-sm-a235m ] Pixel_CanvasLowLatencyWebGLAlphaFalse [ Failure ]
 
 crbug.com/1376927 [ win10 target-cpu-32 nvidia-0x2184 ] Pixel_MediaFoundationClearDirectComposition [ Failure ]
 
-
-# Lacros consistent failures on CrOS devices, skip to save some time
-crbug.com/1392806 [ chromeos lacros-chrome ] Pixel_CanvasDisplaySRGBAccelerated2D [ Skip ]
-crbug.com/1392806 [ chromeos lacros-chrome ] Pixel_Video_Context_Loss_MP4 [ Skip ]
-crbug.com/1392806 [ chromeos lacros-chrome ] Pixel_Video_Context_Loss_VP9 [ Skip ]
-crbug.com/1392806 [ chromeos lacros-chrome ] Pixel_WebGLContextRestored [ Skip ]
-crbug.com/1392806 [ chromeos lacros-chrome ] Pixel_WebGLPreservedAfterTabSwitch [ Skip ]
 
 # jacuzzi produces the wrong aspect ratio image
 crbug.com/1392806 [ chromeos chromeos-board-jacuzzi ] Pixel_Video_MP4_FourColors_Aspect_4x3 [ Failure ]

@@ -342,6 +342,14 @@ TEST_F(AccessibilityControllerTest, PrefsAreRegistered) {
       prefs()->FindPreference(prefs::kAccessibilityFaceGazePrecisionClick));
   EXPECT_TRUE(prefs()->FindPreference(
       prefs::kAccessibilityFaceGazePrecisionClickSpeedFactor));
+  EXPECT_TRUE(
+      prefs()->FindPreference(prefs::kAccessibilityFaceGazeEnabledSentinel));
+  EXPECT_TRUE(prefs()->FindPreference(
+      prefs::kAccessibilityFaceGazeEnabledSentinelShowDialog));
+  EXPECT_TRUE(prefs()->FindPreference(
+      prefs::kAccessibilityFaceGazeCursorControlEnabledSentinel));
+  EXPECT_TRUE(prefs()->FindPreference(
+      prefs::kAccessibilityFaceGazeActionsEnabledSentinel));
   EXPECT_TRUE(prefs()->FindPreference(prefs::kAccessibilityCaretBlinkInterval));
   EXPECT_TRUE(
       prefs()->FindPreference(prefs::kAccessibilityFlashNotificationsEnabled));
@@ -1848,9 +1856,11 @@ TEST_F(AccessibilityControllerTest, LogsDurationAtShutdown) {
   ExpectSessionDurationMetricCount("CrosLargeCursor", 1);
 }
 
-// Verifies that the FilterKeysEventRewriter isn't initialized, since the
-// feature flag is off in this test suite.
-TEST_F(AccessibilityControllerTest, FilterKeysEventRewriterNotInitialized) {
+TEST_F(AccessibilityControllerTest,
+       FilterKeysEventRewriterNotInitializedWhenBounceKeysFeatureDisabled) {
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndDisableFeature(
+      ::features::kAccessibilityBounceKeys);
   // Initialize the EventRewriterController manually so that all EventRewriters
   // get initialized.
   EventRewriterController::Get()->Initialize(nullptr, nullptr);

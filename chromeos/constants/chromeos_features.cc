@@ -32,12 +32,6 @@ BASE_FEATURE(kBluetoothWifiQSPodRefresh,
              "BluetoothWifiQSPodRefresh",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables updated UI for the clipboard history menu and new system behavior
-// related to clipboard history.
-BASE_FEATURE(kClipboardHistoryRefresh,
-             "ClipboardHistoryRefresh",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables cloud game features.
 BASE_FEATURE(kCloudGamingDevice,
              "CloudGamingDevice",
@@ -309,6 +303,12 @@ BASE_FEATURE(kUploadOfficeToCloudForEnterprise,
              "UploadOfficeToCloudForEnterprise",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+// Enables syncing of user's Office files upload workflow preferences for
+// enterprise users, such whether to ask before moving files to the cloud.
+BASE_FEATURE(kUploadOfficeToCloudSync,
+             "UploadOfficeToCloudSync",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Controls the use of scope extensions for the Microsoft 365 PWA from finch as
 // a fallback.
 BASE_FEATURE(kMicrosoft365ScopeExtensions,
@@ -372,15 +372,6 @@ bool IsBatteryBadgeIconEnabled() {
 
 bool IsBluetoothWifiQSPodRefreshEnabled() {
   return base::FeatureList::IsEnabled(kBluetoothWifiQSPodRefresh);
-}
-
-bool IsClipboardHistoryRefreshEnabled() {
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  return chromeos::BrowserParamsProxy::Get()->EnableClipboardHistoryRefresh();
-#else
-  return base::FeatureList::IsEnabled(kClipboardHistoryRefresh) &&
-         IsJellyEnabled();
-#endif
 }
 
 bool IsCloudGamingDeviceEnabled() {

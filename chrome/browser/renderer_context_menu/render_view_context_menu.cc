@@ -126,7 +126,7 @@
 #include "chrome/grit/generated_resources.h"
 #include "components/autofill/content/browser/content_autofill_client.h"
 #include "components/autofill/content/browser/content_autofill_driver.h"
-#include "components/autofill/core/browser/ui/suggestion_hiding_reason.h"
+#include "components/autofill/core/browser/suggestions/suggestion_hiding_reason.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/password_generation_util.h"
 #include "components/autofill/core/common/unique_ids.h"
@@ -295,7 +295,6 @@
 #include "chrome/browser/chromeos/policy/dlp/dlp_rules_manager.h"
 #include "chrome/browser/chromeos/policy/dlp/dlp_rules_manager_factory.h"
 #include "chrome/browser/renderer_context_menu/read_write_card_observer.h"
-#include "chromeos/constants/chromeos_features.h"
 #include "chromeos/ui/clipboard_history/clipboard_history_submenu_model.h"
 #include "chromeos/ui/clipboard_history/clipboard_history_util.h"
 #endif
@@ -488,7 +487,7 @@ const std::map<int, int>& GetIdcToUmaMap(UmaEnumIdLookupType type) {
        {IDC_CONTENT_CONTEXT_SHARING_SHARED_CLIPBOARD_SINGLE_DEVICE, 108},
        {IDC_CONTENT_CONTEXT_SHARING_SHARED_CLIPBOARD_MULTIPLE_DEVICES, 109},
        {IDC_CONTENT_CONTEXT_GENERATE_QR_CODE, 110},
-       {IDC_CONTENT_CLIPBOARD_HISTORY_MENU, 111},
+       // Removed: {IDC_CONTENT_CLIPBOARD_HISTORY_MENU, 111},
        {IDC_CONTENT_CONTEXT_COPYLINKTOTEXT, 112},
        {IDC_CONTENT_CONTEXT_SEARCHLENSFORIMAGE, 113},
        {IDC_CONTENT_CONTEXT_REMOVELINKTOTEXT, 114},
@@ -506,8 +505,8 @@ const std::map<int, int>& GetIdcToUmaMap(UmaEnumIdLookupType type) {
        // Removed: {IDC_CONTENT_CONTEXT_PDF_OCR_ALWAYS, 127},
        // Removed: {IDC_CONTENT_CONTEXT_PDF_OCR_ONCE, 128},
        {IDC_CONTENT_CONTEXT_AUTOFILL_FEEDBACK, 129},
-       {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHWEB, 130},
-       {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS, 131},
+       // Removed: {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHWEB, 130},
+       // Removed: {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS, 131},
        {IDC_CONTENT_CONTEXT_COPYVIDEOFRAME, 132},
        {IDC_CONTENT_CONTEXT_SAVEPLUGINAS, 133},
        // Removed: {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_ADDRESS, 134},
@@ -522,12 +521,13 @@ const std::map<int, int>& GetIdcToUmaMap(UmaEnumIdLookupType type) {
        {IDC_CONTENT_CONTEXT_SEARCHWEBFORVIDEOFRAME, 143},
        {IDC_CONTENT_CONTEXT_OPENLINKPREVIEW, 144},
        {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PLUS_ADDRESS, 145},
-       {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS, 146},
+       // Removed: {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS, 146},
        {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS_SELECT_PASSWORD, 147},
        {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS_IMPORT_PASSWORDS, 148},
        {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS_SUGGEST_PASSWORD, 149},
-       {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS_NO_SAVED_PASSWORDS,
-        150},
+       // Removed:
+       // {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS_NO_SAVED_PASSWORDS,
+       // 150},
        {IDC_CONTENT_CONTEXT_AUTOFILL_PREDICTION_IMPROVEMENTS, 151},
        {IDC_CONTENT_CONTEXT_AUTOFILL_FALLBACK_PASSWORDS_USE_PASSKEY_FROM_ANOTHER_DEVICE,
         152},
@@ -570,8 +570,8 @@ const std::map<int, int>& GetIdcToUmaMap(UmaEnumIdLookupType type) {
        {IDC_CONTENT_CONTEXT_RESHARELINKTOTEXT, 24},
        {IDC_OPEN_LINK_IN_PROFILE_FIRST, 25},
        // Removed: {IDC_CONTENT_CONTEXT_ADD_A_NOTE, 26},
-       {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHWEB, 27},
-       {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS, 28},
+       // Removed: {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHWEB, 27},
+       // Removed: {IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS, 28},
        {IDC_CONTENT_CONTEXT_SEARCHWEBFORNEWTAB, 29},
        {IDC_CONTENT_CONTEXT_OPENLINKPREVIEW, 30},
        // To add new items:
@@ -792,20 +792,6 @@ std::optional<ash::SystemWebAppType> GetLinkSystemAppType(Profile* profile,
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_CHROMEOS)
-
-// Returns the string ID of the clipboard history menu option.
-int GetClipboardHistoryStringId() {
-  return chromeos::features::IsClipboardHistoryRefreshEnabled()
-             ? IDS_CONTEXT_MENU_PASTE_FROM_CLIPBOARD
-             : IDS_CONTEXT_MENU_SHOW_CLIPBOARD_HISTORY_MENU;
-}
-
-// Returns the command ID of the clipboard history menu option.
-int GetClipboardHistoryCommandId() {
-  return chromeos::features::IsClipboardHistoryRefreshEnabled()
-             ? IDC_CONTENT_PASTE_FROM_CLIPBOARD
-             : IDC_CONTENT_CLIPBOARD_HISTORY_MENU;
-}
 
 bool IsCaptivePortalProfile(Profile* profile) {
   return profile->IsOffTheRecord() &&
@@ -1404,14 +1390,6 @@ int RenderViewContextMenu::GetSearchForImageIdc() const {
   return IDC_CONTENT_CONTEXT_SEARCHWEBFORIMAGE;
 }
 
-int RenderViewContextMenu::GetTranslateImageIdc() const {
-  if (base::FeatureList::IsEnabled(lens::features::kLensStandalone) &&
-      search::DefaultSearchProviderIsGoogle(GetProfile())) {
-    return IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS;
-  }
-  return IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHWEB;
-}
-
 int RenderViewContextMenu::GetRegionSearchIdc() const {
   return search::DefaultSearchProviderIsGoogle(GetProfile())
              ? IDC_CONTENT_CONTEXT_LENS_REGION_SEARCH
@@ -1525,8 +1503,7 @@ void RenderViewContextMenu::RecordUsedItem(int id) {
 
   // Log UKM for Lens context menu items.
   if (id == IDC_CONTENT_CONTEXT_LENS_REGION_SEARCH ||
-      id == IDC_CONTENT_CONTEXT_SEARCHLENSFORIMAGE ||
-      id == IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS) {
+      id == IDC_CONTENT_CONTEXT_SEARCHLENSFORIMAGE) {
     // Enum id should correspond to the RenderViewContextMenuItem enum.
     ukm::SourceId source_id =
         source_web_contents_->GetPrimaryMainFrame()->GetPageUkmSourceId();
@@ -2113,24 +2090,6 @@ void RenderViewContextMenu::AppendSearchWebForImageItems() {
   menu_model_.SetElementIdentifierAt(command_index, kSearchForImageItem);
 
   MaybePrepareForLensQuery();
-
-  auto* service = TemplateURLServiceFactory::GetForProfile(GetProfile());
-
-  if (base::FeatureList::IsEnabled(lens::features::kLensStandalone) &&
-      base::FeatureList::IsEnabled(lens::features::kEnableImageTranslate) &&
-      provider && !provider->image_translate_url().empty() &&
-      provider->image_translate_url_ref().IsValid(
-          service->search_terms_data())) {
-    ChromeTranslateClient* chrome_translate_client =
-        ChromeTranslateClient::FromWebContents(embedder_web_contents_);
-    if (chrome_translate_client &&
-        chrome_translate_client->GetLanguageState().IsPageTranslated()) {
-      menu_model_.AddItem(
-          GetTranslateImageIdc(),
-          l10n_util::GetStringFUTF16(IDS_CONTENT_CONTEXT_TRANSLATEIMAGE,
-                                     GetImageSearchProviderName(provider)));
-    }
-  }
 }
 
 void RenderViewContextMenu::AppendAudioItems() {
@@ -2566,26 +2525,19 @@ void RenderViewContextMenu::AppendOtherEditableItems() {
 #endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
 
   if (need_clipboard_history_menu) {
-    // If the clipboard history refresh feature is enabled, insert a submenu of
-    // clipboard history descriptors; otherwise, insert a menu option to trigger
-    // the clipboard history menu.
-    if (chromeos::features::IsClipboardHistoryRefreshEnabled()) {
-      // `submenu_model_` is a class member. Therefore, it is safe to use `this`
-      // pointer in the callback.
-      submenu_model_ = chromeos::clipboard_history::
-          ClipboardHistorySubmenuModel::CreateClipboardHistorySubmenuModel(
-              crosapi::mojom::ClipboardHistoryControllerShowSource::
-                  kRenderViewContextSubmenu,
-              base::BindRepeating(
-                  &RenderViewContextMenu::ShowClipboardHistoryMenu,
-                  base::Unretained(this)));
-      menu_model_.AddSubMenuWithStringId(GetClipboardHistoryCommandId(),
-                                         GetClipboardHistoryStringId(),
-                                         submenu_model_.get());
-    } else {
-      menu_model_.AddItemWithStringId(GetClipboardHistoryCommandId(),
-                                      GetClipboardHistoryStringId());
-    }
+    // Insert a submenu of clipboard history descriptors.
+    // `submenu_model_` is a class member. Therefore, it is safe to use `this`
+    // pointer in the callback.
+    submenu_model_ = chromeos::clipboard_history::ClipboardHistorySubmenuModel::
+        CreateClipboardHistorySubmenuModel(
+            crosapi::mojom::ClipboardHistoryControllerShowSource::
+                kRenderViewContextSubmenu,
+            base::BindRepeating(
+                &RenderViewContextMenu::ShowClipboardHistoryMenu,
+                base::Unretained(this)));
+    menu_model_.AddSubMenuWithStringId(IDC_CONTENT_PASTE_FROM_CLIPBOARD,
+                                       IDS_CONTEXT_MENU_PASTE_FROM_CLIPBOARD,
+                                       submenu_model_.get());
   }
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
@@ -2970,8 +2922,6 @@ bool RenderViewContextMenu::IsCommandIdEnabled(int id) const {
     case IDC_CONTENT_CONTEXT_OPENIMAGENEWTAB:
     case IDC_CONTENT_CONTEXT_SEARCHWEBFORIMAGE:
     case IDC_CONTENT_CONTEXT_SEARCHLENSFORIMAGE:
-    case IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHWEB:
-    case IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS:
       return navigation_allowed && params_.src_url.is_valid() &&
              (params_.src_url.scheme() != content::kChromeUIScheme);
 
@@ -3127,7 +3077,6 @@ bool RenderViewContextMenu::IsCommandIdEnabled(int id) const {
     case IDC_CONTENT_CONTEXT_START_SMART_SELECTION_ACTION5:
       return true;
 
-    case IDC_CONTENT_CLIPBOARD_HISTORY_MENU:
     case IDC_CONTENT_PASTE_FROM_CLIPBOARD:
 #if BUILDFLAG(IS_CHROMEOS_ASH)
       return ash::ClipboardHistoryController::Get()->HasAvailableHistoryItems();
@@ -3144,8 +3093,7 @@ bool RenderViewContextMenu::IsCommandIdEnabled(int id) const {
           !IsPasteEnabled()) {
         return false;
       }
-      return !chromeos::features::IsClipboardHistoryRefreshEnabled() ||
-             !chromeos::clipboard_history::QueryItemDescriptors().empty();
+      return !chromeos::clipboard_history::QueryItemDescriptors().empty();
     }
 #else
       NOTREACHED() << "Unhandled id: " << id;
@@ -3356,19 +3304,11 @@ void RenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
       break;
 
     case IDC_CONTENT_CONTEXT_SEARCHWEBFORIMAGE:
-      ExecSearchWebForImage(/*is_image_translate=*/false);
+      ExecSearchWebForImage();
       break;
 
     case IDC_CONTENT_CONTEXT_SEARCHLENSFORIMAGE:
-      ExecSearchLensForImage(event_flags, /*is_image_translate=*/false);
-      break;
-
-    case IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHWEB:
-      ExecSearchWebForImage(/*is_image_translate=*/true);
-      break;
-
-    case IDC_CONTENT_CONTEXT_TRANSLATEIMAGEWITHLENS:
-      ExecSearchLensForImage(event_flags, /*is_image_translate=*/true);
+      ExecSearchLensForImage(event_flags);
       break;
 
     case IDC_CONTENT_CONTEXT_OPEN_IN_READING_MODE:
@@ -3621,20 +3561,6 @@ void RenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
     }
 #endif  // BUILDFLAG(ENABLE_COMPOSE)
 
-    case IDC_CONTENT_CLIPBOARD_HISTORY_MENU: {
-#if BUILDFLAG(IS_CHROMEOS)
-      // If the clipboard history refresh feature is enabled, we add a submenu
-      // instead of a command item. The following code should not be executed
-      // for a submenu.
-      CHECK(!chromeos::features::IsClipboardHistoryRefreshEnabled());
-
-      ShowClipboardHistoryMenu(event_flags);
-      break;
-#else
-      NOTREACHED() << "Unhandled id: " << id;
-#endif  // BUILDFLAG(IS_CHROMEOS)
-    }
-
     default:
       DUMP_WILL_BE_NOTREACHED() << "Unhandled id: " << id;
       break;
@@ -3828,8 +3754,7 @@ bool RenderViewContextMenu::IsSaveLinkAsEnabled() const {
     // blocked by SafeSites API for having mature content. The mature content
     // filter requires an async call. This call is made if the user selects
     // "Save link as" and blocks the download.
-    if (url_filter->GetFilteringBehaviorForURL(params_.link_url) !=
-        supervised_user::FilteringBehavior::kAllow) {
+    if (!url_filter->GetFilteringBehavior(params_.link_url).IsAllowed()) {
       return false;
     }
   }
@@ -4216,7 +4141,7 @@ void RenderViewContextMenu::CheckSupervisedUserURLFilterAndSaveLinkAs() {
         SupervisedUserServiceFactory::GetForProfile(profile);
     supervised_user::SupervisedUserURLFilter* url_filter =
         supervised_user_service->GetURLFilter();
-    url_filter->GetFilteringBehaviorForURLWithAsyncChecks(
+    url_filter->GetFilteringBehaviorWithAsyncChecks(
         params_.link_url,
         base::BindOnce(&RenderViewContextMenu::OnSupervisedUserURLFilterChecked,
                        weak_pointer_factory_.GetWeakPtr()),
@@ -4227,10 +4152,8 @@ void RenderViewContextMenu::CheckSupervisedUserURLFilterAndSaveLinkAs() {
 }
 
 void RenderViewContextMenu::OnSupervisedUserURLFilterChecked(
-    supervised_user::FilteringBehavior filtering_behavior,
-    supervised_user::FilteringBehaviorReason reason,
-    bool uncertain) {
-  if (filtering_behavior == supervised_user::FilteringBehavior::kAllow) {
+    supervised_user::SupervisedUserURLFilter::Result result) {
+  if (result.IsAllowed()) {
     ExecSaveLinkAs();
   }
 }
@@ -4372,8 +4295,7 @@ void RenderViewContextMenu::ExecCopyImageAt() {
   }
 }
 
-void RenderViewContextMenu::ExecSearchLensForImage(int event_flags,
-                                                   bool is_image_translate) {
+void RenderViewContextMenu::ExecSearchLensForImage(int event_flags) {
   CoreTabHelper* core_tab_helper =
       CoreTabHelper::FromWebContents(source_web_contents_);
   if (!core_tab_helper) {
@@ -4425,12 +4347,7 @@ void RenderViewContextMenu::ExecSearchLensForImage(int event_flags,
                   CONTEXT_MENU_SEARCH_IMAGE_WITH_GOOGLE_LENS);
     core_tab_helper->SearchWithLens(
         render_frame_host, params().src_url,
-        is_image_translate
-            ? lens::EntryPoint::
-                  CHROME_TRANSLATE_IMAGE_WITH_GOOGLE_LENS_CONTEXT_MENU_ITEM
-            : lens::EntryPoint::
-                  CHROME_SEARCH_WITH_GOOGLE_LENS_CONTEXT_MENU_ITEM,
-        is_image_translate);
+        lens::EntryPoint::CHROME_SEARCH_WITH_GOOGLE_LENS_CONTEXT_MENU_ITEM);
   }
 }
 
@@ -4512,7 +4429,7 @@ void RenderViewContextMenu::ExecRegionSearch(
 #endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
 }
 
-void RenderViewContextMenu::ExecSearchWebForImage(bool is_image_translate) {
+void RenderViewContextMenu::ExecSearchWebForImage() {
   CoreTabHelper* core_tab_helper =
       CoreTabHelper::FromWebContents(source_web_contents_);
   if (!core_tab_helper) {
@@ -4524,8 +4441,7 @@ void RenderViewContextMenu::ExecSearchWebForImage(bool is_image_translate) {
   }
   lens::RecordAmbientSearchQuery(
       lens::AmbientSearchEntryPoint::CONTEXT_MENU_SEARCH_IMAGE_WITH_WEB);
-  core_tab_helper->SearchByImage(render_frame_host, params().src_url,
-                                 is_image_translate);
+  core_tab_helper->SearchByImage(render_frame_host, params().src_url);
 }
 
 void RenderViewContextMenu::ExecLoadImage() {
@@ -4693,10 +4609,7 @@ void RenderViewContextMenu::ExecLanguageSettings(int event_flags) {
 // added benefit of also doing the right thing when Lacros is enabled).
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   chrome::SettingsWindowManager::GetInstance()->ShowOSSettings(
-      GetProfile(),
-      ash::features::IsOsSettingsRevampWayfindingEnabled()
-          ? chromeos::settings::mojom::kLanguagesSubpagePath
-          : chromeos::settings::mojom::kLanguagesAndInputSectionPath);
+      GetProfile(), chromeos::settings::mojom::kLanguagesSubpagePath);
 #else
   WindowOpenDisposition disposition = ui::DispositionFromEventFlags(
       event_flags, WindowOpenDisposition::NEW_FOREGROUND_TAB);

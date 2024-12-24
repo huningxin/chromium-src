@@ -4,6 +4,8 @@
 
 #include "components/history_embeddings/history_embeddings_service.h"
 
+#include <algorithm>
+
 #include "base/task/sequenced_task_runner.h"
 #include "base/test/bind.h"
 #include "base/test/metrics/histogram_tester.h"
@@ -12,6 +14,7 @@
 #include "base/test/test_future.h"
 #include "chrome/browser/history_embeddings/history_embeddings_service_factory.h"
 #include "chrome/browser/history_embeddings/history_embeddings_tab_helper.h"
+#include "chrome/browser/history_embeddings/history_embeddings_utils.h"
 #include "chrome/browser/optimization_guide/browser_test_util.h"
 #include "chrome/browser/optimization_guide/optimization_guide_keyed_service.h"
 #include "chrome/browser/optimization_guide/optimization_guide_keyed_service_factory.h"
@@ -121,6 +124,7 @@ class HistoryEmbeddingsBrowserTest : public InProcessBrowserTest {
           {{"SendQualityLog", "true"},
            {"ContentVisibilityThreshold", "0.01"},
            {"UseUrlFilter", "false"}}},
+         {kHistoryEmbeddingsAnswers, {{}}},
          {page_content_annotations::features::kPageContentAnnotations, {{}}},
 #if BUILDFLAG(IS_CHROMEOS)
          {chromeos::features::kFeatureManagementHistoryEmbedding, {{}}}
@@ -344,7 +348,7 @@ IN_PROC_BROWSER_TEST_F(HistoryEmbeddingsBrowserTest, LogDataIsPrepared) {
   base::HistogramTester histogram_tester;
   SearchResult result;
   result.scored_url_rows = {
-      ScoredUrlRow(ScoredUrl(0, 0, base::Time::Now(), 0.5f)),
+      ScoredUrlRow(ScoredUrl(0, 0, base::Time::Now(), 0.5f, 0.2f)),
   };
   service()->SendQualityLog(
       result, {1}, 3,
@@ -590,6 +594,37 @@ IN_PROC_BROWSER_TEST_F(HistoryEmbeddingsBrowserTest,
   }
 }
 
+IN_PROC_BROWSER_TEST_F(HistoryEmbeddingsBrowserTest, TitleInserted) {
+  auto contains_title = [](const std::string& s) {
+    return s.find("test1.html") != std::string::npos;
+  };
+  ASSERT_TRUE(embedded_test_server()->Start());
+  {
+    base::test::TestFuture<UrlData> store_future;
+    service()->SetPassagesStoredCallbackForTesting(
+        store_future.GetRepeatingCallback());
+    const GURL url = embedded_test_server()->GetURL("/inner_text/test1.html");
+    ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
+    UrlData url_data = store_future.Take();
+    // No title anywhere in passages.
+    EXPECT_FALSE(
+        std::ranges::any_of(url_data.passages.passages(), contains_title));
+  }
+  {
+    ScopedFeatureParametersForTesting enable_insert_title_passage;
+    enable_insert_title_passage.Get().insert_title_passage = true;
+
+    base::test::TestFuture<UrlData> store_future;
+    service()->SetPassagesStoredCallbackForTesting(
+        store_future.GetRepeatingCallback());
+    const GURL url = embedded_test_server()->GetURL("/inner_text/test1.html");
+    ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
+    UrlData url_data = store_future.Take();
+    // Title is in first passage.
+    EXPECT_TRUE(contains_title(url_data.passages.passages(0)));
+  }
+}
+
 IN_PROC_BROWSER_TEST_F(HistoryEmbeddingsRestrictedSigninBrowserTest,
                        SearchDoesNotReceiveAnswerForRestrictedSignin) {
   OverrideVisibilityScoresForTesting({
@@ -625,6 +660,49 @@ IN_PROC_BROWSER_TEST_F(HistoryEmbeddingsRestrictedSigninBrowserTest,
   }));
   histogram_tester.ExpectUniqueSample("History.Embeddings.QueryAnswerable",
                                       false, 1);
+}
+
+class HistoryEmbeddingsKillSwitchBrowserTest
+    : public HistoryEmbeddingsBrowserTest {
+  void InitializeFeatureList() override {
+    feature_list_.InitWithFeaturesAndParameters(
+        {{kHistoryEmbeddings,
+          {{"SendQualityLog", "true"},
+           {"ContentVisibilityThreshold", "0.01"},
+           {"UseUrlFilter", "false"}}},
+         {page_content_annotations::features::kPageContentAnnotations, {{}}},
+#if BUILDFLAG(IS_CHROMEOS)
+         {chromeos::features::kFeatureManagementHistoryEmbedding, {{}}}
+#endif  // BUILDFLAG(IS_CHROMEOS)
+        },
+        /*disabled_features=*/{kLaunchedHistoryEmbeddings});
+  }
+};
+
+IN_PROC_BROWSER_TEST_F(HistoryEmbeddingsKillSwitchBrowserTest,
+                       NoCrashAfterKillSwitch) {
+  OverrideVisibilityScoresForTesting({
+      {"A a B C b a 2 D", 0.99},
+  });
+
+  ASSERT_TRUE(embedded_test_server()->Start());
+  base::test::TestFuture<UrlData> store_future;
+  service()->SetPassagesStoredCallbackForTesting(
+      store_future.GetRepeatingCallback());
+
+  const GURL url = embedded_test_server()->GetURL("/inner_text/test1.html");
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
+  EXPECT_TRUE(store_future.Wait());
+
+  {
+    base::test::TestFuture<SearchResult> search_future;
+    service()->Search(nullptr, "A B C D e f g", {}, 1, /*skip_answering=*/false,
+                      search_future.GetRepeatingCallback());
+    SearchResult result = search_future.Take();
+    EXPECT_EQ(result.scored_url_rows.size(), 1u);
+    EXPECT_EQ(result.scored_url_rows[0].GetBestPassage(), "A a B C b a 2 D");
+    EXPECT_EQ(result.scored_url_rows[0].row.url(), url);
+  }
 }
 
 }  // namespace history_embeddings

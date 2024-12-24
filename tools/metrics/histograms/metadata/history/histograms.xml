@@ -1731,7 +1731,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.ComputeAnswerStatus"
-    enum="ComputeAnswerStatus" expires_after="2024-12-31">
+    enum="ComputeAnswerStatus" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -1746,7 +1746,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.ComputeAnswerTime{ComputeAnswerStatus}"
-    units="ms" expires_after="2025-04-27">
+    units="ms" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -1772,7 +1772,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseAsCacheAccessTime.StorageRead"
-    units="ms" expires_after="2024-12-31">
+    units="ms" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1785,7 +1785,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseAsCacheAccessTime.TotalWait"
-    units="ms" expires_after="2024-12-31">
+    units="ms" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1797,7 +1797,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseCachedPassageHitCount"
-    units="passages" expires_after="2025-05-25">
+    units="passages" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1808,7 +1808,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseCachedPassageRatio" units="%"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1822,7 +1822,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseCachedPassageTryCount"
-    units="passages" expires_after="2025-06-08">
+    units="passages" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1833,7 +1833,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseCacheHit" enum="Boolean"
-    expires_after="2024-12-31">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1845,7 +1845,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseInitialized" enum="Boolean"
-    expires_after="2025-05-25">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1855,7 +1855,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseIterationSkippedEmbeddings"
-    units="rows" expires_after="2024-12-31">
+    units="rows" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>manukh@chromium.org</owner>
   <summary>
@@ -1869,7 +1869,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseIterationSkippedMismatches"
-    units="rows" expires_after="2024-12-31">
+    units="rows" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>manukh@chromium.org</owner>
   <summary>
@@ -1883,7 +1883,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseIterationSkippedMissizedEmbeddings"
-    units="rows" expires_after="2024-12-31">
+    units="rows" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>manukh@chromium.org</owner>
   <summary>
@@ -1897,7 +1897,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseIterationSkippedPassages"
-    units="rows" expires_after="2024-12-31">
+    units="rows" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>manukh@chromium.org</owner>
   <summary>
@@ -1911,7 +1911,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseIterationYielded" units="rows"
-    expires_after="2024-12-31">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>manukh@chromium.org</owner>
   <summary>
@@ -1923,7 +1923,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseStoredAsciiPassages"
-    units="passages" expires_after="2025-03-30">
+    units="passages" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -1937,7 +1937,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseStoredNonAsciiPassageRatio"
-    units="%" expires_after="2025-03-30">
+    units="%" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -1951,7 +1951,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.DatabaseStoredNonAsciiPassages"
-    units="passages" expires_after="2025-03-30">
+    units="passages" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -1965,7 +1965,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.CacheHit" enum="Boolean"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -1977,7 +1977,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.CpuUsage2" units="1/100 %"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -1989,7 +1989,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.EmbeddingsGenerationSucceeded"
-    enum="Boolean" expires_after="2025-05-04">
+    enum="Boolean" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -1999,7 +1999,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.EmbeddingsModelLoadDuration"
-    units="ms" expires_after="2025-05-04">
+    units="ms" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2009,7 +2009,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.EmbeddingsModelLoadSucceeded"
-    enum="Boolean" expires_after="2024-12-31">
+    enum="Boolean" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2019,7 +2019,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.InputTruncated" enum="Boolean"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2029,7 +2029,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.ModelInfoStatus"
-    enum="EmbeddingsModelInfoStatus" expires_after="2024-12-31">
+    enum="EmbeddingsModelInfoStatus" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2041,7 +2041,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="History.Embeddings.Embedder.PassageEmbeddingsGenerationDuration"
-    units="ms" expires_after="2025-05-04">
+    units="ms" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2052,7 +2052,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="History.Embeddings.Embedder.PassageEmbeddingsGenerationThreadDuration"
-    units="ms" expires_after="2025-05-04">
+    units="ms" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2063,7 +2063,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.PassageTokenCount" units="tokens"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2073,7 +2073,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.QueryEmbeddingsGenerationDuration"
-    units="ms" expires_after="2025-05-11">
+    units="ms" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2085,7 +2085,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="History.Embeddings.Embedder.QueryEmbeddingsGenerationThreadDuration"
-    units="ms" expires_after="2025-05-11">
+    units="ms" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2096,7 +2096,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.SentencePieceModelLoadDuration"
-    units="ms" expires_after="2025-05-04">
+    units="ms" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2106,7 +2106,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.SentencePieceModelLoadSucceeded"
-    enum="Boolean" expires_after="2024-12-31">
+    enum="Boolean" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2116,7 +2116,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.TokenizationDuration" units="ms"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2126,7 +2126,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Embedder.TokenizationSucceeded"
-    enum="Boolean" expires_after="2025-05-04">
+    enum="Boolean" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2136,7 +2136,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.EmbeddingScoreSufficient" enum="Boolean"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2150,7 +2150,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.ExtractionCancelled"
-    enum="EmbeddingsExtractionCancelled" expires_after="2025-05-04">
+    enum="EmbeddingsExtractionCancelled" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -2161,7 +2161,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.LoadedMissizedEmbedding" enum="Boolean"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -2172,7 +2172,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.NumMatchedUrlsVisible" units="counts"
-    expires_after="2025-05-11">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2182,8 +2182,19 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="History.Embeddings.NumUrlsAddedByWordMatch" units="counts"
+    expires_after="2025-07-31">
+  <owner>orinj@chromium.org</owner>
+  <owner>src/components/history_embeddings/OWNERS</owner>
+  <summary>
+    Number of URLs that were added to a result set due to having a sufficient
+    word match score and an insufficient total score. Logged each time a query
+    leveraging history embeddings is performed.
+  </summary>
+</histogram>
+
 <histogram name="History.Embeddings.NumUrlsDiscardedForLowScore" units="counts"
-    expires_after="2024-12-31">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>orinj@chromium.org</owner>
   <summary>
@@ -2193,8 +2204,24 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="History.Embeddings.NumUrlsKeptByWordMatch" units="counts"
+    expires_after="2025-07-31">
+  <owner>orinj@chromium.org</owner>
+  <owner>src/components/history_embeddings/OWNERS</owner>
+  <summary>
+    Number of URLs that were kept in a result set due to having a sufficient
+    word match score and an insufficient total score, after capping to the
+    maximum count for presentation to the user. Logged each time a query
+    leveraging history embeddings is performed.
+
+    Note, this differs from History.Embeddings.NumUrlsAddedByWordMatch in that
+    it measures after capping. Comparing these two metrics can reveal how much
+    word matches are pushed off the list by first total score results.
+  </summary>
+</histogram>
+
 <histogram name="History.Embeddings.NumUrlsMatched" units="counts"
-    expires_after="2024-12-31">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
@@ -2205,7 +2232,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Passages.ExtractionTime" units="ms"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2217,7 +2244,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Passages.PassageCount" units="passages"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2226,8 +2253,18 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="History.Embeddings.Passages.TitleInserted" enum="Boolean"
+    expires_after="2025-07-31">
+  <owner>orinj@chromium.org</owner>
+  <owner>src/components/history_embeddings/OWNERS</owner>
+  <summary>
+    Whether a dedicated web contents title passage was inserted at the beginning
+    of the extracted passages vector. Logged each time passages are extracted.
+  </summary>
+</histogram>
+
 <histogram name="History.Embeddings.Passages.TotalTextSize" units="bytes"
-    expires_after="2025-05-04">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2237,7 +2274,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Quality.LogEntryPrepared" enum="Boolean"
-    expires_after="2025-05-25">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>manukh@chromium.org</owner>
   <summary>
@@ -2247,7 +2284,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.QueryAnswerable" enum="Boolean"
-    expires_after="2024-12-31">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2258,7 +2295,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.QueryEmbeddingSucceeded" enum="Boolean"
-    expires_after="2024-12-31">
+    expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2268,7 +2305,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.QueryFiltered"
-    enum="EmbeddingsQueryFiltered" expires_after="2024-12-31">
+    enum="EmbeddingsQueryFiltered" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>robertogden@chromium.org</owner>
   <summary>
@@ -2277,7 +2314,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.Completed" enum="Boolean"
-    expires_after="2024-12-31">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2287,7 +2324,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.Duration" units="ms"
-    expires_after="2025-05-11">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2297,7 +2334,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.EmbeddingCount" units="embeddings"
-    expires_after="2025-05-11">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2307,7 +2344,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.ModifiedNonAsciiPassageCount"
-    units="passages" expires_after="2025-03-09">
+    units="passages" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2321,7 +2358,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.PassageScanningTime" units="ms"
-    expires_after="2025-05-11">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2333,7 +2370,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.ScoringTime" units="ms"
-    expires_after="2025-05-11">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2344,7 +2381,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.SkippedNonAsciiPassageCount"
-    units="passages" expires_after="2025-05-11">
+    units="passages" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2355,7 +2392,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.TotalSearchTime" units="ms"
-    expires_after="2025-05-11">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2365,7 +2402,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.Search.UrlCount" units="urls"
-    expires_after="2025-05-25">
+    expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2375,7 +2412,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.UserActions{UiSurface}"
-    enum="EmbeddingsUserActions" expires_after="2025-04-15">
+    enum="EmbeddingsUserActions" expires_after="2025-07-31">
   <owner>orinj@chromium.org</owner>
   <owner>src/components/history_embeddings/OWNERS</owner>
   <summary>
@@ -2394,7 +2431,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.Embeddings.VisibilityModelAvailableAtQuery"
-    enum="Boolean" expires_after="2024-12-31">
+    enum="Boolean" expires_after="2025-07-31">
   <owner>sophiechang@chromium.org</owner>
   <owner>zekunjiang@google.com</owner>
   <summary>
@@ -2668,7 +2705,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.VisitedLinks.HashTableLengthOnReaderInit"
-    units="entries" expires_after="2025-04-13">
+    units="entries" expires_after="2025-06-15">
   <owner>kyraseevers@chromium.org</owner>
   <owner>brgoldstein@google.com</owner>
   <summary>
@@ -2679,7 +2716,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.VisitedLinks.HashTableSizeOnTableCreate" units="MB"
-    expires_after="2025-04-13">
+    expires_after="2025-06-15">
   <owner>kyraseevers@chromium.org</owner>
   <owner>brgoldstein@google.com</owner>
   <summary>
@@ -2689,7 +2726,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="History.VisitedLinks.HashTableUsageOnLinkAdded"
-    units="fingerprints" expires_after="2025-04-13">
+    units="fingerprints" expires_after="2025-06-15">
   <owner>kyraseevers@chromium.org</owner>
   <owner>brgoldstein@google.com</owner>
   <summary>

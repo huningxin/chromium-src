@@ -7,7 +7,6 @@ package org.chromium.chrome.browser.privacy_sandbox;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.text.method.LinkMovementMethod;
-import android.text.style.ClickableSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -26,6 +25,7 @@ import org.chromium.content_public.browser.LifecycleState;
 import org.chromium.content_public.browser.WebContents;
 import org.chromium.content_public.browser.WebContentsObserver;
 import org.chromium.ui.base.ActivityWindowAndroid;
+import org.chromium.ui.text.ChromeClickableSpan;
 import org.chromium.ui.text.SpanApplier;
 import org.chromium.ui.util.ColorUtils;
 import org.chromium.ui.widget.ButtonCompat;
@@ -167,11 +167,14 @@ public class PrivacySandboxDialogNoticeEeaV2 extends ChromeDialog
     }
 
     private void handleSiteSuggestedAdsDropdownClick(View view) {
-        // TODO(crbug.com/379337243): Add metrics
         if (isSiteSuggestedAdsDropdownExpanded()) {
+            mPrivacySandboxBridge.promptActionOccurred(
+                    PromptAction.NOTICE_SITE_SUGGESTED_ADS_MORE_INFO_CLOSED, mSurfaceType);
             mSiteSuggestedAdsDropdownContainer.setVisibility(View.GONE);
             mSiteSuggestedAdsDropdownContainer.removeAllViews();
         } else {
+            mPrivacySandboxBridge.promptActionOccurred(
+                    PromptAction.NOTICE_SITE_SUGGESTED_ADS_MORE_INFO_OPENED, mSurfaceType);
             mSiteSuggestedAdsDropdownContainer.setVisibility(View.VISIBLE);
             LayoutInflater.from(getContext())
                     .inflate(
@@ -209,11 +212,14 @@ public class PrivacySandboxDialogNoticeEeaV2 extends ChromeDialog
     }
 
     private void handleAdMeasurementDropdownClick(View view) {
-        // TODO(crbug.com/379337243): Add metrics
         if (isMeasurementDropdownExpanded()) {
+            mPrivacySandboxBridge.promptActionOccurred(
+                    PromptAction.NOTICE_ADS_MEASUREMENT_MORE_INFO_CLOSED, mSurfaceType);
             mAdMeasurementDropdownContainer.setVisibility(View.GONE);
             mAdMeasurementDropdownContainer.removeAllViews();
         } else {
+            mPrivacySandboxBridge.promptActionOccurred(
+                    PromptAction.NOTICE_ADS_MEASUREMENT_MORE_INFO_OPENED, mSurfaceType);
             mAdMeasurementDropdownContainer.setVisibility(View.VISIBLE);
             LayoutInflater.from(getContext())
                     .inflate(
@@ -310,12 +316,8 @@ public class PrivacySandboxDialogNoticeEeaV2 extends ChromeDialog
                             new SpanApplier.SpanInfo(
                                     "<link>",
                                     "</link>",
-                                    new ClickableSpan() {
-                                        @Override
-                                        public void onClick(View view) {
-                                            onPrivacyPolicyClicked(view);
-                                        }
-                                    })));
+                                    new ChromeClickableSpan(
+                                            getContext(), this::onPrivacyPolicyClicked))));
             mLearnMoreBullet1Description.setMovementMethod(LinkMovementMethod.getInstance());
             if (mThinWebView == null || mWebContents == null || mWebContents.isDestroyed()) {
                 String privacyPolicyUrl =

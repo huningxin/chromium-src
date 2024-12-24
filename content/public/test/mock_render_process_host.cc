@@ -19,7 +19,6 @@
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "content/browser/child_process_host_impl.h"
 #include "content/browser/child_process_security_policy_impl.h"
 #include "content/browser/file_system_access/file_system_access_error.h"
@@ -243,7 +242,8 @@ bool MockRenderProcessHost::ShutdownRequested() {
 
 bool MockRenderProcessHost::FastShutdownIfPossible(size_t page_count,
                                                    bool skip_unload_handlers,
-                                                   bool ignore_workers) {
+                                                   bool ignore_workers,
+                                                   bool ignore_keep_alive) {
   if (GetActiveViewCount() != page_count)
     return false;
   // We aren't actually going to do anything, but set |fast_shutdown_started_|
@@ -596,13 +596,13 @@ void MockRenderProcessHost::WriteIntoTrace(
   proto->set_id(GetDeprecatedID());
 }
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 void MockRenderProcessHost::ReinitializeLogging(
     uint32_t logging_dest,
     base::ScopedFD log_file_descriptor) {
   NOTIMPLEMENTED();
 }
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 uint64_t MockRenderProcessHost::GetPrivateMemoryFootprint() {
   return 0;

@@ -13,7 +13,6 @@
 #include "base/functional/overloaded.h"
 #include "base/memory/raw_ptr.h"
 #include "components/performance_manager/graph/graph_impl.h"
-#include "components/performance_manager/graph/initializing_frame_node_observer.h"
 #include "components/performance_manager/graph/page_node_impl.h"
 #include "components/performance_manager/graph/process_node_impl.h"
 #include "components/performance_manager/graph/worker_node_impl.h"
@@ -164,6 +163,11 @@ void FrameNodeImpl::OnWebMemoryMeasurementRequested(
       std::move(callback), mojo::GetBadMessageCallback());
 }
 
+void FrameNodeImpl::OnFreezingOriginTrialOptOut() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  document_.has_freezing_origin_trial_opt_out.SetAndMaybeNotify(this, true);
+}
+
 const blink::LocalFrameToken& FrameNodeImpl::GetFrameToken() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return frame_token_;
@@ -233,9 +237,9 @@ bool FrameNodeImpl::IsHoldingWebLock() const {
   return is_holding_weblock_.value();
 }
 
-bool FrameNodeImpl::IsHoldingIndexedDBLock() const {
+bool FrameNodeImpl::IsHoldingBlockingIndexedDBLock() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  return is_holding_indexeddb_lock_.value();
+  return is_holding_blocking_indexeddb_lock_.value();
 }
 
 bool FrameNodeImpl::UsesWebRTC() const {
@@ -266,6 +270,11 @@ bool FrameNodeImpl::IsAudible() const {
 bool FrameNodeImpl::IsCapturingMediaStream() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return is_capturing_media_stream_.value();
+}
+
+bool FrameNodeImpl::HasFreezingOriginTrialOptOut() const {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  return document_.has_freezing_origin_trial_opt_out.value();
 }
 
 std::optional<ViewportIntersection> FrameNodeImpl::GetViewportIntersection()
@@ -422,10 +431,13 @@ void FrameNodeImpl::SetIsHoldingWebLock(bool is_holding_weblock) {
   is_holding_weblock_.SetAndMaybeNotify(this, is_holding_weblock);
 }
 
-void FrameNodeImpl::SetIsHoldingIndexedDBLock(bool is_holding_indexeddb_lock) {
+void FrameNodeImpl::SetIsHoldingBlockingIndexedDBLock(
+    bool is_holding_blocking_indexeddb_lock) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK_NE(is_holding_indexeddb_lock, is_holding_indexeddb_lock_.value());
-  is_holding_indexeddb_lock_.SetAndMaybeNotify(this, is_holding_indexeddb_lock);
+  DCHECK_NE(is_holding_blocking_indexeddb_lock,
+            is_holding_blocking_indexeddb_lock_.value());
+  is_holding_blocking_indexeddb_lock_.SetAndMaybeNotify(
+      this, is_holding_blocking_indexeddb_lock);
 }
 
 void FrameNodeImpl::SetIsAudible(bool is_audible) {
@@ -529,6 +541,7 @@ void FrameNodeImpl::OnNavigationCommitted(
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   if (same_document) {
+    DCHECK(CanSetAndNotifyProperty());
     url = std::exchange(document_.url, std::move(url));
 
     if (url != document_.url) {
@@ -764,9 +777,6 @@ void FrameNodeImpl::OnInitializingEdges() {
     parent_frame_node_->AddChildFrame(this);
   page_node_->AddFrame(base::PassKey<FrameNodeImpl>(), this);
   process_node_->AddFrame(this);
-
-  // Notify the initializing observers.
-  graph()->NotifyFrameNodeInitializing(this);
 }
 
 void FrameNodeImpl::OnBeforeLeavingGraph() {
@@ -777,13 +787,10 @@ void FrameNodeImpl::OnBeforeLeavingGraph() {
   SeverPageRelationshipsAndMaybeReparent();
 }
 
-void FrameNodeImpl::OnUninitializing() {
+void FrameNodeImpl::OnUninitializingEdges() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   DCHECK(child_frame_nodes_.empty());
-
-  // Notify the initializing observers for cleanup.
-  graph()->NotifyFrameNodeTearingDown(this);
 
   // Leave the page.
   DCHECK(graph()->NodeInGraph(page_node_));
@@ -798,14 +805,15 @@ void FrameNodeImpl::OnUninitializing() {
   // And leave the process.
   DCHECK(graph()->NodeInGraph(process_node_));
   process_node_->RemoveFrame(this);
+}
+
+void FrameNodeImpl::CleanUpNodeState() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   // Disable querying this node using process and frame routing ids.
   graph()->UnregisterFrameNodeForId(process_node_->GetRenderProcessHostId(),
                                     render_frame_id_, this);
-}
 
-void FrameNodeImpl::RemoveNodeAttachedData() {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DestroyNodeInlineDataStorage();
 }
 
@@ -959,9 +967,11 @@ void FrameNodeImpl::SetInheritedIsIntersectingLargeArea(
 FrameNodeImpl::DocumentProperties::DocumentProperties() = default;
 FrameNodeImpl::DocumentProperties::~DocumentProperties() = default;
 
+// LINT.IfChange(document_prop_reset)
 void FrameNodeImpl::DocumentProperties::Reset(FrameNodeImpl* frame_node,
                                               GURL url_in,
                                               url::Origin origin_in) {
+  DCHECK(frame_node->CanSetAndNotifyProperty());
   // Update the URL and origin properties.
   url_in = std::exchange(url, std::move(url_in));
 
@@ -989,6 +999,9 @@ void FrameNodeImpl::DocumentProperties::Reset(FrameNodeImpl* frame_node,
   network_almost_idle.SetAndMaybeNotify(frame_node, false);
   had_form_interaction.SetAndMaybeNotify(frame_node, false);
   had_user_edits.SetAndMaybeNotify(frame_node, false);
+  uses_web_rtc.SetAndMaybeNotify(frame_node, false);
+  has_freezing_origin_trial_opt_out.SetAndMaybeNotify(frame_node, false);
 }
+// LINT.ThenChange()
 
 }  // namespace performance_manager

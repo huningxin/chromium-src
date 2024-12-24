@@ -175,8 +175,9 @@ class AppInfoDialogViewsTest : public BrowserWithTestWindowTest,
   }
 
   void CloseAppInfo() {
-    if (widget_)
+    if (widget_) {
       widget_->CloseNow();
+    }
     base::RunLoop().RunUntilIdle();
     DCHECK(!widget_);
   }
@@ -278,7 +279,7 @@ TEST_F(AppInfoDialogViewsTest, DestroyedProfileClosesDialog) {
   // profile. On ChromeOS (i.e. Ash-Chrome), profile won't be delete by that
   // because even if all browsers are closed Profile is expected to be kept
   // for system. Explicitly delete it here.
-  DeleteProfile(GetDefaultProfileName());
+  DeleteProfile(*GetDefaultProfileName());
   base::RunLoop().RunUntilIdle();
 
   EXPECT_FALSE(widget_);

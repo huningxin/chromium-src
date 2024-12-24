@@ -83,8 +83,9 @@ reviewer.
 </variants>
 
 <!-- Each profile on a client is assigned a unique bucket, see go/profile-metrics.
-The guest profile has a profile bucket 0, regular profiles start at bucket 1.
-Incognito profiles count towards the original profile. -->
+Regular profiles start at bucket 1, we don't consider non-regular profiles. -->
+
+<!-- LINT.IfChange(Profile) -->
 
 <variants name="Profile">
   <variant name="Profile_1" summary="Profile bucket 1 for a client."/>
@@ -97,20 +98,12 @@ Incognito profiles count towards the original profile. -->
   <variant name="Profile_8" summary="Profile bucket 8 for a client."/>
   <variant name="Profile_9" summary="Profile bucket 9 for a client."/>
   <variant name="Profile_10" summary="Profile bucket 10 for a client."/>
-  <variant name="Profile_11" summary="Profile bucket 11 for a client."/>
-  <variant name="Profile_12" summary="Profile bucket 12 for a client."/>
-  <variant name="Profile_13" summary="Profile bucket 13 for a client."/>
-  <variant name="Profile_14" summary="Profile bucket 14 for a client."/>
-  <variant name="Profile_15" summary="Profile bucket 15 for a client."/>
-  <variant name="Profile_16" summary="Profile bucket 16 for a client."/>
-  <variant name="Profile_17" summary="Profile bucket 17 for a client."/>
-  <variant name="Profile_18" summary="Profile bucket 18 for a client."/>
-  <variant name="Profile_19" summary="Profile bucket 19 for a client."/>
-  <variant name="Profile_20" summary="Profile bucket 20 for a client."/>
-  <variant name="Profile_21+"
-      summary="All profiles with a bucket of 21+ will be bucketed here, 21
-               inclusive."/>
+  <variant name="Profile_11+"
+      summary="All profiles with a bucket greater than 10 will be bucketed
+               here."/>
 </variants>
+
+<!-- LINT.ThenChange(//tools/metrics/histograms/metadata/settings/histograms.xml:Profile) -->
 
 <variants name="PSNotice">
   <variant name="MeasurementNoticeModal"
@@ -1251,7 +1244,7 @@ Incognito profiles count towards the original profile. -->
 </histogram>
 
 <histogram name="PrivacySandbox.Attestations.IsSiteAttestedStatus"
-    enum="PrivacySandboxApiAllowed" expires_after="2025-04-13">
+    enum="PrivacySandboxApiAllowed" expires_after="2025-06-15">
   <owner>shivanisha@chromium.org</owner>
   <owner>xiaochenzh@chromium.org</owner>
   <summary>
@@ -1331,6 +1324,51 @@ Incognito profiles count towards the original profile. -->
   </summary>
 </histogram>
 
+<histogram name="PrivacySandbox.DarkLaunch.{Profile}.NonSyncedPref.PromptShown"
+    enum="Boolean" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records if the {Profile} has seen the prompt and whether they are eligible.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
+<histogram
+    name="PrivacySandbox.DarkLaunch.{Profile}.NonSyncedPref.PromptShownSince"
+    units="days" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records the duration of how long it's been since the {Profile} has seen the
+    prompt.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
+<histogram
+    name="PrivacySandbox.DarkLaunch.{Profile}.NonSyncedPref.PromptSuppressionReason"
+    enum="PrivacySandboxPromptSuppressionReason" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records the reason why the fake prompt was suppressed on a {Profile}.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
+<histogram
+    name="PrivacySandbox.DarkLaunch.{Profile}.NonSyncedPref.PromptSuppressionReasonsCombined"
+    units="count" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records the reasons why the fake prompt was suppressed on a {Profile} if
+    there are multiple, stored as an integer.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
 <histogram name="PrivacySandbox.DarkLaunch.{Profile}.PrimaryAccountOnStartup"
     enum="PrivacySandboxPrimaryAccountUserGroups" expires_after="2025-06-11">
   <owner>chrstne@google.com</owner>
@@ -1371,6 +1409,62 @@ Incognito profiles count towards the original profile. -->
   <token key="Profile" variants="Profile"/>
 </histogram>
 
+<histogram name="PrivacySandbox.DarkLaunch.{Profile}.SyncedPref.PromptShown"
+    enum="Boolean" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records if the {Profile} has seen the prompt and whether they are eligible.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
+<histogram
+    name="PrivacySandbox.DarkLaunch.{Profile}.SyncedPref.PromptShownSince"
+    units="days" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records the duration of how long it's been since the {Profile} has seen the
+    prompt.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
+<histogram
+    name="PrivacySandbox.DarkLaunch.{Profile}.SyncedPref.PromptSuppressionReason"
+    enum="PrivacySandboxPromptSuppressionReason" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records the reason why the fake prompt was suppressed on a {Profile}.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
+<histogram
+    name="PrivacySandbox.DarkLaunch.{Profile}.SyncedPref.PromptSuppressionReasonsCombined"
+    units="count" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records the reasons why the fake prompt was suppressed on a {Profile},
+    stored as an integer.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
+<histogram name="PrivacySandbox.DarkLaunch.{Profile}.UserGroups"
+    enum="PrivacySandboxPrimaryAccountUserGroups" expires_after="2025-06-11">
+  <owner>chrstne@google.com</owner>
+  <owner>koilos@google.com</owner>
+  <summary>
+    Records the sign in status of the a {Profile} at the point of when the
+    notice is shown.
+  </summary>
+  <token key="Profile" variants="Profile"/>
+</histogram>
+
 <histogram
     name="PrivacySandbox.Notice.FirstShownToInteractedDuration.{PSNotice}_{PSNoticeAction}"
     units="ms" expires_after="2025-06-11">
@@ -1401,7 +1495,6 @@ Incognito profiles count towards the original profile. -->
     enum="PrivacySandboxNoticeAction" expires_after="2025-06-11">
   <owner>chrstne@google.com</owner>
   <owner>koilos@google.com</owner>
-  <owner>koilos-team@google.com</owner>
   <summary>
     Records the action performed on a notice {PSNotice} for a profile.
   </summary>
@@ -1431,7 +1524,6 @@ Incognito profiles count towards the original profile. -->
     enum="PrivacySandboxNoticeStartupState" expires_after="2025-06-11">
   <owner>chrstne@google.com</owner>
   <owner>koilos@google.com</owner>
-  <owner>koilos-team@google.com</owner>
   <summary>
     Records startup state of a notice {PSNotice} during the profile start up.
   </summary>

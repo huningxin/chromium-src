@@ -14,6 +14,7 @@
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/animation_delegate.h"
 #include "ui/gfx/animation/linear_animation.h"
+#include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/vector_icon_types.h"
 #include "ui/views/controls/image_view.h"
 #include "ui/views/layout/flex_layout_view.h"
@@ -125,6 +126,9 @@ class VIEWS_EXPORT TabbedPane : public FlexLayoutView {
   // title.
   void UpdateAccessibleName();
 
+  // Sets whether a divider will be drawn underneath the Tab Strip.
+  void SetDrawTabDivider(bool draw);
+
  private:
   friend class FocusTraversalTest;
   friend class TabbedPaneTab;
@@ -163,6 +167,9 @@ class VIEWS_EXPORT TabbedPaneTab : public View {
   METADATA_HEADER(TabbedPaneTab, View)
 
  public:
+  static constexpr int kDefaultIconSize = 16;
+  static constexpr int kDefaultTitleLeftMargin = kDefaultIconSize / 2;
+
   TabbedPaneTab(TabbedPaneTabStrip* tab_strip,
                 const std::u16string& title,
                 const gfx::VectorIcon* tab_icon);
@@ -178,6 +185,9 @@ class VIEWS_EXPORT TabbedPaneTab : public View {
   const std::u16string& GetTitleText() const;
   void SetTitleText(const std::u16string& text);
 
+  void SetTitleMargin(const gfx::Insets& margin);
+  void SetIconMargin(const gfx::Insets& margin);
+
   // Overridden from View:
   bool OnMousePressed(const ui::MouseEvent& event) override;
   void OnMouseEntered(const ui::MouseEvent& event) override;
@@ -191,10 +201,9 @@ class VIEWS_EXPORT TabbedPaneTab : public View {
   bool OnKeyPressed(const ui::KeyEvent& event) override;
   void OnThemeChanged() override;
 
- private:
-  static constexpr int kIconSize = 16;
-  static constexpr int kIconRightMargin = kIconSize / 2;
+  void UpdateEnabledColor(bool enabled);
 
+ private:
   enum class State {
     kInactive,
     kActive,
@@ -256,14 +265,17 @@ class VIEWS_EXPORT TabbedPaneTabStrip : public View,
 
   // Adds a new TabbedPaneTab as a child of this View. This method should only
   // be used when TabbedPaneTabStrip is instantiated as a standalone component.
-  void AddTab(const std::u16string& title, const gfx::VectorIcon* tab_icon);
-  void AddTabAt(const std::u16string& title,
-                const gfx::VectorIcon* tab_icon,
-                size_t index);
+  TabbedPaneTab* AddTab(const std::u16string& title,
+                        const gfx::VectorIcon* tab_icon);
+  TabbedPaneTab* AddTabAt(const std::u16string& title,
+                          const gfx::VectorIcon* tab_icon,
+                          size_t index);
 
   // AnimationDelegate:
   void AnimationProgressed(const gfx::Animation* animation) override;
   void AnimationEnded(const gfx::Animation* animation) override;
+
+  void SetEnabled(bool enabled);
 
   // Called by TabbedPaneTabStrip when the selected tab changes. This function
   // is only called if |from_tab| is not null, i.e., there was a previously
@@ -302,6 +314,9 @@ class VIEWS_EXPORT TabbedPaneTabStrip : public View,
   // instead of expecting the tab strip to stretch across its parent container.
   void SetDefaultFlex(int flex);
 
+  // Sets how far apart the tabs will be positioned.
+  void SetTabSpacing(int spacing);
+
   TabbedPane::Orientation GetOrientation() const;
   TabbedPane::TabStripStyle GetStyle() const;
 
@@ -311,6 +326,9 @@ class VIEWS_EXPORT TabbedPaneTabStrip : public View,
   // Updates its own accessible name, and also calls TabbedPane's
   // UpdateAccessibleName method if |tabbed_pane_| is defined.
   void UpdateAccessibleName();
+
+  // Sets whether a divider will be drawn underneath the Tab Strip.
+  void SetDrawTabDivider(bool draw);
 
  protected:
   // View:
@@ -358,6 +376,10 @@ class VIEWS_EXPORT TabbedPaneTabStrip : public View,
   // An optional parent container which connects Tabs in the TabStrip to
   // content views.
   raw_ptr<TabbedPane> tabbed_pane_;
+
+  // Whether to draw the unselected divider below the tabs. Useful for when
+  // the caller wants to use a custom divider instead.
+  bool draw_tab_divider_ = true;
 };
 
 BEGIN_VIEW_BUILDER(VIEWS_EXPORT, TabbedPane, FlexLayoutView)

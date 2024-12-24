@@ -1512,6 +1512,17 @@ Style notes:
 You can also use the keyboard shortcut. First, highlight text, then press <ph name="modifier">$1<ex>launcher</ex></ph> + s.
       </message>
 
+      <!-- FaceGaze dialog strings -->
+      <message name="IDS_ASH_FACEGAZE_DISABLE_CONFIRMATION_TEXT" desc="The text for the modal dialog shown when the user disables FaceGaze, to confirm they meant to disable the feature.">
+        Are you sure you want to turn off face control?
+      </message>
+      <message name="IDS_ASH_FACEGAZE_CURSOR_CONTROL_DISABLE_CONFIRMATION_TEXT" desc="The text for the modal dialog shown when the user disables cursor control in FaceGaze, to confirm they meant to disable the feature.">
+        Are you sure you want to turn off mouse cursor control?
+      </message>
+      <message name="IDS_ASH_FACEGAZE_ACTIONS_DISABLE_CONFIRMATION_TEXT" desc="The text for the modal dialog shown when the user disables performing actions using facial gestures in FaceGaze, to confirm they meant to disable the feature.">
+        Are you sure you want to turn off facial gestures?
+      </message>
+
       <!-- Accessibility nudges -->
       <message name="IDS_ASH_ACCESSIBILITY_NUDGE_DICTATION_NO_FOCUSED_TEXT_FIELD" desc="Displayed in a nudge when Dictation is stopped automatically because there is no focused text field.">
         Go to a text field to use Dictation
@@ -4223,6 +4234,9 @@ No devices connected.
       </message>
       <message name="IDS_ASH_ACCELERATOR_DESCRIPTION_OPEN_ACCESSIBILITY_SETTINGS" desc="Label for accelerator action - Open accessibility quick settings.">
         Open accessibility options
+      </message>
+      <message name="IDS_ASH_ACCELERATOR_DESCRIPTION_TOGGLE_DO_NOT_DISTURB" desc="Label for accelerator action - Turn on/off do not disturb.">
+        Turn on/off do not disturb
       </message>
 
       <message name="IDS_ASH_ACCELERATOR_DESCRIPTION_FOCUS_CAMERA_PREVIEW" translateable="false" desc="Label for accelerator action - Focus on the camera preview.">
@@ -8201,17 +8215,11 @@ To shut down the device, press and hold the power button on the device again.
       <message name="IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT" desc="Text shown in the body of the dialog as part of the System UI Welcome Tour.">
         Take a quick tour to learn how to get around your <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph>. Get up and running in 5 steps.
       </message>
-      <message name="IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT_V2" desc="Text shown in the body of the dialog as part of the System UI Welcome Tour V2.">
-        Take a quick tour to learn how to get around your <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph>
-      </message>
       <message name="IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT" desc="Text shown as the Welcome Tour dialog title.">
         Hi there. <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph> is a little different.
       </message>
-      <message name="IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT_V2" desc="Text shown as the Welcome Tour V2 dialog title.">
-        6 tips to get started on <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph>
-      </message>
       <message name="IDS_ASH_WELCOME_TOUR_EXPLORE_APP_BUBBLE_BODY_TEXT" desc="Text shown in the body of a help bubble anchored to the Explore app as part of the System UI Welcome Tour.">
-        Those were the basics! Continue in Explore, our built-in app for tips and help. You’ll find tips for getting started, recommended apps, special offers, and the newest <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph> features.
+        Those were the basics! Continue in Explore, our built-in app for tips and help. You’ll find tips for getting started, special offers, and the newest <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph> features.
       </message>
       <message name="IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME" desc="The accessible name of a help bubble anchored to the Files app as part of the System UI Welcome Tour.">
         Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>5</ex></ph>. You can find the Files app in Launcher. Manage your local files and your Google Drive files, all in the Files app.

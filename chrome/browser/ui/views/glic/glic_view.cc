@@ -11,6 +11,7 @@
 #include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/layout_constants.h"
+#include "chrome/browser/ui/views/frame/browser_frame_bounds_change_animation.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
 #include "chrome/browser/ui/views/tabs/glic_button.h"
@@ -25,8 +26,6 @@ namespace glic {
 GlicView::GlicView(Profile* profile, const gfx::Size& initial_size) {
   profile_keep_alive_ = std::make_unique<ScopedProfileKeepAlive>(
       profile, ProfileKeepAliveOrigin::kGlicView);
-  keep_alive_ = std::make_unique<ScopedKeepAlive>(
-      KeepAliveOrigin::GLIC_VIEW, KeepAliveRestartOption::ENABLED);
   auto web_view = std::make_unique<GlicWebView>(profile);
   web_view_ = web_view.get();
   web_view->SetSize(initial_size);
@@ -38,9 +37,8 @@ GlicView::GlicView(Profile* profile, const gfx::Size& initial_size) {
 GlicView::~GlicView() = default;
 
 // static
-std::pair<views::UniqueWidgetPtr, GlicView*> GlicView::CreateWidget(
-    Profile* profile,
-    const gfx::Rect& initial_bounds) {
+views::UniqueWidgetPtr GlicView::CreateWidget(Profile* profile,
+                                              const gfx::Rect& initial_bounds) {
   views::Widget::InitParams params(
       views::Widget::InitParams::CLIENT_OWNS_WIDGET,
       views::Widget::InitParams::TYPE_WINDOW_FRAMELESS);
@@ -52,10 +50,33 @@ std::pair<views::UniqueWidgetPtr, GlicView*> GlicView::CreateWidget(
   views::UniqueWidgetPtr widget =
       std::make_unique<views::Widget>(std::move(params));
 
-  auto glic_view = std::make_unique<GlicView>(profile, initial_bounds.size());
-  GlicView* raw_glic_view = glic_view.get();
-  widget->SetContentsView(std::move(glic_view));
+  widget->SetContentsView(
+      std::make_unique<GlicView>(profile, initial_bounds.size()));
 
-  return {std::move(widget), raw_glic_view};
+  return widget;
+}
+
+GlicView* GlicView::FromWidget(views::Widget& widget) {
+  return static_cast<GlicView*>(widget.GetContentsView());
+}
+
+void GlicView::SetDraggableAreas(
+    const std::vector<gfx::Rect>& draggable_areas) {
+  draggable_areas_.assign(draggable_areas.begin(), draggable_areas.end());
+}
+
+bool GlicView::IsPointWithinDraggableArea(const gfx::Point& point) {
+  for (const gfx::Rect& rect : draggable_areas_) {
+    if (rect.Contains(point)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void GlicView::AnimateFrameBounds(const gfx::Rect& bounds) {
+  bounds_change_animation_ =
+      std::make_unique<BrowserFrameBoundsChangeAnimation>(*GetWidget(), bounds);
+  bounds_change_animation_->Start();
 }
 }  // namespace glic

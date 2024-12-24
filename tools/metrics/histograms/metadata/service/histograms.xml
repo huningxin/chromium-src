@@ -457,31 +457,21 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
-    name="ServiceWorker.FetchEvent.{Resource}.RaceNetworkRequest.DataTransfer.{Action}"
-    enum="ServiceWorkerRaceNetworkRequestDataTransferMojoResult"
-    expires_after="2025-05-11">
+    name="ServiceWorker.FetchEvent.{Resource}.RaceNetworkRequest.IsCloningDataFinishedBeforeResponseComplete"
+    enum="Boolean" expires_after="2025-05-11">
   <owner>sisidovski@chromium.org</owner>
   <owner>chrome-worker@google.com</owner>
   <summary>
-    The result of {Action} mojo data pipe operation while transfering data from
-    RaceNetworkRequest result. RaceNetworkRequest runs a race between the
-    network request which bypasses ServiceWorker, and the other request which
-    goes through the fetch handler. This metric is recorded for {Resource}.
+    Recorded as true when the data cloning from the original response to the
+    data pipe for the fetch handler is completed, but still the completion
+    status via `ServiceWorkerRaceNetworkRequestURLLoaderClient::OnComplete()` is
+    not invoked.
 
-    ServiceWorker.FetchEvent.{Resource}.RaceNetworkRequest.DataTransfer.Read was
-    broken from 2024-03-05 and 2024-03-25.
+    This metric is recorded per {Resource}.
   </summary>
   <token key="Resource">
     <variant name="MainResource" summary="main resource"/>
     <variant name="Subresource" summary="subresource"/>
-  </token>
-  <token key="Action">
-    <variant name="Initial"
-        summary="the value passed as a callback value in SimpleWatcher"/>
-    <variant name="Read" summary="read"/>
-    <variant name="WriteForFetchHandler" summary="write for fetch handler"/>
-    <variant name="WriteForRaceNetworkRequset"
-        summary="write for race network request"/>
   </token>
 </histogram>
 
@@ -698,7 +688,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="ServiceWorker.LoadTiming.MainFrame.MainResource.FetchHandlerStartToFetchHandlerEnd{EmbeddedWorkerInitialStatus}"
-    units="ms" expires_after="2025-04-13">
+    units="ms" expires_after="2025-06-15">
   <owner>yyanagisawa@chromium.org</owner>
   <owner>chrome-worker@google.com</owner>
   <summary>
@@ -777,7 +767,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="ServiceWorker.LoadTiming.MainFrame.MainResource.ForwardServiceWorkerToWorkerReady2{EmbeddedWorkerInitialStatus}{NavigationType}"
-    units="ms" expires_after="2025-04-13">
+    units="ms" expires_after="2025-06-15">
   <owner>yyanagisawa@chromium.org</owner>
   <owner>chrome-worker@google.com</owner>
   <summary>
@@ -1522,7 +1512,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="ServiceWorker.StartWorker.Status"
-    enum="ServiceWorkerStatusCode" expires_after="2025-04-13">
+    enum="ServiceWorkerStatusCode" expires_after="2025-06-15">
   <owner>yyanagisawa@chromium.org</owner>
   <owner>chikamune@chromium.org</owner>
   <owner>chrome-worker@google.com</owner>

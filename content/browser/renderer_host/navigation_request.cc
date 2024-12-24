@@ -41,7 +41,6 @@
 #include "base/types/pass_key.h"
 #include "build/build_config.h"
 #include "build/buildflag.h"
-#include "build/chromeos_buildflags.h"
 #include "components/viz/host/host_frame_sink_manager.h"
 #include "content/browser/agent_cluster_key.h"
 #include "content/browser/blob_storage/chrome_blob_storage_context.h"
@@ -850,9 +849,6 @@ void PersistOriginTrialsFromHeaders(
     const network::mojom::URLResponseHead* response,
     BrowserContext* browser_context,
     ukm::SourceId source_id) {
-  if (!base::FeatureList::IsEnabled(features::kPersistentOriginTrials))
-    return;
-
   // It is not possible to serialize opaque origins, so we cannot save any
   // information for them.
   if (origin.opaque())
@@ -1124,9 +1120,7 @@ bool IsFailedDownload(bool is_download,
 // ongoing navigation.
 bool MaybeEvictFromBackForwardCacheBySubframeNavigation(
     RenderFrameHostImpl* rfh) {
-  if (base::FeatureList::IsEnabled(
-          features::kEnableBackForwardCacheForOngoingSubframeNavigation) &&
-      rfh->GetParentOrOuterDocument() &&
+  if (rfh->GetParentOrOuterDocument() &&
       rfh->GetLifecycleState() ==
           RenderFrameHost::LifecycleState::kInBackForwardCache) {
     // Normally, ongoing subframe navigations will be deferred by
@@ -4341,22 +4335,6 @@ void NavigationRequest::OnResponseStarted(
   // origin-isolation opt-ins appropriately.
   CheckForIsolationOptIn(GetURL());
 
-  // Check if the response should be sent to a renderer.
-  // Regular downloads should not be rendered, but downloads with an
-  // unsuccessful response code will cause an error page to be rendered.
-  response_should_be_rendered_ =
-      (!is_download ||
-       IsFailedDownload(is_download, response_head_->headers.get())) &&
-      (!response_head_->headers.get() ||
-       (response_head_->headers->response_code() != net::HTTP_NO_CONTENT &&
-        response_head_->headers->response_code() != net::HTTP_RESET_CONTENT &&
-        !ShouldRenderFallbackContentForResponse(*response_head_->headers)));
-
-  // Response that will not commit should be marked as aborted in the
-  // NavigationHandle.
-  if (!response_should_be_rendered_)
-    net_error_ = net::ERR_ABORTED;
-
   const bool is_first_response = commit_params_->redirects.empty();
   UpdateNavigationHandleTimingsOnResponseReceived(/*is_redirect=*/false,
                                                   is_first_response);
@@ -4416,9 +4394,28 @@ void NavigationRequest::OnResponseStarted(
     }
   }
 
+  // Check if the response should be sent to a renderer.
+  // Regular downloads should not be rendered, but downloads with an
+  // unsuccessful response code will cause an error page to be rendered.
+  response_should_be_rendered_ =
+      (!is_download ||
+       IsFailedDownload(is_download, response_head_->headers.get())) &&
+      (!response_head_->headers.get() ||
+       (response_head_->headers->response_code() != net::HTTP_NO_CONTENT &&
+        response_head_->headers->response_code() != net::HTTP_RESET_CONTENT &&
+        !ShouldRenderFallbackContentForResponse(*response_head_->headers)));
+
+  if (!response_should_be_rendered_) {
+    net_error_ = net::ERR_ABORTED;
+    SelectFrameHostForOnResponseStarted(std::move(url_loader_client_endpoints),
+                                        is_download,
+                                        std::move(subresource_loader_params));
+    return;
+  }
+
   // MHTML document can't be framed into non-MHTML document (and vice versa).
   // The full page must load from the MHTML archive or none of it.
-  if (is_mhtml_archive && !IsInMainFrame() && response_should_be_rendered_) {
+  if (is_mhtml_archive && !IsInMainFrame()) {
     OnRequestFailedInternal(
         network::URLLoaderCompletionStatus(net::ERR_BLOCKED_BY_RESPONSE),
         false /* skip_throttles */, std::nullopt /* error_page_contnet */,
@@ -4431,8 +4428,6 @@ void NavigationRequest::OnResponseStarted(
   const std::optional<network::mojom::BlockedByResponseReason>
       coep_requires_blocking = EnforceCOEP();
   if (coep_requires_blocking) {
-    // TODO(crbug.com/40166503): Investigate what must be done in case of
-    // a download.
     OnRequestFailedInternal(
         network::URLLoaderCompletionStatus(*coep_requires_blocking),
         false /* skip_throttles */, std::nullopt /* error_page_content */,
@@ -4463,8 +4458,7 @@ void NavigationRequest::OnResponseStarted(
   // Supports-Loading-Mode HTTP response header "fenced-frame" to be able to
   // load. Otherwise a console error is emitted.
   const bool should_enforce_fenced_frame_opt_in =
-      response_should_be_rendered_ && response_head_->headers &&
-      frame_tree_node_->IsInFencedFrameTree() &&
+      response_head_->headers && frame_tree_node_->IsInFencedFrameTree() &&
       !(url.IsAboutBlank() || url.SchemeIsBlob() ||
         url.SchemeIs(url::kDataScheme));
   if (should_enforce_fenced_frame_opt_in &&
@@ -4488,17 +4482,15 @@ void NavigationRequest::OnResponseStarted(
   // 4. if [...] the result of checking a navigation response's adherence to its
   // embedder policy [...], then set failure to true.
   if (!CheckResponseAdherenceToCoep(url)) {
-    // TODO(crbug.com/40166503): Investigate what must be done in
-    // case of a download.
     OnRequestFailedInternal(network::URLLoaderCompletionStatus(
                                 network::mojom::BlockedByResponseReason::
                                     kCoepFrameResourceNeedsCoepHeader),
                             false /* skip_throttles */,
                             std::nullopt /* error_page_content */,
                             false /* collapse_frame */);
-    return;
     // DO NOT ADD CODE after this. The previous call to
     // OnRequestFailedInternal has destroyed the NavigationRequest.
+    return;
   }
 
   SelectFrameHostForOnResponseStarted(std::move(url_loader_client_endpoints),
@@ -5427,10 +5419,6 @@ network::mojom::WebSandboxFlags NavigationRequest::SandboxFlagsToCommit() {
 }
 
 void NavigationRequest::MaybeAddResourceTimingEntryForCancelledNavigation() {
-  if (!base::FeatureList::IsEnabled(
-          features::kResourceTimingForCancelledNavigationInFrame)) {
-    return;
-  }
 
   // Some navigation are cancelled even before requesting and receiving a
   // response. Those cases are not supported and the ResourceTiming is not
@@ -6545,6 +6533,9 @@ void NavigationRequest::CommitPageActivation() {
       this, IsPrerenderedPageActivation()
                 ? MakeDidCommitProvisionalLoadParamsForPrerenderActivation()
                 : MakeDidCommitProvisionalLoadParamsForBFCacheRestore());
+
+  // DO NOT ADD CODE AFTER THIS, as the NavigationRequest might have been
+  // deleted by the previous call.
 }
 
 void NavigationRequest::SetExpectedProcess(
@@ -6726,11 +6717,6 @@ bool NavigationRequest::IsAllowedByCSPDirective(
     GetContentClient()->browser()->LogWebFeatureForCurrentPage(
         GetParentFrame(),
         blink::mojom::WebFeature::kCspWouldBlockIfWildcardDoesNotMatchWs);
-  }
-  if (result.WouldBlockIfWildcardDoesNotMatchFtp()) {
-    GetContentClient()->browser()->LogWebFeatureForCurrentPage(
-        GetParentFrame(),
-        blink::mojom::WebFeature::kCspWouldBlockIfWildcardDoesNotMatchFtp);
   }
   return result.IsAllowed();
 }

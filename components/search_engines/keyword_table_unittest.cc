@@ -22,6 +22,7 @@
 #include "components/search_engines/template_url_data.h"
 #include "components/webdata/common/web_database.h"
 #include "sql/statement.h"
+#include "sql/test/test_helpers.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
 using base::ASCIIToUTF16;
@@ -81,8 +82,8 @@ class KeywordTableTest : public testing::Test {
     keyword.date_created = base::Time::UnixEpoch();
     keyword.last_modified = base::Time::UnixEpoch();
     keyword.last_visited = base::Time::UnixEpoch();
-    keyword.created_by_policy =
-        TemplateURLData::CreatedByPolicy::kDefaultSearchProvider;
+    keyword.policy_origin =
+        TemplateURLData::PolicyOrigin::kDefaultSearchProvider;
     keyword.usage_count = 32;
     keyword.prepopulate_id = 10;
     keyword.sync_guid = "1234-5678-90AB-CDEF";
@@ -159,7 +160,7 @@ TEST_F(KeywordTableTest, Keywords) {
             restored_keyword.last_modified.ToTimeT());
   EXPECT_EQ(keyword.last_visited.ToTimeT(),
             restored_keyword.last_visited.ToTimeT());
-  EXPECT_EQ(keyword.created_by_policy, restored_keyword.created_by_policy);
+  EXPECT_EQ(keyword.policy_origin, restored_keyword.policy_origin);
   EXPECT_EQ(keyword.created_from_play_api,
             restored_keyword.created_from_play_api);
   EXPECT_EQ(keyword.usage_count, restored_keyword.usage_count);
@@ -322,7 +323,7 @@ TEST_P(KeywordTableTestEncryption, KeywordBadHash) {
   }
   CloseDatabase();
   if (GetParam().tamper) {
-    sql::Database db;
+    sql::Database db(sql::test::kTestTag);
     ASSERT_TRUE(db.Open(file_));
     EXPECT_TRUE(
         db.Execute("UPDATE keywords SET url='http://bad.com/' WHERE id=1"));
