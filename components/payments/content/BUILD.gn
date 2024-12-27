@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/chromeos/ui_mode.gni")
-
 static_library("content") {
   sources = [
     "android_app_communication.cc",
@@ -66,7 +64,6 @@ static_library("content") {
     ":content_common",
     ":utils",
     "//base",
-    "//build:chromeos_buildflags",
     "//components/autofill/core/browser",
     "//components/keyed_service/content",
     "//components/payments/content/browser_binding",
@@ -92,29 +89,17 @@ static_library("content") {
 
   if (is_chromeos) {
     sources += [
+      "android_app_communication_ash.cc",
       "android_app_communication_helpers.cc",
       "android_app_communication_helpers.h",
     ]
 
-    deps += [ "//chromeos/components/payments/mojom" ]
-  }
-
-  if (is_chromeos_ash) {
-    sources += [ "android_app_communication_ash.cc" ]
-
     deps += [
       "//ash/components/arc",
       "//ash/public/cpp/external_arc",
+      "//chromeos/components/payments/mojom",
     ]
-  }
-
-  if (is_chromeos_lacros) {
-    sources += [ "android_app_communication_lacros.cc" ]
-
-    deps += [ "//chromeos/lacros" ]
-  }
-
-  if (!is_chromeos) {
+  } else {
     sources += [ "android_app_communication_stub.cc" ]
   }
 
@@ -300,34 +285,20 @@ source_set("unit_tests") {
 
   if (is_chromeos) {
     sources += [
+      "android_app_communication_test_support_ash.cc",
       "android_app_communication_test_support_chrome_os.cc",
       "android_app_communication_test_support_chrome_os.h",
     ]
-    deps += [
-      "//chromeos/components/payments:test_support",
-      "//chromeos/components/payments/mojom",
-    ]
-  } else {
-    sources += [ "android_app_communication_test_support_stub.cc" ]
-  }
-
-  if (is_chromeos_ash) {
-    sources += [ "android_app_communication_test_support_ash.cc" ]
-
     deps += [
       "//ash/components/arc",
       "//ash/components/arc:arc_test_support",
       "//ash/components/arc/intent_helper",
       "//ash/components/arc/mojom",
       "//ash/public/cpp/external_arc:test_support",
+      "//chromeos/components/payments:test_support",
+      "//chromeos/components/payments/mojom",
     ]
-  }
-
-  if (is_chromeos_lacros) {
-    sources += [ "android_app_communication_test_support_lacros.cc" ]
-    deps += [
-      "//chromeos/lacros",
-      "//chromeos/lacros:test_support",
-    ]
+  } else {
+    sources += [ "android_app_communication_test_support_stub.cc" ]
   }
 }

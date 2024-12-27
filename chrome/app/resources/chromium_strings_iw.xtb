@@ -112,6 +112,7 @@
 <translation id="2483889755041906834">‏ב-Chromium</translation>
 <translation id="2485422356828889247">הסרה</translation>
 <translation id="2513154137948333830">נדרשת הפעלה מחדש: <ph name="INSTALL_SUCCESS" /></translation>
+<translation id="2522009821193247726">‏כדי להמשיך, עליך להיכנס ל-Chromium באמצעות <ph name="EMAIL" />. כך אפשר להבטיח עמידה בסעיפי המדיניות של הארגון.</translation>
 <translation id="2542968102051442371">בחירה של טקסט באמצעות התכונה 'חיפוש תמונות'</translation>
 <translation id="2554739539410784893">‏Chromium מנסה להחליף את הסיסמאות הקיימות. כדי לאפשר זאת, יש להזין את הסיסמה שלך ל-Windows.</translation>
 <translation id="2560420686485554789">‏Chromium זקוק לגישה לאחסון כדי להוריד קבצים</translation>
@@ -121,6 +122,7 @@
 <translation id="2583187216237139145">‏המנהל של פרופיל העבודה יכול להסיר נתוני Chromium שמופקים בזמן השימוש בפרופיל (כמו יצירת סימניות, היסטוריה, סיסמאות והגדרות נוספות). <ph name="LEARN_MORE" /></translation>
 <translation id="2592940277904433508">‏המשך השימוש ב-Chromium</translation>
 <translation id="259935314519650377">שמירת מנהל ההתקנה שהורד במטמון נכשלה. השגיאה: <ph name="UNPACK_CACHING_ERROR_CODE" />.</translation>
+<translation id="2635452620547538388">‏כדי להשתמש בנתונים של Chromium ולשמור אותם בחשבון <ph name="ACCOUNT_EMAIL" />, עליך לאמת את הזהות שלך</translation>
 <translation id="264613044588233783">‏דפדפן Chromium פועל מהר יותר ותכונות שמשתמשות ב-JavaScript אמורות לפעול כמו שצריך (מומלץ)</translation>
 <translation id="2648074677641340862">‏במהלך ההתקנה ארעה שגיאה של מערכת ההפעלה. יש להוריד שוב את Chromium.</translation>
 <translation id="2661879430930417727">‏אם משתפים מכשיר, חברים ובני משפחה יכולים לגלוש בנפרד ולהגדיר את Chromium בדיוק כפי שהם רוצים</translation>
@@ -251,7 +253,6 @@
 <translation id="4438870983368648614">‏הארגון '<ph name="MANAGER" />' מנהל את Chromium</translation>
 <translation id="444069871276811466">‏הוספת פרופיל Chromium</translation>
 <translation id="4447409407328223819">‏מידע על Chrome for Testing</translation>
-<translation id="4470974262661801543">‏כדי להשתמש בנתוני Chromium ולשמור אותם בחשבון Google, עליך להזין את ביטוי הסיסמה שלך</translation>
 <translation id="4493028449971051158">שגיאת הפעלה: יש להפעיל את מנהל ההתקנה כאדמין.</translation>
 <translation id="4501471624619070934">ההתקנה נכשלה כי הגישה מוגבלת במדינה הזו.</translation>
 <translation id="4510853178268397146">‏לתוסף הזה לא פורסמו נוהלי פרטיות, למשל האופן שבו הוא אוסף נתונים ומשתמש בהם. ההמלצה של Chromium היא להסיר אותו.</translation>
@@ -447,6 +448,7 @@
 <translation id="6980074797973263542">‏האדמין בארגון שלך יכול לראות ולנהל את נתוני הגלישה, כמו הסימניות, ההיסטוריה והסיסמאות. אין לאדמין אפשרות לראות את נתוני הגלישה בפרופילים האישיים של Chromium.</translation>
 <translation id="6985329841647292029">‏התנאים לשימוש ב-ChromiumOS</translation>
 <translation id="6990124437352146030">‏Chromium זקוק להרשאת גישה למיקרופון בשביל האתר הזה</translation>
+<translation id="7003299027384820442">‏כדי להשתמש בנתונים של Chromium ולשמור אותם בחשבון <ph name="ACCOUNT_EMAIL" />, צריך להזין את ביטוי הסיסמה</translation>
 <translation id="7011190694940573312">ההתקנה נכשלה כי הגרסה הזו של מערכת ההפעלה לא נתמכת.</translation>
 <translation id="7024536598735240744">שגיאה בפתיחה: <ph name="UNPACK_ERROR" />.</translation>
 <translation id="7025789849649390912">ההתקנה נעצרה.</translation>
@@ -542,6 +544,7 @@ Chromium לא יכול לשחזר את ההגדרות שלך.</translation>
 <translation id="8330519371938183845">‏כניסה לחשבון תסנכרן ותתאים אישית את Chromium בכל המכשירים שברשותך</translation>
 <translation id="8340674089072921962">‏בכתובת <ph name="USER_EMAIL_ADDRESS" /> השתמשו בעבר ב-Chromium</translation>
 <translation id="8357820681460164151">‏כדי לגשת אל פריטים שונים בדפדפן Chromium שלך מכל המכשירים, צריך להיכנס לחשבון ולהפעיל את הסנכרון</translation>
+<translation id="8359544530202147897">‏כדי להמשיך להשתמש בנתונים של Chromium בחשבון שלך ב-Google (<ph name="ACCOUNT_EMAIL" />), צריך לעדכן את Chromium</translation>
 <translation id="8360718212975266891">‏כדי לקבל עדכונים של Chromium בעתיד, צריך להשתמש ב-Windows מגרסה 10 ואילך. במחשב הזה פועלת מערכת Windows 8.</translation>
 <translation id="8362914115861174987">תרגום ל</translation>
 <translation id="8370517070665726704">‏Copyright <ph name="YEAR" /> Google LLC.‎ כל הזכויות שמורות.</translation>

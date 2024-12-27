@@ -108,6 +108,7 @@
 <translation id="143681031165817424">Naslov je shranjen samo v tej napravi</translation>
 <translation id="1445276840641906250">Vsi zavihki v enem brskalniku</translation>
 <translation id="1450170672351507823">Standardna zaščita je vklopljena. Za večjo varnost uporabite izboljšano zaščito.</translation>
+<translation id="1454615514353469963">Gesla, ključi za dostop in drugi podatki bodo trajno izbrisani iz Googlovega upravitelja gesel</translation>
 <translation id="1455660774629812862">Ne skrij</translation>
 <translation id="1460751212339734034">Prihranite čas in manj vnašajte</translation>
 <translation id="1466035273550360103">Ni odprtih zavihkov</translation>
@@ -1203,6 +1204,7 @@ Handoff must also be enabled in the General section of Settings, and your device
 <translation id="6418346271604475326">Preparing PDF</translation>
 <translation id="6429213933892582367">Odprite »Password Options« (Možnosti gesla).</translation>
 <translation id="6434591244308415567">Prišlo je do napake. Poskusite znova pozneje.</translation>
+<translation id="6435307030888827407">Ostanite odjavljeni</translation>
 <translation id="6436318499800111867">Deljeno z mano: <ph name="SHARED_WITH_ME_DATE" /></translation>
 <translation id="6442697326824312960">Odpni zavihek</translation>
 <translation id="6443118737398455446">Datum poteka ni veljaven</translation>
@@ -1396,6 +1398,7 @@ Ko uporabljate anonimni način, spletna mesta ne smejo uporabljati piškotkov za
 <translation id="7248046129087111453"><ph name="BEGIN_LINK" />Zgodovina iskanja<ph name="END_LINK" /> in <ph name="BEGIN_LINK" />druge oblike dejavnosti<ph name="END_LINK" /> se morda shranjujejo v računu Google.</translation>
 <translation id="7253951228444156601">Preverjanje gesel …</translation>
 <translation id="7261217796641151584">Deli skupino</translation>
+<translation id="7266578100016339897">Tako ostanete organizirani. To lahko kadar koli spremenite v nastavitvah.</translation>
 <translation id="7271220006028561438">Dovoli samodejne nadgradnje ključev za dostop</translation>
 <translation id="7272437679830969316">Identitete ni mogoče preveriti. Geslo ni kopirano.</translation>
 <translation id="7293429513719260019">Izbira jezika</translation>
@@ -1590,6 +1593,7 @@ Spletna mesta lahko uporabljajo piškotke za ogled dejavnosti brskanja na razli�
 <translation id="8080028325999236607">Zapri vse zavihke</translation>
 <translation id="8084285576995584326">Nadziranje podatkov v računu Google.</translation>
 <translation id="809543534949702122">Zgodovina iskanja</translation>
+<translation id="8095985449280932182">{COUNT,plural, =1{Zavihki, ki jih ne uporabljate, so premaknjeni sem po {COUNT} dnevu}one{Zavihki, ki jih ne uporabljate, so premaknjeni sem po {COUNT} dnevu}two{Zavihki, ki jih ne uporabljate, so premaknjeni sem po {COUNT} dnevih}few{Zavihki, ki jih ne uporabljate, so premaknjeni sem po {COUNT} dnevih}other{Zavihki, ki jih ne uporabljate, so premaknjeni sem po {COUNT} dnevih}}</translation>
 <translation id="8101409298456377967">Ustvarite, shranite in upravljajte gesla, tako da se lahko preprosto prijavite na spletnih mestih in v aplikacijah. <ph name="BEGIN_LINK" />Več o tem<ph name="END_LINK" /></translation>
 <translation id="8102130909719902723">N</translation>
 <translation id="8114753159095730575">Prenos datotek je na voljo. Možnosti so na voljo pri dnu zaslona.</translation>

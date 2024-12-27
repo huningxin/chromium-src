@@ -122,6 +122,7 @@ Các quyền bạn từng cấp cho trang web và ứng dụng có thể áp d�
 <translation id="2583187216237139145">Quản trị viên hồ sơ công việc có thể xóa mọi dữ liệu trên Chromium được tạo trong quá trình sử dụng hồ sơ này (chẳng hạn như hoạt động tạo dấu trang, các trang web đã truy cập, mật khẩu và các tùy chọn cài đặt khác). <ph name="LEARN_MORE" /></translation>
 <translation id="2592940277904433508">Tiếp tục sử dụng Chromium</translation>
 <translation id="259935314519650377">Không thể lưu trình cài đặt đã tải xuống vào bộ nhớ đệm. Lỗi: <ph name="UNPACK_CACHING_ERROR_CODE" />.</translation>
+<translation id="2635452620547538388">Xác minh danh tính của bạn để sử dụng và lưu dữ liệu Chromium trong tài khoản <ph name="ACCOUNT_EMAIL" /> của bạn</translation>
 <translation id="264613044588233783">Chromium sẽ hoạt động nhanh hơn và các tính năng sử dụng JavaScript sẽ hoạt động như dự kiến (nên chọn)</translation>
 <translation id="2648074677641340862">Đã xảy ra lỗi hệ điều hành khi cài đặt. Hãy tải xuống Chromium lại lần nữa.</translation>
 <translation id="2661879430930417727">Nếu các bạn dùng chung một thiết bị, thì bạn bè và gia đình có thể duyệt web một cách riêng biệt cũng như thiết lập Chromium theo ý muốn</translation>
@@ -254,7 +255,6 @@ Các quyền bạn từng cấp cho trang web và ứng dụng có thể áp d�
 <translation id="4438870983368648614"><ph name="MANAGER" /> quản lý Chromium</translation>
 <translation id="444069871276811466">Thêm hồ sơ Chromium</translation>
 <translation id="4447409407328223819">Giới thiệu về Chrome for Testing</translation>
-<translation id="4470974262661801543">Để sử dụng và lưu dữ liệu Chromium trong Tài khoản Google, hãy nhập cụm mật khẩu của bạn</translation>
 <translation id="4493028449971051158">Lỗi khi khởi động: vui lòng chạy trình cài đặt với tư cách quản trị viên.</translation>
 <translation id="4501471624619070934">Không cài đặt được do quyền truy cập bị giới hạn tại quốc gia này.</translation>
 <translation id="4510853178268397146">Tiện ích này chưa công bố các phương thức bảo vệ quyền riêng tư, chẳng hạn như cách tiện ích thu thập và sử dụng dữ liệu. Chromium khuyên bạn nên xoá tiện ích này.</translation>
@@ -450,6 +450,7 @@ Một số tính năng có thể không khả dụng. Hãy chỉ định thư m�
 <translation id="6980074797973263542">Tổ chức của bạn có thể xem và quản lý dữ liệu duyệt web (chẳng hạn như dấu trang, nhật ký và mật khẩu). Tổ chức không thể xem dữ liệu duyệt web trong hồ sơ Chromium cá nhân.</translation>
 <translation id="6985329841647292029">Điều khoản của ChromiumOS</translation>
 <translation id="6990124437352146030">Chromium cần có quyền truy cập vào micrô của bạn cho trang web này</translation>
+<translation id="7003299027384820442">Nhập cụm mật khẩu để sử dụng và lưu dữ liệu Chromium trong tài khoản <ph name="ACCOUNT_EMAIL" /> của bạn</translation>
 <translation id="7011190694940573312">Cài đặt không thành công vì phiên bản hệ điều hành này không được hỗ trợ.</translation>
 <translation id="7024536598735240744">Lỗi khi giải nén: <ph name="UNPACK_ERROR" />.</translation>
 <translation id="7025789849649390912">Đã dừng cài đặt.</translation>
@@ -545,6 +546,7 @@ Chromium không thể khôi phục cài đặt của bạn.</translation>
 <translation id="8330519371938183845">Đăng nhập để đồng bộ hóa và cá nhân hóa Chromium trên các thiết bị của bạn</translation>
 <translation id="8340674089072921962"><ph name="USER_EMAIL_ADDRESS" /> trước đó đã sử dụng Chromium</translation>
 <translation id="8357820681460164151">Để truy cập vào nội dung của bạn trên trình duyệt Chromium bằng mọi thiết bị, hãy đăng nhập rồi bật tính năng đồng bộ hóa</translation>
+<translation id="8359544530202147897">Cập nhật Chromium để tiếp tục sử dụng dữ liệu Chromium trong Tài khoản Google <ph name="ACCOUNT_EMAIL" /> của bạn</translation>
 <translation id="8360718212975266891">Để nhận các bản cập nhật Chromium sau này, bạn cần có Windows 10 trở lên. Máy tính này đang sử dụng Windows 8.</translation>
 <translation id="8362914115861174987">Dịch sang</translation>
 <translation id="8370517070665726704">Bản quyền <ph name="YEAR" /> Google LLC. Mọi quyền được bảo lưu.</translation>

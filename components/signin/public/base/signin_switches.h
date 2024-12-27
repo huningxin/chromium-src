@@ -9,7 +9,6 @@
 #include "base/feature_list.h"
 #include "base/metrics/field_trial_params.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/signin/public/base/signin_buildflags.h"
 
 class PrefService;
@@ -39,6 +38,9 @@ BASE_DECLARE_FEATURE(kCctSignInPrompt);
 
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kUnoForAuto);
+
+COMPONENT_EXPORT(SIGNIN_SWITCHES)
+BASE_DECLARE_FEATURE(kForceSupervisedSigninWithCapabilities);
 #endif
 
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
@@ -151,10 +153,10 @@ bool IsBatchUploadDesktopEnabled();
 
 // TODO(crbug.com/337879458): Move switches below into the switches namespace.
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kStableDeviceId);
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 COMPONENT_EXPORT(SIGNIN_SWITCHES)
 BASE_DECLARE_FEATURE(kDisallowManagedProfileSignout);

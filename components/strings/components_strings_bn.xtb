@@ -461,6 +461,7 @@
 <translation id="1777422078676229054">ফটো (আর্কাইভাল)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">ওয়েব অ্যাপ ইনস্টল করতে চান?</translation>
+<translation id="1791415068765905273">সব তুলনামূলক টেবিল দেখুন</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507"><ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />, আপনার Google অ্যাকাউন্টে নিজের সম্পর্কে তথ্য, গোপনীয়তা এবং সুরক্ষা ম্যানেজ করতে প্রথমে Tab তারপরে Enter প্রেস করুন</translation>
 <translation id="1793631236004319016"><ph name="NUM_HOURS_MINUTES_SECONDS" /> আগে শেষবার ব্যবহার করা হয়েছে</translation>
@@ -2198,6 +2199,7 @@
 <translation id="4918221908152712722"><ph name="APP_NAME" /> ইনস্টল করুন (ডাউনলোডের প্রয়োজন নেই)</translation>
 <translation id="4920457992177678649">হলিডে হোম ও কম দিনের জন্য থাকা</translation>
 <translation id="4920710383559189047">স্লিভ</translation>
+<translation id="4920921410507315601">তুলনামূলক টেবিল</translation>
 <translation id="4922104989726031751">আপনার অপারেটিং সিস্টেমের সাথে Password Manager ব্যবহার করতে, Chromium আবার চালু করুন এবং নিজের কম্পিউটারের Password Manager অ্যাক্সেস করার অনুমতি দিন। আবার চালু করার পরে আপনার ট্যাব আবার খোলা হবে।</translation>
 <translation id="4923459931733593730">অর্থপ্রদান</translation>
 <translation id="4926049483395192435">নির্দিষ্ট করা উচিত৷</translation>
@@ -2391,6 +2393,7 @@
 <translation id="5278778426231952189">এখনই আপলোড করুন</translation>
 <translation id="5279286380302340275">ডাউনলোড ম্যানেজ করুন</translation>
 <translation id="5280963125494874678">ওয়েব অ্যাপ্লিকেশন</translation>
+<translation id="5282008206326321696">{count,plural, =0{#টি বুকমার্ক}=1{#টি বুকমার্ক}one{#টি বুকমার্ক}other{#টি বুকমার্ক}}</translation>
 <translation id="5283044957620376778">B1</translation>
 <translation id="5284295735376057059">ডকুমেন্ট প্রপার্টি</translation>
 <translation id="528468243742722775">শেষ</translation>
@@ -2476,6 +2479,7 @@
 <translation id="5425082381151187189">গৃহ ও অন্দর সজ্জা</translation>
 <translation id="5426179911063097041"><ph name="SITE" /> আপনাকে বিজ্ঞপ্তি পাঠাতে চায়</translation>
 <translation id="5430298929874300616">বুকমার্ক সরান</translation>
+<translation id="5431318178759467895">রঙ</translation>
 <translation id="5433756542371550806">কমান্ড-লাইন ভেরিয়েশন</translation>
 <translation id="5434798570900738152">Chromium <ph name="BEGIN_EMPHASIS" />সেভ করবে না<ph name="END_EMPHASIS" />:
           <ph name="BEGIN_LIST" />
@@ -2585,6 +2589,7 @@
 <translation id="561165882404867731">Google Translate ব্যবহার করে এই পৃষ্ঠা অনুবাদ করুন</translation>
 <translation id="5612720917913232150"><ph name="URL" /> আপনার কম্পিউটারের লোকেশন ব্যবহার করতে চায়</translation>
 <translation id="5614520971155863709">কার্ড গেম</translation>
+<translation id="5617785978844309968">সব তুলনামূলক টেবিল দেখুন</translation>
 <translation id="5617949217645503996"><ph name="HOST_NAME" /> আপনাকে অনেক বেশিবার পুনঃনির্দেশিত করেছে।</translation>
 <translation id="5619721953841297650">প্রিসেট</translation>
 <translation id="5624120631404540903">পাসওয়ার্ডগুলি পরিচালনা করুন</translation>
@@ -3294,6 +3299,7 @@
 <translation id="6925267999184670015">নর্থ আমেরিকান B+</translation>
 <translation id="6926216138694948720">বডি আর্ট</translation>
 <translation id="692638818576287323">ব্যবসায়িক গাড়ি</translation>
+<translation id="6933282894115597956">আপনার প্রতিষ্ঠানের হিসেবে সাইন-ইন করতে হবে</translation>
 <translation id="6934236486840930310"><ph name="BEGIN_BOLD" />আপনার ডিফল্ট সার্চ ইঞ্জিন আপনাকে ওয়েবে খুঁজে নিতে এবং Chrome ফিচার ব্যবহারের সুবিধায় দেয়,<ph name="END_BOLD" /> যেমন অ্যাড্রেস বার এবং ওয়েব পেজের ছবি থেকে সার্চ করা। আপনার সার্চ ইঞ্জিনে এটি কাজ না করলে ফিচার উপলভ্য নাও হতে পারে।</translation>
 <translation id="6934672428414710184">এই নাম আপনার Google অ্যাকাউন্ট থেকে নেওয়া</translation>
 <translation id="6935082727755903526">অ্যাকাউন্টিং ও ফাইন্যান্সের কাজ</translation>
@@ -3788,7 +3794,6 @@
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">Chrome-এ ফন্ট সাইজ এবং টাইপফেস কাস্টমাইজ করুন</translation>
 <translation id="7752995774971033316">অপরিচালিত</translation>
-<translation id="7753769899818674547"><ph name="KEYWORD" /> - <ph name="KEYWORD_SHORT_NAME" />-এর সাথে চ্যাট করুন</translation>
 <translation id="7754587126786572336">আপডেট শুরু হলে আপনার Chrome ট্যাব এবং অ্যাপ বন্ধ হয়ে যাবে</translation>
 <translation id="7755287808199759310">আপনার পিতামাতা এটি আপনার জন্য অবরোধ মুক্ত করতে পারবেন</translation>
 <translation id="7755624218968747854">প্রাইমারি রোল</translation>
@@ -3928,6 +3933,7 @@
 <translation id="8028698320761417183"><ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />, Google Forms-এ চটপট নতুন ফর্ম তৈরি করতে প্রথমে Tab, তারপরে Enter প্রেস করুন</translation>
 <translation id="8028892419725165118">ক্যাজুয়াল গেম</translation>
 <translation id="8028960012888758725">কাজের পর ট্রিম করুন</translation>
+<translation id="8028993641010258682">সাইজ</translation>
 <translation id="8029829038322015001">লাল ১</translation>
 <translation id="8030729864112325446">ভোকেশনাল ও কনটিনিউয়িং এডুকেশন</translation>
 <translation id="8032546467100845887">ট্রান্সপারেন্সি</translation>
@@ -3983,7 +3989,6 @@
 <translation id="8116925261070264013">মিউট করা আছে</translation>
 <translation id="8118489163946903409">পেমেন্টের পদ্ধতি</translation>
 <translation id="8118506371121007279">মতামত জানান</translation>
-<translation id="8124085000247609808"><ph name="KEYWORD_SHORT_NAME" />-এর সাথে চ্যাট করুন</translation>
 <translation id="8127301229239896662">"<ph name="SOFTWARE_NAME" />" আপনার কম্পিউটার বা নেটওয়ার্কে সঠিক ভাবে ইনস্টল করা হয়নি। আপনার IT প্রশাসককে এই সমস্যাটি সমাধান করতে বলুন।</translation>
 <translation id="8131740175452115882">নিশ্চিত হন</translation>
 <translation id="8133495915926741232">পছন্দমতো বিজ্ঞাপন দেখানোর জন্য কোনও বিষয়ের কোন কোন বিস্তারিত বিভাগ ব্যবহার করা যেতে পারে তা বেছে নিন। কোনও বিস্তারিত বিভাগ বন্ধ করে দেওয়া হলে, এটির সাথে সম্পর্কিত বিষয়ও ব্লক করা হবে। <ph name="BEGIN_LINK" />আরও জানুন<ph name="END_LINK" /></translation>

@@ -396,6 +396,7 @@ Aquí tienes algunas cosas que puedes probar para empezar.</translation>
 <translation id="2402411679569069051">Para desbloquear tu Chromebook, usa tu huella digital o desbloquea tu teléfono</translation>
 <translation id="240545663114741956">Pulsa <ph name="ACCELERATOR" /> dos veces para cerrar sesión.</translation>
 <translation id="2405664212338326887">No conectado</translation>
+<translation id="2406710117564540804">Activar/desactivar No molestar</translation>
 <translation id="2408955596600435184">Introduce tu PIN</translation>
 <translation id="2412593942846481727">Actualización disponible</translation>
 <translation id="2416438829169535743">¿Salir de la vista?</translation>
@@ -1648,6 +1649,7 @@ No hay dispositivos conectados.</translation>
 <translation id="6539852571005954999">Analizando <ph name="FILENAME" /> para descargar</translation>
 <translation id="6542521951477560771">Enviando contenido a <ph name="RECEIVER_NAME" /></translation>
 <translation id="6542891623636520977">Emojis, GIFs y más</translation>
+<translation id="6543942526104794893">¿Seguro que quieres desactivar los gestos faciales?</translation>
 <translation id="6545382064335350438">Aún no se ha podido verificar tu PIN. Inténtalo de nuevo.</translation>
 <translation id="6555373427270923730">Escribe una dirección web en la barra de direcciones y, a continuación, pulsa <ph name="MODIFIER" /><ph name="KEY" /></translation>
 <translation id="655633303491376835"><ph name="APP_NAME" />
@@ -2314,6 +2316,7 @@ Para apagarlo, mantén pulsado de nuevo el botón de encendido del dispositivo.<
 <translation id="8855885154700222542">Tecla de pantalla completa</translation>
 <translation id="8858369206579825206">Controles de privacidad</translation>
 <translation id="8860366331836346216">Añadir eSIM</translation>
+<translation id="8869149849311827122">¿Seguro que quieres desactivar el control del cursor del ratón?</translation>
 <translation id="8870509716567206129">La aplicación no admite la pantalla dividida.</translation>
 <translation id="8873203135446552888">Confirma que quieres inhabilitar el panel táctil integrado</translation>
 <translation id="8874184842967597500">No conectado</translation>

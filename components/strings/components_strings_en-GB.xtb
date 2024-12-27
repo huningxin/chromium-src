@@ -461,6 +461,7 @@ This will otherwise be blocked by your privacy settings. This will allow the con
 <translation id="1777422078676229054">Photo (archival)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">Install web apps?</translation>
+<translation id="1791415068765905273">Show all comparison tables</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507"><ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />: press Tab then Enter to manage your info, privacy and security in your Google Account</translation>
 <translation id="1793631236004319016">Last used <ph name="NUM_HOURS_MINUTES_SECONDS" /> ago</translation>
@@ -2197,6 +2198,7 @@ This will otherwise be blocked by your privacy settings. This will allow the con
 <translation id="4918221908152712722">Install <ph name="APP_NAME" /> (no download required)</translation>
 <translation id="4920457992177678649">Holiday Rentals and Short-Term Stays</translation>
 <translation id="4920710383559189047">Sleeve</translation>
+<translation id="4920921410507315601">Comparison tables</translation>
 <translation id="4922104989726031751">To use Password Manager with your operating system, relaunch Chromium and allow access to your computer's password manager. Your tabs will reopen after relaunching.</translation>
 <translation id="4923459931733593730">Payment</translation>
 <translation id="4926049483395192435">Must be specified.</translation>
@@ -2390,6 +2392,7 @@ This will otherwise be blocked by your privacy settings. This will allow the con
 <translation id="5278778426231952189">Upload now</translation>
 <translation id="5279286380302340275">Manage downloads</translation>
 <translation id="5280963125494874678">web applications</translation>
+<translation id="5282008206326321696">{count,plural, =0{# bookmarks}=1{# bookmark}other{# bookmarks}}</translation>
 <translation id="5283044957620376778">B1</translation>
 <translation id="5284295735376057059">Document properties</translation>
 <translation id="528468243742722775">End</translation>
@@ -2475,6 +2478,7 @@ This will otherwise be blocked by your privacy settings. This will allow the con
 <translation id="5425082381151187189">Home and interior decor</translation>
 <translation id="5426179911063097041"><ph name="SITE" /> wants to send you notifications</translation>
 <translation id="5430298929874300616">Remove bookmark</translation>
+<translation id="5431318178759467895">Colour</translation>
 <translation id="5433756542371550806">Command-line variations</translation>
 <translation id="5434798570900738152">Chromium <ph name="BEGIN_EMPHASIS" />won’t save<ph name="END_EMPHASIS" />:
           <ph name="BEGIN_LIST" />
@@ -2584,6 +2588,7 @@ This will otherwise be blocked by your privacy settings. This will allow the con
 <translation id="561165882404867731">Translate this page with Google Translate</translation>
 <translation id="5612720917913232150"><ph name="URL" /> wants to use your computer's location</translation>
 <translation id="5614520971155863709">Card games</translation>
+<translation id="5617785978844309968">Show all comparison tables</translation>
 <translation id="5617949217645503996"><ph name="HOST_NAME" /> redirected you too many times.</translation>
 <translation id="5619721953841297650">Preset</translation>
 <translation id="5624120631404540903">Manage passwords</translation>
@@ -3789,7 +3794,6 @@ Additional details:
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">Customise font sizes and typefaces in Chrome</translation>
 <translation id="7752995774971033316">Unmanaged</translation>
-<translation id="7753769899818674547"><ph name="KEYWORD" /> – chat with <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="7754587126786572336">Your Chrome tabs and apps will close when the update starts</translation>
 <translation id="7755287808199759310">Your parent can unblock it for you</translation>
 <translation id="7755624218968747854">Primary roll</translation>
@@ -3929,6 +3933,7 @@ Additional details:
 <translation id="8028698320761417183"><ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />: press Tab then Enter to create a new form in Google Forms quickly</translation>
 <translation id="8028892419725165118">Casual games</translation>
 <translation id="8028960012888758725">Trim after job</translation>
+<translation id="8028993641010258682">Size</translation>
 <translation id="8029829038322015001">Red 1</translation>
 <translation id="8030729864112325446">Vocational and continuing education</translation>
 <translation id="8032546467100845887">Transparency</translation>
@@ -3984,7 +3989,6 @@ Additional details:
 <translation id="8116925261070264013">Muted</translation>
 <translation id="8118489163946903409">Payment method</translation>
 <translation id="8118506371121007279">Give feedback</translation>
-<translation id="8124085000247609808">Chat with <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="8127301229239896662">'<ph name="SOFTWARE_NAME" />' wasn’t installed properly on your computer or network. Ask your IT administrator to resolve this issue.</translation>
 <translation id="8131740175452115882">Confirm</translation>
 <translation id="8133495915926741232">Choose which broad categories of topics can be used to help personalise ads. Turning off a broader category will also block its related topics. <ph name="BEGIN_LINK" />Learn more<ph name="END_LINK" /></translation>

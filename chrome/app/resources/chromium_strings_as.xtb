@@ -114,6 +114,7 @@
 <translation id="2483889755041906834">Chromiumত</translation>
 <translation id="2485422356828889247">আনইনষ্টল কৰক</translation>
 <translation id="2513154137948333830">ৰিবুট কৰাৰ আৱশ্যক: <ph name="INSTALL_SUCCESS" /></translation>
+<translation id="2522009821193247726">অব্যাহত ৰাখিবলৈ আপুনি <ph name="EMAIL" />ৰ জৰিয়তে Chromiumত ছাইন ইন কৰিব লাগিব। এইটোৱে আপোনাৰ প্ৰতিষ্ঠানৰ নীতি মানি চলাটো নিশ্চিত কৰে।</translation>
 <translation id="2542968102051442371">প্ৰতিচ্ছবিৰ সন্ধান সুবিধাটোৰ জৰিয়তে পাঠ বাছনি কৰক</translation>
 <translation id="2554739539410784893">Chromiumএ আগৰে পৰা থকা পাছৱৰ্ডসমূহ সলনি কৰিবলৈ চেষ্টা কৰি আছে। এই কাৰ্যৰ বাবে অনুমতি দিবলৈ আপোনাৰ Windowsৰ পাছৱৰ্ডটো টাইপ কৰক।</translation>
 <translation id="2560420686485554789">ফাইল ডাউনল'ড কৰিবলৈ Chromiumক ষ্ট'ৰেজৰ এক্সেছৰ আৱশ্যক</translation>
@@ -123,6 +124,7 @@
 <translation id="2583187216237139145">কৰ্মস্থানৰ প্ৰ’ফাইলৰ প্ৰশাসকে এই প্ৰ’ফাইলৰ ব্যৱহাৰৰ সময়ত সৃষ্টি হোৱা যিকোনো Chromium ডেটা (যেনে, বুকমাৰ্কৰ সৃষ্টি, ইতিহাস, পাছৱৰ্ড আৰু অন্য ছেটিং) আঁতৰাব পাৰে। <ph name="LEARN_MORE" /></translation>
 <translation id="2592940277904433508">Chromium ব্যৱহাৰ কৰাটো অব্যাহত ৰাখক</translation>
 <translation id="259935314519650377">ডাউনল’ড কৰা ইনষ্টলাৰটো কেশ্ব কৰাত বিফল হৈছে। আসোঁৱাহ: <ph name="UNPACK_CACHING_ERROR_CODE" />।</translation>
+<translation id="2635452620547538388">আপোনাৰ একাউণ্টত Chromiumৰ ডেটা ব্যৱহাৰ আৰু ছেভ কৰিবলৈ নিজৰ পৰিচয় সত্যাপন কৰক, <ph name="ACCOUNT_EMAIL" /></translation>
 <translation id="264613044588233783">Chromium অধিক ক্ষিপ্ৰভাৱে চলে আৰু JavaScript ব্যৱহাৰ কৰা সুবিধাসমূহে ডিজাইন কৰা অনুসৰি কাম কৰিব লাগে (চুপাৰিছ কৰা হৈছে)</translation>
 <translation id="2648074677641340862">ইনষ্টলেশ্বনৰ সময়ত এটা অপাৰেটিং ছিষ্টেম সম্পর্কীয় আসোঁৱাহ হৈছে। অনুগ্ৰহ কৰি পুনৰ Chromium ডাউনল’ড কৰক।</translation>
 <translation id="2661879430930417727">আপুনি যদি এটা ডিভাইচ শ্বেয়াৰ কৰে, আপোনাৰ বন্ধুবৰ্গ আৰু পৰিয়ালে পৃথককৈ ব্ৰাউজ কৰিব পাৰে আৰু তেওঁলোকে বিচৰা ধৰণে Chromium ছেট আপ কৰিব পাৰে</translation>
@@ -255,7 +257,6 @@
 <translation id="4438870983368648614"><ph name="MANAGER" />এ Chromium পৰিচালনা কৰে</translation>
 <translation id="444069871276811466">Chromium প্ৰ'ফাইল যোগ দিয়ক</translation>
 <translation id="4447409407328223819">Chrome for Testingৰ বিষয়ে</translation>
-<translation id="4470974262661801543">আপোনাৰ Google একাউণ্টত Chromiumৰ ডেটা ব্যৱহাৰ আৰু ছেভ কৰিবলৈ আপোনাৰ পাছফ্ৰে’জ দিয়ক</translation>
 <translation id="4493028449971051158">ষ্টাৰ্টআপ সম্পৰ্কীয় আসোঁৱাহ: অনুগ্ৰহ কৰি ইনষ্টলাৰটো এগৰাকী প্ৰশাসক হিচাপে চলাওক।</translation>
 <translation id="4501471624619070934">এই দেশখনত এক্সেছ প্ৰতিবন্ধিত হোৱাৰ বাবে ইনষ্টল কৰাটো বিফল হৈছে।</translation>
 <translation id="4510853178268397146">এই এক্সটেনশ্বনে গোপনীয়তাৰ ব্যৱস্থাসমূহ প্ৰকাশ কৰা নাই, যেনে ই কেনেকৈ ডেটা সংগ্ৰহ আৰু ব্যৱহাৰ কৰে। Chromiumএ আপুনি এইটো আঁতৰোৱাটো চুপাৰিছ কৰে।</translation>
@@ -451,6 +452,7 @@
 <translation id="6980074797973263542">আপোনাৰ প্ৰতিষ্ঠানে আপোনাৰ বুকমাৰ্ক, ইতিহাস আৰু পাছৱৰ্ডৰ দৰে ব্ৰাউজিঙৰ ডেটা চাব আৰু পৰিচালনা কৰিব পাৰে। ই ব্যক্তিগত Chromium প্ৰ’ফাইলত থকা ব্ৰাউজিঙৰ ডেটা চাব নোৱাৰে।</translation>
 <translation id="6985329841647292029">ChromiumOSৰ চৰ্তাৱলী</translation>
 <translation id="6990124437352146030">এই ছাইটটোৰ বাবে মাইক্ৰ'ফ'ন এক্সেছ কৰিবলৈ Chromiumক অনুমতিৰ আৱশ্যক</translation>
+<translation id="7003299027384820442">আপোনাৰ একাউণ্টত Chromiumৰ ডেটা ব্যৱহাৰ আৰু ছেভ কৰিবলৈ নিজৰ পাছফ্ৰে’জ দিয়ক, <ph name="ACCOUNT_EMAIL" /></translation>
 <translation id="7011190694940573312">অপাৰেটিং ছিষ্টেমটোৰ এই সংস্কৰণটো সমৰ্থন নকৰে বাবে ইনষ্টল কৰিব পৰা নগ’ল।</translation>
 <translation id="7024536598735240744">আনপেক আসোঁৱাহ: <ph name="UNPACK_ERROR" />।</translation>
 <translation id="7025789849649390912">ইনষ্টল কৰাটো বন্ধ হৈছে।</translation>
@@ -546,6 +548,7 @@ Chromiumএ আপোনাৰ ছেটিংসমূহ পুনৰুদ্
 <translation id="8330519371938183845">Chromiumক আপোনাৰ সকলো ডিভাইচতে ছিংক আৰু ব্যক্তিকৃত কৰিবলৈ ছাইন ইন কৰক</translation>
 <translation id="8340674089072921962"><ph name="USER_EMAIL_ADDRESS" />এ আগতে Chromium ব্যৱহাৰ কৰি আছিল</translation>
 <translation id="8357820681460164151">আপোনাৰ আটাইবোৰ ডিভাইচত আপোনাৰ Chromium ব্ৰাউজাৰৰ বস্তু এক্সেছ কৰিবলৈ, ছাইন ইন কৰি তাৰ পাছত ছিংক অন কৰক</translation>
+<translation id="8359544530202147897">আপোনাৰ Google একাউণ্টত Chromiumৰ ডেটা ব্যৱহাৰ কৰি থাকিবলৈ Chromium আপডে'ট কৰক, <ph name="ACCOUNT_EMAIL" /></translation>
 <translation id="8360718212975266891">Chromiumৰ ভৱিষ্যতৰ আপডে’টসমূহ পাবলৈ আপোনাক Windows 10 অথবা তাৰ পাছৰ সংস্কৰণৰ আৱশ্যক হ’ব। এই কম্পিউটাৰটোৱে Windows 8 ব্যৱহাৰ কৰি আছে।</translation>
 <translation id="8362914115861174987">এই ভাষাটোলৈ অনুবাদ কৰক</translation>
 <translation id="8370517070665726704">স্বত্বাধিকাৰ <ph name="YEAR" /> Google LLC। সর্বস্বত্ব সংৰক্ষিত।</translation>

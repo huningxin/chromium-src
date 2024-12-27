@@ -31,6 +31,13 @@ BASE_FEATURE(kCctSignInPrompt,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kUnoForAuto, "UnoForAuto", base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Migrate usages of USM flag to force child account sign-in to use the account
+// capability `IsSubjectToParentalControls`.
+BASE_FEATURE(kForceSupervisedSigninWithCapabilities,
+             "ForceSupervisedSigninWithCapabilities",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 #endif
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT)
@@ -180,14 +187,14 @@ bool IsBatchUploadDesktopEnabled() {
 
 }  // namespace switches
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 // Enables the generation of pseudo-stable per-user per-device device
 // identifiers. This identifier can be reset by the user by powerwashing the
 // device.
 BASE_FEATURE(kStableDeviceId,
              "StableDeviceId",
              base::FEATURE_DISABLED_BY_DEFAULT);
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 // Disables signout for enteprise managed profiles
 BASE_FEATURE(kDisallowManagedProfileSignout,

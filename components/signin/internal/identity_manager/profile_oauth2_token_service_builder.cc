@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/prefs/pref_service.h"
 #include "components/signin/internal/identity_manager/profile_oauth2_token_service.h"
 #include "components/signin/public/base/account_consistency_method.h"
@@ -66,8 +65,7 @@ std::unique_ptr<ProfileOAuth2TokenServiceDelegate> CreateCrOsOAuthDelegate(
     bool is_regular_profile) {
   return std::make_unique<signin::ProfileOAuth2TokenServiceDelegateChromeOS>(
       signin_client, account_tracker_service, network_connection_tracker,
-      account_manager_facade,
-      is_regular_profile);
+      account_manager_facade, is_regular_profile);
 }
 #elif BUILDFLAG(ENABLE_DICE_SUPPORT)
 
@@ -152,8 +150,7 @@ CreateOAuth2TokenServiceDelegate(
 #elif BUILDFLAG(IS_CHROMEOS)
   return CreateCrOsOAuthDelegate(signin_client, account_tracker_service,
                                  network_connection_tracker,
-                                 account_manager_facade,
-                                 is_regular_profile);
+                                 account_manager_facade, is_regular_profile);
 #elif BUILDFLAG(ENABLE_DICE_SUPPORT)
   // Fall back to |MutableProfileOAuth2TokenServiceDelegate| on all platforms
   // other than Android, iOS, and Chrome OS (Ash and Lacros).
@@ -185,8 +182,6 @@ std::unique_ptr<ProfileOAuth2TokenService> BuildProfileOAuth2TokenService(
 #endif  // BUILDFLAG(IS_CHROMEOS)
 #if BUILDFLAG(ENABLE_DICE_SUPPORT)
     bool delete_signin_cookies_on_exit,
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-#if BUILDFLAG(ENABLE_DICE_SUPPORT)
     scoped_refptr<TokenWebData> token_web_data,
 #if BUILDFLAG(ENABLE_BOUND_SESSION_CREDENTIALS)
     unexportable_keys::UnexportableKeyService* unexportable_key_service,
@@ -201,7 +196,7 @@ std::unique_ptr<ProfileOAuth2TokenService> BuildProfileOAuth2TokenService(
 #endif
     SigninClient* signin_client) {
 // On ChromeOS the device ID is not managed by the token service.
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
   // Ensure the device ID is not empty. This is important for Dice, because the
   // device ID is needed on the network thread, but can only be generated on the
   // main thread.

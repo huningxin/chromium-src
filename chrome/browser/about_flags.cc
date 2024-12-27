@@ -306,7 +306,6 @@
 #include "chrome/common/webui_url_constants.h"
 #include "chromeos/ash/components/assistant/buildflags.h"
 #include "chromeos/ash/components/memory/swap_configuration.h"
-#include "chromeos/ash/components/standalone_browser/channel_util.h"
 #include "chromeos/ash/services/assistant/public/cpp/features.h"
 #include "chromeos/constants/chromeos_switches.h"
 #include "components/app_restore/features.h"
@@ -317,11 +316,6 @@
 #include "third_party/cros_system_api/switches/chrome_switches.h"
 #include "ui/events/ozone/features.h"
 #endif  // BUILDFLAG(IS_CHROMEOS)
-
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-#include "chrome/browser/lacros/lacros_url_handling.h"
-#include "chrome/common/webui_url_constants.h"
-#endif
 
 #if BUILDFLAG(IS_MAC)
 #include "chrome/browser/enterprise/platform_auth/platform_auth_features.h"
@@ -1018,7 +1012,6 @@ const FeatureEntry::FeatureVariation kBorealisZinkGlDriverVariations[] = {
      std::size(kZinkEnableRecommended), nullptr},
     {"for all apps", kZinkEnableAll, std::size(kZinkEnableAll), nullptr}};
 
-const char kLacrosWaylandLoggingInternalName[] = "lacros-wayland-logging";
 const char kArcEnableVirtioBlkForDataInternalName[] =
     "arc-enable-virtio-blk-for-data";
 
@@ -3309,56 +3302,75 @@ const FeatureEntry::FeatureParam
     kTpcdHeuristicsGrants_CurrentInteraction_ShortRedirect_MainFrameInitiator
         [] = {
             {content_settings::features::kTpcdReadHeuristicsGrantsName, "true"},
-            {tpcd::experiment::
+            {content_settings::features::
                  kTpcdWritePopupCurrentInteractionHeuristicsGrantsName,
              "30d"},
-            {tpcd::experiment::kTpcdBackfillPopupHeuristicsGrantsName, "30d"},
-            {tpcd::experiment::kTpcdPopupHeuristicEnableForIframeInitiatorName,
+            {content_settings::features::kTpcdBackfillPopupHeuristicsGrantsName,
+             "30d"},
+            {content_settings::features::
+                 kTpcdPopupHeuristicEnableForIframeInitiatorName,
              "none"},
-            {tpcd::experiment::kTpcdWriteRedirectHeuristicGrantsName, "15m"},
-            {tpcd::experiment::kTpcdRedirectHeuristicRequireABAFlowName,
+            {content_settings::features::kTpcdWriteRedirectHeuristicGrantsName,
+             "15m"},
+            {content_settings::features::
+                 kTpcdRedirectHeuristicRequireABAFlowName,
              "true"},
-            {tpcd::experiment::
+            {content_settings::features::
                  kTpcdRedirectHeuristicRequireCurrentInteractionName,
              "true"}};
 const FeatureEntry::FeatureParam
     kTpcdHeuristicsGrants_CurrentInteraction_LongRedirect_MainFrameInitiator[] =
         {{content_settings::features::kTpcdReadHeuristicsGrantsName, "true"},
-         {tpcd::experiment::
+         {content_settings::features::
               kTpcdWritePopupCurrentInteractionHeuristicsGrantsName,
           "30d"},
-         {tpcd::experiment::kTpcdBackfillPopupHeuristicsGrantsName, "30d"},
-         {tpcd::experiment::kTpcdPopupHeuristicEnableForIframeInitiatorName,
+         {content_settings::features::kTpcdBackfillPopupHeuristicsGrantsName,
+          "30d"},
+         {content_settings::features::
+              kTpcdPopupHeuristicEnableForIframeInitiatorName,
           "none"},
-         {tpcd::experiment::kTpcdWriteRedirectHeuristicGrantsName, "30d"},
-         {tpcd::experiment::kTpcdRedirectHeuristicRequireABAFlowName, "true"},
-         {tpcd::experiment::kTpcdRedirectHeuristicRequireCurrentInteractionName,
+         {content_settings::features::kTpcdWriteRedirectHeuristicGrantsName,
+          "30d"},
+         {content_settings::features::kTpcdRedirectHeuristicRequireABAFlowName,
+          "true"},
+         {content_settings::features::
+              kTpcdRedirectHeuristicRequireCurrentInteractionName,
           "true"}};
 const FeatureEntry::FeatureParam
     kTpcdHeuristicsGrants_CurrentInteraction_ShortRedirect_AllFrameInitiator[] =
         {{content_settings::features::kTpcdReadHeuristicsGrantsName, "true"},
-         {tpcd::experiment::
+         {content_settings::features::
               kTpcdWritePopupCurrentInteractionHeuristicsGrantsName,
           "30d"},
-         {tpcd::experiment::kTpcdBackfillPopupHeuristicsGrantsName, "30d"},
-         {tpcd::experiment::kTpcdPopupHeuristicEnableForIframeInitiatorName,
+         {content_settings::features::kTpcdBackfillPopupHeuristicsGrantsName,
+          "30d"},
+         {content_settings::features::
+              kTpcdPopupHeuristicEnableForIframeInitiatorName,
           "all"},
-         {tpcd::experiment::kTpcdWriteRedirectHeuristicGrantsName, "15m"},
-         {tpcd::experiment::kTpcdRedirectHeuristicRequireABAFlowName, "true"},
-         {tpcd::experiment::kTpcdRedirectHeuristicRequireCurrentInteractionName,
+         {content_settings::features::kTpcdWriteRedirectHeuristicGrantsName,
+          "15m"},
+         {content_settings::features::kTpcdRedirectHeuristicRequireABAFlowName,
+          "true"},
+         {content_settings::features::
+              kTpcdRedirectHeuristicRequireCurrentInteractionName,
           "true"}};
 const FeatureEntry::FeatureParam
     kTpcdHeuristicsGrants_CurrentInteraction_LongRedirect_AllFrameInitiator[] =
         {{content_settings::features::kTpcdReadHeuristicsGrantsName, "true"},
-         {tpcd::experiment::
+         {content_settings::features::
               kTpcdWritePopupCurrentInteractionHeuristicsGrantsName,
           "30d"},
-         {tpcd::experiment::kTpcdBackfillPopupHeuristicsGrantsName, "30d"},
-         {tpcd::experiment::kTpcdPopupHeuristicEnableForIframeInitiatorName,
+         {content_settings::features::kTpcdBackfillPopupHeuristicsGrantsName,
+          "30d"},
+         {content_settings::features::
+              kTpcdPopupHeuristicEnableForIframeInitiatorName,
           "all"},
-         {tpcd::experiment::kTpcdWriteRedirectHeuristicGrantsName, "30d"},
-         {tpcd::experiment::kTpcdRedirectHeuristicRequireABAFlowName, "true"},
-         {tpcd::experiment::kTpcdRedirectHeuristicRequireCurrentInteractionName,
+         {content_settings::features::kTpcdWriteRedirectHeuristicGrantsName,
+          "30d"},
+         {content_settings::features::kTpcdRedirectHeuristicRequireABAFlowName,
+          "true"},
+         {content_settings::features::
+              kTpcdRedirectHeuristicRequireCurrentInteractionName,
           "true"}};
 
 const FeatureEntry::FeatureVariation kTpcdHeuristicsGrantsVariations[] = {
@@ -4742,15 +4754,6 @@ const FeatureEntry kFeatureEntries[] = {
         kOsCrOS,
         FEATURE_VALUE_TYPE(ash::features::kEnableBrightnessControlInSettings),
     },
-    // Used to carry the policy value crossing the Chrome process lifetime.
-    {kLacrosWaylandLoggingInternalName,
-     flag_descriptions::kLacrosWaylandLoggingName,
-     flag_descriptions::kLacrosWaylandLoggingDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(ash::features::kLacrosWaylandLogging)},
-    {"lacros-trigger-profile-backward-migration",
-     flag_descriptions::kLacrosProfileBackwardMigrationName,
-     flag_descriptions::kLacrosProfileBackwardMigrationDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(ash::features::kLacrosProfileBackwardMigration)},
     {"list-all-display-modes", flag_descriptions::kListAllDisplayModesName,
      flag_descriptions::kListAllDisplayModesDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(display::features::kListAllDisplayModes)},
@@ -7213,11 +7216,6 @@ const FeatureEntry kFeatureEntries[] = {
 #endif
 
 #if BUILDFLAG(IS_ANDROID)
-    {"enable-nav-bar-matches-tab-android",
-     flag_descriptions::kNavBarColorMatchesTabBackgroundName,
-     flag_descriptions::kNavBarColorMatchesTabBackgroundDescription, kOsAndroid,
-     FEATURE_VALUE_TYPE(chrome::android::kNavBarColorMatchesTabBackground)},
-
     {"enable-magic-stack-android", flag_descriptions::kMagicStackAndroidName,
      flag_descriptions::kMagicStackAndroidDescription, kOsAndroid,
      FEATURE_WITH_PARAMS_VALUE_TYPE(chrome::android::kMagicStackAndroid,
@@ -7672,10 +7670,6 @@ const FeatureEntry kFeatureEntries[] = {
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS)
-    {"cros-labs-overview-desk-navigation",
-     flag_descriptions::kOverviewDeskNavigationName,
-     flag_descriptions::kOverviewDeskNavigationDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(ash::features::kOverviewDeskNavigation)},
     {"cros-labs-enable-overview-from-wallpaper",
      flag_descriptions::kEnterOverviewFromWallpaperName,
      flag_descriptions::kEnterOverviewFromWallpaperDescription, kOsCrOS,
@@ -9391,7 +9385,7 @@ const FeatureEntry kFeatureEntries[] = {
 
     {"collaboration-messaging", flag_descriptions::kCollaborationMessagingName,
      flag_descriptions::kCollaborationMessagingDescription, kOsAll,
-     FEATURE_VALUE_TYPE(collaboration::messaging::kCollaborationMessaging)},
+     FEATURE_VALUE_TYPE(collaboration::features::kCollaborationMessaging)},
 
 #if BUILDFLAG(IS_CHROMEOS)
     {"enable-fake-keyboard-heuristic",
@@ -11140,6 +11134,14 @@ const FeatureEntry kFeatureEntries[] = {
     {"language-detection-api", flag_descriptions::kLanguageDetectionAPIName,
      flag_descriptions::kLanguageDetectionAPIDescription, kOsAll,
      FEATURE_VALUE_TYPE(blink::features::kLanguageDetectionAPI)},
+
+#if BUILDFLAG(IS_ANDROID)
+    {"supervised-force-signin-with-capabilities",
+     flag_descriptions::kSupervisedUserForceSigninWithCapabilitiesName,
+     flag_descriptions::kSupervisedUserForceSigninWithCapabilitiesDescription,
+     kOsAndroid,
+     FEATURE_VALUE_TYPE(switches::kForceSupervisedSigninWithCapabilities)},
+#endif  // BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
     {"supervised-profile-hide-guest",

@@ -396,6 +396,7 @@
 <translation id="2402411679569069051">За да отключите своя Chromebook, използвайте отпечатъка си или отключете телефона си</translation>
 <translation id="240545663114741956">Натиснете два пъти <ph name="ACCELERATOR" /> за изход.</translation>
 <translation id="2405664212338326887">Няма връзка</translation>
+<translation id="2406710117564540804">Включване/изключване на режима „Не безпокойте“</translation>
 <translation id="2408955596600435184">Въведете своя ПИН</translation>
 <translation id="2412593942846481727">Налице е актуализация</translation>
 <translation id="2416438829169535743">Искате ли да излезете от изгледа?</translation>
@@ -1647,6 +1648,7 @@
 <translation id="6539852571005954999">Изтегляният файл <ph name="FILENAME" /> се сканира</translation>
 <translation id="6542521951477560771">Предава се към „<ph name="RECEIVER_NAME" />“</translation>
 <translation id="6542891623636520977">Емоджи, GIF файлове и др.</translation>
+<translation id="6543942526104794893">Наистина ли искате да изключите мимиките?</translation>
 <translation id="6545382064335350438">ПИН кодът ви пак не бе потвърден. Опитайте отново.</translation>
 <translation id="6555373427270923730">Въведете уеб адрес в адресната лента, след което натиснете <ph name="MODIFIER" /> + <ph name="KEY" /></translation>
 <translation id="655633303491376835"><ph name="APP_NAME" />
@@ -2313,6 +2315,7 @@
 <translation id="8855885154700222542">Клавиш за цял екран</translation>
 <translation id="8858369206579825206">Контроли за поверителност</translation>
 <translation id="8860366331836346216">Добавяне на електронна SIM карта</translation>
+<translation id="8869149849311827122">Наистина ли искате да изключите управлението с курсора на мишката?</translation>
 <translation id="8870509716567206129">Приложението не поддържа разделен екран.</translation>
 <translation id="8873203135446552888">Потвърдете, че искате да деактивирате вградения сензорен панел</translation>
 <translation id="8874184842967597500">Няма връзка</translation>

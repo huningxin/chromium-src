@@ -309,6 +309,7 @@ public abstract class ChromeFeatureList {
     public static final String DARKEN_WEBSITES_CHECKBOX_IN_THEMES_SETTING =
             "DarkenWebsitesCheckboxInThemesSetting";
     public static final String DATA_SHARING = "DataSharing";
+    public static final String COLLABORATION_FLOW_ANDROID = "CollaborationFlowAndroid";
     public static final String DATA_SHARING_JOIN_ONLY_FOR_TESTING = "DataSharingJoinOnly";
     public static final String DATA_SHARING_ANDROID_V2 = "DataSharingAndroidV2";
     public static final String DEFAULT_BROWSER_PROMO_ANDROID = "DefaultBrowserPromoAndroid";
@@ -390,8 +391,6 @@ public abstract class ChromeFeatureList {
             "MultiInstanceApplicationStatusCleanup";
     public static final String NATIVE_PAGE_TRANSITION_HARDWARE_CAPTURE =
             "NativePageTransitionHardwareCapture";
-    public static final String NAV_BAR_COLOR_MATCHES_TAB_BACKGROUND =
-            "NavBarColorMatchesTabBackground";
     public static final String NEW_TAB_SEARCH_ENGINE_URL_ANDROID = "NewTabSearchEngineUrlAndroid";
     public static final String NEW_TAB_PAGE_ANDROID_TRIGGER_FOR_PRERENDER2 =
             "NewTabPageAndroidTriggerForPrerender2";
@@ -715,8 +714,6 @@ public abstract class ChromeFeatureList {
             newCachedFlag(MOST_VISITED_TILES_RESELECT, false);
     public static final CachedFlag sMultiInstanceApplicationStatusCleanup =
             newCachedFlag(MUlTI_INSTANCE_APPLICATION_STATUS_CLEANUP, false);
-    public static final CachedFlag sNavBarColorMatchesTabBackground =
-            newCachedFlag(NAV_BAR_COLOR_MATCHES_TAB_BACKGROUND, true);
     public static final CachedFlag sNewTabPageAndroidTriggerForPrerender2 =
             newCachedFlag(NEW_TAB_PAGE_ANDROID_TRIGGER_FOR_PRERENDER2, true);
     public static final CachedFlag sNotificationTrampoline =
@@ -865,7 +862,6 @@ public abstract class ChromeFeatureList {
                     sMagicStackAndroid,
                     sMostVisitedTilesReselect,
                     sMultiInstanceApplicationStatusCleanup,
-                    sNavBarColorMatchesTabBackground,
                     sNewTabPageAndroidTriggerForPrerender2,
                     sPowerSavingModeBroadcastReceiverInBackground,
                     sPriceChangeModule,
@@ -1176,10 +1172,6 @@ public abstract class ChromeFeatureList {
             newBooleanCachedFeatureParam(MOST_VISITED_TILES_RESELECT, "lax_query", false);
     public static final BooleanCachedFeatureParam mMostVisitedTilesReselectLaxPath =
             newBooleanCachedFeatureParam(MOST_VISITED_TILES_RESELECT, "lax_path", false);
-    public static final BooleanCachedFeatureParam
-            sNavBarColorMatchesTabBackgroundColorAnimationDisabled =
-                    newBooleanCachedFeatureParam(
-                            NAV_BAR_COLOR_MATCHES_TAB_BACKGROUND, "color_animation_disabled", true);
     public static final BooleanCachedFeatureParam sNewTabSearchEngineUrlAndroidSwapOutNtp =
             newBooleanCachedFeatureParam(NEW_TAB_SEARCH_ENGINE_URL_ANDROID, "swap_out_ntp", false);
     public static final IntCachedFeatureParam sNotificationTrampolineLongJobDurationMs =
@@ -1306,7 +1298,6 @@ public abstract class ChromeFeatureList {
                     mMostVisitedTilesReselectLaxRef,
                     mMostVisitedTilesReselectLaxQuery,
                     mMostVisitedTilesReselectLaxPath,
-                    sNavBarColorMatchesTabBackgroundColorAnimationDisabled,
                     sNewTabSearchEngineUrlAndroidSwapOutNtp,
                     sNotificationTrampolineLongJobDurationMs,
                     sNotificationTrampolineNormalJobDurationMs,

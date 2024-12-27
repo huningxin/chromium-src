@@ -461,7 +461,7 @@ To će u suprotnom biti blokirano prema vašim postavkama privatnosti. Ovo će o
 <translation id="1777422078676229054">Fotografija (arhivska)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">Instalirati web aplikacije?</translation>
-<translation id="1791415068765905273">Prikaži sve tablice za usporedbu</translation>
+<translation id="1791415068765905273">Prikaži sve tabele poređenja</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507"><ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />, pritisnite Tab, a zatim Enter da upravljate informacijama, privatnošću i sigurnošću na Google računu</translation>
 <translation id="1793631236004319016">Posljednji put je korišteno prije <ph name="NUM_HOURS_MINUTES_SECONDS" /></translation>
@@ -962,6 +962,7 @@ To će u suprotnom biti blokirano prema vašim postavkama privatnosti. Ovo će o
 <translation id="2688969097326701645">Da, nastavi</translation>
 <translation id="2690699652723742414">Posljednjih 30 dana</translation>
 <translation id="2691924980723297736">Sigurnosno upozorenje</translation>
+<translation id="2697248912349197812">Pitajte funkciju <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="2699273987028089219">Dostupan je podmeni; pritisnite <ph name="SHORTCUT" /> da odete u dodatne opcije.</translation>
 <translation id="2701514975700770343">Odštampana strana prema dolje</translation>
 <translation id="2702592986366989640">Opcija s niskom cijenom</translation>
@@ -2066,6 +2067,7 @@ To će u suprotnom biti blokirano prema vašim postavkama privatnosti. Ovo će o
 <translation id="469028408546145398">Dugme Zatvori anonimni prozor, aktivirajte da zatvorite sve anonimne prozore koji su trenutno otvoreni</translation>
 <translation id="4691093235373904540">Pokrivanje krova</translation>
 <translation id="4692623383562244444">Pretraživači</translation>
+<translation id="4695702626068620848"><ph name="KEYWORD" /> – pitajte funkciju <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="4698692901173737941">Borilački sportovi</translation>
 <translation id="4701488924964507374"><ph name="SENTENCE1" /> <ph name="SENTENCE2" /></translation>
 <translation id="4702504834785592287">Strana</translation>
@@ -2198,7 +2200,7 @@ To će u suprotnom biti blokirano prema vašim postavkama privatnosti. Ovo će o
 <translation id="4918221908152712722">Instalirajte aplikaciju <ph name="APP_NAME" /> (nije potrebno preuzeti)</translation>
 <translation id="4920457992177678649">Privatni smještaj i kratki boravci</translation>
 <translation id="4920710383559189047">Omotnica</translation>
-<translation id="4920921410507315601">Tablice za usporedbu</translation>
+<translation id="4920921410507315601">Tabele poređenja</translation>
 <translation id="4922104989726031751">Da koristite Upravitelj lozinki sa svojim operativnim sistemom, ponovo pokrenite Chromium i dozvolite pristup upravitelju lozinki računara. Kartice će se ponovo otvoriti nakon ponovnog pokretanja.</translation>
 <translation id="4923459931733593730">Plaćanje</translation>
 <translation id="4926049483395192435">Mora se navesti.</translation>
@@ -2478,6 +2480,7 @@ To će u suprotnom biti blokirano prema vašim postavkama privatnosti. Ovo će o
 <translation id="5425082381151187189">Uređenje doma i enterijera</translation>
 <translation id="5426179911063097041">Web lokacija <ph name="SITE" /> vam želi slati obavještenja</translation>
 <translation id="5430298929874300616">Uklonite oznaku</translation>
+<translation id="5431318178759467895">Boja</translation>
 <translation id="5433756542371550806">Varijacije komandne linije</translation>
 <translation id="5434798570900738152">Chromium <ph name="BEGIN_EMPHASIS" />neće pohranjivati<ph name="END_EMPHASIS" />:
           <ph name="BEGIN_LIST" />
@@ -2587,7 +2590,7 @@ To će u suprotnom biti blokirano prema vašim postavkama privatnosti. Ovo će o
 <translation id="561165882404867731">Prevedite ovu stranicu pomoću Google Prevodioca</translation>
 <translation id="5612720917913232150"><ph name="URL" /> želi koristiti lokaciju vašeg računara</translation>
 <translation id="5614520971155863709">Kartaške igre</translation>
-<translation id="5617785978844309968">Prikaži sve tablice za usporedbu</translation>
+<translation id="5617785978844309968">Prikaži sve tabele poređenja</translation>
 <translation id="5617949217645503996">Host računar <ph name="HOST_NAME" /> vas je preusmjerio previše puta</translation>
 <translation id="5619721953841297650">Zadana postavka</translation>
 <translation id="5624120631404540903">Upravljajte lozinkama</translation>
@@ -3793,7 +3796,6 @@ Dodatni detalji:
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">Prilagodite veličine i stilove fontova u Chromeu</translation>
 <translation id="7752995774971033316">Nema upravitelja</translation>
-<translation id="7753769899818674547"><ph name="KEYWORD" /> – chatajte s uslugom <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="7754587126786572336">Kartice Chromea i aplikacije će se zatvoriti kada se ažuriranje pokrene</translation>
 <translation id="7755287808199759310">Roditelj može deblokirati tu web lokaciju</translation>
 <translation id="7755624218968747854">Primarna rolna</translation>
@@ -3933,6 +3935,7 @@ Dodatni detalji:
 <translation id="8028698320761417183"><ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />, pritisnite Tab, a zatim Enter da brzo kreirate novi obrazac na usluzi Google Forms</translation>
 <translation id="8028892419725165118">Ležerne igre</translation>
 <translation id="8028960012888758725">Skraćivanje nakon završetka posla</translation>
+<translation id="8028993641010258682">Veličina</translation>
 <translation id="8029829038322015001">1. crvena</translation>
 <translation id="8030729864112325446">Stručno obrazovanje i stručno usavršavanje</translation>
 <translation id="8032546467100845887">Transparentnost</translation>
@@ -3988,7 +3991,6 @@ Dodatni detalji:
 <translation id="8116925261070264013">Isključen zvuk</translation>
 <translation id="8118489163946903409">Način plaćanja</translation>
 <translation id="8118506371121007279">Pošaljite povratne informacije</translation>
-<translation id="8124085000247609808">Chat s funkcijom <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="8127301229239896662">"<ph name="SOFTWARE_NAME" />" nije pravilno instaliran na vaš računar ili mrežu. Zamolite IT administratora da riješi taj problem.</translation>
 <translation id="8131740175452115882">Potvrdi</translation>
 <translation id="8133495915926741232">Odaberite koje široke kategorije tema se mogu koristiti kao pomoć za personaliziranje oglasa. Isključivanjem šire kategorije blokiraju se i povezane teme. <ph name="BEGIN_LINK" />Saznajte više<ph name="END_LINK" /></translation>

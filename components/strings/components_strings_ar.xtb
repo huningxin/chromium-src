@@ -461,6 +461,7 @@
 <translation id="1777422078676229054">تصوير (أرشفة)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">هل تريد تثبيت تطبيقات الويب؟</translation>
+<translation id="1791415068765905273">عرض جميع جداول المقارنة</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507">‏<ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />: اضغط على مفتاح التبويب (Tab) ثم Enter لإدارة المعلومات والخصوصية والأمان في حسابك على Google.</translation>
 <translation id="1793631236004319016">آخر استخدام قبل <ph name="NUM_HOURS_MINUTES_SECONDS" /></translation>
@@ -962,6 +963,7 @@
 <translation id="2688969097326701645">نعم، متابعة</translation>
 <translation id="2690699652723742414">آخر 30 يومًا</translation>
 <translation id="2691924980723297736">تحذير متعلق بالأمان</translation>
+<translation id="2697248912349197812">طرح سؤال على <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="2699273987028089219">هناك قائمة فرعية متاحة، يمكنك استخدام <ph name="SHORTCUT" /> للانتقال إلى خيارات إضافية.</translation>
 <translation id="2701514975700770343">الوجه للأسفل</translation>
 <translation id="2702592986366989640">خيار السعر المنخفض</translation>
@@ -2067,6 +2069,7 @@
 <translation id="469028408546145398">زر إغلاق نوافذ التصفّح المتخفي: انقر على هذا الزر لإغلاق جميع نوافذ التصفّح المتخفي المفتوحة حاليًا.</translation>
 <translation id="4691093235373904540">خدمات تسقيف</translation>
 <translation id="4692623383562244444">محرّكات البحث</translation>
+<translation id="4695702626068620848">‫<ph name="KEYWORD" /> - طرح سؤال على <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="4698692901173737941">رياضات قتالية</translation>
 <translation id="4701488924964507374"><ph name="SENTENCE1" />‏ <ph name="SENTENCE2" /></translation>
 <translation id="4702504834785592287">الجانب</translation>
@@ -2199,6 +2202,7 @@
 <translation id="4918221908152712722">تثبيت <ph name="APP_NAME" /> (لا يتطلَّب تنزيلاً)</translation>
 <translation id="4920457992177678649">أماكن للاستئجار والإقامات القصيرة الأمد</translation>
 <translation id="4920710383559189047">غلاف أسطواني</translation>
+<translation id="4920921410507315601">جداول المقارنة</translation>
 <translation id="4922104989726031751">‏لاستخدام "مدير كلمات المرور" مع نظام التشغيل، يُرجى إعادة تشغيل Chromium والسماح بالوصول إلى مدير كلمات المرور على جهاز الكمبيوتر. ستتم إعادة فتح علامات التبويب بعد إعادة التشغيل.</translation>
 <translation id="4923459931733593730">الدفع</translation>
 <translation id="4926049483395192435">يجب تحديدها.</translation>
@@ -2392,6 +2396,7 @@
 <translation id="5278778426231952189">التحميل الآن</translation>
 <translation id="5279286380302340275">إدارة عمليات التنزيل</translation>
 <translation id="5280963125494874678">تطبيقات الويب</translation>
+<translation id="5282008206326321696">{count,plural, =0{‫# إشارة مرجعية}=1{إشارة مرجعية واحدة}two{إشارتان مرجعيتان}few{‫# إشارات مرجعية}many{‫# إشارة مرجعية}other{‫# إشارة مرجعية}}</translation>
 <translation id="5283044957620376778">B1</translation>
 <translation id="5284295735376057059">خصائص المستند</translation>
 <translation id="528468243742722775">‏مفتاح End</translation>
@@ -2477,6 +2482,7 @@
 <translation id="5425082381151187189">ديكور منزلي وديكور داخلي</translation>
 <translation id="5426179911063097041">يريد موقع <ph name="SITE" /> إرسال إشعارات إليك.</translation>
 <translation id="5430298929874300616">إزالة إشارة مرجعية</translation>
+<translation id="5431318178759467895">بالألوان</translation>
 <translation id="5433756542371550806">الإصدارات المُعدَّلة لسطر الأوامر</translation>
 <translation id="5434798570900738152">‏<ph name="BEGIN_EMPHASIS" />لن يحفظ<ph name="END_EMPHASIS" /> Chromium ما يلي:
         <ph name="BEGIN_LIST" />
@@ -2586,6 +2592,7 @@
 <translation id="561165882404867731">‏ترجمة هذه الصفحة باستخدام "ترجمة Google"</translation>
 <translation id="5612720917913232150">يريد <ph name="URL" /> استخدام الموقع الجغرافي لجهاز الكمبيوتر.</translation>
 <translation id="5614520971155863709">ألعاب ورق</translation>
+<translation id="5617785978844309968">عرض جميع جداول المقارنة</translation>
 <translation id="5617949217645503996">أعاد <ph name="HOST_NAME" /> توجيهك مرات كثيرة جدًا.</translation>
 <translation id="5619721953841297650">الإعدادات المسبقة</translation>
 <translation id="5624120631404540903">إدارة كلمات المرور</translation>
@@ -3791,7 +3798,6 @@
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">‏تخصيص أحجام الخطوط وأنماطها في Chrome</translation>
 <translation id="7752995774971033316">غير مُدار</translation>
-<translation id="7753769899818674547">‏‫‎<ph name="KEYWORD" />: بدء الدردشة مع "<ph name="KEYWORD_SHORT_NAME" />"</translation>
 <translation id="7754587126786572336">‏سيتم إغلاق علامات تبويب Chrome وتطبيقاته عند بدء التحديث</translation>
 <translation id="7755287808199759310">يمكن لأحد والديك إزالة الحظر لك</translation>
 <translation id="7755624218968747854">اللفافة الأساسية</translation>
@@ -3931,6 +3937,7 @@
 <translation id="8028698320761417183">‏<ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />: اضغط على مفتاح التبويب (Tab) ثم Enter لإنشاء نموذج جديد في "نماذج Google" بسرعة.</translation>
 <translation id="8028892419725165118">ألعاب بسيطة</translation>
 <translation id="8028960012888758725">القطع بعد المهمة</translation>
+<translation id="8028993641010258682">الحجم</translation>
 <translation id="8029829038322015001">أحمر 1</translation>
 <translation id="8030729864112325446">تعليم مهني وتعليم مستمر</translation>
 <translation id="8032546467100845887">شفافية</translation>
@@ -3986,7 +3993,6 @@
 <translation id="8116925261070264013">المواقع الإلكترونية التي تم كتم الصوت فيها</translation>
 <translation id="8118489163946903409">طريقة الدفع</translation>
 <translation id="8118506371121007279">تقديم ملاحظات</translation>
-<translation id="8124085000247609808">بدء محادثة مع <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="8127301229239896662">لم يتم تثبيت "<ph name="SOFTWARE_NAME" />" بطريقة صحيحة على جهاز الكمبيوتر أو الشبكة. اطلب من مشرف تقنية المعلومات حل هذه المشكلة.</translation>
 <translation id="8131740175452115882">تأكيد</translation>
 <translation id="8133495915926741232">اختَر فئات المواضيع العامة التي يمكن استخدامها للمساعدة في تخصيص الإعلانات، مع العِلم بأنّ إيقاف إحدى الفئات العامة سيؤدي أيضًا إلى حظر المواضيع ذات الصلة بها. <ph name="BEGIN_LINK" />مزيد من المعلومات<ph name="END_LINK" /></translation>

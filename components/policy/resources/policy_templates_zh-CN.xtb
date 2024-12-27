@@ -635,6 +635,7 @@
       如果您不设置此政策，<ph name="PRODUCT_NAME" /> 将会尝试检测某台服务器是否在内网上，确认在内网后才会响应它发出的 IWA 请求。如果检测到某台服务器是在互联网上，<ph name="PRODUCT_NAME" /> 将会忽略这台服务器发出的 IWA 请求。
 
       注意：若要指定多个服务器名称，请用英文逗号分隔。允许使用通配符 <ph name="WILDCARD_VALUE" />。</translation>
+<translation id="1488008594883876680">启用 <ph name="ARC_VM" /> 映像预加载</translation>
 <translation id="1488724823347505879">允许将 Android 应用中的内容分享给 Web 应用</translation>
 <translation id="1490962807364514840">CPU 运行时计数器遥测数据收集时间间隔（以毫秒为单位）。</translation>
 <translation id="1492223733885011596">此政策可为 <ph name="PRODUCT_OS_NAME" /> 上的表情符号选择器启用 GIF 支持。
@@ -701,6 +702,35 @@
 <translation id="1542491165152947087">允许用户在其设备上开启或关闭 <ph name="PRIVACY_SANDBOX_NAME" /> 广告主题设置。</translation>
 <translation id="1542958897137600427">启用客户端证书配置</translation>
 <translation id="1548431234399786388">控制浏览器事件报告的设置。</translation>
+<translation id="155018731031610976">此政策提供了一种方式，来覆盖被浏览器用来实现 First-Party Set 功能的集合列表。
+
+浏览器的 First-Party Set 列表中的每个集合都必须符合 First-Party Set 要求。
+每个 First-Party Set 都必须包含一个主要网站以及一个或多个成员网站。
+每个集合还可包含其拥有的一系列服务网站，以及从某个网站到其所有 ccTLD 变体的映射关系。
+如需详细了解 <ph name="PRODUCT_NAME" /> 使用的 First-Party Set，请参阅 https://github.com/WICG/first-party-sets。
+
+First-Party Set 中的所有网站都必须是采用 HTTPS 协议的可注册网域。此外，First-Party Set 中的每个网站都必须互不相同，也就是说，同一个网站不能在 First-Party Set 中列出多次。
+
+如果此政策设为一个空字典，浏览器会使用 First-Party Set 的公开列表。
+
+对于来自 <ph name="REPLACEMENTS" /> 列表的 First-Party Set 中的所有网站，如果某个网站也存在于浏览器列表所含的 First-Party Set 中，则该网站会从浏览器的 First-Party Set 中移除。
+之后，此政策的 First-Party Set 将添加到浏览器的 First-Party Set 列表中。
+
+对于来自 <ph name="ADDITIONS" /> 列表的 First-Party Set 中的所有网站，如果某个网站也存在于浏览器列表所含的 First-Party Set 中，则浏览器的 First-Party Set 会进行更新，以便将新的 First-Party Set 添加到浏览器的列表中。待浏览器的列表更新完毕后，此政策的 First-Party Set 将添加到浏览器的 First-Party Set 列表中。
+
+浏览器的 First-Party Set 列表要求其中的任何网站都不得出现在多个集合中。<ph name="REPLACEMENTS" /> 列表和 <ph name="ADDITIONS" /> 列表也都有这样的要求。同理，同一个网站不能既出现在 <ph name="REPLACEMENTS" /> 列表中，又出现在 <ph name="ADDITIONS" /> 列表中。
+
+不支持使用通配符 (*) 作为政策值，也不支持在这些列表所含的任何 First-Party Set 中使用通配符。
+
+此政策提供的所有集合都必须是有效的 First-Party Set，如果无效，则会触发相应的错误。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+此政策相当于 <ph name="RELATED_WEBSITE_SETS_OVERRIDES_POLICY_NAME" /> 政策。
+您可在这两项政策中任选其一，但此政策很快就会被弃用，所以您应首选 <ph name="RELATED_WEBSITE_SETS_OVERRIDES_POLICY_NAME" /> 政策。
+这两者对浏览器行为的影响相同。</translation>
 <translation id="1550295162561011575">设置此政策后，管理员就可以配置在 <ph name="PRODUCT_NAME" /> 设备上启动应用的自动化设置。这些应用可在用户登录时启动，也可由用户从启动器中一并启动。</translation>
 <translation id="1551782388466447648">在登录界面上启用触控虚拟键盘</translation>
 <translation id="1552418937045050762">如果您启用了此设置，用户将能够选择启用“附近分享”功能，以便和附近的人互相发送文件。
@@ -719,6 +749,17 @@
 <translation id="1561424797596341174">覆盖与远程访问主机的调试版本号相关的政策</translation>
 <translation id="1561967320164410511">用于个人认证的 U2F 和扩展程序</translation>
 <translation id="1562846754315919408">检测到 USB 设备时显示通知</translation>
+<translation id="1563745847791078494">通过设置此政策，您可以配置 <ph name="PRODUCT_NAME" /> 中的默认主页网址。您可以使用“主页”按钮打开主页。在桌面设备上，<ph name="RESTORE_ON_STARTUP_POLICY_NAME" /> 政策控制哪些页面会在 Chrome 启动时打开。
+
+如果用户或 <ph name="HOMEPAGE_IS_NEW_TAB_PAGE_POLICY_NAME" /> 将主页设为“新标签页”页面，此政策不会产生任何影响。
+
+此网址必须是采用标准架构的网址，例如 http://example.com 或 https://example.com。如果您已设置此政策，用户将无法在 <ph name="PRODUCT_NAME" /> 中更改主页网址。
+
+如果 <ph name="HOMEPAGE_LOCATION_POLICY_NAME" /> 和 <ph name="HOMEPAGE_IS_NEW_TAB_PAGE_POLICY_NAME" /> 均未设置，用户便可自行选择主页。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="1567718448549957373">如果此政策已启用或未设置，系统将会允许通过不安全的 HTTP 接收<ph name="BASIC_AUTH" />身份验证请求。
 
       如果此政策已停用，不安全的 HTTP 请求将无法使用<ph name="BASIC_AUTH" />身份验证方案，只有安全的 HTTPS 能使用该方案。
@@ -898,6 +939,13 @@
 
 如果此政策已停用，<ph name="PRODUCT_NAME" /> 将会禁止启用访客资料。</translation>
 <translation id="1666001345366986837">生成式 AI VC 背景功能的设置</translation>
+<translation id="166702014436078732">通过设置此政策，您可以配置当浏览器显示警告后，供用户更改密码的网址。密码保护服务会将用户转到您通过此政策指定的网址（仅限 HTTP 和 HTTPS 协议）。为了使 <ph name="PRODUCT_NAME" /> 能够在这个密码更改页面上正确捕获新密码的加盐哈希值，请确保该页面遵循了这些准则 (https://www.chromium.org/developers/design-documents/create-amazing-password-forms)。
+
+如果已停用或未设置此政策，该服务会将用户转到 https://myaccount.google.com，以便其更改密码。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="1670638264428789878">启用 Related Website Sets</translation>
 <translation id="1671405606278443620">AI 赋能的历史记录搜索功能的设置</translation>
 <translation id="1673097259557436886">始终告诉网站，没有任何已保存的付款方式</translation>
@@ -1482,6 +1530,17 @@
 <translation id="2157842368188031417">此政策仅适用于受管理的访客会话。必须为 Imprivata 的共享工作站模式启用此政策，以允许在会话期间切换用户。
       如果此政策设为 True，系统将强制覆盖某些政策以实现相关功能，这些功能会保留敏感用户数据，而不会被清理机制（用于在 Imprivata 共享工作站模式下的会话期间切换用户）处理。
       如果此政策设为 False 或未设置，系统将不会覆盖任何政策。</translation>
+<translation id="2158028663273824412">控制 DNS-over-HTTPS 解析器的模式。请注意，此政策仅会为每次查询设置默认模式。对于特殊类型的查询（例如，请求解析 DNS-over-HTTPS 服务器主机名），此政策所设的模式可能会被覆盖。
+
+<ph name="SECURE_DNS_MODE_OFF" />模式会停用 DNS-over-HTTPS。
+
+如果有可用的 DNS-over-HTTPS 服务器，<ph name="SECURE_DNS_MODE_AUTOMATIC" />模式会先发送 DNS-over-HTTPS 查询；如果出错了，则可能会改为发送不安全的查询。
+
+<ph name="SECURE_DNS_MODE_SECURE" />模式仅会发送 DNS-over-HTTPS 查询；如果出错了，将无法解析。
+
+在 <ph name="ANDROID_VERSION" /> 及更高版本中，如果 DNS-over-TLS 处于活跃状态，<ph name="PRODUCT_NAME" /> 将不会发送不安全的 DNS 请求。
+
+如果未设置此政策，系统将不会向受管设备发送 DNS-over-HTTPS 查询。否则，浏览器可能会向与用户配置的系统解析器关联的解析器发送 DNS-over-HTTPS 请求。</translation>
 <translation id="2158741059065130266">如果此政策设为 True，<ph name="PRODUCT_OS_NAME" />“文件”应用的用户可以看到回收站的垃圾桶图标，“我的文件”和“下载内容”下的文件（包括其使用者创建的子文件夹中的文件）在删除后会被发送到回收站中。
 
       如果此政策设为 False，通过显示隐藏文件并在“我的文件”或“下载内容”下找到 .Trash 目录，用户仍可查看之前位于回收站中的文件。</translation>
@@ -1587,6 +1646,11 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="2202787915587511214">开启 NTLMv2</translation>
 <translation id="2204379573346866896">当前小时内已流逝的分钟数。</translation>
 <translation id="2204753382813641270">控制任务栏是否自动隐藏</translation>
+<translation id="2208092773610663977">如果已启用此政策，用户便可让 <ph name="PRODUCT_NAME" /> 检查所输入的用户名和密码是否已泄露。
+
+如果已停用此政策，用户将无法使用此功能。
+
+      如果您设置了此政策，用户便无法在 <ph name="PRODUCT_NAME" /> 中更改它。如果未设置此政策，系统会允许执行凭据泄露检查，但用户可关闭该功能。</translation>
 <translation id="2208976000652006649">在使用 POST 的搜索网址中所需的参数</translation>
 <translation id="2212011154693551439">默认情况下，chrome://history/grouped 中会以网页分组的方式显示“Chrome 历史记录”页面。</translation>
 <translation id="2212207215880394506">不允许使用生成式 AI 照片编辑功能。</translation>
@@ -1749,6 +1813,13 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="2309284543927494965">禁止更新</translation>
 <translation id="2309341709647905294">不报告相应设备所插接的外围设备的相关信息</translation>
 <translation id="2309390639296060546">默认地理位置设置</translation>
+<translation id="2315759015564614266">如果已启用此政策，当用户在地址栏中输入非网址的文字时，系统将会执行默认搜索。若要指定默认搜索服务提供商，请设置其余的默认搜索政策。如果您将这些政策留空，用户可自行选择默认提供商。如果已停用此政策，当用户在地址栏中输入非网址的文字时，系统将不会执行任何搜索。<ph name="GOOGLE_ADMIN_CONSOLE_PRODUCT_NAME" />不支持将值设为“已停用”。
+
+如果您设置了此政策，用户将无法在 <ph name="PRODUCT_NAME" /> 中更改它。如果未设置此政策，系统将启用默认的搜索服务提供商，并且用户可以自行设置搜索服务提供商列表。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="2316700579410680894">通过设置此政策，您可以罗列一些网址格式，从而指定自动授权哪些网站访问具有给定供应商 ID 和产品 ID 的 USB 设备。列表中的每项内容都必须同时包含“<ph name="DEVICES_FIELD_NAME" />”和“<ph name="URLS_FIELD_NAME" />”字段，此政策才有效。“<ph name="DEVICES_FIELD_NAME" />”字段中的每项内容都可以包含“<ph name="VENDOR_ID_FIELD_NAME" />”和“<ph name="PRODUCT_ID_FIELD_NAME" />”字段。如果您省略“<ph name="VENDOR_ID_FIELD_NAME" />”字段，系统将会创建一项与所有设备都匹配的政策。如果您省略“<ph name="PRODUCT_ID_FIELD_NAME" />”字段，系统将会创建一项与所有具有给定供应商 ID 的设备都匹配的政策。包含“<ph name="PRODUCT_ID_FIELD_NAME" />”字段但不含“<ph name="VENDOR_ID_FIELD_NAME" />”字段的政策无效。
 
       USB 权限模型会授权指定网址作为顶级来源访问相应 USB 设备。如果嵌入式框架需要访问 USB 设备，则应通过“usb”<ph name="FEATURE_POLICY_HEADER_NAME" /> 标头获得授权。该网址必须有效，否则系统会忽略此政策。
@@ -2177,6 +2248,21 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="264771271300359481">不允许任何网站使用剪贴板网站权限</translation>
 <translation id="2649537800219643135">用户锁定屏幕屏保图片的来源。</translation>
 <translation id="2649896281375932517">由用户决定</translation>
+<translation id="2649948251789347405">管理员可以通过此政策来指定企业搜索聚合器，当用户在地址栏中输入特定关键字时，该聚合器会在地址栏中提供搜索建议和结果。用户只需在地址栏中输入 <ph name="SHORTCUT_SEARCH_AGGREGATOR_SETTINGS_FIELD" /> 字段中指定的关键字（可以带 @ 前缀，例如 <ph name="SHORTCUT_EXAMPLE_SEARCH_AGGREGATOR_SETTINGS" />，也可以不带 @ 前缀），然后按空格键或 Tab 键，即可发起搜索。
+
+以下字段是必填字段：<ph name="NAME_SEARCH_AGGREGATOR_SETTINGS_FIELD" />、<ph name="SHORTCUT_SEARCH_AGGREGATOR_SETTINGS_FIELD" />、<ph name="SEARCH_URL_SEARCH_AGGREGATOR_SETTINGS_FIELD" />、<ph name="SUGGEST_URL_SEARCH_AGGREGATOR_SETTINGS_FIELD" />。
+
+<ph name="NAME_SEARCH_AGGREGATOR_SETTINGS_FIELD" /> 字段对应于地址栏中向用户显示的搜索引擎名称。
+
+<ph name="SHORTCUT_SEARCH_AGGREGATOR_SETTINGS_FIELD" /> 字段对应于用户输入的用于触发搜索的关键字。快捷字词可以包含纯文字和字符，但不得包含空格，也不得以 @ 符号开头。快捷字词不得重复。
+
+<ph name="SEARCH_URL_SEARCH_AGGREGATOR_SETTINGS_FIELD" /> 字段用于指定要在哪个网址中进行搜索。输入搜索引擎结果页面的网址，然后使用 <ph name="SEARCH_TERM_MARKER" /> 代替搜索查询。
+
+<ph name="SUGGEST_URL_SEARCH_AGGREGATOR_SETTINGS_FIELD" /> 字段用于指定提供搜索建议的网址。如果 <ph name="SUGGEST_URL_SEARCH_AGGREGATOR_SETTINGS_FIELD" /> 包含 <ph name="SEARCH_TERM_MARKER" />，Chrome 会向该网址发送 GET 请求，并将 <ph name="SEARCH_TERM_MARKER" /> 替换为用户的搜索查询，从而获取搜索建议。否则，Chrome 将发出 POST 请求，并通过键名为 <ph name="SEARCH_SUGGEST_POST_PARAMS_QUERY_KEY" /> 的 POST 参数传递用户的搜索查询。
+
+<ph name="ICON_URL_SEARCH_AGGREGATOR_SETTINGS_FIELD" /> 字段用于指定将在搜索建议中使用的图片的网址。如果此字段未设置，Chrome 将使用默认图标。建议使用网站图标（示例：<ph name="ICON_URL_EXAMPLE" />）。在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="2650049181907741121">当用户合上屏幕时执行的操作</translation>
 <translation id="2656559539624760733">不使用 Chrome 根存储区。</translation>
 <translation id="2658653824183107970">使用旧版 <ph name="CORS" /> 实现方案（而非新版 <ph name="CORS" />）</translation>
@@ -3050,6 +3136,8 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
       停用此政策会对 <ph name="PRODUCT_NAME" /> 的安全性和稳定性产生不利影响，因为这会弱化渲染程序进程使用的沙盒。仅当那些必须在渲染程序进程中运行的第三方软件遇到兼容性问题时，才应停用此政策。
 
       注意：不妨详细了解一下进程缓解政策 ( https://chromium.googlesource.com/chromium/src/+/HEAD/docs/design/sandbox.md#Process-mitigation-policies )。</translation>
+<translation id="3338041636115991551">除非暂存模式或多账号登录在用户会话期间保持开启状态，否则启用 ArcEnabled 会为用户开启 ARC。将此政策设为 False 或不设置意味着企业用户无法使用 ARC。
+此政策仅控制 <ph name="PRODUCT_NAME" /> 上的 <ph name="ARC_VM" />。对于 <ph name="PRODUCT_OS_FLEX_NAME" />，请参阅 <ph name="DEVICE_FLEX_ARC_PRELOAD_ENABLED_POLICY_NAME" /> 政策了解详情。</translation>
 <translation id="3338431256935927407">控制与“云端上传”功能相关的设置。</translation>
 <translation id="3339271789059866414">配置系统代理服务的可用情况以及系统服务的代理凭据。
       如果此政策未设置，系统代理服务将不可用。</translation>
@@ -3378,6 +3466,7 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 降低此政策的值会产生永久性影响：即使之后再提高此政策的值，设备可能也无法回滚到更早的版本。
 
 实际的回滚可能性或许还取决于设备型号和关键的漏洞补丁。</translation>
+<translation id="3565284547329101236">在 Flex 上预加载 <ph name="ARC_VM" /> 映像</translation>
 <translation id="35668690622495904">
           对 getDisplayMedia 的调用不会因源自未被列入许可名单的上下文而遭到拒绝。（但是，这类调用仍可能会由于别的原因被拒。）</translation>
 <translation id="3568762199045490351">超时设置为 0 毫秒的 JavaScript setTimeout() 将会延迟到 1 毫秒。</translation>
@@ -3718,6 +3807,19 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 
       用户无法卸载由政策注册的协议处理程序，但可通过安装新的默认处理程序来更改由政策安装的协议处理程序。</translation>
 <translation id="3842619997238271109">禁止远程访问主机在接受客户端连接时使用 PIN 码和配对身份验证方法</translation>
+<translation id="3844931982362586388">通过设置此政策，您可以配置默认的“新标签页”页面网址，并禁止用户更改此设置。
+
+在打开新的标签页和窗口时，系统会显示“新标签页”页面。
+
+此政策不影响哪些页面会在 Chrome 启动时打开。启动时打开的页面由 <ph name="RESTORE_ON_STARTUP_POLICY_NAME" /> 政策控制。如果主页被设为打开“新标签页”页面，此政策确实会影响主页；如果启动页被设为打开“新标签页”页面，此政策也会影响启动页。
+
+最佳实践是提供完全规范化的网址；如果您提供的网址并未完全规范化，<ph name="PRODUCT_NAME" /> 会默认采用 https://。
+
+如果未设置此政策或将其留空，系统会使用默认的“新标签页”页面。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="3845318141474759319">允许使用生成式 AI 壁纸，但不改进 AI 模型</translation>
 <translation id="3851443303439635700">控制嵌套阈值，以指定何时开始将 JavaScript setTimeout() 函数强制设为下限值</translation>
 <translation id="3854609566862485607">此政策可控制用于标识受管理资料的自定义标签。对于受管理资料，此标签会显示在工具栏中的头像旁边。系统不会翻译该自定义标签。
@@ -3788,6 +3890,13 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
  如果此政策未设置或设为空值/无效值，系统将不会向打印任务请求中添加额外的<ph name="CLIENT_INFO_IPP_ATTRIBUTE" />值。
 </translation>
 <translation id="3896591584655529057">允许使用密码管理工具保存通行密钥</translation>
+<translation id="3896751141670591496">如果已启用或未设置此政策，当您使用可能不安全的命令行 flag 启动 Chrome 时，系统会显示安全警告。
+
+如果已停用此政策，当您使用可能不安全的命令行 flag 启动 Chrome 时，系统不会显示安全警告。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="3897218615484393758">限制通过 SAML 验证身份的用户可在锁定屏幕上离线登录的时长</translation>
 <translation id="3897860452756794695">系统将使用新的 offsetParent 行为。</translation>
 <translation id="3898345958122666461">开启 NTLMv2</translation>
@@ -4265,6 +4374,11 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="4278656834593750050">启用充电提示音</translation>
 <translation id="4282243913059705499">始终在工具栏中显示 <ph name="PRODUCT_NAME" /> 图标</translation>
 <translation id="4285674129118156176">允许独立用户使用 ARC</translation>
+<translation id="4287004822156577027">如果已启用或未设置此政策，Chrome 清理功能将会定期扫描系统以检测是否存在垃圾软件，并会在发现任何垃圾软件时询问用户是否要将其移除。此外，系统还允许通过 chrome://settings 手动触发 Chrome 清理功能。
+
+如果已停用此政策，Chrome 清理功能将不会定期扫描，并且手动触发会被停用。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="428948795004445932">网络数据的取样和收集时间间隔。所允许的最低时间间隔为 1 分钟。
 
       如果此政策未设置，系统会应用默认时间间隔（10 分钟）。</translation>
@@ -4642,6 +4756,13 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 如需详细了解有效网址格式，请访问 https://cloud.google.com/docs/chrome-enterprise/policies/url-patterns。“*”不是此政策可接受的值。
 
 如果此政策未设置，所有源都需要使用以往用户手势才能调用上述 API。</translation>
+<translation id="4584427961967778141">通过设置此政策，您可以控制 <ph name="PRODUCT_NAME" /> 的扩展程序管理设置，包括由现有的扩展程序相关政策所控制的设置。此政策会取代任何可能已设置的旧版政策。
+
+此政策仅会将某个扩展程序 ID 或某个更新网址映射至其对应的特定设置。您可为特殊 ID<ph name="DEFAULT_SCOPE" />设定默认配置，该配置会应用于未在此政策中设定自定义配置的所有扩展程序。对于更新网址，相应配置会应用于具有在扩展程序清单 (http://support.google.com/chrome/a?p=Configure_ExtensionSettings_policy) 中注明的确切更新网址的扩展程序。如果“override_update_url”flag 设为 true，系统会根据 <ph name="EXTENSION_INSTALL_FORCELIST_POLICY_NAME" /> 政策中或此政策的“update_url”字段中指定的“更新”网址安装并更新扩展程序。如果“update_url”是 Chrome 应用商店网址，“override_update_url”flag 会被忽略。
+
+只有当 <ph name="MS_WIN_NAME" /> 实例已加入 <ph name="MS_AD_NAME" /> 网域、已加入 <ph name="MS_AAD_NAME" /> 或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册时，才能在该实例上强制安装并非来自 Chrome 应用商店的应用和扩展程序。
+
+只有当 <ph name="MAC_OS_NAME" /> 实例是通过 MDM 进行管理、已通过 MCX 加入网域或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册时，才能在该实例上强制安装并非来自 Chrome 应用商店的应用和扩展程序。</translation>
 <translation id="4591366717022345234">为用户提供 Quick Fix Build</translation>
 <translation id="4593391169954484940">相应文件的 SHA-256 哈希值。</translation>
 <translation id="4594027034164195984">允许第三方图片显示身份验证提示</translation>
@@ -4663,6 +4784,13 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="4599810650416623373">禁止在这些网站上使用 JavaScript 优化功能</translation>
 <translation id="4600786265870346112">启用大号光标</translation>
 <translation id="4602988345256038309">允许与这台计算机建立远程支持连接</translation>
+<translation id="4605677392792989397">通过设置此政策，您可以配置企业登录网址（仅限 HTTP 和 HTTPS 协议）列表。密码保护服务会在这些网址上捕获密码的加盐哈希值，用于检测密码重用情况。为了使 <ph name="PRODUCT_NAME" /> 能够正确捕获密码的加盐哈希值，请确保登录页面遵循了这些准则 (https://www.chromium.org/developers/design-documents/create-amazing-password-forms)。
+
+如果已停用或未配置此设置，密码保护服务将仅在 https://accounts.google.com 上捕获密码的加盐哈希值。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="4607416370554533118">通过设置此政策，您可以指定一系列网址格式，从而指定 Chrome 可为哪些网站自动选择客户端证书。此政策的值是一个由字符串化的 JSON 字典组成的数组，每个字典条目都必须采用 <ph name="AUTO_SELECT_CERTIFICATE_FOR_URLS_EXAMPLE" /> 格式，其中 <ph name="URL_PATTERN_PLACEHOLDER" /> 是内容设置格式。<ph name="FILTER_PLACEHOLDER" /> 会限制浏览器可自动从哪些客户端证书中进行选择。无论是否设置了过滤器，系统都只会选择与服务器的证书请求相匹配的证书。
 
       <ph name="FILTER_PLACEHOLDER" /> 部分的用法示例：
@@ -5217,6 +5345,17 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="5033070732967197381">允许在 TLS 证书已损坏的网站上发出 WebAuthn API 请求。</translation>
 <translation id="5034504101537897433">启用设备崩溃报告信息报告功能</translation>
 <translation id="5036013147560568855">证书配置协议的版本。默认是 1。1 表示“静态”协议。2 表示“动态”协议。</translation>
+<translation id="5036559232677914717">通过设置此政策，您可以指定 Chrome 启动时的系统行为。关闭此设置相当于未设置，因为 <ph name="PRODUCT_NAME" /> 必须有指定的启动行为。
+
+如果您设置了此政策，用户将无法在 <ph name="PRODUCT_NAME" /> 中更改它。如果未设置此政策，用户便可自行更改它。
+
+如果此政策设为 <ph name="POLICY_ENUM_RESTOREONSTARTUP_RESTOREONSTARTUPISLASTSESSION" /> 或 <ph name="POLICY_ENUM_RESTOREONSTARTUP_RESTOREONSTARTUPISLASTSESSIONANDURLS" />，某些依赖于会话的设置或在退出时执行操作的设置（例如：退出时清除浏览数据或仅在会话期间有效的 Cookie）就会关闭。
+
+如果此政策设为 <ph name="POLICY_ENUM_RESTOREONSTARTUP_RESTOREONSTARTUPISLASTSESSIONANDURLS" />，浏览器将会恢复上一个会话并打开一个单独的窗口，以显示通过 <ph name="RESTORE_ON_STARTUP_URLS_POLICY_NAME" /> 设置的网址。请注意，用户可以选择让这些网址保持打开状态，它们也会在未来的会话中恢复。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="5037749623252479780">PageUp/PageDown 设置已停用</translation>
 <translation id="5039110755072335605">对 CORS 非通配符式请求标头的支持情况</translation>
 <translation id="504116558738617678">仅在相应设备不受管理或只有 1 个用户时显示磁盘空间不足警告</translation>
@@ -5536,6 +5675,7 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="5258651513421638932">允许独立式应用连接智能卡</translation>
 <translation id="5262320080678421295">不信任 Symantec Corporation 旧版 PKI 颁发的证书</translation>
 <translation id="5265613843467285323">显示一个在镜像模式下排除显示屏的界面切换开关。</translation>
+<translation id="5270408671043421978">停用 <ph name="ARC_VM" /> 映像预加载</translation>
 <translation id="5272332743749468542">为用户提供“在镜像模式下排除显示屏”选项</translation>
 <translation id="5273744932022326215">在登录屏幕上启用“光标突出显示”无障碍功能。
 
@@ -5715,6 +5855,25 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 
       如果此政策设为 false，<ph name="PRODUCT_NAME" /> 和 <ph name="LACROS_NAME" /> 将会禁止从用户管理器中添加新用户。</translation>
 <translation id="5377606826822211923">控制用户对来源不受信任的 Android 应用的使用</translation>
+<translation id="5377826248281933035">此政策列出了用户可在地址栏中使用快捷字词迅速搜索的网站。用户只需在地址栏中输入快捷字词或 @快捷字词（例如 @work），然后按空格键或 Tab 键，即可发起搜索。
+
+对于每个网站，都必须填写以下字段：<ph name="NAME_SITE_SEARCH_SETTINGS_FIELD" />、<ph name="SHORTCUT_SITE_SEARCH_SETTINGS_FIELD" /> 和 <ph name="URL_SITE_SEARCH_SETTINGS_FIELD" />。
+
+<ph name="NAME_SITE_SEARCH_SETTINGS_FIELD" /> 字段对应于要在地址栏中向用户显示的网站或搜索引擎的名称。
+
+<ph name="SHORTCUT_SITE_SEARCH_SETTINGS_FIELD" /> 可以包含纯文字和字符，但不得包含空格，也不得以 @ 符号开头。快捷字词不得重复。
+
+对于每个条目，<ph name="URL_SITE_SEARCH_SETTINGS_FIELD" /> 字段用于指定使用相应关键字进行搜索时所用搜索引擎的网址。该网址必须包含字符串 <ph name="SEARCH_TERM_MARKER" />；当用户执行查询时，系统会将此字符串替换成用户的搜索字词。无效条目和包含重复快捷字词的条目会被忽略。
+
+当用户输入“@”时，配置为“默认选用”的网站搜索条目会显示在地址栏中。最多可选择 3 个条目作为默认选用的条目。
+
+用户无法修改或停用由政策设置的网站搜索条目，但可为同一网址添加新的快捷字词。另外，用户无法使用之前通过此政策创建的快捷字词创建新的网站搜索条目。
+
+如果与用户之前创建的快捷字词冲突，系统会优先使用用户设置。不过，用户仍然可以在搜索栏中输入“@”来触发由此政策创建的选项。例如，如果用户已将“work”定义为 URL1 的快捷字词，并且此政策将“work”定义为 URL2 的快捷字词，则在搜索栏中输入“work”将会触发对 URL1 的搜索，但在搜索栏中输入“@work”会触发对 URL2 的搜索。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="537786648513450280">控制设备对来源不受信任的 Android 应用的使用</translation>
 <translation id="5378885577701865339">停用“共享剪贴板”功能</translation>
 <translation id="538108065117008131">允许“<ph name="PRODUCT_FRAME_NAME" />”处理以下内容类型。</translation>
@@ -5846,6 +6005,13 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="545817252640069915">启用登录拦截功能</translation>
 <translation id="5460797984317417682">启用全屏提醒</translation>
 <translation id="5462898272514237681">控制 <ph name="PRODUCT_OS_NAME" /> 对 Google 位置信息服务的访问权限</translation>
+<translation id="5464786290880338716">此政策用于控制是否应启用 <ph name="PRIVACY_SANDBOX_NAME" /> IP 地址保护功能。
+
+如果已停用此政策，IP 地址保护功能将停用，而且用户无法通过界面设置启用此功能。
+如果已启用此政策，IP 地址保护功能将会启用，而且用户无法通过界面设置停用此功能。
+如果未设置此政策，使用受管浏览器或设备的用户将无法使用 IP 地址保护功能，也无法通过界面设置启用此功能。使用非受管浏览器和设备的用户将能够在其设备上通过界面设置开启或关闭 IP 地址保护功能。
+
+注意：当此政策已启用时，或者未设置此政策并通过界面设置启用 IP 地址保护功能时，企业用户的 IP 地址保护功能的行为可能会不时变化。</translation>
 <translation id="5464816904705580310">为受管理用户配置设置。</translation>
 <translation id="5466596281866046569">报告应用信息</translation>
 <translation id="5467175549232776406">政策测试页面可供访问</translation>
@@ -5861,6 +6027,17 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="5480380613778757009">如果此政策已停用或未设置，系统将会在受管理访客会话完成后立即重置该会话中已设置的所有显示设置。如果此政策设为 True，系统将会在退出受管理访客会话后保留该会话的显示属性。</translation>
 <translation id="5483012943408894695">针对不安全来源的安全性限制不适用于哪些来源或主机名模式</translation>
 <translation id="5483065054530244863">允许使用由本地信任锚颁发的 SHA-1 签名证书</translation>
+<translation id="5486352219019836984">如果已启用此政策，匿名报告功能会默认处于启用状态（推荐），自动向 Google 报告与 <ph name="PRODUCT_NAME" /> 的使用情况和崩溃情况相关的数据。用户将仍能更改此设置。
+
+如果已停用此政策，匿名报告功能会处于停用状态，不向 Google 发送任何与使用情况或崩溃情况相关的数据。用户将无法更改此设置。
+
+如果未设置此政策，用户可在安装或首次运行时选择匿名报告行为，日后亦可更改此设置。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+（对于 <ph name="PRODUCT_OS_NAME" />，请参阅 <ph name="DEVICE_METRICS_REPORTING_ENABLED_POLICY_NAME" />。）</translation>
 <translation id="5486917900445838803">如果此政策已启用或未设置，系统会开启图形加速功能（如果可用）。
 
       如果此政策已停用，系统会关闭图形加速功能。</translation>
@@ -6037,7 +6214,6 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 
       如果此政策未配置，<ph name="PRODUCT_NAME" /> 将会按照默认发布流程禁止采用不安全哈希。如果此政策已启用，<ph name="PRODUCT_NAME" /> 将会允许服务器在协商 TLS 握手时使用不安全哈希。如果此政策已停用，<ph name="PRODUCT_NAME" /> 将会禁止服务器在协商 TLS 握手时使用不安全哈希。</translation>
 <translation id="5611869109049836323">在本地添加的信任锚中强制执行限制条件</translation>
-<translation id="5612770822986069057">允许用户在设备上开启或关闭 <ph name="PRIVACY_SANDBOX_NAME" /> IP 地址保护设置。</translation>
 <translation id="561480358503796257">指向特定图片的网址，该图片将用作受管理资料的企业标记。该网址必须指向图片。
 
 此政策只能设为用户政策。建议使用网站图标（例如 https://www.google.com/favicon.ico）或不小于 48 x 48 像素的图标。</translation>
@@ -6214,6 +6390,11 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="5708969689202733975">配置所允许的“快速解锁”模式</translation>
 <translation id="5714563837055244378">启用 Android 应用至 Web 应用分享功能。</translation>
 <translation id="5715739768416614900">启用自助服务终端问题排查工具。</translation>
+<translation id="5716156630400143265">如果 <ph name="RESTORE_ON_STARTUP_POLICY_NAME" /> 设为 RestoreOnStartupIsURLs，那么将 <ph name="RESTORE_ON_STARTUP_URLS_POLICY_NAME" /> 设为一系列网址即可指定哪些网址会在 Chrome 启动时打开。
+
+如果未设置此政策，“新标签页”页面会在 Chrome 启动时打开。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="5717973246079053225">为受管理个人资料停用云报告功能</translation>
 <translation id="572155275267014074">Android 设置</translation>
 <translation id="5722577409367087850">加载该扩展程序</translation>
@@ -6440,6 +6621,15 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="5899751601113377553">禁止用户使用 <ph name="LACROS_NAME" /></translation>
 <translation id="5900919753933009463">报告网络配置</translation>
 <translation id="5901427587865226597">仅限双面打印</translation>
+<translation id="5903484826174648217">如果已启用此政策，“安全浏览”功能将会信任您指定的网域。此功能将不会检查这类网域是否含有危险资源，例如钓鱼式攻击、恶意软件或垃圾软件。“安全浏览”功能的下载保护服务将不会检查托管在这类网域上的下载内容。此功能的密码保护服务将不会检查密码重用情况。
+
+如果未设置此政策，系统便会将默认开启的“安全浏览”保护功能应用于所有资源。
+
+此政策不支持正则表达式，但会将指定网域的子网域列入许可名单。完全限定域名 (FQDN) 不是必需项。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="5905114360004248993">允许这些网站显示弹出式窗口</translation>
 <translation id="5905473632148429217">启用在线 OCSP/CRL 检查</translation>
 <translation id="5908808391744484238">如果启用或未设置此政策，当用户从上下文菜单中选择“在无痕式窗口中打开链接”时，网址参数过滤功能可能会移除某些参数。
@@ -6654,6 +6844,19 @@ IPv4 地址的前缀为 0010；IPv6 地址的前缀为 0020。对于双栈网络
 <translation id="6099853574908182288">默认打印颜色模式</translation>
 <translation id="6102342563050263313">允许滚动至网址片段指定的文本所在的位置</translation>
 <translation id="6102449843040973938">允许 <ph name="BOREALIS_NAME" /> 在设备上运行</translation>
+<translation id="6103130052818694000">此政策已在 <ph name="PRODUCT_NAME" /> 83 中弃用，请改用 <ph name="SAFE_BROWSING_PROTECTION_LEVEL_POLICY_NAME" />。
+
+如果已启用此政策，Chrome 的“安全浏览”功能会保持开启状态。如果已停用此政策，Chrome 的“安全浏览”功能会保持关闭状态。
+
+如果您已设置此政策，用户便无法更改它或覆盖 Chrome 中的“启用针对钓鱼式攻击和恶意软件的防护功能”设置。如果未设置此政策，“启用针对钓鱼式攻击和恶意软件的防护功能”会设为 True，但用户可以对其进行更改。
+
+详细了解“安全浏览”功能 ( https://developers.google.com/safe-browsing )。
+
+如果已设置 <ph name="SAFE_BROWSING_PROTECTION_LEVEL_POLICY_NAME" /> 政策，系统会忽略 <ph name="SAFE_BROWSING_ENABLED_POLICY_NAME" /> 政策的值。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="610892566190435199">启用设备电源状态报告功能</translation>
 <translation id="6111936128861357925">允许用户玩恐龙复活节彩蛋游戏</translation>
 <translation id="6118226055960302400">恢复允许的行为。</translation>
@@ -6910,6 +7113,13 @@ Origin-Agent-Cluster HTTP 标头可控制是将某个文档隔离在以源为键
 <translation id="627672037430076089">禁止与这台计算机建立远程支持连接</translation>
 <translation id="6277314550042130537">在 HTTP 身份验证期间使用 KDC 政策审批结果</translation>
 <translation id="6278428485366576908">主题</translation>
+<translation id="6279010879606347019">如果已启用此政策，系统会使用“新标签页”页面作为用户的主页，并忽略所有主页网址位置。如果已停用此政策，系统绝不会使用“新标签页”页面作为用户的主页，除非用户将主页网址设为 chrome://newtab。
+
+如果您设置了此政策，用户将无法更改 <ph name="PRODUCT_NAME" /> 中的主页类型。如果未设置此政策，用户便可自行决定是否使用“新标签页”页面作为主页。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="628084107912717806">指定能否跨源发送 WebAssembly 模块</translation>
 <translation id="6280973140313576289">在浏览器启动时强制显示个人资料选择器</translation>
 <translation id="6282524907402492171">显示 <ph name="CLOUD_PRINT_NAME" />弃用警告</translation>
@@ -7671,6 +7881,13 @@ Microsoft SharePoint 卡片需要额外的管理员配置。如需详细了解�
 <translation id="6766216162565713893">允许网站请求用户授予对附近蓝牙设备的访问权限</translation>
 <translation id="6770454900105963262">报告自助服务终端的相关信息</translation>
 <translation id="6774132787348495175">不允许用户使用所需的虚拟机来支持 Linux 应用</translation>
+<translation id="678121785914414680">以列表形式指定应在下载完毕后自动打开的文件类型。列出文件类型时不应包含前导分隔符，因此请输入“txt”而非“.txt”。
+
+如果指定了自动打开的文件类型，相应类型的文件仍须接受已启用的安全浏览检查；如果未通过该检查，便不会打开。
+
+如果未设置此政策，只有当用户已明确指定自动打开的文件类型时，相应类型的文件才会在下载完毕后自动打开。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="6782331708811245959">启用设备启动模式报告功能</translation>
 <translation id="6783578496154221347">在新代码中使用 WeeklyTimeIntervalChecked。</translation>
 <translation id="6785201942412171878">控制用于触发 PageUp/PageDown 等六个按键的快捷键</translation>
@@ -8192,17 +8409,6 @@ DevicePowerBatteryChargingOptimization 和 DevicePowerAdaptiveChargingEnabled �
       系统可识别的连接类型标识符包括 <ph name="CONNECTION_TYPE_ETHERNET_NAME" />、<ph name="CONNECTION_TYPE_WIFI_NAME" /> 和 <ph name="CONNECTION_TYPE_CELLULAR_NAME" />。</translation>
 <translation id="7150722575502017208">不要求本地用户的名称和远程访问主机所有者的名称一致</translation>
 <translation id="7151366515472588710">客户端不应解释此数据，而应一字不差地转发它。DMServer 使用 policy_version 验证 DMServer 的政策视图是否与 Chrome 操作系统设备的视图匹配。</translation>
-<translation id="7152605873936173525">控制 DNS-over-HTTPS 解析器的模式。请注意，此政策仅会为每次查询设置默认模式。对于特殊类型的查询（例如，请求解析 DNS-over-HTTPS 服务器主机名），此政策所设的模式可能会被覆盖。
-
-      “<ph name="SECURE_DNS_MODE_OFF" />”模式会停用 DNS-over-HTTPS。
-
-      如果有可用的 DNS-over-HTTPS 服务器，“<ph name="SECURE_DNS_MODE_AUTOMATIC" />”模式会先发送 DNS-over-HTTPS 查询；如果出错了，则可能会改为发送不安全的查询。
-
-      “<ph name="SECURE_DNS_MODE_SECURE" />”模式仅会发送 DNS-over-HTTPS 查询；如果出错了，将无法解析。
-
-      在 <ph name="ANDROID_VERSION" /> 及更高版本中，如果 DNS-over-TLS 处于活跃状态，<ph name="PRODUCT_NAME" /> 将不会发送不安全的 DNS 请求。
-
-      如果未设置此政策，浏览器可能会向与用户配置的系统解析器关联的解析器发送 DNS-over-HTTPS 请求。</translation>
 <translation id="7152640356717355643">启用设备网络接口报告功能</translation>
 <translation id="7153786895642570081">此政策用于控制 EphemeralNetworkPolicies 功能的启用状态。
 如果此政策设为 true，系统将会遵循 DeviceOpenNetworkConfiguration 条目 RecommendedValuesAreEphemeral 和 UserCreatedNetworkConfigurationsAreEphemeral。
@@ -8231,6 +8437,7 @@ DevicePowerBatteryChargingOptimization 和 DevicePowerAdaptiveChargingEnabled �
 <translation id="7177293255621000064">如果此政策设为 True，用户将无法在文件浏览器中使用任何类型的外部存储媒介（USB 闪存驱动器、外部硬盘、SD 卡和其他存储卡、光存储器）。如果此政策设为 False 或不设置，用户便能在自己的设备上使用外部存储设备。
 
       注意：此政策不会影响 Google 云端硬盘和内部存储设备。用户仍然可以访问保存在“下载内容”文件夹中的文件。</translation>
+<translation id="7177645313697913767">如果用户的浏览器和设备未受管理，则允许用户在其设备上开启或关闭 <ph name="PRIVACY_SANDBOX_NAME" /> IP 地址保护设置。</translation>
 <translation id="7177857088692019405">快速解锁</translation>
 <translation id="7179157174254421614">设置此政策可指定用于自动检测时区的方法，且无法由用户更改，除非 <ph name="SYSTEM_TIMEZONE_POLICY_NAME" /> 政策关闭了“自动检测时区”功能。
 
@@ -8934,13 +9141,6 @@ DevicePowerBatteryChargingOptimization 和 DevicePowerAdaptiveChargingEnabled �
 <translation id="7777535871204167559">以只读模式处理外部存储设备</translation>
 <translation id="7781452670568828399">更改建议的 <ph name="PRODUCT_OS_NAME" /> 配置。</translation>
 <translation id="7784062550705119230">如果为 <ph name="DEVICE_PRINTERS_ACCESS_MODE_POLICY_NAME" /> 选择了 <ph name="PRINTERS_ALLOWLIST" />，您便可通过设置 <ph name="DEVICE_PRINTERS_ALLOWLIST_POLICY_NAME" /> 来指定用户可以使用哪些打印机。用户将只能使用那些符合条件（ID 与此政策中所列的值匹配）的打印机。ID 必须与 <ph name="DEVICE_PRINTERS_POLICY_NAME" /> 所指定文件内的<ph name="ID_FIELD" />或<ph name="GUID_FIELD" />字段相符。</translation>
-<translation id="7785199109546027763">此政策用于控制是否应启用 <ph name="PRIVACY_SANDBOX_NAME" /> IP 地址保护功能。
-
-如果此政策已停用，IP 地址保护功能将被停用，而且用户无法通过界面设置启用此功能。
-如果此政策已启用，IP 地址保护功能将会启用，而且用户无法通过界面设置停用此功能。
-如果未设置此政策，用户将能够在其设备上通过界面设置开启或关闭 IP 地址保护功能。
-
-注意：当此政策已启用时，或者未设置此政策并通过界面设置启用 IP 地址保护功能时，企业用户的 IP 地址保护功能的行为可能会不时变化。</translation>
 <translation id="7788511847830146438">根据个人资料</translation>
 <translation id="7790221177424764797">此政策旨在控制是否从 <ph name="IE_PRODUCT_NAME" /> 的 SiteList 政策中加载规则。
 
@@ -9248,11 +9448,6 @@ DevicePowerBatteryChargingOptimization 和 DevicePowerAdaptiveChargingEnabled �
 <translation id="8030228699677851043">使 SharedWorker blob 网址行为符合规范</translation>
 <translation id="8031651557770840616">不允许使用生成式 AI 壁纸</translation>
 <translation id="8035570672225663428">启用“自适应充电”模式以暂缓充电进程，进而延长电池寿命</translation>
-<translation id="8036284429246268475">如果此政策已启用，用户便可让 <ph name="PRODUCT_NAME" /> 检查所输入的用户名和密码是否已泄露。
-
-      如果您设置了此政策，用户便无法在 <ph name="PRODUCT_NAME" /> 中更改它。如果您未设置此政策，系统会允许执行凭据泄露检查，但用户可关闭该功能。
-
-      如果安全浏览功能已停用（无论是被政策还是被用户停用），此行为便不会触发。若要强制开启安全浏览功能，请使用 <ph name="SAFE_BROWSING_ENABLED_POLICY_NAME" /> 政策或 <ph name="SAFE_BROWSING_PROTETION_LEVEL_POLICY_NAME" /> 政策。</translation>
 <translation id="8038007682032315784">禁止在所有网页上使用 <ph name="SEARCH_SIDE_PANEL_FEATURE_NAME" /></translation>
 <translation id="8044493735196713914">报告设备引导模式</translation>
 <translation id="80453040817068401">启用 <ph name="LACROS_NAME" /> 浏览器</translation>
@@ -9298,6 +9493,13 @@ DevicePowerBatteryChargingOptimization 和 DevicePowerAdaptiveChargingEnabled �
 <translation id="8089200718228084417">启用已弃用的 Privet 本地打印</translation>
 <translation id="8091982561085048989">一个布尔值标记，用于表明是否应该使用 IPP Everywhere 来设置打印机。<ph name="PRODUCT_OS_NAME" /> 76 版及更高版本支持该标记。</translation>
 <translation id="8094095107731619070">在用户输入内容时启用实体键盘自动更正功能</translation>
+<translation id="8098760437853291958">如果已启用或未设置此政策，系统会将下载的文件发送给“安全浏览”功能进行分析，即使来源可信也是如此。
+
+如果已停用此政策，当来源可信时，系统不会将下载的文件发送给“安全浏览”功能进行分析。
+
+这些限制适用于从网页内容以及“下载链接”菜单选项触发的下载，但不适用于保存或下载当前显示的页面，也不适用于通过打印选项另存为 PDF 文件。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="8099833343914898016">在仅全屏显示时，包含启动器键的一系列预定快捷键一律不执行任何操作。</translation>
 <translation id="8099880303030573137">使用电池供电时的闲置延迟时间</translation>
 <translation id="8101381354936029836">政策原子组：</translation>
@@ -9431,6 +9633,34 @@ DevicePowerBatteryChargingOptimization 和 DevicePowerAdaptiveChargingEnabled �
       详细了解“安全浏览”功能 (https://developers.google.com/safe-browsing)。</translation>
 <translation id="8199823751103472868">通过设置此政策，您可为 <ph name="PRODUCT_OS_NAME" /> 启用印地语 Inscript 布局。如果此政策设为 false 或未设置，布局将不可用。</translation>
 <translation id="8202834945144737726">为登录界面上的一系列网址启用 <ph name="CHROME_ENTERPRISE_DEVICE_TRUST_CONNECTOR" /> 认证流程</translation>
+<translation id="8210117014924235250">此政策提供了一种方式，来覆盖被浏览器用来实现 Related Website Set 功能的集合列表。
+
+此政策会覆盖 <ph name="FIRST_PARTY_SETS_OVERRIDES_POLICY_NAME" /> 政策。
+
+浏览器的 Related Website Set 列表中的每个集合都必须符合 Related Website Set 要求。
+每个 Related Website Set 都必须包含一个主要网站以及一个或多个成员网站。
+每个集合还可包含其拥有的一系列服务网站，以及从某个网站到其所有 ccTLD 变体的映射关系。
+如需详细了解 <ph name="PRODUCT_NAME" /> 如何使用 Related Website Set，请参阅 https://github.com/WICG/first-party-sets。
+
+
+Related Website Set 中的所有网站都必须是采用 HTTPS 协议的可注册网域。此外，Related Website Set 中的每个网站都必须互不相同，也就是说，同一个网站不能在 Related Website Set 中列出多次。
+
+如果此政策设为一个空字典，浏览器会使用 Related Website Set 的公开列表。
+
+对于来自 <ph name="REPLACEMENTS" /> 列表的 Related Website Set 中的所有网站，如果某个网站也存在于浏览器列表所含的 Related Website Set 中，则该网站会从浏览器的 Related Website Set 中移除。
+之后，此政策的 Related Website Set 将添加到浏览器的 Related Website Set 列表中。
+
+对于来自 <ph name="ADDITIONS" /> 列表的 Related Website Set 中的所有网站，如果某个网站也存在于浏览器列表所含的 Related Website Set 中，则浏览器的 Related Website Set 会进行更新，以便将新的 Related Website Set 添加到浏览器的列表中。待浏览器的列表更新完毕后，此政策的 Related Website Set 将添加到浏览器的 Related Website Set 列表中。
+
+浏览器的 Related Website Set 列表要求其中的所有网站都不得出现在多个集合中。<ph name="REPLACEMENTS" /> 列表和 <ph name="ADDITIONS" /> 列表也都有这样的要求。同理，同一个网站不能既出现在 <ph name="REPLACEMENTS" /> 列表中，又出现在 <ph name="ADDITIONS" /> 列表中。
+
+不支持使用通配符 (*) 作为政策值，也不支持在这些列表所含的任何 Related Website Set 中使用通配符。
+
+此政策提供的所有集合都必须是有效的 Related Website Set，如果无效，则会触发相应的错误。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。
+
+在 <ph name="MAC_OS_NAME" /> 上，此政策仅适用于通过 MDM 进行管理的实例、已通过 MCX 加入网域的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="8213475033260328041">选择将 <ph name="PRODUCT_NAME" /> 中涵盖的数据存储在特定地理位置。
 
 如果此政策未设置或设为 <ph name="DATA_REGION_SETTING_NO_PREFERENCE_OPTION_NAME" />（值为 0），则涵盖的数据可存储在任何地理位置。
@@ -9527,6 +9757,23 @@ Microsoft Outlook 卡片需要额外的管理员配置。如需详细了解如�
       如果此政策未设置，系统会允许网站请求访问，但用户可以更改此设置。</translation>
 <translation id="8267520984570984190">不更改默认的虚拟键盘调整大小行为</translation>
 <translation id="8269238942896230153">受管理的账号必须是主账号，而且允许用户在创建个人资料时导入现有浏览数据</translation>
+<translation id="827020625039819798">通过设置此政策，您能以列表形式指定哪些应用和扩展程序无需用户互动即可静默安装，且无法由用户通过 <ph name="PRODUCT_NAME" /> 界面卸载或停用。权限由系统默认授予，其中包括对 enterprise.deviceAttributes 和 enterprise.platformKeys 扩展程序 API 的权限。（这 2 个 API 不适用于非强制安装的应用和扩展程序。）
+
+尽管 <ph name="PRODUCT_NAME" /> 努力防止用户卸载这些扩展程序，但某些操作系统会导致 <ph name="PRODUCT_NAME" /> 无法有效防止扩展程序遭到外部修改，因此我们只能尽力防止这种情况发生。
+
+如果未设置此政策，系统将不会自动安装任何应用或扩展程序，而且用户可在 <ph name="PRODUCT_NAME" /> 中卸载任何应用或扩展程序。
+
+此政策将会取代 <ph name="EXTENSION_INSTALL_BLOCKLIST_POLICY_NAME" /> 政策。如果从此列表中移除了以前强制安装的某个应用或扩展程序，<ph name="PRODUCT_NAME" /> 便会自动卸载该应用或扩展程序。
+
+用户可通过开发者工具更改任意扩展程序的源代码，这可能会导致扩展程序无法正常运行。如果您担心用户进行此类更改，请设置 <ph name="DEVELOPER_TOOLS_DISABLED_POLICY_NAME" /> 政策。
+
+此政策的每个列表项都是一个字符串，其中包含一个扩展程序 ID 和一个可选的更新网址（这两者之间以英文分号“;”分隔）。扩展程序 ID 是一个由 32 个字母构成的字符串；若想查找该字符串，一种方法是在开发者模式下访问 chrome://extensions。更新网址（若指定）应指向一个更新清单 XML 文档 (https://developer.chrome.com/extensions/autoupdate)。更新网址应使用以下架构之一：<ph name="HTTP_SCHEME" />、<ph name="HTTPS_SCHEME" /> 或 <ph name="FILE_SCHEME" />。默认情况下，系统会使用 Chrome 应用商店的更新网址。此政策中设置的更新网址仅用于初次安装；扩展程序的后续更新将会使用扩展程序清单中的更新网址。后续更新所用的更新网址可通过 <ph name="EXTENSION_SETTINGS_POLICY_NAME" /> 政策覆盖，详见 http://support.google.com/chrome/a?p=Configure_ExtensionSettings_policy。
+
+只有当 <ph name="MS_WIN_NAME" /> 实例已加入 <ph name="MS_AD_NAME" /> 网域、已加入 <ph name="MS_AAD_NAME" /> 或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册时，才能在该实例上强制安装并非来自 Chrome 应用商店的应用和扩展程序。
+
+只有当 <ph name="MAC_OS_NAME" /> 实例是通过 MDM 进行管理、已通过 MCX 加入网域或已注册 <ph name="CHROME_ENTERPRISE_CORE_NAME" />时，才能在该实例上强制安装并非来自 Chrome 应用商店的应用和扩展程序。
+
+注意：此政策不适用于无痕模式。了解如何托管扩展程序 (https://developer.chrome.com/extensions/hosting)。</translation>
 <translation id="8270320981823560179">云端硬盘</translation>
 <translation id="827054846390793641">允许主机桌面在处于已连接状态时显示与连接相关的界面</translation>
 <translation id="8272422063636310696">控制是否让系统根据网址来报告使用旧版技术的网页。
@@ -9764,6 +10011,13 @@ Microsoft Outlook 卡片需要额外的管理员配置。如需详细了解如�
 <translation id="8452787853105404870">向 Google 发送硬件数据，协助改进 ChromeOS Flex</translation>
 <translation id="8453218444172088993">为您的用户停用 <ph name="PRIVACY_SANDBOX_NAME" /> 广告主题设置。</translation>
 <translation id="8455529558077979314">隐私保护屏设置</translation>
+<translation id="8459662059679040042">如果已启用此政策，当 <ph name="CHROME_CLEANUP_NAME" />检测到垃圾软件时，它可能会按照 <ph name="SAFE_BROWSING_EXTENDED_REPORTING_ENABLED_POLICY_NAME" /> 所设置的政策向 Google 报告与此项扫描相关的数据。<ph name="CHROME_CLEANUP_NAME" />会询问用户是否需要清理，并将扫描结果发送给 Google。
+
+如果已停用此政策，当 <ph name="CHROME_CLEANUP_NAME" />检测到垃圾软件时，无论 <ph name="SAFE_BROWSING_EXTENDED_REPORTING_ENABLED_POLICY_NAME" /> 的值是什么，它都不会向 Google 报告与此项扫描相关的数据。<ph name="CHROME_CLEANUP_NAME" />会询问用户是否需要清理，但不会向 Google 报告扫描结果。
+
+如果未设置此政策，<ph name="CHROME_CLEANUP_NAME" />可能会按照 <ph name="SAFE_BROWSING_EXTENDED_REPORTING_ENABLED_POLICY_NAME" /> 所设置的政策向 Google 报告与用于检测垃圾软件的扫描相关的数据。<ph name="CHROME_CLEANUP_NAME" />会询问用户是否需要清理，并与 Google 分享扫描结果，以协助 Google 日后更好地检测垃圾软件。这些结果包含文件元数据、自动安装的扩展程序以及注册表项（如《Chrome 隐私权白皮书》中所述）。
+
+在 <ph name="MS_WIN_NAME" /> 上，此政策仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、已加入 <ph name="MS_AAD_NAME" /> 的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。</translation>
 <translation id="8461914792118322307">代理</translation>
 <translation id="8465065632133292531">在使用 POST 的即搜即得网址中所需的参数</translation>
 <translation id="8466326735698755782">允许使用“标签页比较”工具，但不改进 AI 模型。</translation>
@@ -10212,6 +10466,13 @@ Microsoft Outlook 卡片需要额外的管理员配置。如需详细了解如�
 <translation id="8801680448782904838">系统建议或要求重新启动浏览器或重启设备时，通知用户</translation>
 <translation id="8802800226877198994">启用 GIF 支持。</translation>
 <translation id="8804685015028424497">停用无痕模式</translation>
+<translation id="8806417793261941339">此政策已被弃用，请改用 <ph name="SAFE_BROWSING_ALLOWLIST_DOMAINS_POLICY_NAME" />。
+
+      如果已启用此政策，“安全浏览”功能将会信任您指定的网域。此功能将不会检查这类网域是否含有危险资源，例如钓鱼式攻击、恶意软件或垃圾软件。“安全浏览”功能的下载保护服务将不会检查托管在这类网域上的下载内容。该功能的密码保护服务将不会检查密码重用情况。
+
+      如果已停用或未设置此政策，系统便会将默认开启的“安全浏览”保护功能应用于所有资源。
+
+       在 <ph name="MS_WIN_NAME" /> 上，此功能仅适用于已加入 <ph name="MS_AD_NAME" /> 网域的实例、在 Windows 10 专业版上运行的实例或已在 <ph name="CHROME_ENTERPRISE_CORE_NAME" />中注册的实例。在 <ph name="MAC_OS_NAME" /> 上，此功能仅适用于通过 MDM 进行管理的实例或已通过 MCX 加入网域的实例。</translation>
 <translation id="8806478127647484805">禁止用户通过 Chrome 任务管理器终止进程</translation>
 <translation id="8807274441692477185">不在用户登录期间显示触控板滚动方向界面</translation>
 <translation id="8807313206348471682">显示让用户确认退出登录的对话框</translation>
@@ -10350,6 +10611,15 @@ Microsoft Outlook 卡片需要额外的管理员配置。如需详细了解如�
 <translation id="8897796778265450949">限制通过 GAIA（不使用 SAML）验证身份的用户可离线登录的时长</translation>
 <translation id="889814528399907891">允许用户启用 <ph name="LACROS_NAME" /> 并将其设为主要浏览器</translation>
 <translation id="8900312706328930425">云报告频率（以小时为单位）</translation>
+<translation id="8902938589482529940">此政策允许将 <ph name="ARC_VM" /> 映像预加载到安装了 <ph name="PRODUCT_OS_FLEX_NAME" /> 的设备。
+
+如果已启用此政策，系统将允许在 <ph name="PRODUCT_OS_FLEX_NAME" /> 上单独预加载 <ph name="ARC_VM" /> 映像。
+
+如果已停用或未设置此政策，系统将阻止在 <ph name="PRODUCT_OS_FLEX_NAME" /> 上单独预加载 <ph name="ARC_VM" /> 映像。
+
+如果某个映像已下载，但随后此政策发生更新，则只有在用户退出账号或重启设备后，系统才会移除该映像。
+
+此政策仅控制 <ph name="PRODUCT_OS_FLEX_NAME" /> 上的 <ph name="ARC_VM" />。对于 <ph name="PRODUCT_NAME" />，请参阅 <ph name="ARC_ENABLED_POLICY_NAME" /> 政策了解详情。</translation>
 <translation id="8903283771634816230">如果此政策已启用，<ph name="PRODUCT_NAME" /> 会在进行打印预览时将操作系统默认打印机用作默认目标。
 
       如果此政策已停用或未设置，<ph name="PRODUCT_NAME" /> 会在进行打印预览时将上次使用的打印机用作默认目标。</translation>

@@ -396,6 +396,7 @@
 <translation id="2402411679569069051">ដើម្បី​ដោះសោ Chromebook របស់អ្នក សូមប្រើស្នាមម្រាមដៃ​របស់អ្នក ឬដោះសោ​ទូរសព្ទរបស់អ្នក</translation>
 <translation id="240545663114741956">ចុច <ph name="ACCELERATOR" /> ពីរដង ដើម្បី​ចេញពីគណនី។</translation>
 <translation id="2405664212338326887">មិន​បាន​ភ្ជាប់ទេ</translation>
+<translation id="2406710117564540804">បើក/បិទ​មុខងារ​កុំរំខាន</translation>
 <translation id="2408955596600435184">បញ្ចូល​កូដ PIN របស់​អ្នក</translation>
 <translation id="2412593942846481727">មាន​កំណែថ្មី</translation>
 <translation id="2416438829169535743">ចាកចេញពី​ទិដ្ឋភាពឬ?</translation>
@@ -1647,6 +1648,7 @@
 <translation id="6539852571005954999">កំពុងស្កេន​ការទាញយក <ph name="FILENAME" /></translation>
 <translation id="6542521951477560771">កំពុង​បញ្ជូនទៅ <ph name="RECEIVER_NAME" /></translation>
 <translation id="6542891623636520977">រូប​អារម្មណ៍, GIF និង​អ្វីៗជា​ច្រើនទៀត</translation>
+<translation id="6543942526104794893">តើអ្នក​ប្រាកដទេថា​ចង់បិទ​ចលនា​ផ្ទៃមុខ?</translation>
 <translation id="6545382064335350438">នៅតែ​មិនអាច​ផ្ទៀងផ្ទាត់​កូដ PIN របស់អ្នក​បានដដែល។ សូមព្យាយាមម្ដងទៀត។</translation>
 <translation id="6555373427270923730">វាយ​បញ្ចូល​អាសយដ្ឋាន​ទំព័រ​ក្នុង​របារ​អាសយដ្ឋាន រួច​ចុច <ph name="MODIFIER" /><ph name="KEY" /></translation>
 <translation id="655633303491376835"><ph name="APP_NAME" />
@@ -2312,6 +2314,7 @@
 <translation id="8855885154700222542">គ្រាប់ចុច​ពេញ​អេក្រង់​</translation>
 <translation id="8858369206579825206">ការគ្រប់គ្រង​ឯកជនភាព</translation>
 <translation id="8860366331836346216">បញ្ចូល eSIM</translation>
+<translation id="8869149849311827122">តើអ្នក​ប្រាកដទេថា​ចង់បិទ​ការគ្រប់គ្រង​ទស្សន៍ទ្រនិច​ម៉ៅស៍?</translation>
 <translation id="8870509716567206129">កម្មវិធីមិនស្គាល់អេក្រង់បំបែកទេ។</translation>
 <translation id="8873203135446552888">បញ្ជាក់ថា អ្នកចង់បិទផ្ទាំងប៉ះដែលភ្ជាប់មកជាមួយស្រាប់</translation>
 <translation id="8874184842967597500">មិនបានភ្ជាប់ទេ</translation>

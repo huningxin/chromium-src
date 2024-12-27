@@ -74,6 +74,7 @@
 #include "third_party/blink/renderer/core/html/parser/html_parser_idioms.h"
 #include "third_party/blink/renderer/core/html_names.h"
 #include "third_party/blink/renderer/core/inspector/console_message.h"
+#include "third_party/blink/renderer/core/inspector/inspector_audits_issue.h"
 #include "third_party/blink/renderer/core/layout/flex/layout_flexible_box.h"
 #include "third_party/blink/renderer/core/layout/hit_test_request.h"
 #include "third_party/blink/renderer/core/layout/hit_test_result.h"
@@ -196,11 +197,19 @@ class SelectDescendantsObserver : public MutationObserver::Delegate {
   }
 
   void AddDescendantDisallowedErrorToNode(Node& node) {
-    if (!IsAllowedDescendant(node)) {
+    SelectElementAccessibilityIssueReason issue_reason = CheckForIssue(node);
+    if (issue_reason != SelectElementAccessibilityIssueReason::kValidChild) {
       if (!IsAllowedInteractiveElement(node)) {
         select_->IncreaseContentModelViolationCount();
       }
-      // TODO(ansollan): Report an Issue to the DevTools' Issue Panel as well.
+      if (RuntimeEnabledFeatures::
+              CustomizableSelectElementAccessibilityIssuesEnabled()) {
+        Document& document = select_->GetDocument();
+        AuditsIssue::ReportSelectElementAccessibilityIssue(
+            &document, node.GetDomNodeId(), issue_reason,
+            /* has_disallowed_attributes = */ HasTabIndexAttribute(node) ||
+                IsContenteditable(node));
+      }
       node.AddConsoleMessage(
           mojom::blink::ConsoleMessageSource::kRecommendation,
           mojom::blink::ConsoleMessageLevel::kError,
@@ -233,44 +242,60 @@ class SelectDescendantsObserver : public MutationObserver::Delegate {
     return false;
   }
 
-  bool IsAllowedDescendant(const Node& descendant) {
+  SelectElementAccessibilityIssueReason CheckForIssue(const Node& descendant) {
     // Get the parent of the descendant.
     const Node* parent = descendant.parentNode();
     // If the node has no parent, assume it is being appended to a
     // `HTMLSelectedContentElement`.
     if (!parent) {
-      return IsAllowedDescendantOfOption(descendant);
+      return CheckDescedantOfOption(descendant);
     }
     if (!IsA<HTMLElement>(*parent)) {
-      return parent->IsSVGElement();
+      if (parent->IsSVGElement()) {
+        return SelectElementAccessibilityIssueReason::kValidChild;
+      }
+      return SelectElementAccessibilityIssueReason::kDisallowedSelectChild;
     }
     if (IsA<HTMLSelectElement>(*parent)) {
-      return IsAllowedDescendantOfSelect(descendant);
+      if (IsAllowedDescendantOfSelect(descendant)) {
+        return SelectElementAccessibilityIssueReason::kValidChild;
+      }
+      return SelectElementAccessibilityIssueReason::kDisallowedSelectChild;
     }
     if (IsA<HTMLOptGroupElement>(*parent)) {
-      return IsAllowedDescendantOfOptgroup(descendant);
+      if (IsAllowedDescendantOfOptgroup(descendant)) {
+        return SelectElementAccessibilityIssueReason::kValidChild;
+      }
+      return SelectElementAccessibilityIssueReason::kDisallowedOptGroupChild;
     }
     if (IsA<HTMLOptionElement>(*parent) ||
         IsA<HTMLSelectedContentElement>(*parent) ||
         (IsAllowedPhrasingContent(*parent) && !IsA<HTMLSpanElement>(*parent))) {
-      return IsAllowedDescendantOfOption(descendant);
+      return CheckDescedantOfOption(descendant);
     }
     if (IsA<HTMLDivElement>(*parent) || IsA<HTMLSpanElement>(*parent)) {
       return TraverseAncestorsAndCheckDescendant(descendant);
     }
-    if (IsA<HTMLNoScriptElement>(*parent) || IsA<HTMLScriptElement>(*parent) ||
-        IsA<HTMLTemplateElement>(*parent)) {
-      if (descendant.IsTextNode()) {
-        return true;
-      }
+    if ((IsA<HTMLNoScriptElement>(*parent) || IsA<HTMLScriptElement>(*parent) ||
+         IsA<HTMLTemplateElement>(*parent)) &&
+        !descendant.IsTextNode()) {
       return TraverseAncestorsAndCheckDescendant(descendant);
     }
     if (IsA<HTMLButtonElement>(*parent)) {
-      return IsA<HTMLSelectedContentElement>(descendant) ||
-             IsAllowedDescendantOfOption(descendant);
+      if (IsA<HTMLSelectedContentElement>(descendant)) {
+        return SelectElementAccessibilityIssueReason::kValidChild;
+      }
+      return CheckDescedantOfOption(descendant);
     }
-    return IsA<HTMLLegendElement>(*parent) &&
-           IsAllowedPhrasingContent(descendant);
+    if (IsA<HTMLLegendElement>(*parent)) {
+      if (IsAllowedPhrasingContent(descendant) &&
+          !HasTabIndexAttribute(descendant) && !IsContenteditable(descendant)) {
+        return SelectElementAccessibilityIssueReason::kValidChild;
+      }
+      return SelectElementAccessibilityIssueReason::
+          kInteractiveContentLegendChild;
+    }
+    return SelectElementAccessibilityIssueReason::kDisallowedSelectChild;
   }
 
   bool IsAllowedDescendantOfSelect(const Node& descendant) {
@@ -298,11 +323,19 @@ class SelectDescendantsObserver : public MutationObserver::Delegate {
            IsA<HTMLTemplateElement>(descendant);
   }
 
-  bool IsAllowedDescendantOfOption(const Node& descendant) {
+  SelectElementAccessibilityIssueReason CheckDescedantOfOption(
+      const Node& descendant) {
+    if (!IsA<HTMLDivElement>(descendant) &&
+        !IsAllowedPhrasingContent(descendant)) {
+      return SelectElementAccessibilityIssueReason::
+          kNonPhrasingContentOptionChild;
+    }
     // Check tabindex and contenteditable attributes of the descendant as well.
-    return (IsA<HTMLDivElement>(descendant) ||
-            IsAllowedPhrasingContent(descendant)) &&
-           !HasTabIndexAttribute(descendant) && !IsContenteditable(descendant);
+    if (!HasTabIndexAttribute(descendant) && !IsContenteditable(descendant)) {
+      return SelectElementAccessibilityIssueReason::kValidChild;
+    }
+    return SelectElementAccessibilityIssueReason::
+        kInteractiveContentOptionChild;
   }
 
   bool HasTabIndexAttribute(const Node& node) {
@@ -322,22 +355,27 @@ class SelectDescendantsObserver : public MutationObserver::Delegate {
     return false;
   }
 
-  bool TraverseAncestorsAndCheckDescendant(const Node& descendant) {
+  SelectElementAccessibilityIssueReason TraverseAncestorsAndCheckDescendant(
+      const Node& descendant) {
     // As we've already checked the descendant's parent, we can directly look at
     // the grandparent.
     for (const Node* ancestor = descendant.parentNode()->parentNode(); ancestor;
          ancestor = ancestor->parentNode()) {
       if (IsA<HTMLOptionElement>(*ancestor)) {
-        return IsAllowedDescendantOfOption(descendant);
+        return CheckDescedantOfOption(descendant);
       }
       if (IsA<HTMLOptGroupElement>(*ancestor)) {
-        return IsAllowedDescendantOfOptgroup(descendant);
+        if (IsAllowedDescendantOfOptgroup(descendant)) {
+          return SelectElementAccessibilityIssueReason::kValidChild;
+        }
+        return SelectElementAccessibilityIssueReason::kDisallowedOptGroupChild;
       }
-      if (IsA<HTMLSelectElement>(*ancestor)) {
-        return IsAllowedDescendantOfSelect(descendant);
+      if (IsA<HTMLSelectElement>(*ancestor) &&
+          IsAllowedDescendantOfSelect(descendant)) {
+        return SelectElementAccessibilityIssueReason::kValidChild;
       }
     }
-    return false;
+    return SelectElementAccessibilityIssueReason::kDisallowedSelectChild;
   }
 
   bool IsWhitespaceOrEmpty(const Node& node) {
@@ -493,10 +531,10 @@ void HTMLSelectElement::SelectMultipleOptionsByPopup(
   DCHECK(IsMultiple());
 
   HeapHashSet<Member<HTMLOptionElement>> old_selection;
-  for (auto* option : GetOptionList()) {
-    if (option->Selected()) {
-      old_selection.insert(option);
-      option->SetSelectedState(false);
+  for (auto& option : GetOptionList()) {
+    if (option.Selected()) {
+      old_selection.insert(&option);
+      option.SetSelectedState(false);
     }
   }
 
@@ -614,9 +652,9 @@ void HTMLSelectElement::SetValue(const String& value,
   HTMLOptionElement* option = nullptr;
   // Find the option with value() matching the given parameter and make it the
   // current selection.
-  for (auto* const item : GetOptionList()) {
-    if (item->value() == value) {
-      option = item;
+  for (auto& item : GetOptionList()) {
+    if (item.value() == value) {
+      option = &item;
       break;
     }
   }
@@ -649,9 +687,9 @@ void HTMLSelectElement::SetSuggestedValue(const String& value) {
     return;
   }
 
-  for (auto* const option : GetOptionList()) {
-    if (option->value() == value) {
-      SetSuggestedOption(option);
+  for (auto& option : GetOptionList()) {
+    if (option.value() == value) {
+      SetSuggestedOption(&option);
       return;
     }
   }
@@ -849,10 +887,10 @@ void HTMLSelectElement::setLength(unsigned new_len,
     // remove then attempt to remove them one at a time.
     HeapVector<Member<HTMLOptionElement>> items_to_remove;
     size_t option_index = 0;
-    for (auto* const option : GetOptionList()) {
+    for (auto& option : GetOptionList()) {
       if (option_index++ >= new_len) {
-        DCHECK(option->parentNode());
-        items_to_remove.push_back(option);
+        DCHECK(option.parentNode());
+        items_to_remove.push_back(&option);
       }
     }
 
@@ -1038,16 +1076,16 @@ void HTMLSelectElement::ResetToDefaultSelection(ResetReason reason) {
   // We can't use HTMLSelectElement::options here because this function is
   // called in Node::insertedInto and Node::removedFrom before invalidating
   // node collections.
-  for (auto* const option : GetOptionList()) {
-    if (option->Selected()) {
+  for (auto& option : GetOptionList()) {
+    if (option.Selected()) {
       if (last_selected_option) {
         last_selected_option->SetSelectedState(false);
         did_change = true;
       }
-      last_selected_option = option;
+      last_selected_option = &option;
     }
-    if (!first_enabled_option && !option->IsDisabledFormControl()) {
-      first_enabled_option = option;
+    if (!first_enabled_option && !option.IsDisabledFormControl()) {
+      first_enabled_option = &option;
       if (reason == kResetReasonSelectedOptionRemoved) {
         // There must be no selected OPTIONs.
         break;
@@ -1070,9 +1108,10 @@ void HTMLSelectElement::ResetToDefaultSelection(ResetReason reason) {
 }
 
 HTMLOptionElement* HTMLSelectElement::SelectedOption() const {
-  for (auto* const option : GetOptionList()) {
-    if (option->Selected())
-      return option;
+  for (auto& option : GetOptionList()) {
+    if (option.Selected()) {
+      return &option;
+    }
   }
   return nullptr;
 }
@@ -1095,9 +1134,10 @@ int HTMLSelectElement::selectedIndex() const {
   unsigned index = 0;
 
   // Return the number of the first option selected.
-  for (auto* const option : GetOptionList()) {
-    if (option->Selected())
+  for (auto& option : GetOptionList()) {
+    if (option.Selected()) {
       return index;
+    }
     ++index;
   }
 
@@ -1340,14 +1380,17 @@ bool HTMLSelectElement::DeselectItemsWithoutValidation(
     return true;
   }
   bool did_update_selection = false;
-  for (auto* const option : GetOptionList()) {
-    if (option == exclude_element)
+  for (auto& option : GetOptionList()) {
+    if (&option == exclude_element) {
       continue;
-    if (!option->WasOptionInsertedCalled())
+    }
+    if (!option.WasOptionInsertedCalled()) {
       continue;
-    if (option->Selected())
+    }
+    if (option.Selected()) {
       did_update_selection = true;
-    option->SetSelectedState(false);
+    }
+    option.SetSelectedState(false);
   }
   return did_update_selection;
 }
@@ -1495,17 +1538,17 @@ void HTMLSelectElement::AppendToFormData(FormData& form_data) {
   if (name.empty())
     return;
 
-  for (auto* const option : GetOptionList()) {
-    if (option->Selected() && !option->IsDisabledFormControl())
-      form_data.AppendFromElement(name, option->value());
+  for (auto& option : GetOptionList()) {
+    if (option.Selected() && !option.IsDisabledFormControl()) {
+      form_data.AppendFromElement(name, option.value());
+    }
   }
 }
 
 void HTMLSelectElement::ResetImpl() {
-  for (auto* const option : GetOptionList()) {
-    option->SetSelectedState(
-        option->FastHasAttribute(html_names::kSelectedAttr));
-    option->SetDirty(false);
+  for (auto& option : GetOptionList()) {
+    option.SetSelectedState(option.FastHasAttribute(html_names::kSelectedAttr));
+    option.SetDirty(false);
   }
   ResetToDefaultSelection();
   select_type_->UpdateTextStyleAndContent();
@@ -1652,11 +1695,7 @@ void HTMLSelectElement::SelectOptionByAccessKey(HTMLOptionElement* option) {
 }
 
 unsigned HTMLSelectElement::length() const {
-  unsigned options = 0;
-  for ([[maybe_unused]] auto* const option : GetOptionList()) {
-    ++options;
-  }
-  return options;
+  return GetOptionList().size();
 }
 
 void HTMLSelectElement::FinishParsingChildren() {
@@ -1902,8 +1941,8 @@ void HTMLSelectElement::ChangeRendering() {
     if (RuntimeEnabledFeatures::CustomizableSelectEnabled()) {
       // Make <option>s render all child content when in MenuList mode in order
       // to support appearance:base-select.
-      for (HTMLOptionElement* option : GetOptionList()) {
-        option->SetTextOnlyRendering(!UsesMenuList());
+      for (auto& option : GetOptionList()) {
+        option.SetTextOnlyRendering(!UsesMenuList());
       }
     }
   }

@@ -92,7 +92,6 @@
 <translation id="2137162749895930932">关闭翻译屏幕</translation>
 <translation id="2139300032719313227">重启 Chrome 操作系统</translation>
 <translation id="2151406531797534936">请立即重启 Chrome</translation>
-<translation id="2163089732491971196">如要将 Chrome 数据保存在您的 Google 账号中并使用这些数据，请输入您的口令</translation>
 <translation id="2174917724755363426">尚未完成安装，确定要取消吗？</translation>
 <translation id="2186206192313702726">Google 智能镜头</translation>
 <translation id="2190166659037789668">更新检查错误：<ph name="UPDATE_CHECK_ERROR" />。</translation>
@@ -241,6 +240,7 @@
 <translation id="3889417619312448367">卸载 Google Chrome</translation>
 <translation id="3892148308691398805">复制文字</translation>
 <translation id="3941890832296813527">安装时出错：安装程序文件名无效或不受支持。</translation>
+<translation id="3968962723676998462">请输入您的口令，以便将 Chrome 数据保存在您的账号 <ph name="ACCOUNT_EMAIL" /> 中并使用这些数据</translation>
 <translation id="3973161977468201858">Google Chrome 想要删除您的 Google 密码管理工具数据。请输入您的 Windows 密码以允许此操作。</translation>
 <translation id="398236277091248993">Chrome 会借助性能提升功能保持快速运行</translation>
 <translation id="3999683152997576765">您可看到并移除被网站用来向您展示广告的兴趣主题。Chrome 会根据您近期的浏览记录推测出您的兴趣。</translation>
@@ -305,6 +305,7 @@
 <translation id="4728575227883772061">未知错误导致安装失败。如果 Google Chrome 浏览器正在运行，请将其关闭，然后重试。</translation>
 <translation id="4741235124132242877">已固定！可通过工具栏再次使用 Google 智能镜头</translation>
 <translation id="4747730611090640388">Chrome 可以推测出您的兴趣。之后，您访问的网站可向 Chrome 请求查看您的兴趣，以便向您展示个性化广告。</translation>
+<translation id="475321580758063259">请更新 Chrome，以便继续使用 Google 账号 <ph name="ACCOUNT_EMAIL" /> 中的 Chrome 数据</translation>
 <translation id="4754614261631455953">Google Chrome Canary (mDNS-In)</translation>
 <translation id="479167709087336770">这项服务会使用 Google 搜索所用的拼写检查工具。您在浏览器中输入的文字会被发送给 Google。您随时可在“设置”中更改此行为。</translation>
 <translation id="4793679854893018356">了解 Chrome 如何保障您的安全</translation>
@@ -385,6 +386,7 @@
 <translation id="5941830788786076944">将 Google Chrome 浏览器设为默认浏览器</translation>
 <translation id="5947104538377036631">Chrome 快捷方式</translation>
 <translation id="5953954252731207958">您近期未访问过该网站。Chrome 移除了<ph name="PERMISSION" />权限</translation>
+<translation id="5980111191913430208">来源不明的扩展程序、应用和主题可能会危害您的设备。Chrome 建议只从 <ph name="IDS_EXTENSION_WEB_STORE_TITLE" />安装这些内容</translation>
 <translation id="6003112304606738118">正在下载…还需 <ph name="HOURS" /> 小时</translation>
 <translation id="6014316319780893079">借助 <ph name="BEGIN_LINK" />Chrome 中的工具<ph name="END_LINK" />，您可以安全地浏览并掌控个人数据的安全</translation>
 <translation id="6022659036123304283">定制您的专属 Chrome</translation>
@@ -576,6 +578,7 @@
 <translation id="8077579734294125741">其他 Chrome 个人资料</translation>
 <translation id="8086881907087796310">安装失败，因为您的计算机未达到最低硬件要求。</translation>
 <translation id="8111297389482307122">Chrome 需要先验证您的身份，然后才能将某些数据保存到您的 Google 账号中，并在您的所有设备上使用。如果您退出账号，这些数据将保留在此设备上。</translation>
+<translation id="8113883687556086139">请验证您的身份，以便将 Chrome 数据保存在您的账号 <ph name="ACCOUNT_EMAIL" /> 中并使用这些数据</translation>
 <translation id="8118331347066725040">发送有关智能镜头搜索的反馈</translation>
 <translation id="8129812357326543296">关于 Google Chrome(&amp;G)</translation>
 <translation id="813913629614996137">正在初始化…</translation>
@@ -603,6 +606,7 @@
 <translation id="842386925677997438">Chrome 的安全工具</translation>
 <translation id="8425765582779547329">若要使用家长选择的设置更安全地上网，请登录 Chrome</translation>
 <translation id="8428213095426709021">设置</translation>
+<translation id="8429214465555795676">如需继续操作，您需要使用 <ph name="EMAIL" /> 登录 Chrome。这样才能确保符合您组织的政策。</translation>
 <translation id="8433638294851456451">若要从此处向您的 Android 手机发送电话号码，请在这两部设备上分别登录 Chrome。</translation>
 <translation id="8451192282033883849">您的账号由 <ph name="MANAGER_NAME" /> 管理。您的管理员能看到并修改这份 Chrome 浏览器个人资料及其数据（例如书签、历史记录和密码）。</translation>
 <translation id="8496177819998570653">Google 密码管理工具(&amp;A)</translation>

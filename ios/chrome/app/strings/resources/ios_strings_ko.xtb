@@ -108,6 +108,7 @@
 <translation id="143681031165817424">이 기기에만 저장된 주소</translation>
 <translation id="1445276840641906250">하나의 브라우저에 모든 탭</translation>
 <translation id="1450170672351507823">표준 보호 모드가 사용 설정되어 있습니다. 보안을 더욱 강화하려면 향상된 보호 모드를 사용하세요.</translation>
+<translation id="1454615514353469963">비밀번호, 패스키, 기타 데이터가 Google 비밀번호 관리자에서 영구적으로 삭제됩니다</translation>
 <translation id="1455660774629812862">숨기지 않음</translation>
 <translation id="1460751212339734034">시간은 아끼고, 입력은 줄이고</translation>
 <translation id="1466035273550360103">열린 탭 없음</translation>
@@ -1203,6 +1204,7 @@ Handoff는 설정의 일반 섹션에서도 사용 설정할 수 있으며, 이�
 <translation id="6418346271604475326">PDF 준비 중</translation>
 <translation id="6429213933892582367">비밀번호 옵션을 엽니다.</translation>
 <translation id="6434591244308415567">오류가 발생했습니다. 나중에 다시 시도해 보세요.</translation>
+<translation id="6435307030888827407">로그아웃 상태 유지</translation>
 <translation id="6436318499800111867"><ph name="SHARED_WITH_ME_DATE" />에 나와 공유됨</translation>
 <translation id="6442697326824312960">탭 고정 해제</translation>
 <translation id="6443118737398455446">유효기간이 잘못되었습니다.</translation>
@@ -1396,6 +1398,7 @@ Handoff는 설정의 일반 섹션에서도 사용 설정할 수 있으며, 이�
 <translation id="7248046129087111453"><ph name="BEGIN_LINK" />검색 기록<ph name="END_LINK" /> 및 <ph name="BEGIN_LINK" />다른 활동 형식<ph name="END_LINK" />이 Google 계정에 저장될 수 있습니다.</translation>
 <translation id="7253951228444156601">비밀번호 확인 중…</translation>
 <translation id="7261217796641151584">그룹 공유</translation>
+<translation id="7266578100016339897">이렇게 하면 정리 상태를 유지할 수 있습니다. 설정에서 언제든지 변경할 수 있습니다</translation>
 <translation id="7271220006028561438">자동 패스키 업그레이드 허용</translation>
 <translation id="7272437679830969316">신원을 인증할 수 없습니다. 비밀번호가 복사되지 않았습니다.</translation>
 <translation id="7293429513719260019">언어 선택</translation>
@@ -1590,6 +1593,7 @@ Handoff는 설정의 일반 섹션에서도 사용 설정할 수 있으며, 이�
 <translation id="8080028325999236607">탭 모두 닫기</translation>
 <translation id="8084285576995584326">Google 계정 데이터 관리</translation>
 <translation id="809543534949702122">검색 기록</translation>
+<translation id="8095985449280932182">{COUNT,plural, =1{사용하지 않는 탭은 {COUNT}일 후에 여기로 이동됩니다}other{사용하지 않는 탭은 {COUNT}일 후에 여기로 이동됩니다}}</translation>
 <translation id="8101409298456377967">사이트와 앱에 쉽게 로그인할 수 있도록 비밀번호를 생성, 저장, 관리하세요. <ph name="BEGIN_LINK" />자세히 알아보기<ph name="END_LINK" /></translation>
 <translation id="8102130909719902723">N</translation>
 <translation id="8114753159095730575">파일을 다운로드할 수 있습니다. 화면 하단에서 옵션을 선택할 수 있습니다.</translation>

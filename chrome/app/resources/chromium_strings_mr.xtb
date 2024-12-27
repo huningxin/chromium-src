@@ -113,6 +113,7 @@
 <translation id="2483889755041906834">Chromium मध्ये</translation>
 <translation id="2485422356828889247">अनइंस्टॉल करा</translation>
 <translation id="2513154137948333830">रीबूट आवश्यक आहे: <ph name="INSTALL_SUCCESS" /></translation>
+<translation id="2522009821193247726">पुढे सुरू ठेवण्यासाठी, तुम्ही <ph name="EMAIL" /> वापरून Chromium मध्ये साइन इन करणे आवश्यक असेल. यामुळे तुमच्या संस्थेच्या धोरणांचे पालन केले जात असल्याची खात्री केली जाते.</translation>
 <translation id="2542968102051442371">इमेज शोध वापरून मजकूर निवडा</translation>
 <translation id="2554739539410784893">Chromium सध्याचे पासवर्ड बदलण्याचा प्रयत्न करत आहे. यासाठी अनुमती देण्यासाठी तुमचा Windows पासवर्ड टाइप करा.</translation>
 <translation id="2560420686485554789">फाइल डाउनलोड करण्यासाठी Chromium ला स्टोरेज ॲक्सेस हवा आहे</translation>
@@ -254,7 +255,6 @@
 <translation id="4438870983368648614"><ph name="MANAGER" /> ही संस्था Chromium व्यवस्थापित करते</translation>
 <translation id="444069871276811466">Chromium प्रोफाइल जोडा</translation>
 <translation id="4447409407328223819">Chrome for Testing विषयी</translation>
-<translation id="4470974262661801543">तुमच्या Google खाते मधील Chromium डेटा वापरण्यासाठी आणि सेव्ह करण्यासाठी, तुमचा पासफ्रेझ एंटर करा</translation>
 <translation id="4493028449971051158">स्टार्टअप एरर: कृपया अ‍ॅडमिनिस्ट्रेटर म्हणून इंस्टॉलर रन करा.</translation>
 <translation id="4501471624619070934">या देशामध्ये अ‍ॅक्सेस प्रतिबंधित असल्यामुळे इंस्टॉलेशन अयशस्वी झाले.</translation>
 <translation id="4510853178268397146">या एक्स्टेंशनने गोपनीयता व्यवहार प्रकाशित केलेले नाहीत, जसे की ते डेटा कसे गोळा करते आणि वापरते. तुम्ही ते काढून टाकावे अशी Chromium शिफारस करते.</translation>

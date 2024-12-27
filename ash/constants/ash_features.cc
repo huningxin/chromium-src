@@ -1648,18 +1648,6 @@ BASE_FEATURE(kKioskEnableSystemWebApps,
              "KioskEnableSystemWebApps",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// When this feature is enabled, wayland logging is enabled for Lacros.
-BASE_FEATURE(kLacrosWaylandLogging,
-             "LacrosWaylandLogging",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// If enabled, it is allowed to migrate data from lacros back to ash, provided
-// that other conditions are also met (e.g. the policy is enabled, or the
-// command line flag is passed).
-BASE_FEATURE(kLacrosProfileBackwardMigration,
-             "LacrosProfileBackwardMigration",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Enables automatic downloading and installing fonts via language packs, based
 // on the user's preferences.
 BASE_FEATURE(kLanguagePacksFonts,
@@ -1774,12 +1762,6 @@ BASE_FEATURE(kLinkCrossDeviceInternals,
 // screen. This option is effective when |kLockScreenNotification| is enabled.
 BASE_FEATURE(kLockScreenHideSensitiveNotificationsSupport,
              "LockScreenHideSensitiveNotificationsSupport",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enables inline reply on notifications on the lock screen.
-// This option is effective when |kLockScreenNotification| is enabled.
-BASE_FEATURE(kLockScreenInlineReply,
-             "LockScreenInlineReply",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables notifications on the lock screen.
@@ -2247,12 +2229,6 @@ BASE_FEATURE(kOsFeedbackDialog,
 // Settings page when the user toggles off the DNS button.
 BASE_FEATURE(kOsSettingsDeprecateDnsDialog,
              "OsSettingsDeprecateDnsDialog",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enables staying in overview when navigating between desks using a swipe
-// gesture or keyboard shortcut.
-BASE_FEATURE(kOverviewDeskNavigation,
-             "OverviewDeskNavigation",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables Jelly colors and components to appear in the Parent Access Widget
@@ -3903,10 +3879,6 @@ bool IsIsolatedWebAppKioskEnabled() {
   return base::FeatureList::IsEnabled(kIsolatedWebAppKiosk);
 }
 
-bool IsJellyEnabledForShortcutCustomization() {
-  return chromeos::features::IsJellyEnabled();
-}
-
 bool IsKerberosRememberPasswordByDefaultEnabled() {
   return base::FeatureList::IsEnabled(kKerberosRememberPasswordByDefault);
 }
@@ -3990,10 +3962,6 @@ bool AreGameDashboardUtilitiesEnabled() {
 
 bool IsAppLaunchShortcutEnabled() {
   return base::FeatureList::IsEnabled(kAppLaunchShortcut);
-}
-
-bool IsLockScreenInlineReplyEnabled() {
-  return base::FeatureList::IsEnabled(kLockScreenInlineReply);
 }
 
 bool IsLockScreenNotificationsEnabled() {
@@ -4207,17 +4175,8 @@ bool IsOsSettingsDeprecateDnsDialogEnabled() {
   return base::FeatureList::IsEnabled(kOsSettingsDeprecateDnsDialog);
 }
 
-bool IsOsSettingsRevampWayfindingEnabled() {
-  // TODO(crbug.com/370836442): remove after all code cleanup is done.
-  return true;
-}
-
 bool IsOsSyncConsentRevampEnabled() {
   return base::FeatureList::IsEnabled(kOsSyncConsentRevamp);
-}
-
-bool IsOverviewDeskNavigationEnabled() {
-  return base::FeatureList::IsEnabled(kOverviewDeskNavigation);
 }
 
 bool IsParentAccessJellyEnabled() {

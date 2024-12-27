@@ -96,7 +96,6 @@
 <translation id="2137162749895930932">ترجمہ اسکرین کو بند کریں</translation>
 <translation id="2139300032719313227">‏ChromeOS کو ری اسٹارٹ کریں</translation>
 <translation id="2151406531797534936">‏براہ کرم ابھی Chrome دوبارہ شروع کریں</translation>
-<translation id="2163089732491971196">‏اپنے Google اکاؤنٹ میں Chrome ڈیٹا استعمال کرنے اور اسے محفوظ کرنے کیلئے، اپنا پاس فریز درج کریں</translation>
 <translation id="2174917724755363426">انسٹالیشن مکمل نہیں ہے۔ کیا آپ واقعی منسوخ کرنا چاہتے ہیں؟</translation>
 <translation id="2186206192313702726">‏Google لینز</translation>
 <translation id="2190166659037789668">اپ ڈیٹ چیک کرنے میں خرابی: <ph name="UPDATE_CHECK_ERROR" />۔</translation>
@@ -245,6 +244,7 @@
 <translation id="3889417619312448367">‏Google Chrome کو اَن انسٹال کریں</translation>
 <translation id="3892148308691398805">ٹیکسٹ کاپی کریں</translation>
 <translation id="3941890832296813527">انسٹال سے متعلق خرابی: انسٹالر فائل کا نام غلط یا غیر تعاون یافتہ ہے۔</translation>
+<translation id="3968962723676998462">‏اپنے اکاؤنٹ، <ph name="ACCOUNT_EMAIL" /> میں Chrome ڈیٹا کا استعمال کرنے اور محفوظ کرنے کے لیے اپنا پاس فریز درج کریں</translation>
 <translation id="3973161977468201858">‏‫Google Chrome آپ کے Google پاس ورڈ مینیجر کا ڈیٹا حذف کرنا چاہتا ہے۔ اس کی اجازت دینے کے لیے اپنا Windows پاس ورڈ ٹائپ کریں۔</translation>
 <translation id="398236277091248993">‏Chrome خصوصیات کو بوسٹ کرنے والی کارکردگی کے ساتھ تیز رہتا ہے</translation>
 <translation id="3999683152997576765">‏آپ دلچسپی کے ان موضوعات کو دیکھ اور ہٹا سکتے ہیں جنہیں سائٹس آپ کو اشتہارات دکھانے کے لیے استعمال کرتی ہیں۔ Chrome آپ کی حالیہ براؤزنگ کی سرگزشت کی بنیاد پر آپ کی دلچسپیوں کا تخمینہ لگاتا ہے۔</translation>
@@ -309,6 +309,7 @@
 <translation id="4728575227883772061">‏غیر متعینہ خرابی کی وجہ سے انسٹالیشن ناکام ہوگیا۔ اگر فی الحال Google Chrome چل رہا ہے تو براہ کرم اسے بند کر دیں اور دوبارہ کوشش کریں۔</translation>
 <translation id="4741235124132242877">‏پن کر دیا گیا! ٹول بار سے دوبارہ Google لینز استعمال کریں</translation>
 <translation id="4747730611090640388">‏Chrome آپ کی دلچسپیوں کا اندازہ لگا سکتا ہے۔  بعد میں، آپ کی ملاحظہ کی جانے والی سائٹ آپ کو دکھائی دینے والے اشتہارات کو ذاتی نوعیت کا بنانے کے لیے Chrome سے آپ کی دلچسپیوں کو دیکھنے کا مطالبہ کر سکتی ہے۔</translation>
+<translation id="475321580758063259">‏اپنے Google اکاؤنٹ، <ph name="ACCOUNT_EMAIL" /> میں Chrome ڈیٹا کا استعمال جاری رکھنے کے لیے Chrome کو اپ ڈیٹ کریں</translation>
 <translation id="4754614261631455953">‎Google Chrome (mDNS-In)‎</translation>
 <translation id="479167709087336770">‏یہ وہی املا جانچ کنندہ استعمال کرتا ہے جسے Google تلاش میں استعمال کیا جاتا ہے۔ آپ براؤزر میں جو متن ٹائپ کرتے ہیں، اسے Google کو بھیجا جاتا ہے۔ آپ اس برتاؤ کو کسی بھی وقت ترتیبات میں تبدیل کر سکتے ہیں۔</translation>
 <translation id="4793679854893018356">‏جانیں کہ Chrome آپ کو کیسے محفوظ رکھتا ہے</translation>
@@ -393,6 +394,7 @@ Google Chrome آپ کی ترتیبات کو بازیافت کرنے سے قاص�
 <translation id="5941830788786076944">‏Google Chrome کو ڈیفالٹ براؤزر بنائیں</translation>
 <translation id="5947104538377036631">‏‫Chrome شارٹ کٹ</translation>
 <translation id="5953954252731207958">‏آپ نے حال ہی میں ملاحظہ نہیں کیا ہے۔ ‫Chrome نے <ph name="PERMISSION" /> کو ہٹا دیا</translation>
+<translation id="5980111191913430208">‏نامعلوم ذرائع کی ایکسٹینشنز، ایپس اور تھیمز آپ کے آلے کو نقصان پہنچا سکتی ہیں۔ ‫Chrome انہیں صرف <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> سے انسٹال کرنے کا مشورہ دیتا ہے</translation>
 <translation id="6003112304606738118">ڈاؤن لوڈ ہو رہی ہے… <ph name="HOURS" /> گھنٹہ(گھنٹے) باقی ہے</translation>
 <translation id="6014316319780893079">‏<ph name="BEGIN_LINK" />Chrome کے ٹولز<ph name="END_LINK" /> کے ذریعے آپ محفوظ طریقے سے براؤز کر سکتے ہیں اور چیزوں پر کنٹرول رکھ سکتے ہیں</translation>
 <translation id="6022659036123304283">‏Chrome کو اپنا ڈیفالٹ براؤزر بنائيں</translation>
@@ -584,6 +586,7 @@ Google Chrome آپ کی ترتیبات کو بازیافت کرنے سے قاص�
 <translation id="8077579734294125741">‏دیگر Chrome پروفائلز</translation>
 <translation id="8086881907087796310">انسٹالیشن ناکام ہو گئی کیونکہ آپ کا کمپیوٹر ہارڈ ویئر کے کم از کم تقاضوں کو پورا نہیں کرتا ہے۔</translation>
 <translation id="8111297389482307122">‏آپ کے Google اکاؤنٹ میں کچھ ڈیٹا کو محفوظ کرنے اور آپ کے تمام آلات پر اس کا استعمال کرنے سے پہلے Chrome کو اس بات کی توثیق کرنے کی ضرورت ہے کہ یہ آپ ہی ہیں۔ اگر آپ سائن آؤٹ کرتے ہیں تو یہ ڈیٹا اس آلے پر رہے گا۔</translation>
+<translation id="8113883687556086139">‏اپنے اکاؤنٹ، <ph name="ACCOUNT_EMAIL" /> میں Chrome ڈیٹا کا استعمال کرنے اور محفوظ کرنے کیلئے توثیق کریں کہ یہ آپ ہی ہیں</translation>
 <translation id="8118331347066725040">لینز کے ساتھ تلاش کے لیے تاثرات بھیجیں</translation>
 <translation id="8129812357326543296">‏‎&amp;Google Chrome کے بارے میں</translation>
 <translation id="813913629614996137">آغاز کیا جا رہا ہے…</translation>
@@ -611,6 +614,7 @@ Google Chrome آپ کی ترتیبات کو بازیافت کرنے سے قاص�
 <translation id="842386925677997438">‏Chrome کے سیفٹی ٹولز</translation>
 <translation id="8425765582779547329">‏اپنے والدین کے انتخابات کے ساتھ آن لائن محفوظ رہنے کے لیے، Chrome میں سائن ان کریں</translation>
 <translation id="8428213095426709021">ترتیبات</translation>
+<translation id="8429214465555795676">‏جاری رکھنے کیلئے، آپ کو <ph name="EMAIL" /> سے Chrome میں سائن ان کرنا ہوگا۔ یہ آپ کی تنظیم کی پالیسیوں کی تعمیل کو یقینی بناتا ہے۔</translation>
 <translation id="8433638294851456451">‏یہاں سے اپنے Android فون پر نمبر بھیجنے کے لیے، دونوں آلات پر Chrome میں سائن ان کریں۔</translation>
 <translation id="8451192282033883849">‏<ph name="MANAGER_NAME" /> آپ کے اکاؤنٹ کا نظم کرتا ہے۔ آپ کا منتظم اس Chrome براؤزر کی پروفائل اور اس کے ڈیٹا جیسے بُک مارکس، سرگزشت اور پاس ورڈز کو دیکھ اور اس میں ترمیم کر سکتا ہے۔</translation>
 <translation id="8496177819998570653">‏Google پاس ورڈ مینیجر</translation>

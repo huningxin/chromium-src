@@ -9772,6 +9772,33 @@
             ]
         }
     ],
+    "FlattenCpuCgroups": [
+        {
+            "platforms": [
+                "chromeos"
+            ],
+            "experiments": [
+                {
+                    "name": "EnabledWithFlattenCpuCgroups",
+                    "params": {
+                        "unified_cpu_cgroup": "false"
+                    },
+                    "enable_features": [
+                        "FlattenCpuCgroups"
+                    ]
+                },
+                {
+                    "name": "EnabledWithUnifiedCpuCgroup",
+                    "params": {
+                        "unified_cpu_cgroup": "true"
+                    },
+                    "enable_features": [
+                        "FlattenCpuCgroups"
+                    ]
+                }
+            ]
+        }
+    ],
     "Floss": [
         {
             "platforms": [
@@ -9916,6 +9943,21 @@
                     "name": "Enabled",
                     "enable_features": [
                         "FontationsFontBackend"
+                    ]
+                }
+            ]
+        }
+    ],
+    "ForceSupervisedSigninWithCapabilities": [
+        {
+            "platforms": [
+                "android"
+            ],
+            "experiments": [
+                {
+                    "name": "Enabled",
+                    "enable_features": [
+                        "ForceSupervisedSigninWithCapabilities"
                     ]
                 }
             ]
@@ -11880,6 +11922,24 @@
                     "name": "Enabled",
                     "enable_features": [
                         "ScopedCriticalActionSkipOnShutdown"
+                    ]
+                }
+            ]
+        }
+    ],
+    "IOSSetUpListInFirstRun": [
+        {
+            "platforms": [
+                "ios"
+            ],
+            "experiments": [
+                {
+                    "name": "Enabled",
+                    "params": {
+                        "SetUpListInFirstRunParam": "1"
+                    },
+                    "enable_features": [
+                        "SetUpListInFirstRun"
                     ]
                 }
             ]
@@ -15385,21 +15445,6 @@
                     "name": "Enabled",
                     "enable_features": [
                         "OsFeedbackDialog"
-                    ]
-                }
-            ]
-        }
-    ],
-    "OsSettingsRevampWayfindingStudy": [
-        {
-            "platforms": [
-                "chromeos"
-            ],
-            "experiments": [
-                {
-                    "name": "Enabled",
-                    "enable_features": [
-                        "OsSettingsRevampWayfinding"
                     ]
                 }
             ]

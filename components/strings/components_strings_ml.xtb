@@ -461,6 +461,7 @@
 <translation id="1777422078676229054">ഫോട്ടോ (ആർക്കൈവൽ)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">വെബ് ആപ്പുകൾ ഇൻസ്റ്റാൾ ചെയ്യണോ?</translation>
+<translation id="1791415068765905273">താരതമ്യപ്പെടുത്തുന്നതിനുള്ള എല്ലാ പട്ടികകളും കാണിക്കുക</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507"><ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />, നിങ്ങളുടെ Google അക്കൗണ്ടിലെ വിവരങ്ങളും സ്വകാര്യതയും സുരക്ഷയും മാനേജ് ചെയ്യാൻ Tab അമർത്തുക, തുടർന്ന് Enter അമർത്തുക</translation>
 <translation id="1793631236004319016">അവസാനം ഉപയോഗിച്ചത് <ph name="NUM_HOURS_MINUTES_SECONDS" /> മുമ്പ്</translation>
@@ -961,6 +962,7 @@
 <translation id="2688969097326701645">ഉവ്വ്, തുടരുക</translation>
 <translation id="2690699652723742414">കഴിഞ്ഞ 30 ദിവസം</translation>
 <translation id="2691924980723297736">സുരക്ഷാ മുന്നറിയിപ്പ്</translation>
+<translation id="2697248912349197812"><ph name="KEYWORD_SHORT_NAME" /> എന്നതിനോട് ചോദിക്കുക</translation>
 <translation id="2699273987028089219">ഉപമെനു ലഭ്യമാണ്, അധിക ഓപ്‌ഷനുകളിലേക്ക് നാവിഗേറ്റ് ചെയ്യാൻ <ph name="SHORTCUT" /> ഉപയോഗിക്കുക.</translation>
 <translation id="2701514975700770343">ഫേസ് ഡൗൺ</translation>
 <translation id="2702592986366989640">കുറഞ്ഞ നിരക്കുള്ള ഓപ്ഷൻ</translation>
@@ -2064,6 +2066,7 @@
 <translation id="469028408546145398">'അദൃശ്യ വിൻഡോകൾ അടയ്ക്കുക' ബട്ടൺ, നിലവിൽ തുറന്നിരിക്കുന്ന എല്ലാ അദൃശ്യ വിൻഡോകളും അടയ്ക്കാൻ സജീവമാക്കുക</translation>
 <translation id="4691093235373904540">റൂഫിംഗ്</translation>
 <translation id="4692623383562244444">തിരയൽ യന്ത്രങ്ങൾ</translation>
+<translation id="4695702626068620848"><ph name="KEYWORD" /> - <ph name="KEYWORD_SHORT_NAME" /> എന്നതിനോട് ചോദിക്കുക</translation>
 <translation id="4698692901173737941">കോമ്പാറ്റ് സ്‌പോ‌ർട്‌സ്</translation>
 <translation id="4701488924964507374"><ph name="SENTENCE1" /> <ph name="SENTENCE2" /></translation>
 <translation id="4702504834785592287">സൈഡ്</translation>
@@ -2196,6 +2199,7 @@
 <translation id="4918221908152712722"><ph name="APP_NAME" /> ഇൻസ്റ്റാൾ ചെയ്യുക (ഡൗൺലോഡ് ചെയ്യേണ്ടതില്ല)</translation>
 <translation id="4920457992177678649">വെക്കേഷൻ റെന്റലുകളും ഹ്രസ്വകാല താമസ സ്ഥലങ്ങളും</translation>
 <translation id="4920710383559189047">സ്ലീവ്</translation>
+<translation id="4920921410507315601">താരതമ്യം ചെയ്‌ത ടേബിളൂകൾ</translation>
 <translation id="4922104989726031751">നിങ്ങളുടെ ഓപ്പറേറ്റിംഗ് സിസ്റ്റത്തിനൊപ്പം Google Password Manager ഉപയോഗിക്കാൻ, Chromium വീണ്ടും ആരംഭിച്ച് നിങ്ങളുടെ കമ്പ്യൂട്ടറിന്റെ Password Manager-ലേക്ക് ആക്‌സസ് നൽകുക. വീണ്ടും ആരംഭിച്ച് കഴിഞ്ഞാൽ നിങ്ങളുടെ ടാബുകൾ വീണ്ടും തുറക്കും.</translation>
 <translation id="4923459931733593730">പേയ്‌മെന്റ് രീതി</translation>
 <translation id="4926049483395192435">വ്യക്തമാക്കേണ്ടതാണ്.</translation>
@@ -2389,6 +2393,7 @@
 <translation id="5278778426231952189">ഇപ്പോൾ അപ്‌ലോഡ് ചെയ്യുക</translation>
 <translation id="5279286380302340275">ഡൗൺലോഡുകൾ മാനേജ് ചെയ്യുക</translation>
 <translation id="5280963125494874678">വെബ് ആപ്പുകൾ</translation>
+<translation id="5282008206326321696">{count,plural, =0{# ബുക്ക്‌മാർക്കുകൾ}=1{# ബുക്ക്‌മാർക്ക്}other{# ബുക്ക്‌മാർക്കുകൾ}}</translation>
 <translation id="5283044957620376778">B1</translation>
 <translation id="5284295735376057059">ഡോക്യുമെന്റ് പ്രോപ്പർട്ടികൾ</translation>
 <translation id="528468243742722775">അവസാനിപ്പിക്കുക</translation>
@@ -2474,6 +2479,7 @@
 <translation id="5425082381151187189">വീട്, ഇന്റീരിയർ ഡെക്കറേഷൻ</translation>
 <translation id="5426179911063097041"><ph name="SITE" /> നിങ്ങൾക്ക് അറിയിപ്പുകൾ അയയ്‌ക്കാൻ ആഗ്രഹിക്കുന്നു</translation>
 <translation id="5430298929874300616">ബുക്ക്‌മാർക്ക് നീക്കംചെയ്യുക</translation>
+<translation id="5431318178759467895">വര്‍ണ്ണം</translation>
 <translation id="5433756542371550806">കമാൻഡ്-ലൈൻ വ്യതിയാനങ്ങൾ</translation>
 <translation id="5434798570900738152">Chromium ഇനിപ്പറയുന്നവ <ph name="BEGIN_EMPHASIS" />സംരക്ഷിക്കില്ല<ph name="END_EMPHASIS" />:
           <ph name="BEGIN_LIST" />
@@ -2583,6 +2589,7 @@
 <translation id="561165882404867731">Google Translate ഉപയോഗിച്ച് ഈ പേജ് വിവർത്തനം ചെയ്യുക</translation>
 <translation id="5612720917913232150">നിങ്ങളുടെ കമ്പ്യൂട്ടറിന്‍റെ ലൊക്കേഷൻ ഉപയോഗിക്കാൻ <ph name="URL" /> ആഗ്രഹിക്കുന്നു</translation>
 <translation id="5614520971155863709">കാർഡ് ഗെയിമുകൾ</translation>
+<translation id="5617785978844309968">താരതമ്യപ്പെടുത്തുന്നതിനുള്ള എല്ലാ പട്ടികകളും കാണിക്കുക</translation>
 <translation id="5617949217645503996"><ph name="HOST_NAME" />, നിരവധി തവണ നിങ്ങളെ റീഡയറക്‌ടുചെയ്‌തു.</translation>
 <translation id="5619721953841297650">പ്രീസെറ്റ്</translation>
 <translation id="5624120631404540903">പാസ്‌വേഡുകൾ നിയന്ത്രിക്കുക</translation>
@@ -3293,6 +3300,7 @@
 <translation id="6925267999184670015">നോർത്ത് അമേരിക്കൻ B+</translation>
 <translation id="6926216138694948720">ബോഡി ആർട്ട്</translation>
 <translation id="692638818576287323">വാണിജ്യാവശ്യങ്ങൾക്കുള്ള വാഹനങ്ങൾ</translation>
+<translation id="6933282894115597956">സ്ഥാപനം നിങ്ങളോട് സൈൻ ഇൻ ചെയ്യാൻ ആവശ്യപ്പെടുന്നു</translation>
 <translation id="6934236486840930310"><ph name="BEGIN_BOLD" />നിങ്ങളുടെ ഡിഫോൾട്ട് തിരയൽ യന്ത്രം വെബിൽ തിരയാൻ നിങ്ങളെ അനുവദിക്കുകയും Chrome ഫീച്ചറുകളെ പിന്തുണയ്ക്കുകയും ചെയ്യുന്നു<ph name="END_BOLD" /> ഉദാഹരണത്തിന്, വിലാസ ബാറിൽ നിന്നും വെബ് പേജുകളിലെ ചിത്രങ്ങളിൽ നിന്നും തിരയുന്നത് പോലുള്ളവ. നിങ്ങളുടെ തിരയൽ യന്ത്രം ഒരു ഫീച്ചറിനെ പിന്തുണയ്ക്കുന്നില്ലെങ്കിൽ അത് ലഭ്യമായേക്കില്ല.</translation>
 <translation id="6934672428414710184">ഈ പേര് നിങ്ങളുടെ Google അക്കൗണ്ടിൽ നിന്നുള്ളതാണ്</translation>
 <translation id="6935082727755903526">അക്കൗണ്ടിംഗ്, ഫിനാൻസ് ജോലികൾ</translation>
@@ -3785,7 +3793,6 @@
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">Chrome-ൽ ഫോണ്ട് വലുപ്പങ്ങളും ടൈപ്പ്ഫേസുകളും ഇഷ്ടാനുസൃതമാക്കുക</translation>
 <translation id="7752995774971033316">നിയന്ത്രിക്കാനാകാത്തത്</translation>
-<translation id="7753769899818674547"><ph name="KEYWORD" /> - <ph name="KEYWORD_SHORT_NAME" /> എന്നതുമായി ചാറ്റ് ചെയ്യുക</translation>
 <translation id="7754587126786572336">അപ്‌ഡേറ്റ് ചെയ്യാൻ തുടങ്ങുമ്പോൾ, നിങ്ങളുടെ Chrome ടാബുകളും ആപ്പുകളും അടയ്‌ക്കും</translation>
 <translation id="7755287808199759310">നിങ്ങൾക്ക് വേണ്ടി ഇത് അൺബ്ലോക്ക് ചെയ്യാൻ രക്ഷിതാവിന് കഴിയും</translation>
 <translation id="7755624218968747854">പ്രാഥമിക റോൾ</translation>
@@ -3925,6 +3932,7 @@
 <translation id="8028698320761417183"><ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />, Google Forms-ൽ പുതിയൊരു ഫോം വേഗത്തിൽ സൃഷ്ടിക്കാൻ Tab അമർത്തുക, തുടർന്ന് Enter അമർത്തുക</translation>
 <translation id="8028892419725165118">കാഷ്വൽ ഗെയിമുകൾ</translation>
 <translation id="8028960012888758725">ജോലിക്ക് ശേഷം ട്രിം ചെയ്യുക</translation>
+<translation id="8028993641010258682">വലുപ്പം</translation>
 <translation id="8029829038322015001">ചുവപ്പ് 1</translation>
 <translation id="8030729864112325446">തൊഴിലധിഷ്ഠിത, തുടർ വിദ്യാഭ്യാസം</translation>
 <translation id="8032546467100845887">സുതാര്യത</translation>
@@ -3980,7 +3988,6 @@
 <translation id="8116925261070264013">മ്യൂട്ടുചെയ്‌തു</translation>
 <translation id="8118489163946903409">പേയ്‌മെന്റ് രീതി</translation>
 <translation id="8118506371121007279">ഫീഡ്ബാക്ക് നൽകുക</translation>
-<translation id="8124085000247609808"><ph name="KEYWORD_SHORT_NAME" /> എന്നയാളുമായി ചാറ്റ് ചെയ്യുക</translation>
 <translation id="8127301229239896662">നിങ്ങളുടെ കമ്പ്യൂട്ടറിൽ അല്ലെങ്കിൽ നെറ്റ്‍വര്‍ക്കിൽ "<ph name="SOFTWARE_NAME" />" ശരിയായി ഇൻസ്‌റ്റാൾ ചെയ്‌തിട്ടില്ല. ഈ പ്രശ്‌നം പരിഹരിക്കാൻ നിങ്ങളുടെ ഐടി അഡ്‌മിനോട് ആവശ്യപ്പെടുക.</translation>
 <translation id="8131740175452115882">സ്ഥിരീകരിക്കുക</translation>
 <translation id="8133495915926741232">പരസ്യങ്ങൾ വ്യക്തിപരമാക്കാൻ സഹായിക്കുന്നതിന്, ഏതൊക്കെ വിശാലമായ വിഷയ വിഭാഗങ്ങളാണ് ഉപയോഗിക്കേണ്ടതെന്ന് തിരഞ്ഞെടുക്കുക. വിപുലമായ വിഭാഗങ്ങൾ ഓഫാക്കുന്നത്, അവയുടെ അനുബന്ധ വിഷയങ്ങളെയും ബ്ലോക്ക് ചെയ്യും. <ph name="BEGIN_LINK" />കൂടുതലറിയുക<ph name="END_LINK" /></translation>

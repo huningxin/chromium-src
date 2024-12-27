@@ -96,7 +96,6 @@ Baadhi ya vipengele huenda visipatikane na mabadiliko katika mapendeleo hayatahi
 <translation id="2137162749895930932">Funga skrini ya kutafsiri</translation>
 <translation id="2139300032719313227">Zima kisha uwashe Mfumo wa Uendeshaji wa Chrome</translation>
 <translation id="2151406531797534936">Tafadhali zima kisha uwashe Chrome sasa</translation>
-<translation id="2163089732491971196">Ili utumie na uhifadhi data ya Chrome kwenye Akaunti yako ya Google, weka kauli yako ya siri</translation>
 <translation id="2174917724755363426">Usakinishaji haujakamilika. Je, una uhakika unataka kughairi?</translation>
 <translation id="2186206192313702726">Lenzi ya Google</translation>
 <translation id="2190166659037789668">Hitilafu ya ukaguzi wa sasisho: <ph name="UPDATE_CHECK_ERROR" />.</translation>
@@ -246,6 +245,7 @@ Baadhi ya vipengele huenda visipatikane na mabadiliko katika mapendeleo hayatahi
 <translation id="3889417619312448367">Ondoa Google Chrome</translation>
 <translation id="3892148308691398805">Nakili maandishi</translation>
 <translation id="3941890832296813527">Hitilafu ya kusakinisha: Jina la faili ya kisakinishaji si sahihi au haliwezi kutumika.</translation>
+<translation id="3968962723676998462">Weka kauli yako ya siri ili utumie na uhifadhi data ya Chrome katika akaunti yako, <ph name="ACCOUNT_EMAIL" /></translation>
 <translation id="3973161977468201858">Google Chrome ingependa kufuta data yako ya Kidhibiti cha Manenosiri cha Google. Weka nenosiri lako la Windows ili uruhusu hatua hii.</translation>
 <translation id="398236277091248993">Chrome huendelea kufanya kazi kwa kasi ikiwa na vipengele vya kuboresha utendaji</translation>
 <translation id="3999683152997576765">Unaweza kuona na kuondoa mada zinazokuvutia zinazotumiwa na tovuti kukuonyesha matangazo. Chrome hukadiria mambo yanayokuvutia kulingana na historia yako ya kuvinjari ya hivi karibuni.</translation>
@@ -310,6 +310,7 @@ Baadhi ya vipengele huenda visipatikane na mabadiliko katika mapendeleo hayatahi
 <translation id="4728575227883772061">Usanidi umeshindwa kwa sababu ya hitilafu isiyojulikana. Ikiwa Google Chrome haitumiki kwa sasa, tafadhali ifunge na ujaribu tena.</translation>
 <translation id="4741235124132242877">Imebandikwa! Tumia Lenzi ya Google tena kwenye upau wa vidhibiti</translation>
 <translation id="4747730611090640388">Chrome inaweza kukadiria mambo yanayokuvutia.  Baadaye, tovuti unayoitembelea inaweza kuiomba Chrome ili ione mambo yanayokuvutia na iweze kukuonyesha matangazo kulingana na mapendeleo yako.</translation>
+<translation id="475321580758063259">Sasisha Chrome ili iendelee kutumia data ya Chrome katika Akaunti yako ya Google, <ph name="ACCOUNT_EMAIL" /></translation>
 <translation id="4754614261631455953">Google Chrome Canary (mDNS-In)</translation>
 <translation id="479167709087336770">Huduma hii hutumia kikagua tahajia sawa na kinachotumika kwenye Huduma ya Tafuta na Google. Maandishi unayoandika kwenye kivinjari yanatumwa kwa Google. Unaweza kubadilisha hali hii katika mipangilio wakati wowote.</translation>
 <translation id="4793679854893018356">Pata maelezo ya jinsi Chrome inavyohakikisha usalama wako</translation>
@@ -394,6 +395,7 @@ Google Chrome haiwezi kufufua mipangilio yako.</translation>
 <translation id="5941830788786076944">Fanya Google Chrome iwe kivinjari chaguomsingi</translation>
 <translation id="5947104538377036631">Njia ya Mkato ya Chrome</translation>
 <translation id="5953954252731207958">Hujatembelea hivi majuzi. Chrome imeondoa <ph name="PERMISSION" /></translation>
+<translation id="5980111191913430208">Viendelezi, programu na mandhari kutoka vyanzo visivyojulikana vinaweza kudhuru kifaa chako. Chrome inapendekeza uviweke kutoka <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> pekee</translation>
 <translation id="6003112304606738118">Inapakua... Zimesalia saa <ph name="HOURS" /></translation>
 <translation id="6014316319780893079">Kwa kutumia <ph name="BEGIN_LINK" />zana kutoka Chrome<ph name="END_LINK" />, unaweza kuvinjari kwa usalama na kuwa na udhibiti</translation>
 <translation id="6022659036123304283">Weka mapendeleo kwenye Chrome iwe unavyopenda</translation>
@@ -585,6 +587,7 @@ Huenda ruhusa ambazo tayari umezipa tovuti na programu zikatumika kwenye akaunti
 <translation id="8077579734294125741">Wasifu Mwingine Kwenye Chrome</translation>
 <translation id="8086881907087796310">Imeshindwa kusakinisha kwa sababu kompyuta yako haitimizi masharti ya chini yanayohitajika ya maunzi.</translation>
 <translation id="8111297389482307122">Chrome inahitaji kuthibitisha kuwa ni wewe kabla ya kuhifadhi baadhi ya data kwenye Akaunti yako ya Google na kutumiwa kwenye vifaa vyako vyote. Ukiondoka kwenye akaunti, data hii itasalia kwenye kifaa hiki.</translation>
+<translation id="8113883687556086139">Thibitisha kuwa ni wewe ili utumie na uhifadhi data ya Chrome katika akaunti yako, <ph name="ACCOUNT_EMAIL" /></translation>
 <translation id="8118331347066725040">Tuma maoni ya kutafuta ukitumia Lenzi</translation>
 <translation id="8129812357326543296">Kuhusu &amp;Google Chrome</translation>
 <translation id="813913629614996137">Inaanzisha…</translation>
@@ -612,6 +615,7 @@ Huenda ruhusa ambazo tayari umezipa tovuti na programu zikatumika kwenye akaunti
 <translation id="842386925677997438">Zana za usalama za Chrome</translation>
 <translation id="8425765582779547329">Ingia katika Chrome udumishe usalama wako mtandaoni ukitumia chaguo za mzazi wako</translation>
 <translation id="8428213095426709021">Mipangilio</translation>
+<translation id="8429214465555795676">Ili uendelee, utahitaji kuingia kwenye Chrome ukitumia <ph name="EMAIL" />. Hii inasaidia kuhakikisha kuwa unafuata sera za shirika lako.</translation>
 <translation id="8433638294851456451">Ili uweze kutuma namba kwa simu yako ya Android kutoka hapa, ingia katika akaunti kwenye Chrome ukitumia vifaa vyote viwili.</translation>
 <translation id="8451192282033883849">Akaunti yako inadhibitiwa na <ph name="MANAGER_NAME" />. Msimamizi wako anaweza kuona na kubadilisha wasifu wa kivinjari hiki cha Chrome na data yake kama vile alamisho, historia na manenosiri.</translation>
 <translation id="8496177819998570653">Kidhibiti cha Manenosiri cha Google</translation>

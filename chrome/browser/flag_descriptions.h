@@ -1630,9 +1630,6 @@ extern const char kOrcaKeyDescription[];
 extern const char kOsFeedbackDialogName[];
 extern const char kOsFeedbackDialogDescription[];
 
-extern const char kOverviewDeskNavigationName[];
-extern const char kOverviewDeskNavigationDescription[];
-
 extern const char kOverlayScrollbarsName[];
 extern const char kOverlayScrollbarsDescription[];
 
@@ -2733,9 +2730,6 @@ extern const char kMediaPickerAdoptionStudyDescription[];
 
 extern const char kMigrateSyncingUserToSignedInName[];
 extern const char kMigrateSyncingUserToSignedInDescription[];
-
-extern const char kNavBarColorMatchesTabBackgroundName[];
-extern const char kNavBarColorMatchesTabBackgroundDescription[];
 
 extern const char kNotificationOneTapUnsubscribeName[];
 extern const char kNotificationOneTapUnsubscribeDescription[];
@@ -4018,12 +4012,6 @@ extern const char kImeSwitchCheckConnectionStatusDescription[];
 extern const char kIppFirstSetupForUsbPrintersName[];
 extern const char kIppFirstSetupForUsbPrintersDescription[];
 
-extern const char kLacrosProfileMigrationForceOffName[];
-extern const char kLacrosProfileMigrationForceOffDescription[];
-
-extern const char kLacrosProfileBackwardMigrationName[];
-extern const char kLacrosProfileBackwardMigrationDescription[];
-
 extern const char kHindiInscriptLayoutName[];
 extern const char kHindiInscriptLayoutDescription[];
 
@@ -4044,12 +4032,6 @@ extern const char kImeUsEnglishModelUpdateDescription[];
 
 extern const char kCrosComponentsName[];
 extern const char kCrosComponentsDescription[];
-
-extern const char kLacrosStabilityName[];
-extern const char kLacrosStabilityDescription[];
-
-extern const char kLacrosWaylandLoggingName[];
-extern const char kLacrosWaylandLoggingDescription[];
 
 extern const char kLanguagePacksInSettingsName[];
 extern const char kLanguagePacksInSettingsDescription[];
@@ -4850,6 +4832,11 @@ extern const char kSupervisedProfileShowKiteBadgeName[];
 extern const char kSupervisedProfileShowKiteBadgeDescription[];
 
 #endif  // #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+
+#if BUILDFLAG(IS_ANDROID)
+extern const char kSupervisedUserForceSigninWithCapabilitiesName[];
+extern const char kSupervisedUserForceSigninWithCapabilitiesDescription[];
+#endif  // BUILDFLAG(IS_ANDROID)
 
 // ============================================================================
 // Don't just add flags to the end, put them in the right section in

@@ -11,7 +11,6 @@
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/google/core/common/google_util.h"
 #include "components/signin/core/browser/cookie_settings_util.h"
 #include "components/signin/public/base/signin_switches.h"
@@ -46,18 +45,19 @@ const char kShowConsistencyPromo[] = "show_consistency_promo";
 
 // Determines the service type that has been passed from Gaia in the header.
 GAIAServiceType GetGAIAServiceTypeFromHeader(const std::string& header_value) {
-  if (header_value == "SIGNOUT")
+  if (header_value == "SIGNOUT") {
     return GAIA_SERVICE_TYPE_SIGNOUT;
-  else if (header_value == "INCOGNITO")
+  } else if (header_value == "INCOGNITO") {
     return GAIA_SERVICE_TYPE_INCOGNITO;
-  else if (header_value == "ADDSESSION")
+  } else if (header_value == "ADDSESSION") {
     return GAIA_SERVICE_TYPE_ADDSESSION;
-  else if (header_value == "SIGNUP")
+  } else if (header_value == "SIGNUP") {
     return GAIA_SERVICE_TYPE_SIGNUP;
-  else if (header_value == "DEFAULT")
+  } else if (header_value == "DEFAULT") {
     return GAIA_SERVICE_TYPE_DEFAULT;
-  else
+  } else {
     return GAIA_SERVICE_TYPE_NONE;
+  }
 }
 
 }  // namespace
@@ -76,8 +76,9 @@ std::string ChromeConnectedHeaderHelper::BuildRequestCookieIfPossible(
     const content_settings::CookieSettings* cookie_settings,
     int profile_mode_mask) {
   ChromeConnectedHeaderHelper chrome_connected_helper(account_consistency);
-  if (!chrome_connected_helper.ShouldBuildRequestHeader(url, cookie_settings))
+  if (!chrome_connected_helper.ShouldBuildRequestHeader(url, cookie_settings)) {
     return "";
+  }
 
   // Child accounts are not supported on iOS, so it is preferred to not include
   // this information in the ChromeConnected cookie.
@@ -144,8 +145,9 @@ bool ChromeConnectedHeaderHelper::IsUrlEligibleToIncludeGaiaId(
 }
 
 bool ChromeConnectedHeaderHelper::IsDriveOrigin(const GURL& url) {
-  if (!url.SchemeIsCryptographic())
+  if (!url.SchemeIsCryptographic()) {
     return false;
+  }
 
   const GURL kGoogleDriveURL("https://drive.google.com");
   const GURL kGoogleDocsURL("https://docs.google.com");
@@ -155,8 +157,9 @@ bool ChromeConnectedHeaderHelper::IsDriveOrigin(const GURL& url) {
 bool ChromeConnectedHeaderHelper::IsUrlEligibleForRequestHeader(
     const GURL& url) {
   // Consider the account ID sensitive and limit it to secure domains.
-  if (!url.SchemeIsCryptographic())
+  if (!url.SchemeIsCryptographic()) {
     return false;
+  }
 
   switch (account_consistency_) {
     case AccountConsistencyMethod::kDisabled:
@@ -250,9 +253,8 @@ std::string ChromeConnectedHeaderHelper::BuildRequestHeader(
       break;
   }
 
-  parts.push_back(base::StringPrintf("%s=%s",
-                                     kConsistencyEnabledByDefaultAttrName,
-                                     "false"));
+  parts.push_back(base::StringPrintf(
+      "%s=%s", kConsistencyEnabledByDefaultAttrName, "false"));
 
   return base::JoinString(parts, is_header_request ? "," : ":");
 }

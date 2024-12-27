@@ -126,9 +126,9 @@ class PopoverElementForAppearanceBase : public HTMLDivElement {
       // the selected option.
       HTMLOptionElement* option_to_focus = select->SelectedOption();
       if (!option_to_focus || !option_to_focus->IsFocusable()) {
-        for (auto* option : select->GetOptionList()) {
-          if (option->IsFocusable()) {
-            option_to_focus = option;
+        for (auto& option : select->GetOptionList()) {
+          if (option.IsFocusable()) {
+            option_to_focus = &option;
             break;
           }
         }
@@ -360,6 +360,13 @@ bool MenuListSelectType::DefaultEventHandler(const Event& event) {
 
     if (key_event->GetModifiers() & ignore_modifiers)
       return false;
+
+    // Customizable-<select> keydown handling is done in
+    // HTMLOptionElement::DefaultEventHandlerInternal().
+    if (IsAppearanceBaseButton(
+            HTMLSelectElement::StyleUpdateBehavior::kUpdateStyle)) {
+      return false;
+    }
 
     const AtomicString key(key_event->key());
     bool handled = true;
@@ -950,10 +957,10 @@ String MenuListSelectType::UpdateTextStyleInternal() {
   if (select_->IsMultiple()) {
     unsigned selected_count = 0;
     HTMLOptionElement* selected_option_element = nullptr;
-    for (auto* const option : select_->GetOptionList()) {
-      if (option->Selected()) {
+    for (auto& option : select_->GetOptionList()) {
+      if (option.Selected()) {
         if (++selected_count == 1)
-          selected_option_element = option;
+          selected_option_element = &option;
       }
     }
 
@@ -1541,12 +1548,13 @@ void ListBoxSelectType::UpdateMultiSelectFocus() {
   if (!select_->is_multiple_)
     return;
 
-  for (auto* const option : select_->GetOptionList()) {
-    if (option->IsDisabledFormControl() || !option->GetLayoutObject())
+  for (auto& option : select_->GetOptionList()) {
+    if (option.IsDisabledFormControl() || !option.GetLayoutObject()) {
       continue;
+    }
     bool is_focused =
-        (option == active_selection_end_) && is_in_non_contiguous_selection_;
-    option->SetMultiSelectFocusedState(is_focused);
+        (&option == active_selection_end_) && is_in_non_contiguous_selection_;
+    option.SetMultiSelectFocusedState(is_focused);
   }
   ScrollToSelection();
 }
@@ -1732,21 +1740,21 @@ void ListBoxSelectType::UpdateListBoxSelection(bool deselect_other_options,
   const int end = std::max(anchor_index, end_index);
 
   int i = 0;
-  for (auto* const option : select_->GetOptionList()) {
-    if (option->IsDisabledFormControl() || !option->GetLayoutObject()) {
+  for (auto& option : select_->GetOptionList()) {
+    if (option.IsDisabledFormControl() || !option.GetLayoutObject()) {
       ++i;
       continue;
     }
     if (i >= start && i <= end) {
-      option->SetSelectedState(active_selection_state_);
-      option->SetDirty(true);
+      option.SetSelectedState(active_selection_state_);
+      option.SetDirty(true);
     } else if (deselect_other_options ||
                i >= static_cast<int>(
                         cached_state_for_active_selection_.size())) {
-      option->SetSelectedState(false);
-      option->SetDirty(true);
+      option.SetSelectedState(false);
+      option.SetDirty(true);
     } else {
-      option->SetSelectedState(cached_state_for_active_selection_[i]);
+      option.SetSelectedState(cached_state_for_active_selection_[i]);
     }
     ++i;
   }
@@ -1772,8 +1780,8 @@ void ListBoxSelectType::SaveListboxActiveSelection() {
   //   are selected.
   //   UpdateListBoxSelection needs to clear selection of the fifth OPTION.
   cached_state_for_active_selection_.resize(0);
-  for (auto* const option : select_->GetOptionList()) {
-    cached_state_for_active_selection_.push_back(option->Selected());
+  for (const auto& option : select_->GetOptionList()) {
+    cached_state_for_active_selection_.push_back(option.Selected());
   }
 }
 

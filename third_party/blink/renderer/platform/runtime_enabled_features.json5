@@ -1349,6 +1349,12 @@
       depends_on: ["SelectParserRelaxation"],
     },
     {
+      // If a node within a customizable <select> doesn't obey the content model, an Issue is reported to DevTools so that web authors get more context on why this can impact the accessibility behavior of the <select>.
+      name: "CustomizableSelectElementAccessibilityIssues",
+      status: "experimental",
+      depends_on: ["CustomizableSelect"],
+    },
+    {
       name: "Database",
       public: true,
       status: "experimental",
@@ -2207,10 +2213,6 @@
       status: "test",
     },
     {
-      name: "HandleSelectionChangeOnDeletingEmptyElement",
-      status: "stable",
-    },
-    {
       name: "HandwritingRecognition",
       status: {
         "ChromeOS_Ash": "stable",
@@ -2359,6 +2361,12 @@
     {
       name: "ImportMapIntegrity",
       status: "stable"
+    },
+    // This ensures that list element tag is included in extended selection.
+    // https://crbug.com/40658772
+    {
+      name: "IncludeListElementTagInExtendedSelection",
+      status: "stable",
     },
     // This ensures that table tag is included in extended selection.
     // https://crbug.com/40833812
@@ -4203,6 +4211,11 @@
     {
       // crbug.com/325517313
       name: "TextDiffSplitFix",
+      status: "stable",
+    },
+    {
+      // crbug.com/359420112
+      name: "TextEmphasisNoPunctuation",
       status: "stable",
     },
     {

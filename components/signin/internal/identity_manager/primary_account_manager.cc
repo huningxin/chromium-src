@@ -17,7 +17,6 @@
 #include "base/metrics/histogram_macros.h"
 #include "base/observer_list.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "components/signin/internal/identity_manager/account_tracker_service.h"
@@ -343,7 +342,7 @@ void PrimaryAccountManager::PrepareToLoadPrefs() {
     prefs->SetBoolean(prefs::kGoogleServicesConsentedToSync, false);
   }
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   // Migrate primary account ID from email to Gaia ID if needed.
   std::string pref_account_id =
       prefs->GetString(prefs::kGoogleServicesAccountId);
@@ -449,8 +448,9 @@ bool PrimaryAccountManager::HasPrimaryAccount(
 
 CoreAccountInfo PrimaryAccountManager::GetPrimaryAccountInfo(
     signin::ConsentLevel consent_level) const {
-  if (!HasPrimaryAccount(consent_level))
+  if (!HasPrimaryAccount(consent_level)) {
     return CoreAccountInfo();
+  }
   return GetPrimaryAccount().account_info;
 }
 
@@ -499,9 +499,10 @@ void PrimaryAccountManager::SetPrimaryAccountInfo(
           /*commit_on_destroy*/ true, std::move(prefs_committed_callback));
       SetPrimaryAccountInternal(account_info, /*consented_to_sync=*/false,
                                 signin_scoped_pref_commit);
-      if (account_changed)
+      if (account_changed) {
         FirePrimaryAccountChanged(previous_state, access_point,
                                   signin_scoped_pref_commit);
+      }
       return;
     }
   }
@@ -612,7 +613,7 @@ void PrimaryAccountManager::RemoveObserver(Observer* observer) {
   observers_.RemoveObserver(observer);
 }
 
-#if !BUILDFLAG(IS_CHROMEOS_ASH)
+#if !BUILDFLAG(IS_CHROMEOS)
 void PrimaryAccountManager::ClearPrimaryAccount(
     signin_metrics::ProfileSignout signout_source_metric) {
   StartSignOut(signout_source_metric, RemoveAccountsOption::kRemoveAllAccounts);
@@ -624,7 +625,7 @@ void PrimaryAccountManager::RemovePrimaryAccountButKeepTokens(
                RemoveAccountsOption::kKeepAllAccountsAndClearPrimary);
 }
 
-#endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // !BUILDFLAG(IS_CHROMEOS)
 
 void PrimaryAccountManager::RevokeSyncConsent(
     signin_metrics::ProfileSignout signout_source_metric) {
@@ -715,8 +716,9 @@ PrimaryAccountChangeEvent::State PrimaryAccountManager::GetPrimaryAccountState()
     const {
   PrimaryAccountChangeEvent::State state(GetPrimaryAccount().account_info,
                                          signin::ConsentLevel::kSignin);
-  if (HasPrimaryAccount(signin::ConsentLevel::kSync))
+  if (HasPrimaryAccount(signin::ConsentLevel::kSync)) {
     state.consent_level = signin::ConsentLevel::kSync;
+  }
   return state;
 }
 
@@ -795,7 +797,7 @@ void PrimaryAccountManager::FirePrimaryAccountChanged(
 void PrimaryAccountManager::OnRefreshTokensLoaded() {
   token_service_observation_.Reset();
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   if (account_tracker_service_->GetMigrationState() ==
       AccountTrackerService::MIGRATION_IN_PROGRESS) {
     account_tracker_service_->SetMigrationDone();

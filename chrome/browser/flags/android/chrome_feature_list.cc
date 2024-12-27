@@ -28,6 +28,7 @@
 #include "components/browser_sync/browser_sync_switches.h"
 #include "components/browser_ui/photo_picker/android/features.h"
 #include "components/browsing_data/core/features.h"
+#include "components/collaboration/public/features.h"
 #include "components/commerce/core/commerce_feature_list.h"
 #include "components/content_settings/core/common/features.h"
 #include "components/contextual_search/core/browser/contextual_search_field_trial.h"
@@ -125,6 +126,7 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &content_settings::features::kTrackingProtection3pcd,
     &content_settings::features::kUserBypassUI,
     &data_sharing::features::kDataSharingFeature,
+    &collaboration::features::kCollaborationFlowAndroid,
     &data_sharing::features::kDataSharingJoinOnly,
     &data_sharing::features::kDataSharingAndroidV2,
     &download::features::kSmartSuggestionForLargeDownloads,
@@ -284,7 +286,6 @@ const base::Feature* const kFeaturesExposedToJava[] = {
     &kMostVisitedTilesReselect,
     &kMultiInstanceApplicationStatusCleanup,
     &kNativePageTransitionHardwareCapture,
-    &kNavBarColorMatchesTabBackground,
     &kNewTabSearchEngineUrlAndroid,
     &kNewTabPageAndroidTriggerForPrerender2,
     &kNotificationPermissionVariant,
@@ -857,10 +858,6 @@ BASE_FEATURE(kMultiInstanceApplicationStatusCleanup,
 BASE_FEATURE(kNativePageTransitionHardwareCapture,
              "NativePageTransitionHardwareCapture",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-BASE_FEATURE(kNavBarColorMatchesTabBackground,
-             "NavBarColorMatchesTabBackground",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kNewTabSearchEngineUrlAndroid,
              "NewTabSearchEngineUrlAndroid",

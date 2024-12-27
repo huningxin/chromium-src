@@ -16,7 +16,6 @@
 #include "base/metrics/field_trial.h"
 #include "base/observer_list.h"
 #include "base/time/time.h"
-#include "build/chromeos_buildflags.h"
 #include "components/variations/client_filterable_state.h"
 #include "components/variations/entropy_provider.h"
 #include "components/variations/service/limited_entropy_synthetic_trial.h"
@@ -58,7 +57,7 @@ class VariationsSeed;
 
 namespace variations {
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 class DeviceVariationsRestrictionByPolicyApplicator;
 #endif
 
@@ -473,7 +472,7 @@ class VariationsService
   // server url.
   std::string osname_server_param_override_;
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
   std::unique_ptr<DeviceVariationsRestrictionByPolicyApplicator>
       device_variations_restrictions_by_policy_applicator_;
 #endif

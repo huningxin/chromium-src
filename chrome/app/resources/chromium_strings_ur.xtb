@@ -113,6 +113,7 @@
 <translation id="2483889755041906834">‏Chromium میں</translation>
 <translation id="2485422356828889247">ان انسٹال کریں</translation>
 <translation id="2513154137948333830">ریبوٹ درکار ہے: <ph name="INSTALL_SUCCESS" /></translation>
+<translation id="2522009821193247726">‏جاری رکھنے کیلئے، آپ کو <ph name="EMAIL" /> سے Chromium میں سائن ان کرنا ہوگا۔ یہ آپ کی تنظیم کی پالیسیوں کی تعمیل کو یقینی بناتا ہے۔</translation>
 <translation id="2542968102051442371">تصاویر کا استعمال کر کے تلاش کے ساتھ ٹیکسٹ منتخب کریں</translation>
 <translation id="2554739539410784893">‏Chromium موجودہ پاس ورڈز کو تبدیل کرنے کی کوشش کر رہا ہے۔ اس کی اجازت دینے کے لیے اپنا Windows پاس ورڈ ٹائپ کریں۔</translation>
 <translation id="2560420686485554789">‏Chromium کو فائلیں ڈاؤن لوڈ کرنے کیلئے اسٹوریج تک رسائی درکار ہے</translation>
@@ -122,6 +123,7 @@
 <translation id="2583187216237139145">‏دفتری پروفائل کا منتظم اس پروفائل کے استعمال کے دوران جنریٹ ہونے والے کسی بھی Chromium ڈیٹا (جیسے، بُک مارکس کی تخلیق، سرگزشت، پاس ورڈز اور دیگر ترتیبات) کو ہٹا سکتا ہے۔ <ph name="LEARN_MORE" /></translation>
 <translation id="2592940277904433508">‏Chromium کا استعمال جاری رکھیں</translation>
 <translation id="259935314519650377">ڈاؤن لوڈ کردہ انسٹالر کو کیش کرنے میں ناکام۔ خرابی: <ph name="UNPACK_CACHING_ERROR_CODE" /></translation>
+<translation id="2635452620547538388">‏اپنے اکاؤنٹ، <ph name="ACCOUNT_EMAIL" /> میں Chromium ڈیٹا کا استعمال کرنے اور محفوظ کرنے کیلئے توثیق کریں کہ یہ آپ ہی ہیں</translation>
 <translation id="264613044588233783">‏Chromium تیزی سے چلتا ہے اور JavaScript استعمال کرنے والی خصوصیات کو ڈیزائن کے مطابق کام کرنا چاہیے (تجویز کردہ)</translation>
 <translation id="2648074677641340862">‏انسٹالیشن کے دوران آپریٹنگ سسٹم کی ایک خرابی پیش آ گئی۔ براہ کرم Chromium دوبارہ ڈاؤن لوڈ کریں۔</translation>
 <translation id="2661879430930417727">‏اگر آپ کسی آلے کا اشتراک کرتے ہیں تو دوست اور اہل خانہ الگ الگ براؤز کر سکتے ہیں اور Chromium کو اپنی مرضی کے مطابق سیٹ اپ کر سکتے ہیں</translation>
@@ -254,7 +256,6 @@
 <translation id="4438870983368648614">‏<ph name="MANAGER" /> ‫Chromium کا نظم کرتا ہے</translation>
 <translation id="444069871276811466">‏‫Chromium پروفائل شامل کریں</translation>
 <translation id="4447409407328223819">‏Chrome for Testing کے بارے میں</translation>
-<translation id="4470974262661801543">‏اپنے Google اکاؤنٹ میں Chromium ڈیٹا کا استعمال کرنے اور اسے محفوظ کرنے کیلئے، اپنا پاس فریز درج کریں</translation>
 <translation id="4493028449971051158">اسٹارٹ اپ کی خرابی: براہ کرم انسٹالر کو بطور منتظم چلائیں۔</translation>
 <translation id="4501471624619070934">انسٹالیشن ناکام ہوگئی کیونکہ اس ملک میں رسائی محدود ہے۔</translation>
 <translation id="4510853178268397146">‏اس ایکسٹینشن نے رازداری کے ضوابط کو شائع نہیں کیا ہے، جیسے کہ اس کا ڈیٹا کو اکٹھا اور استعمال کرنے کا طریقہ۔ Chromium تجویز کرتا ہے کہ آپ اسے ہٹا دیں۔</translation>
@@ -450,6 +451,7 @@
 <translation id="6980074797973263542">‏آپ کی تنظیم براؤزنگ ڈیٹا دیکھ اور اس کا نظم کر سکتی ہے، جیسے آپ کے بُک مارکس، سرگزشت اور پاس ورڈز۔ یہ ذاتی Chromium پروفائلز میں براؤزنگ ڈیٹا نہیں دیکھ سکتی۔</translation>
 <translation id="6985329841647292029">‏ChromiumOS کی شرائط</translation>
 <translation id="6990124437352146030">‏Chromium کو اس سائٹ کیلئے آپ کے مائیکروفون تک رسائی کی اجازت درکار ہے</translation>
+<translation id="7003299027384820442">‏اپنے اکاؤنٹ، <ph name="ACCOUNT_EMAIL" /> میں Chromium ڈیٹا کا استعمال کرنے اور محفوظ کرنے کے لیے اپنا پاس فریز درج کریں</translation>
 <translation id="7011190694940573312">انسٹالیشن ناکام ہو گئی کیونکہ آپریٹنگ سسٹم کا یہ ورژن تعاون یافتہ نہیں ہے۔</translation>
 <translation id="7024536598735240744">خرابی کو ان پیک کریں: <ph name="UNPACK_ERROR" />۔</translation>
 <translation id="7025789849649390912">انسٹالیشن رک گئی۔</translation>
@@ -545,6 +547,7 @@ Chromium آپ کی ترتیبات کو بازیافت کرنے سے قاصر ہ�
 <translation id="8330519371938183845">‏اپنے آلات پر Chromium کو مطابقت پذیر اور ذاتی نوعیت کا بنانے کے لیے سائن ان کریں</translation>
 <translation id="8340674089072921962">‏<ph name="USER_EMAIL_ADDRESS" /> پہلے Chromium کا استعمال کر رہا تھا</translation>
 <translation id="8357820681460164151">‏اپنے تمام آلات پر اپنے Chromium براؤزر کی چیزوں تک رسائی حاصل کرنے کیلئے، سائن ان کریں اور پھر مطابقت پذیری کو آن کریں</translation>
+<translation id="8359544530202147897">‏اپنے Google اکاؤنٹ، <ph name="ACCOUNT_EMAIL" /> میں Chromium ڈیٹا کا استعمال جاری رکھنے کے لیے Chromium کو اپ ڈیٹ کریں</translation>
 <translation id="8360718212975266891">‏مستقبل کے Chromium اپ ڈیٹس حاصل کرنے کے لیے، آپ کو Windows 10 یا اس کے بعد کے ورژن کی ضرورت ہوگی۔ یہ کمپیوٹر Windows 8 استعمال کر رہا ہے۔</translation>
 <translation id="8362914115861174987">اس میں ترجمہ کریں</translation>
 <translation id="8370517070665726704">‏کاپی رائٹ<ph name="YEAR" /> Google LLC۔ جملہ حقوق محفوظ ہیں۔</translation>

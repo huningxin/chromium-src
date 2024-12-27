@@ -17,7 +17,6 @@
 #include "base/timer/timer.h"
 #include "build/build_config.h"
 #include "build/buildflag.h"
-#include "build/chromeos_buildflags.h"
 #include "components/content_settings/core/browser/content_settings_observer.h"
 #include "components/content_settings/core/common/content_settings_pattern.h"
 #include "components/keyed_service/core/keyed_service.h"
@@ -515,8 +514,8 @@ class AccountReconcilor
   bool reconcile_is_noop_ = true;
 
   // Used during reconcile action.
-  bool set_accounts_in_progress_ = false;     // Progress of SetAccounts calls.
-  bool log_out_in_progress_ = false;          // Progress of LogOut calls.
+  bool set_accounts_in_progress_ = false;  // Progress of SetAccounts calls.
+  bool log_out_in_progress_ = false;       // Progress of LogOut calls.
   bool chrome_accounts_changed_ = false;
 
   // Used for the Lock.

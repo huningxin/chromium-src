@@ -19,6 +19,7 @@
 <translation id="107147699690128016">Dosya uzantısını değiştirirseniz dosya farklı bir uygulamada açılabilir ve cihazınız için tehlikeli olabilir.</translation>
 <translation id="1080365971383768617">Tüm cihazlarınızdaki şifreler</translation>
 <translation id="1082920045291562218">Özet ile paylaş geri bildirim sayfası kapatıldı</translation>
+<translation id="1087176310396019910">Spam olabilir</translation>
 <translation id="1089606299949659462">İnceleme tamamlandı</translation>
 <translation id="1094555143448724771">Diğer cihazlarınızdaki sekmeleri görmek için sekmelerinizi ve geçmişinizi senkronize edin.</translation>
 <translation id="1095761715416917775">Senkronizasyon verilerinize her zaman erişebildiğinizden emin olun</translation>
@@ -508,6 +509,7 @@ Sadece parolanıza sahip olan kişiler şifrelenmiş verilerinizi okuyabilir. Pa
 <translation id="3282568296779691940">Chrome'da oturum aç</translation>
 <translation id="3285065882678541460">{TAB_COUNT,plural, =1{<ph name="TAB_GROUPS_PART" />, <ph name="TAB_COUNT_ONE" /> sekme}other{<ph name="TAB_GROUPS_PART" />, <ph name="TAB_COUNT_MANY" /> sekme}}</translation>
 <translation id="3293181007446299124">Tarama geçmişiniz cihazınızda gizli tutulur ve raporlar, kimliğinizin korunması için gecikmeli olarak gönderilir</translation>
+<translation id="3301936297336370235">Şifre önerisi onayı</translation>
 <translation id="3302615849591357577"><ph name="TITLE_OF_GROUP" /> sekme grubunu, <ph name="COLOR_NAME" /> rengini yeni bir arka plan sekme grubu olarak geri yükleyin.</translation>
 <translation id="3303414029551471755">İçeriği indirme işlemine başlansın mı?</translation>
 <translation id="3303855915957856445">Arama sonucu bulunamadı</translation>
@@ -972,6 +974,7 @@ Diğer Google hizmetlerinden yapılan aramalar ve etkinlikler gibi Google hesab�
 <translation id="5444999712122199445">Siteye geri dönün.</translation>
 <translation id="544776284582297024">Aynı anda birden fazla sekme açıp farklı sayfaları ziyaret etmek için açık sekme düğmesine dokunun</translation>
 <translation id="5454166040603940656"><ph name="PROVIDER" /> ile</translation>
+<translation id="5454215368971121976">Cihazınız katlandığında bir seçenek belirleyebilir veya adres çubuğuna dokunup basılı tutarak konumu değiştirebilirsiniz.</translation>
 <translation id="5458366071038729214">Takip ettiğiniz siteleri burada bulursunuz</translation>
 <translation id="5468068603361015296"><ph name="FILE_NAME" /> dosyasını yine de indirmek istiyor musunuz?</translation>
 <translation id="548278423535722844">Haritalar uygulamasında aç</translation>
@@ -1135,6 +1138,7 @@ Diğer Google hizmetlerinden yapılan aramalar ve etkinlikler gibi Google hesab�
 <translation id="6193448654517602979">Sekmeleri seç</translation>
 <translation id="6196315980958524839">Şifreler bu cihazda Google Şifre Yöneticisi'ne kaydedilir</translation>
 <translation id="6202812185118613467">Senkronizasyonu başlatmak için tekrar oturum açın</translation>
+<translation id="6204781143409202534">Chrome, <ph name="DOMAIN" /> adresinden gelen olası bir spam mesajını algıladı.</translation>
 <translation id="6205314730813004066">Reklam gizliliği</translation>
 <translation id="6210748933810148297"><ph name="EMAIL" /> değil misiniz?</translation>
 <translation id="6211386937064921208">Sayfanın önizlemesi gösteriliyor</translation>

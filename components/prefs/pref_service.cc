@@ -27,7 +27,6 @@
 #include "base/strings/string_util.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/values.h"
-#include "build/chromeos_buildflags.h"
 #include "components/prefs/default_pref_store.h"
 #include "components/prefs/json_pref_store.h"
 #include "components/prefs/pref_notifier_impl.h"
@@ -37,7 +36,7 @@
 #include "components/prefs/android/pref_service_android.h"
 #endif
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(IS_CHROMEOS)
 namespace pref_service_util {
 void GetAllDottedPaths(std::string_view prefix,
                        const base::Value::Dict& dict,
@@ -63,7 +62,7 @@ void GetAllDottedPaths(const base::Value::Dict& dict,
   GetAllDottedPaths("", dict, paths);
 }
 }  // namespace pref_service_util
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 PrefService::PersistentPrefStoreLoadingObserver::
     PersistentPrefStoreLoadingObserver(PrefService* pref_service)

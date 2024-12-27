@@ -461,6 +461,7 @@
 <translation id="1777422078676229054">Foto (de arhivă)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">Instalezi aplicații web?</translation>
+<translation id="1791415068765905273">Afișează toate tabelele de comparație</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507"><ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />, apasă pe Tab, apoi pe Enter pentru a gestiona informațiile, confidențialitatea și securitatea Contului Google</translation>
 <translation id="1793631236004319016">Ultima utilizare: acum <ph name="NUM_HOURS_MINUTES_SECONDS" /></translation>
@@ -961,6 +962,7 @@
 <translation id="2688969097326701645">Da, continuă</translation>
 <translation id="2690699652723742414">Ultimele 30 de zile</translation>
 <translation id="2691924980723297736">Avertisment de siguranță</translation>
+<translation id="2697248912349197812">Întreabă <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="2699273987028089219">Submeniu disponibil, folosește <ph name="SHORTCUT" /> pentru a naviga la opțiuni suplimentare.</translation>
 <translation id="2701514975700770343">Cu fața în jos</translation>
 <translation id="2702592986366989640">Opțiune cu preț scăzut</translation>
@@ -2065,6 +2067,7 @@
 <translation id="469028408546145398">Butonul Închide ferestrele incognito, activează pentru a închide toate ferestrele incognito deschise</translation>
 <translation id="4691093235373904540">Servicii pentru acoperișuri</translation>
 <translation id="4692623383562244444">Motoare de căutare</translation>
+<translation id="4695702626068620848"><ph name="KEYWORD" /> – Întreabă <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="4698692901173737941">Sporturi de luptă</translation>
 <translation id="4701488924964507374"><ph name="SENTENCE1" /> <ph name="SENTENCE2" /></translation>
 <translation id="4702504834785592287">Lateral</translation>
@@ -2197,6 +2200,7 @@
 <translation id="4918221908152712722">Instalează <ph name="APP_NAME" /> (nu necesită descărcare)</translation>
 <translation id="4920457992177678649">Locuințe de închiriat pentru vacanțe și locuințe pe termen scurt</translation>
 <translation id="4920710383559189047">Manșon</translation>
+<translation id="4920921410507315601">Tabele de comparație</translation>
 <translation id="4922104989726031751">Pentru a folosi Managerul de parole cu sistemul tău de operare, relansează Chromium și permite accesul la managerul de parole de pe computer. Filele se vor redeschide după relansare.</translation>
 <translation id="4923459931733593730">Plată</translation>
 <translation id="4926049483395192435">Valoarea trebuie specificată.</translation>
@@ -2390,6 +2394,7 @@
 <translation id="5278778426231952189">Încarcă acum</translation>
 <translation id="5279286380302340275">Gestionează descărcările</translation>
 <translation id="5280963125494874678">aplicații web</translation>
+<translation id="5282008206326321696">{count,plural, =0{# marcaje}=1{# marcaj}few{# marcaje}other{# de marcaje}}</translation>
 <translation id="5283044957620376778">B1</translation>
 <translation id="5284295735376057059">Proprietățile documentului</translation>
 <translation id="528468243742722775">Oprește</translation>
@@ -2475,6 +2480,7 @@
 <translation id="5425082381151187189">Casă și decorațiuni interioare</translation>
 <translation id="5426179911063097041"><ph name="SITE" /> dorește să îți trimită notificări</translation>
 <translation id="5430298929874300616">Elimină marcajul</translation>
+<translation id="5431318178759467895">Color</translation>
 <translation id="5433756542371550806">Variații ale liniilor de comandă</translation>
 <translation id="5434798570900738152">Chromium <ph name="BEGIN_EMPHASIS" />nu va salva<ph name="END_EMPHASIS" />:
           <ph name="BEGIN_LIST" />
@@ -2584,6 +2590,7 @@
 <translation id="561165882404867731">Tradu această pagină cu Google Traducere</translation>
 <translation id="5612720917913232150"><ph name="URL" /> dorește să utilizeze locația computerului</translation>
 <translation id="5614520971155863709">Jocuri de cărți</translation>
+<translation id="5617785978844309968">Afișează toate tabelele de comparație</translation>
 <translation id="5617949217645503996"><ph name="HOST_NAME" /> te-a redirecționat de prea multe ori.</translation>
 <translation id="5619721953841297650">Presetare</translation>
 <translation id="5624120631404540903">Gestionați parolele</translation>
@@ -3294,6 +3301,7 @@
 <translation id="6925267999184670015">North American B+</translation>
 <translation id="6926216138694948720">Artă corporală</translation>
 <translation id="692638818576287323">Vehicule comerciale</translation>
+<translation id="6933282894115597956">Organizația ta solicită conectarea</translation>
 <translation id="6934236486840930310"><ph name="BEGIN_BOLD" />Motorul de căutare prestabilit te ajută să cauți pe web și oferă funcții Chrome<ph name="END_BOLD" />, cum ar fi căutarea din bara de adrese și din imaginile de pe paginile web. Este posibil ca o funcție să nu fie disponibilă dacă motorul de căutare nu o acceptă.</translation>
 <translation id="6934672428414710184">Acest nume provine din Contul tău Google</translation>
 <translation id="6935082727755903526">Locuri de muncă în contabilitate și finanțe</translation>
@@ -3788,7 +3796,6 @@ Detalii suplimentare:
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">Personalizează dimensiunea și tipul fontului în Chrome</translation>
 <translation id="7752995774971033316">Negestionat</translation>
-<translation id="7753769899818674547"><ph name="KEYWORD" /> – Conversează prin chat cu <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="7754587126786572336">Filele și aplicațiile Chrome se vor închide când începe actualizarea</translation>
 <translation id="7755287808199759310">Părintele tău îl poate debloca pentru tine</translation>
 <translation id="7755624218968747854">Rola principală</translation>
@@ -3928,6 +3935,7 @@ Detalii suplimentare:
 <translation id="8028698320761417183"><ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />, apasă pe Tab, apoi pe Enter pentru a crea rapid un formular în Formulare Google</translation>
 <translation id="8028892419725165118">Jocuri ocazionale</translation>
 <translation id="8028960012888758725">Decupare după sarcină</translation>
+<translation id="8028993641010258682">Dimensiune</translation>
 <translation id="8029829038322015001">Roșu 1</translation>
 <translation id="8030729864112325446">Educație vocațională și continuă</translation>
 <translation id="8032546467100845887">Transparență</translation>
@@ -3983,7 +3991,6 @@ Detalii suplimentare:
 <translation id="8116925261070264013">Cu sunetul dezactivat</translation>
 <translation id="8118489163946903409">Metodă de plată</translation>
 <translation id="8118506371121007279">Trimite feedback</translation>
-<translation id="8124085000247609808">Conversează prin chat cu <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="8127301229239896662">„<ph name="SOFTWARE_NAME" />” nu a fost instalat corect pe computer sau în rețea. Contactează administratorul IT pentru a remedia această problemă.</translation>
 <translation id="8131740175452115882">Confirmați</translation>
 <translation id="8133495915926741232">Alege categoriile vaste de subiecte care pot fi folosite pentru a personaliza anunțurile. Dacă dezactivezi o categorie mai vastă, vei bloca și subiectele conexe. <ph name="BEGIN_LINK" />Află mai multe<ph name="END_LINK" /></translation>

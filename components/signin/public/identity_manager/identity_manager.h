@@ -14,7 +14,6 @@
 #include "base/scoped_observation.h"
 #include "base/scoped_observation_traits.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/account_manager_core/account.h"
 #include "components/keyed_service/core/keyed_service.h"
 #include "components/signin/internal/identity_manager/primary_account_manager.h"
@@ -559,7 +558,7 @@ class IdentityManager : public KeyedService,
 #if BUILDFLAG(IS_CHROMEOS)
   friend account_manager::AccountManagerFacade* GetAccountManagerFacade(
       IdentityManager* identity_manager);
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
   // Temporary access to getters (e.g. GetTokenService()).
   // TODO(crbug.com/40619310): Remove this friendship by

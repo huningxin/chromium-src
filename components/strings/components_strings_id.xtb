@@ -462,6 +462,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="1777422078676229054">Foto (Arsip)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">Instal aplikasi web?</translation>
+<translation id="1791415068765905273">Tampilkan Semua Tabel Perbandingan</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507"><ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />, tekan Tab lalu Enter untuk mengelola info, privasi, dan keamanan di Akun Google Anda</translation>
 <translation id="1793631236004319016">Terakhir digunakan <ph name="NUM_HOURS_MINUTES_SECONDS" /> lalu</translation>
@@ -962,6 +963,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="2688969097326701645">Ya, lanjutkan</translation>
 <translation id="2690699652723742414">30 hari terakhir</translation>
 <translation id="2691924980723297736">Peringatan keamanan</translation>
+<translation id="2697248912349197812">Tanya <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="2699273987028089219">Submenu tersedia, gunakan <ph name="SHORTCUT" /> untuk membuka opsi tambahan.</translation>
 <translation id="2701514975700770343">Menghadap ke bawah</translation>
 <translation id="2702592986366989640">Opsi harga rendah</translation>
@@ -2065,6 +2067,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="469028408546145398">Tombol Tutup jendela Samaran, aktifkan untuk menutup semua jendela Samaran yang saat ini terbuka</translation>
 <translation id="4691093235373904540">Pembuatan Atap</translation>
 <translation id="4692623383562244444">Mesin telusur</translation>
+<translation id="4695702626068620848"><ph name="KEYWORD" /> - Tanya <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="4698692901173737941">Olahraga Bertarung</translation>
 <translation id="4701488924964507374"><ph name="SENTENCE1" /> <ph name="SENTENCE2" /></translation>
 <translation id="4702504834785592287">Sisi</translation>
@@ -2197,6 +2200,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="4918221908152712722">Instal <ph name="APP_NAME" /> (tidak perlu didownload)</translation>
 <translation id="4920457992177678649">Rental Akomodasi &amp; Tempat Tinggal Jangka Pendek</translation>
 <translation id="4920710383559189047">Sleeve</translation>
+<translation id="4920921410507315601">Tabel Perbandingan</translation>
 <translation id="4922104989726031751">Untuk menggunakan Pengelola Sandi dengan sistem operasi Anda, luncurkan kembali Chromium dan izinkan akses ke pengelola sandi komputer. Tab Anda akan dibuka lagi setelah peluncuran kembali.</translation>
 <translation id="4923459931733593730">Pembayaran</translation>
 <translation id="4926049483395192435">Harus ditentukan.</translation>
@@ -2390,6 +2394,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="5278778426231952189">Upload sekarang</translation>
 <translation id="5279286380302340275">Kelola download</translation>
 <translation id="5280963125494874678">aplikasi web</translation>
+<translation id="5282008206326321696">{count,plural, =0{# bookmark}=1{# bookmark}other{# bookmark}}</translation>
 <translation id="5283044957620376778">B1</translation>
 <translation id="5284295735376057059">Properti dokumen</translation>
 <translation id="528468243742722775">Berakhir</translation>
@@ -2475,6 +2480,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="5425082381151187189">Dekorasi Rumah &amp; Interior</translation>
 <translation id="5426179911063097041"><ph name="SITE" /> ingin mengirimkan notifikasi kepada Anda</translation>
 <translation id="5430298929874300616">Buang bookmark</translation>
+<translation id="5431318178759467895">Warna</translation>
 <translation id="5433756542371550806">Variasi Command Line</translation>
 <translation id="5434798570900738152">Chromium <ph name="BEGIN_EMPHASIS" />tidak akan menyimpan<ph name="END_EMPHASIS" />:
           <ph name="BEGIN_LIST" />
@@ -2584,6 +2590,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="561165882404867731">Terjemahkan halaman ini dengan Google Terjemahan</translation>
 <translation id="5612720917913232150"><ph name="URL" /> ingin menggunakan lokasi komputer Anda</translation>
 <translation id="5614520971155863709">Game Kartu</translation>
+<translation id="5617785978844309968">Tampilkan semua tabel perbandingan</translation>
 <translation id="5617949217645503996"><ph name="HOST_NAME" /> terlalu sering mengalihkan Anda.</translation>
 <translation id="5619721953841297650">Preset</translation>
 <translation id="5624120631404540903">Kelola sandi</translation>
@@ -3294,6 +3301,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="6925267999184670015">Amerika Utara B+</translation>
 <translation id="6926216138694948720">Seni Rajah dan Tindik</translation>
 <translation id="692638818576287323">Kendaraan Niaga</translation>
+<translation id="6933282894115597956">Login diwajibkan oleh organisasi Anda</translation>
 <translation id="6934236486840930310"><ph name="BEGIN_BOLD" />Mesin telusur default memungkinkan Anda menelusuri web dan mendukung fitur Chrome<ph name="END_BOLD" /> seperti menelusuri dari kolom URL dan dari gambar di halaman web. Fitur mungkin tidak tersedia jika mesin telusur tidak mendukungnya.</translation>
 <translation id="6934672428414710184">Nama ini dari Akun Google Anda</translation>
 <translation id="6935082727755903526">Pekerjaan Akuntansi &amp; Keuangan</translation>
@@ -3786,7 +3794,6 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">Sesuaikan ukuran font dan rupa huruf di Chrome</translation>
 <translation id="7752995774971033316">Tidak dikelola</translation>
-<translation id="7753769899818674547"><ph name="KEYWORD" /> - Chat dengan <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="7754587126786572336">Tab dan aplikasi Chrome Anda akan ditutup saat update dimulai</translation>
 <translation id="7755287808199759310">Orang tua dapat berhenti memblokirnya untukmu</translation>
 <translation id="7755624218968747854">Rol Utama</translation>
@@ -3926,6 +3933,7 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="8028698320761417183"><ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />, tekan Tab lalu Enter untuk membuat formulir baru di Google Formulir dengan cepat</translation>
 <translation id="8028892419725165118">Game Kasual</translation>
 <translation id="8028960012888758725">Trim setelah seluruh tugas tercetak</translation>
+<translation id="8028993641010258682">Ukuran</translation>
 <translation id="8029829038322015001">Merah 1</translation>
 <translation id="8030729864112325446">Pendidikan Keterampilan &amp; Berkelanjutan</translation>
 <translation id="8032546467100845887">Transparansi</translation>
@@ -3981,7 +3989,6 @@ disusupi oleh penyerang. Hanya buka <ph name="BEGIN_LINK" />situs yang tidak ama
 <translation id="8116925261070264013">Dinonaktifkan</translation>
 <translation id="8118489163946903409">Metode pembayaran</translation>
 <translation id="8118506371121007279">Beri masukan</translation>
-<translation id="8124085000247609808">Mulai percakapan dengan <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="8127301229239896662">"<ph name="SOFTWARE_NAME" />" tidak diinstal dengan benar di komputer atau jaringan Anda. Mintalah administrator IT untuk menyelesaikan masalah ini.</translation>
 <translation id="8131740175452115882">Konfirmasi</translation>
 <translation id="8133495915926741232">Pilih kategori topik luas mana yang dapat digunakan untuk membantu mempersonalisasi iklan. Menonaktifkan kategori yang lebih luas juga akan memblokir topik terkait. <ph name="BEGIN_LINK" />Pelajari lebih lanjut<ph name="END_LINK" /></translation>

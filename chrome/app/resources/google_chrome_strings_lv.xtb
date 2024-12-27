@@ -94,7 +94,6 @@
 <translation id="2137162749895930932">Aizvērt tulkošanas ekrānu</translation>
 <translation id="2139300032719313227">Chrome OS restartēšana</translation>
 <translation id="2151406531797534936">Lūdzu, nekavējoties restartējiet pārlūku Chrome</translation>
-<translation id="2163089732491971196">Lai izmantotu un saglabātu Chrome datus savā Google kontā, ievadiet ieejas frāzi</translation>
 <translation id="2174917724755363426">Instalēšana nav pabeigta. Vai tiešām vēlaties atcelt?</translation>
 <translation id="2186206192313702726">Google Lens</translation>
 <translation id="2190166659037789668">Atjauninājumu pārbaudes kļūda: <ph name="UPDATE_CHECK_ERROR" />.</translation>
@@ -243,6 +242,7 @@
 <translation id="3889417619312448367">Atinstalēt Google Chrome</translation>
 <translation id="3892148308691398805">Kopēt tekstu</translation>
 <translation id="3941890832296813527">Instalēšanas kļūda: instalēšanas programmas faila nosaukums nav derīgs vai netiek atbalstīts.</translation>
+<translation id="3968962723676998462">Lai savā kontā (<ph name="ACCOUNT_EMAIL" />) izmantotu un saglabātu Chrome datus, ievadiet ieejas frāzi.</translation>
 <translation id="3973161977468201858">Google Chrome pieprasa dzēst jūsu Google paroļu pārvaldnieka datus. Lai to atļautu, ierakstiet savu Windows paroli.</translation>
 <translation id="398236277091248993">Pārlūks Chrome darbojas ātri, jo izmanto veiktspējas uzlabošanas funkcijas.</translation>
 <translation id="3999683152997576765">Varat skatīt un noņemt interešu tēmas, kas vietnēs tiek izmantotas reklāmu rādīšanai. Pārlūkā Chrome tiek aptuveni noteiktas jūsu intereses, ņemot vērā neseno pārlūkošanas vēsturi.</translation>
@@ -307,6 +307,7 @@
 <translation id="4728575227883772061">Instalācija neizdevās nenoteiktas kļūdas dēļ. Ja Google Chrome pašlaik darbojas, lūdzu, aizveriet to un mēģiniet vēlreiz.</translation>
 <translation id="4741235124132242877">Piesprausta! Varat atkal piekļūt funkcijai Google Lens, izmantojot rīkjoslu.</translation>
 <translation id="4747730611090640388">Pārlūkā Chrome var aptuveni noteikt jūsu intereses.  Vēlāk kāda jūsu apmeklēta vietne var pieprasīt pārlūkam Chrome atļauju skatīt jūsu intereses, lai personalizētu jums rādāmās reklāmas.</translation>
+<translation id="475321580758063259">Lai turpinātu izmantot Chrome datus savā Google kontā <ph name="ACCOUNT_EMAIL" />, atjauniniet pārlūku Chrome.</translation>
 <translation id="4754614261631455953">Google Chrome Canary (ienākošā mDNS datplūsma)</translation>
 <translation id="479167709087336770">Šeit tiek izmantota tāds pats pareizrakstības pārbaudītājs, kāds tiek izmantots Google meklēšanā. Pārlūkprogrammā ievadītais teksts tiek nosūtīts Google serveriem. Jebkurā brīdī varat mainīt šo darbību iestatījumos.</translation>
 <translation id="4793679854893018356">Uzziniet, kā Chrome rūpējas par jūsu drošību</translation>
@@ -389,6 +390,7 @@ Dažas funkcijas var nebūt pieejamas. Norādiet citu profila direktoriju vai li
 <translation id="5941830788786076944">Izveidot Google Chrome par noklusējuma pārlūku</translation>
 <translation id="5947104538377036631">Chrome saīsne</translation>
 <translation id="5953954252731207958">Pēdējā laikā neesat apmeklējis šo vietni. Pārlūkā Chrome tika noņemta atļauja <ph name="PERMISSION" /></translation>
+<translation id="5980111191913430208">No nezināmiem avotiem iegūti paplašinājumi, lietotnes un motīvi var kaitēt ierīcei. Chrome komanda iesaka instalēt tos tikai no veikala <ph name="IDS_EXTENSION_WEB_STORE_TITLE" />.</translation>
 <translation id="6003112304606738118">Notiek lejupielāde... Atlikušais laiks: <ph name="HOURS" /> stunda(-as).</translation>
 <translation id="6014316319780893079">Izmantojot <ph name="BEGIN_LINK" />Chrome rīkus<ph name="END_LINK" />, varat droši pārlūkot saturu un pārvaldīt jums pieejamās iespējas.</translation>
 <translation id="6022659036123304283">Pielāgojiet Chrome savām prasībām</translation>
@@ -580,6 +582,7 @@ Uz šo kontu var attiekties atļaujas, ko esat jau piešķīris vietnēm un liet
 <translation id="8077579734294125741">Citi Chrome profili</translation>
 <translation id="8086881907087796310">Instalēšana neizdevās, jo jūsu dators neatbilst minimālajām aparatūras prasībām.</translation>
 <translation id="8111297389482307122">Pārlūkā Chrome ir jāverificē jūsu identitāte, lai noteiktus datus varētu saglabāt jūsu Google kontā un izmantot visās jūsu ierīcēs. Ja izrakstīsieties, šie dati paliks šajā ierīcē.</translation>
+<translation id="8113883687556086139">Lai izmantotu un saglabātu Chrome datus savā kontā (<ph name="ACCOUNT_EMAIL" />), apstipriniet savu identitāti.</translation>
 <translation id="8118331347066725040">Sūtiet atsauksmes par meklēšanu, izmantojot Lens</translation>
 <translation id="8129812357326543296">Par &amp;Google Chrome</translation>
 <translation id="813913629614996137">Notiek inicializēšana...</translation>
@@ -607,6 +610,7 @@ Uz šo kontu var attiekties atļaujas, ko esat jau piešķīris vietnēm un liet
 <translation id="842386925677997438">Chrome drošības rīki</translation>
 <translation id="8425765582779547329">Lai tiktu lietoti jūsu vecāka izvēlētie iestatījumi un jūs tiešsaistē saņemtu labāku aizsardzību, pierakstieties pārlūkā Chrome.</translation>
 <translation id="8428213095426709021">Iestatījumi</translation>
+<translation id="8429214465555795676">Lai turpinātu, jums jāpierakstās pārlūkā Chrome, izmantojot kontu <ph name="EMAIL" />. Tādējādi tiek nodrošināta atbilstība jūsu organizācijas politikām.</translation>
 <translation id="8433638294851456451">Lai nosūtītu numuru no šejienes uz savu Android tālruni, abās ierīcēs pierakstieties pārlūkā Chrome.</translation>
 <translation id="8451192282033883849">Jūsu kontu pārvalda <ph name="MANAGER_NAME" />. Administrators var skatīt un rediģēt šo Chrome profilu un tā datus, piemēram, grāmatzīmes, vēsturi un paroles.</translation>
 <translation id="8496177819998570653">Google p&amp;aroļu pārvaldnieks</translation>

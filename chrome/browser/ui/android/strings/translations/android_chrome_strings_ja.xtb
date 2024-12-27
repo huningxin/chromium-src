@@ -19,6 +19,7 @@
 <translation id="107147699690128016">ファイル拡張子を変更すると、ファイルが別のアプリケーションで開かれる可能性があり、場合によってはデバイスに損害が生じます。</translation>
 <translation id="1080365971383768617">すべてのデバイスでパスワードを使用</translation>
 <translation id="1082920045291562218">サマリー フィードバック シートでの共有が閉じられました</translation>
+<translation id="1087176310396019910">不正な疑いのある通知</translation>
 <translation id="1089606299949659462">確認が終わりました</translation>
 <translation id="1094555143448724771">他のデバイスのタブを表示するには、タブと履歴を同期します</translation>
 <translation id="1095761715416917775">同期データに常にアクセスできるようにしてください</translation>
@@ -36,7 +37,7 @@
 <translation id="1140317858355046628">削除すると、全員が「<ph name="GROUP_NAME" />」タブグループに直ちにアクセスできなくなり、すべてのデバイスから削除されます。</translation>
 <translation id="1142732900304639782">これらのサイトを翻訳するか尋ねない</translation>
 <translation id="1145536944570833626">既存のデータを削除します。</translation>
-<translation id="1150263420752757504">Chrome で <ph name="APP_NAME" /> を開きます。続行すると、<ph name="BEGIN_LINK1" />Google 利用規約<ph name="END_LINK1" />と <ph name="BEGIN_LINK2" />Google Chrome および Chrome OS 追加利用規約<ph name="END_LINK2" />に同意したものと見なされます。</translation>
+<translation id="1150263420752757504">Chrome で <ph name="APP_NAME" /> を開きます。続行すると、<ph name="BEGIN_LINK1" />Google 利用規約<ph name="END_LINK1" />と <ph name="BEGIN_LINK2" />Google Chrome および ChromeOS 追加利用規約<ph name="END_LINK2" />に同意したものと見なされます。</translation>
 <translation id="115483310321669804">パスワード <ph name="PASSWORD" /> を使用</translation>
 <translation id="1173894706177603556">名前を変更</translation>
 <translation id="1174479719160874822">画面の幅が狭い場合、Chrome はモバイルサイトをリクエストします</translation>
@@ -468,7 +469,7 @@ Chrome を使いやすくするためにデータを使用するその他の設�
 <translation id="3066573403916685335">下に移動</translation>
 <translation id="3067505415088964188">低価格</translation>
 <translation id="3070005020161560471">自動的に翻訳する</translation>
-<translation id="3072980200212375806">Chrome で <ph name="APP_NAME" /> を開きます。続行すると、<ph name="BEGIN_LINK1" />Google 利用規約<ph name="END_LINK1" />と <ph name="BEGIN_LINK2" />Google Chrome および Chrome OS 追加利用規約<ph name="END_LINK2" />に同意したものと見なされます。また、<ph name="BEGIN_LINK3" />プライバシー ポリシー<ph name="END_LINK3" />も適用されます。</translation>
+<translation id="3072980200212375806">Chrome で <ph name="APP_NAME" /> を開きます。続行すると、<ph name="BEGIN_LINK1" />Google 利用規約<ph name="END_LINK1" />と <ph name="BEGIN_LINK2" />Google Chrome および ChromeOS 追加利用規約<ph name="END_LINK2" />に同意したものと見なされます。また、<ph name="BEGIN_LINK3" />プライバシー ポリシー<ph name="END_LINK3" />も適用されます。</translation>
 <translation id="3080525922482950719">ページを保存して、後で読んだり、オフラインで読んだりできます</translation>
 <translation id="3087734570205094154">下</translation>
 <translation id="3091010850649238832">クリップボードの内容を表示</translation>
@@ -508,6 +509,7 @@ Chrome を使いやすくするためにデータを使用するその他の設�
 <translation id="3282568296779691940">Chrome にログイン</translation>
 <translation id="3285065882678541460">{TAB_COUNT,plural, =1{<ph name="TAB_GROUPS_PART" />、<ph name="TAB_COUNT_ONE" /> 個のタブ}other{<ph name="TAB_GROUPS_PART" />、<ph name="TAB_COUNT_MANY" /> 個のタブ}}</translation>
 <translation id="3293181007446299124">閲覧履歴はプライバシーを保つためデバイスに保存され、レポートはユーザーを特定できないように遅れて送信されます</translation>
+<translation id="3301936297336370235">パスワード候補の確認</translation>
 <translation id="3302615849591357577">「<ph name="TITLE_OF_GROUP" />」タブグループ（<ph name="COLOR_NAME" />）を新しいバックグラウンドのタブグループとして復元します。</translation>
 <translation id="3303414029551471755">コンテンツのダウンロードに進みますか？</translation>
 <translation id="3303855915957856445">一致する結果は見つかりませんでした</translation>
@@ -1136,6 +1138,7 @@ Chrome を使いやすくするためにデータを使用するその他の設�
 <translation id="6193448654517602979">タブを選択</translation>
 <translation id="6196315980958524839">パスワードは、このデバイスの Google パスワード マネージャーに保存されます</translation>
 <translation id="6202812185118613467">同期を開始するには、もう一度ログインしてください</translation>
+<translation id="6204781143409202534"><ph name="DOMAIN" /> から不正な疑いのある通知が送信されました。</translation>
 <translation id="6205314730813004066">広告プライバシー</translation>
 <translation id="6210748933810148297"><ph name="EMAIL" /> ではありませんか？</translation>
 <translation id="6211386937064921208">このページのプレビューを表示しています</translation>
@@ -1272,7 +1275,7 @@ Chrome を使いやすくするためにデータを使用するその他の設�
 <translation id="6762511428368667596"><ph name="NAME" />、<ph name="EMAIL" />。</translation>
 <translation id="676305334223455055">ログインすると、興味や関心に基づくコンテンツが表示されるようになります</translation>
 <translation id="6767294960381293877">タブを共有するデバイスのリストが画面の下半分に表示されました。</translation>
-<translation id="6785476624617658922">Chrome および Chrome OS 追加利用規約</translation>
+<translation id="6785476624617658922">Chrome および ChromeOS 追加利用規約</translation>
 <translation id="6795633245022906657">新しいタブをすばやく開きます。このショートカットは [設定] で編集できます。</translation>
 <translation id="679588508577699489">Chrome を既定のブラウザにする</translation>
 <translation id="679956319013005046">自動入力サービスを設定するには、まず使用するサービスを <ph name="BEGIN_LINK" />Android 設定<ph name="END_LINK" />で追加します。</translation>

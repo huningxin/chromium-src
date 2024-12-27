@@ -96,7 +96,6 @@
 <translation id="2137162749895930932">Аударма экранын жабу</translation>
 <translation id="2139300032719313227">ChromeOS жүйесін өшіріп қосу</translation>
 <translation id="2151406531797534936">Chrome браузерін өшіріп, қайта қосыңыз</translation>
-<translation id="2163089732491971196">Chrome деректерін Google аккаунтыңызда пайдалану және сақтау үшін құпия фразаңызды енгізіңіз.</translation>
 <translation id="2174917724755363426">Орнату аяқталмады. Шынымен бас тартқыңыз келе ме?</translation>
 <translation id="2186206192313702726">Google Lens</translation>
 <translation id="2190166659037789668">Жаңа нұсқаны тексеру қатесі: <ph name="UPDATE_CHECK_ERROR" />.</translation>
@@ -245,6 +244,7 @@
 <translation id="3889417619312448367">Google Chrome жою</translation>
 <translation id="3892148308691398805">Мәтінді көшіру</translation>
 <translation id="3941890832296813527">Орнату қатесі: орнату файлының атауы жарамсыз немесе оған қолдау көрсетілмейді.</translation>
+<translation id="3968962723676998462">Chrome деректерін <ph name="ACCOUNT_EMAIL" /> аккаунтында қолдану және сақтау үшін құпия фразаны енгізіңіз.</translation>
 <translation id="3973161977468201858">Google Chrome браузері Google Password Manager-дегі деректеріңізді жоюға рұқсат сұрайды. Рұқсат беру үшін Windows құпия сөзін енгізіңіз.</translation>
 <translation id="398236277091248993">Chrome өнімділікті арттыратын функциялармен жылдам жұмыс істейді.</translation>
 <translation id="3999683152997576765">Сайттардың жарнама көрсетуге пайдаланған қызық тақырыптарын көре және өшіре аласыз. Chrome браузерді қолданудың соңғы тарихына сүйене отырып, сізге қызық болар деген тақырыптарды болжайды.</translation>
@@ -309,6 +309,7 @@
 <translation id="4728575227883772061">Орнату анықталмаған қате себебінен сәтсіз аяқталды. Қазір Google Chrome жұмыс істеп тұрса, оны жауып, әрекетті қайталаңыз.</translation>
 <translation id="4741235124132242877">Бекітілді! Google Lens-ді құралдар тақтасынан қайтадан пайдаланыңыз.</translation>
 <translation id="4747730611090640388">Chrome браузері қызығушылықтарыңызды болжайды.  Кейін сіз кірген сайт жарнамаларды жекелендіру үшін Chrome браузерінен қызығушылықтарыңыз туралы ақпаратты сұрап алады.</translation>
+<translation id="475321580758063259">Chrome деректерін Google аккаунтында (<ph name="ACCOUNT_EMAIL" />) әрі қарай пайдалану үшін Chrome-ды жаңартыңыз.</translation>
 <translation id="4754614261631455953">Google Chrome Canary (mDNS-In)</translation>
 <translation id="479167709087336770">Google Search қызметіндегі емле тексеру құралы пайдаланылады. Браузерде терілген мәтін Google-ға жіберіледі. Мұны параметрлерде өзгертуіңізге болады.</translation>
 <translation id="4793679854893018356">Chrome сізді қалай қорғайтыны туралы ақпарат алыңыз</translation>
@@ -393,6 +394,7 @@ Google Chrome параметрлеріңізді қалпына келтіре �
 <translation id="5941830788786076944">Google Chrome қолданбасын әдепкі браузер етіп орнату</translation>
 <translation id="5947104538377036631">Chrome пернелер тіркесімі</translation>
 <translation id="5953954252731207958">Жақында кірмедіңіз. Chrome <ph name="PERMISSION" /> рұқсатын өшірді.</translation>
+<translation id="5980111191913430208">Белгісіз дереккөздерден алынған кеңейтімдер, қолданбалар мен тақырыптар құрылғыңызға зиянын тигізуі мүмкін. Chrome оларды тек <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /> дүкенінен орнатуға кеңес береді.</translation>
 <translation id="6003112304606738118">Жүктеп алынып жатыр… <ph name="HOURS" /> сағат қалды.</translation>
 <translation id="6014316319780893079"><ph name="BEGIN_LINK" />Chrome-дағы құралдар<ph name="END_LINK" /> көмегімен браузерді қауіпсіз қолданып, барлығын басқаруға болады.</translation>
 <translation id="6022659036123304283">Chrome браузерін өз талғамыңызға сай реттеңіз</translation>
@@ -584,6 +586,7 @@ Google Chrome параметрлеріңізді қалпына келтіре �
 <translation id="8077579734294125741">Chrome басқа профильдері</translation>
 <translation id="8086881907087796310">Орнатылмады, себебі компьютер минималды жабдық талаптарына жауап бермейді.</translation>
 <translation id="8111297389482307122">Chrome браузері деректерді Google аккаунтыңызға сақтау және барлық құрылғыңызда пайдалануға рұқсат беру үшін жеке басыңызды растауы қажет. Аккаунттан шықсаңыз, бұл деректер осы құрылғыда қалады.</translation>
+<translation id="8113883687556086139">Chrome деректерін <ph name="ACCOUNT_EMAIL" /> аккаунтында қолдану және сақтау үшін жеке басыңызды растаңыз.</translation>
 <translation id="8118331347066725040">Lens-бен іздеуге қатысты пікіріңізді жазыңыз.</translation>
 <translation id="8129812357326543296">Google Chrome туралы ақпарат</translation>
 <translation id="813913629614996137">Дайындауда…</translation>
@@ -611,6 +614,7 @@ Google Chrome параметрлеріңізді қалпына келтіре �
 <translation id="842386925677997438">Chrome-ның қауіпсіздік құралдары</translation>
 <translation id="8425765582779547329">Ата-анаңыздың таңдауымен интернетті қауіпсіз пайдалану үшін Chrome-ға кіріңіз.</translation>
 <translation id="8428213095426709021">Параметрлер</translation>
+<translation id="8429214465555795676">Жалғастыру үшін Chrome-ға <ph name="EMAIL" /> аккаунтымен кіруіңіз қажет. Бұл – ұйым саясатының талабы.</translation>
 <translation id="8433638294851456451">Осы жерден Android телефонына нөмір жіберу үшін екі құрылғыда да Chrome браузеріне кіріңіз.</translation>
 <translation id="8451192282033883849">Аккаунтыңызды <ph name="MANAGER_NAME" /> басқарады. Әкімші осы Chrome браузері профилі мен оның бетбелгілер, тарих және құпия сөздер сияқты деректерін көре және өзгерте алады.</translation>
 <translation id="8496177819998570653">Google P&amp;assword Manager</translation>

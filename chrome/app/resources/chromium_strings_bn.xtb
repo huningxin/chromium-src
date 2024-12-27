@@ -112,6 +112,7 @@
 <translation id="2483889755041906834">Chromium এ</translation>
 <translation id="2485422356828889247">আনইনস্টল</translation>
 <translation id="2513154137948333830">আবার চালু করতে হবে: <ph name="INSTALL_SUCCESS" /></translation>
+<translation id="2522009821193247726">চালিয়ে যেতে, <ph name="EMAIL" /> ব্যবহার করে Chromium-এ আপনাকে সাইন-ইন করতে হবে। এটি আপনার প্রতিষ্ঠানের নীতি মেনে যে চলছে তা নিশ্চিত করে।</translation>
 <translation id="2542968102051442371">'ছবি সার্চ করা' ফিচার ব্যবহার করে টেক্সট বেছে নিন</translation>
 <translation id="2554739539410784893">Chromium, বর্তমানে থাকা পাসওয়ার্ড পরিবর্তন করার চেষ্টা করছে। এটি করার অনুমতি দিতে, আপনার Windows-এর পাসওয়ার্ড টাইপ করুন।</translation>
 <translation id="2560420686485554789">ফাইল ডাউনলোড করতে Chromium-এর জন্য স্টোরেজের অ্যাক্সেস প্রয়োজন</translation>
@@ -253,7 +254,6 @@
 <translation id="4438870983368648614"><ph name="MANAGER" /> Chromium ম্যানেজ করে</translation>
 <translation id="444069871276811466">Chromium প্রোফাইল যোগ করুন</translation>
 <translation id="4447409407328223819">Chrome for Testing সম্পর্কে</translation>
-<translation id="4470974262661801543">আপনার Google অ্যাকাউন্টে Chromium ডেটা ব্যবহার এবং সেভ করতে, আপনার পাসফ্রেজ লিখুন</translation>
 <translation id="4493028449971051158">স্টার্টআপ সম্পর্কিত এরর: অ্যাডমিনিস্ট্রেটর হিসেবে ইনস্টলার চালান।</translation>
 <translation id="4501471624619070934">এই দেশে অ্যাক্সেস সীমিত হওয়ার কারণে ইনস্টলেশন করা যায়নি।</translation>
 <translation id="4510853178268397146">এই এক্সটেনশন গোপনীয়তা অনুশীলন প্রকাশ করেনি, যেমন কীভাবে এটি ডেটা সংগ্রহ ও ব্যবহার করে। Chromium আপনাকে এটি সরিয়ে দেওয়ার সাজেশন দেয়।</translation>

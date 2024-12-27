@@ -94,7 +94,6 @@
 <translation id="2137162749895930932">Đóng màn hình dịch</translation>
 <translation id="2139300032719313227">Khởi động lại ChromeOS</translation>
 <translation id="2151406531797534936">Vui lòng khởi động lại Chrome ngay bây giờ</translation>
-<translation id="2163089732491971196">Nhập cụm mật khẩu của bạn để lưu dữ liệu Chrome vào Tài khoản Google và sử dụng dữ liệu đó</translation>
 <translation id="2174917724755363426">Chưa cài đặt xong. Bạn có chắc chắn muốn huỷ không?</translation>
 <translation id="2186206192313702726">Google Ống kính</translation>
 <translation id="2190166659037789668">Lỗi khi kiểm tra bản cập nhật: <ph name="UPDATE_CHECK_ERROR" />.</translation>
@@ -244,6 +243,7 @@
 <translation id="3889417619312448367">Gỡ cài đặt Google Chrome</translation>
 <translation id="3892148308691398805">Sao chép văn bản</translation>
 <translation id="3941890832296813527">Lỗi cài đặt: Tên tệp của trình cài đặt không hợp lệ hoặc không được hỗ trợ.</translation>
+<translation id="3968962723676998462">Nhập cụm mật khẩu để sử dụng và lưu dữ liệu Chrome trong tài khoản <ph name="ACCOUNT_EMAIL" /> của bạn</translation>
 <translation id="3973161977468201858">Google Chrome muốn xoá dữ liệu của bạn trong Trình quản lý mật khẩu của Google. Nhập mật khẩu Windows của bạn để cho phép việc này.</translation>
 <translation id="398236277091248993">Chrome luôn hoạt động nhanh nhờ có các tính năng tăng cường hiệu suất</translation>
 <translation id="3999683152997576765">Bạn có thể xem và xoá những chủ đề quan tâm mà các trang web dựa vào để hiện quảng cáo cho bạn. Chrome ước đoán các mối quan tâm dựa trên nhật ký duyệt web gần đây của bạn.</translation>
@@ -308,6 +308,7 @@
 <translation id="4728575227883772061">Không cài đặt được do lỗi chưa xác định. Nếu Google Chrome hiện đang chạy, vui lòng đóng Google Chrome và thử lại.</translation>
 <translation id="4741235124132242877">Đã ghim! Bạn có thể sử dụng lại Google Ống kính trên thanh công cụ</translation>
 <translation id="4747730611090640388">Chrome có thể ước đoán mối quan tâm của bạn.  Sau đó, trang web mà bạn truy cập có thể đề nghị Chrome cho biết mối quan tâm của bạn nhằm cá nhân hoá quảng cáo mà bạn thấy.</translation>
+<translation id="475321580758063259">Cập nhật Chrome để tiếp tục sử dụng dữ liệu Chrome trong Tài khoản Google <ph name="ACCOUNT_EMAIL" /> của bạn</translation>
 <translation id="4754614261631455953">Google Chrome Canary (mDNS-In)</translation>
 <translation id="479167709087336770">Dịch vụ này sử dụng cùng một trình kiểm tra chính tả dùng trong Google Tìm kiếm. Thông tin bạn nhập vào trình duyệt sẽ được gửi tới Google. Bạn luôn có thể thay đổi hành động này trong phần cài đặt.</translation>
 <translation id="4793679854893018356">Tìm hiểu cách Chrome bảo vệ bạn</translation>
@@ -582,6 +583,7 @@ Các quyền bạn từng cấp cho trang web và ứng dụng có thể áp d�
 <translation id="8077579734294125741">Các hồ sơ khác trên Chrome</translation>
 <translation id="8086881907087796310">Cài đặt không thành công vì máy tính của bạn không đáp ứng được các yêu cầu tối thiểu về phần cứng.</translation>
 <translation id="8111297389482307122">Chrome cần xác minh danh tính của bạn thì mới có thể lưu một số dữ liệu vào Tài khoản Google và cho phép bạn sử dụng dữ liệu đó trên tất cả các thiết bị. Nếu bạn đăng xuất, dữ liệu đó sẽ vẫn được lưu trên thiết bị này.</translation>
+<translation id="8113883687556086139">Xác minh danh tính của bạn để sử dụng và lưu dữ liệu Chrome trong tài khoản <ph name="ACCOUNT_EMAIL" /> của bạn</translation>
 <translation id="8118331347066725040">Gửi ý kiến phản hồi về tính năng tìm kiếm bằng Ống kính</translation>
 <translation id="8129812357326543296">Giới thiệu về &amp;Google Chrome</translation>
 <translation id="813913629614996137">Đang khởi chạy...</translation>

@@ -17,7 +17,6 @@
 #include "base/test/task_environment.h"
 #include "base/time/time.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "media/audio/audio_output_device.h"
 #include "media/base/audio_renderer_sink.h"
 #include "media/mojo/mojom/audio_data_pipe.mojom.h"
@@ -212,7 +211,7 @@ TEST_F(AudioServiceOutputDeviceTest, CreatePlayPause) {
 }
 
 // Flaky on Linux Chromium OS ASan LSan (https://crbug.com/889845)
-#if BUILDFLAG(IS_CHROMEOS_ASH) && defined(ADDRESS_SANITIZER)
+#if BUILDFLAG(IS_CHROMEOS) && defined(ADDRESS_SANITIZER)
 #define MAYBE_VerifyDataFlow DISABLED_VerifyDataFlow
 #else
 #define MAYBE_VerifyDataFlow VerifyDataFlow

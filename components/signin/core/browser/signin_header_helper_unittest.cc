@@ -13,7 +13,6 @@
 #include "base/test/metrics/histogram_tester.h"
 #include "base/test/task_environment.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/content_settings/core/browser/cookie_settings.h"
 #include "components/prefs/pref_member.h"
 #include "components/privacy_sandbox/privacy_sandbox_prefs.h"
@@ -52,8 +51,9 @@ class RequestAdapterWrapper {
   net::HttpRequestHeaders GetFinalHeaders() {
     net::HttpRequestHeaders final_headers(*original_headers_);
     final_headers.MergeFrom(modified_request_headers_);
-    for (const std::string& name : to_be_removed_request_headers_)
+    for (const std::string& name : to_be_removed_request_headers_) {
       final_headers.RemoveHeader(name);
+    }
     return final_headers;
   }
 
@@ -144,9 +144,7 @@ class SigninHeaderHelperTest : public testing::Test {
   }
 #endif
 
-  std::string consistency_enabled_by_default_value() const {
-    return "false";
-  }
+  std::string consistency_enabled_by_default_value() const { return "false"; }
 
   base::test::TaskEnvironment task_environment_;
 

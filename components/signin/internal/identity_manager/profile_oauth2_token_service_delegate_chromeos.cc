@@ -12,7 +12,6 @@
 #include "base/functional/bind.h"
 #include "base/logging.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/account_manager_core/account.h"
 #include "components/signin/internal/identity_manager/account_tracker_service.h"
 #include "components/signin/public/base/signin_client.h"
@@ -112,8 +111,9 @@ class PersistentErrorsHelper : public base::RefCounted<PersistentErrorsHelper> {
       const GoogleServiceAuthError& error) {
     DCHECK_GT(outstanding_requests_, 0);
     persistent_errors_.emplace(account, error);
-    if (--outstanding_requests_ == 0)
+    if (--outstanding_requests_ == 0) {
       std::move(callback_).Run(persistent_errors_);
+    }
   }
 
   AccountToErrorMap persistent_errors_;
@@ -265,7 +265,7 @@ void ProfileOAuth2TokenServiceDelegateChromeOS::UpdateCredentialsInternal(
 
 scoped_refptr<network::SharedURLLoaderFactory>
 ProfileOAuth2TokenServiceDelegateChromeOS::GetURLLoaderFactory() const {
-    return nullptr;
+  return nullptr;
 }
 
 void ProfileOAuth2TokenServiceDelegateChromeOS::OnGetAccounts(

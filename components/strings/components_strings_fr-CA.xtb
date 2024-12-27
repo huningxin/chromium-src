@@ -59,6 +59,7 @@
 <translation id="1099928364755383720">Incrustation d'image automatique</translation>
 <translation id="1100782917270858593">Bouton de reprise de votre exploration, appuyez sur Entrée pour reprendre votre exploration et consulter l'activité pertinente dans votre historique de Chrome</translation>
 <translation id="1101672080107056897">Action en cas d'erreur</translation>
+<translation id="1101902632743388185">Vos tableaux de comparaison</translation>
 <translation id="1104409666019087579">Certains champs obligatoires sont vides. Remplissez-les avant d'enregistrer.</translation>
 <translation id="1104860668737945357">Bouton Gérer les mots de passe, activez-le pour afficher et gérer vos mots de passe dans les paramètres de Chrome</translation>
 <translation id="1108464073729874771">A3 x 4</translation>
@@ -460,6 +461,7 @@
 <translation id="1777422078676229054">Photo (archives)</translation>
 <translation id="1778646502362731194">JIS B0</translation>
 <translation id="1785118555253503473">Installer des applis Web?</translation>
+<translation id="1791415068765905273">Afficher tous les tableaux de comparaison</translation>
 <translation id="1791429645902722292">Google Smart Lock</translation>
 <translation id="1791820510173628507"><ph name="MANAGE_GOOGLE_ACCOUNT_FOCUSED_FRIENDLY_MATCH_TEXT" />, appuyez sur Tabulation, puis sur Entrée pour gérer vos renseignements, la confidentialité et la sécurité de votre compte Google</translation>
 <translation id="1793631236004319016">Dernière utilisation : il y a <ph name="NUM_HOURS_MINUTES_SECONDS" /></translation>
@@ -583,6 +585,7 @@
 <translation id="2025186561304664664">Le mandataire est réglé pour une configuration automatique.</translation>
 <translation id="2025891858974379949">Contenu non sécurisé</translation>
 <translation id="2027465737841872819">Plastique</translation>
+<translation id="2027707238798802149">Carte non accessible</translation>
 <translation id="2029735183873159415">Ascendance et généalogie</translation>
 <translation id="2032962459168915086"><ph name="BEGIN_LINK" />De vérifier la configuration du mandataire et du pare-feu<ph name="END_LINK" /></translation>
 <translation id="2033900728810589426">Le raccourci doit être différent du mot clé de fournisseur de recherche par défaut défini par <ph name="DEFAULT_SEARCH_PROVIDER_KEYWORD_POLICY_NAME" /> : <ph name="SHORTCUT_NAME" /></translation>
@@ -866,6 +869,7 @@
 <translation id="2514548229949738417">Maison et jardin</translation>
 <translation id="2515629240566999685">De vérifier le signal dans votre zone</translation>
 <translation id="2515761554693942801">Vous avez choisi de valider avec Touch ID sur des sites Web qui utilisent <ph name="PROVIDER_ORIGIN" />. Ce fournisseur peut avoir stocké de l'information sur votre mode de paiement, dont vous pouvez <ph name="LINK_TEXT" />.</translation>
+<translation id="2518584823165598232">Cette carte n'est pas accessible. Veuillez communiquer avec votre fournisseur de carte.</translation>
 <translation id="2521385132275182522">Agrafe en bas à droite</translation>
 <translation id="2521736961081452453">Créer un formulaire</translation>
 <translation id="2523886232349826891">Carte enregistrée sur cet appareil uniquement</translation>
@@ -2194,6 +2198,7 @@ Vous pouvez également communiquer avec le propriétaire du site et lui suggére
 <translation id="4918221908152712722">Installer <ph name="APP_NAME" /> (aucun téléchargement nécessaire)</translation>
 <translation id="4920457992177678649">Locations de vacances et séjours de courte durée</translation>
 <translation id="4920710383559189047">Manchon</translation>
+<translation id="4920921410507315601">Tableaux de comparaison</translation>
 <translation id="4922104989726031751">Pour utiliser le gestionnaire de mots de passe avec votre système d'exploitation, relancez Chromium et autorisez l'accès au gestionnaire de mots de passe de votre ordinateur. Vos onglets s'ouvriront à nouveau après la relance.</translation>
 <translation id="4923459931733593730">Paiement</translation>
 <translation id="4926049483395192435">Cette valeur est requise.</translation>
@@ -2387,6 +2392,7 @@ Vous pouvez également communiquer avec le propriétaire du site et lui suggére
 <translation id="5278778426231952189">Téléverser maintenant</translation>
 <translation id="5279286380302340275">Gérer les téléchargements</translation>
 <translation id="5280963125494874678">applications Web</translation>
+<translation id="5282008206326321696">{count,plural, =0{# favori}=1{# favori}one{# favori}other{# favoris}}</translation>
 <translation id="5283044957620376778">B1</translation>
 <translation id="5284295735376057059">Propriétés du document</translation>
 <translation id="528468243742722775">Fin</translation>
@@ -2472,6 +2478,7 @@ Vous pouvez également communiquer avec le propriétaire du site et lui suggére
 <translation id="5425082381151187189">Décoration</translation>
 <translation id="5426179911063097041"><ph name="SITE" /> veut vous envoyer des notifications.</translation>
 <translation id="5430298929874300616">Retirer le favori</translation>
+<translation id="5431318178759467895">Couleur</translation>
 <translation id="5433756542371550806">Variantes de ligne de commande</translation>
 <translation id="5434798570900738152">Chromium <ph name="BEGIN_EMPHASIS" />n'enregistre pas<ph name="END_EMPHASIS" /> les informations suivantes :
           <ph name="BEGIN_LIST" />
@@ -2581,6 +2588,7 @@ Vous pouvez également communiquer avec le propriétaire du site et lui suggére
 <translation id="561165882404867731">Traduisez cette page avec Google Traduction</translation>
 <translation id="5612720917913232150">L'URL <ph name="URL" /> veut utiliser la position de votre ordinateur</translation>
 <translation id="5614520971155863709">Jeux de cartes</translation>
+<translation id="5617785978844309968">Afficher tous les tableaux de comparaison</translation>
 <translation id="5617949217645503996"><ph name="HOST_NAME" /> vous a redirigé(e) à de trop nombreuses reprises.</translation>
 <translation id="5619721953841297650">Préréglage</translation>
 <translation id="5624120631404540903">Gérer les mots de passe</translation>
@@ -3291,6 +3299,7 @@ Vous pouvez également communiquer avec le propriétaire du site et lui suggére
 <translation id="6925267999184670015">Amérique du Nord B+</translation>
 <translation id="6926216138694948720">Art corporel</translation>
 <translation id="692638818576287323">Véhicules commerciaux</translation>
+<translation id="6933282894115597956">La connexion est requise par votre organisation</translation>
 <translation id="6934236486840930310"><ph name="BEGIN_BOLD" />Votre moteur de recherche par défaut vous permet d'effectuer des recherches sur le Web et alimente les fonctionnalités de Chrome<ph name="END_BOLD" />, telles que la recherche à partir de la barre d'adresse et des images sur des pages Web. Une fonctionnalité peut ne pas être proposée si votre moteur de recherche ne la prend pas en charge.</translation>
 <translation id="6934672428414710184">Ce nom provient de votre compte Google</translation>
 <translation id="6935082727755903526">Emplois dans le domaine de la finance ou de la comptabilité</translation>
@@ -3342,6 +3351,7 @@ Vous pouvez également communiquer avec le propriétaire du site et lui suggére
 <translation id="7003322000677139268">Pièces et accessoires de véhicules</translation>
 <translation id="7004499039102548441">Onglets récents</translation>
 <translation id="7006930604109697472">Envoyer quand même</translation>
+<translation id="7009364359744329733">Cette carte n'est pas accessible pour le moment. Veuillez réessayer plus tard.</translation>
 <translation id="7010658264061801199">Nourriture et boisson</translation>
 <translation id="7012363358306927923">China UnionPay</translation>
 <translation id="7013835112918108252">Peut demander de verrouiller et d'utiliser votre souris</translation>
@@ -3783,7 +3793,6 @@ Détails supplémentaires :
 <translation id="7751019142333897329"><ph name="FIRST_STRING" /> <ph name="SECOND_STRING" /></translation>
 <translation id="7751971323486164747">Personnalisez la taille des polices et les caractères dans Chrome</translation>
 <translation id="7752995774971033316">Non géré</translation>
-<translation id="7753769899818674547"><ph name="KEYWORD" /> – Clavarder avec <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="7754587126786572336">Vos onglets et applications Chrome se fermeront au démarrage de la mise à jour</translation>
 <translation id="7755287808199759310">L'un de tes parents peut le débloquer pour toi</translation>
 <translation id="7755624218968747854">Premier rouleau</translation>
@@ -3923,6 +3932,7 @@ Détails supplémentaires :
 <translation id="8028698320761417183"><ph name="CREATE_GOOGLE_FORM_FOCUSED_FRIENDLY_MATCH_TEXT" />, appuyez sur Tabulation, puis sur Entrée pour créer rapidement un formulaire dans Google Formulaires</translation>
 <translation id="8028892419725165118">Jeux passe-temps</translation>
 <translation id="8028960012888758725">Couper après la tâche</translation>
+<translation id="8028993641010258682">Taille</translation>
 <translation id="8029829038322015001">Rouge 1</translation>
 <translation id="8030729864112325446">Enseignement professionnel et formation continue</translation>
 <translation id="8032546467100845887">Transparence</translation>
@@ -3978,7 +3988,6 @@ Détails supplémentaires :
 <translation id="8116925261070264013">Désactivés</translation>
 <translation id="8118489163946903409">Mode de paiement</translation>
 <translation id="8118506371121007279">Rédiger un commentaire</translation>
-<translation id="8124085000247609808">Clavarder avec <ph name="KEYWORD_SHORT_NAME" /></translation>
 <translation id="8127301229239896662">« <ph name="SOFTWARE_NAME" /> » n'a pas été correctement installé sur votre ordinateur ou votre réseau. Demandez à votre administrateur informatique de résoudre ce problème.</translation>
 <translation id="8131740175452115882">Confirmer</translation>
 <translation id="8133495915926741232">Choisissez les grandes catégories de thèmes qui peuvent être utilisées pour personnaliser les annonces. La désactivation d'une catégorie plus vaste bloquera également les sujets connexes. <ph name="BEGIN_LINK" />En savoir plus<ph name="END_LINK" /></translation>

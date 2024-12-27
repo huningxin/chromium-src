@@ -2862,12 +2862,6 @@ const char kOverscrollHistoryNavigationName[] = "Overscroll history navigation";
 const char kOverscrollHistoryNavigationDescription[] =
     "History navigation in response to horizontal overscroll.";
 
-const char kOverviewDeskNavigationName[] =
-    "CrOS Labs: Overview Desk Navigation";
-const char kOverviewDeskNavigationDescription[] =
-    "Stay in overview when navigating between desks using a swipe gesture or "
-    "keyboard shortcut.";
-
 const char kPageContentAnnotationsName[] = "Page content annotations";
 const char kPageContentAnnotationsDescription[] =
     "Enables page content to be annotated on-device.";
@@ -4702,12 +4696,6 @@ const char kMigrateSyncingUserToSignedInName[] =
 const char kMigrateSyncingUserToSignedInDescription[] =
     "Enables the migration of syncing users to the signed-in, non-syncing "
     "state.";
-
-const char kNavBarColorMatchesTabBackgroundName[] =
-    "Nav bar color matches tab background";
-const char kNavBarColorMatchesTabBackgroundDescription[] =
-    "Matches the OS navigation bar color to the background color of the "
-    "active tab.";
 
 const char kNotificationOneTapUnsubscribeName[] =
     "Notification one-tap unsubscribe";
@@ -6937,21 +6925,6 @@ const char kCrosComponentsName[] = "Cros Components";
 const char kCrosComponentsDescription[] =
     "Enable cros-component UI elements, replacing other elements.";
 
-const char kLacrosStabilityName[] = "Lacros stability";
-const char kLacrosStabilityDescription[] = "Lacros update channel.";
-
-const char kLacrosWaylandLoggingName[] = "Lacros Wayland logging";
-const char kLacrosWaylandLoggingDescription[] =
-    "Enables Wayland logging for Lacros. This generates a significant amount "
-    "of logs on disk. Logs are cleared after two restarts.";
-
-const char kLacrosProfileBackwardMigrationName[] =
-    "Trigger Lacros profile backward migration";
-const char kLacrosProfileBackwardMigrationDescription[] =
-    "Trigger data migration back from the Lacros profile directory to the Ash "
-    "profile directory on next restart. Set this flag only together with "
-    "disabling the Lacros availability flag, otherwise it has no effect.";
-
 const char kLanguagePacksInSettingsName[] = "Language Packs in Settings";
 const char kLanguagePacksInSettingsDescription[] =
     "Enables the UI and logic to manage Language Packs in Settings. This is "
@@ -8263,6 +8236,14 @@ const char kSupervisedProfileShowKiteBadgeDescription[] =
     "Shows a kite badge on the profile avatar for supervised users.";
 
 #endif  // #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+
+#if BUILDFLAG(IS_ANDROID)
+const char kSupervisedUserForceSigninWithCapabilitiesName[] =
+    "Use capabilities for supervised user forced sign-in";
+const char kSupervisedUserForceSigninWithCapabilitiesDescription[] =
+    "Migrate the usage of USM flags to force supervised user accounts to be "
+    "signed in to Chrome to instead use account capabilities.";
+#endif  // BUILDFLAG(IS_ANDROID)
 
 // ============================================================================
 // Don't just add flags to the end, put them in the right section in

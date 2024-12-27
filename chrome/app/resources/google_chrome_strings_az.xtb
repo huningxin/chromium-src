@@ -94,7 +94,6 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="2137162749895930932">Tərcümə ekranını bağlayın</translation>
 <translation id="2139300032719313227">ChromeOS'i yenidən başladın</translation>
 <translation id="2151406531797534936">İndi Chrome'u yenidən başladın</translation>
-<translation id="2163089732491971196">Google Hesabında Chrome datasını istifadə etmək və yadda saxlamaq üçün parol ifadəsi daxil edin</translation>
 <translation id="2174917724755363426">Quraşdırma tamamlanmayıb. Ləğv etmək istədiyinizə əminsiniz?</translation>
 <translation id="2186206192313702726">Google Linza</translation>
 <translation id="2190166659037789668">Yeniləmə yoxlaması xətası: <ph name="UPDATE_CHECK_ERROR" />.</translation>
@@ -244,6 +243,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="3889417619312448367">Google Chrome'u sistemdən silin</translation>
 <translation id="3892148308691398805">Mətni kopyalayın</translation>
 <translation id="3941890832296813527">Quraşdırma xətası: Quraşdırıcı fayl adı yanlışdır və ya dəstəklənmir.</translation>
+<translation id="3968962723676998462">Chrome datasını hesabınızda (<ph name="ACCOUNT_EMAIL" />) istifadə etmək və yadda saxlamaq üçün parol ifadəsini daxil edin</translation>
 <translation id="3973161977468201858">Google Chrome Google Parol Meneceri datanızı silmək istəyir. İcazə vermək üçün Windows parolunu yazın.</translation>
 <translation id="398236277091248993">Chrome performans artıran funksiyalarla sürətli işləyir</translation>
 <translation id="3999683152997576765">Saytların sizə reklam göstərmək üçün istifadə etdiyi maraqlı mövzuları görə və silə bilərsiniz. Chrome son baxış tarixçənizə əsasən maraqlarınızı təxmin edir.</translation>
@@ -308,6 +308,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="4728575227883772061">Naməlum xəta üzündən quraşdırmaq alınmadı. Əgər Google Chrome hazırda işləyirsə, Lütfən, qapadın və yenidən cəhd edin.</translation>
 <translation id="4741235124132242877">Bərkidildi! Alətlər panelindən giriş etməklə Google Linzadan yenidən istifadə edin</translation>
 <translation id="4747730611090640388">Chrome maraqlarınızı təxmin edə bilər.  Daha sonra ziyarət etdiyiniz sayt gördüyünüz reklamları fərdiləşdirmək üçün Chrome'dan maraqlarınızı görməyi tələb edə bilər.</translation>
+<translation id="475321580758063259">Chrome datasını Google Hesabınızda (<ph name="ACCOUNT_EMAIL" />) istifadə etməyə davam etmək üçün Chrome-u güncəlləyin</translation>
 <translation id="4754614261631455953">Google Chrome Canary (mDNS-In)</translation>
 <translation id="479167709087336770">Bu, Google axtarışda istifadə edilən eyni orfoqrafiya yoxlayandan istifadə edir. Brauzerdə yazdığınız mətn Google'a göndərilir. Bunu istənilən vaxt ayarlardan dəyişə bilərsiniz.</translation>
 <translation id="4793679854893018356">Chrome-un təhlükəsizlik təminatı haqqında</translation>
@@ -390,6 +391,7 @@ Bəzi funksiyalar əlçatmaz ola bilər. Xüsusi profil direktoriyası göstəri
 <translation id="5941830788786076944">Google Chrome'u defolt brauzer edin</translation>
 <translation id="5947104538377036631">Chrome qısayolu</translation>
 <translation id="5953954252731207958">Bu yaxınlarda daxil olmamısınız. Chrome sildi: <ph name="PERMISSION" /></translation>
+<translation id="5980111191913430208">Naməlum mənbələrdən olan artırma, tətbiq və temalar cihaza zərər verə bilər. Chrome onları yalnız buradan quraşdırmağı tövsiyə edir: <ph name="IDS_EXTENSION_WEB_STORE_TITLE" /></translation>
 <translation id="6003112304606738118">Endirilir... <ph name="HOURS" /> saat qalıb</translation>
 <translation id="6014316319780893079"><ph name="BEGIN_LINK" />Chrome alətləri ilə<ph name="END_LINK" /> təhlükəsiz nəzər sala və nəzarət edə bilərsiniz</translation>
 <translation id="6022659036123304283">Chrome'u özünüzküləşdirin</translation>
@@ -581,6 +583,7 @@ Hazırda veb saytlar və tətbiqlərə verdiyiniz icazələr bu hesaba tətbiq o
 <translation id="8077579734294125741">Digər Chrome profilləri</translation>
 <translation id="8086881907087796310">Kompüteriniz minimum avadanlıq tələblərinə cavab vermədiyi üçün quraşdırma alınmadı.</translation>
 <translation id="8111297389482307122">Müəyyən datanın Google Hesabında yadda saxlanılması və bütün cihazlarda istifadə edilməsi üçün Chrome kimliyinizi doğrulamalıdır. Hesabdan çıxsanız, bu data bu cihazda qalacaq.</translation>
+<translation id="8113883687556086139">Chrome datasını hesabınızda (<ph name="ACCOUNT_EMAIL" />) istifadə etmək və yadda saxlamaq üçün kimliyinizi doğrulayın</translation>
 <translation id="8118331347066725040">Linza ilə axtarış üçün rəy göndərin</translation>
 <translation id="8129812357326543296">Google Chrome haqqında</translation>
 <translation id="813913629614996137">Başladılır...</translation>
@@ -608,6 +611,7 @@ Hazırda veb saytlar və tətbiqlərə verdiyiniz icazələr bu hesaba tətbiq o
 <translation id="842386925677997438">Chrome-un güvənlik alətləri</translation>
 <translation id="8425765582779547329">Onlayn təhlükəsizliyinizi valideyninizin seçimləri ilə qorumaq üçün Chrome-a daxil olun</translation>
 <translation id="8428213095426709021">Ayarlar</translation>
+<translation id="8429214465555795676">Davam etməklə Chrome-a <ph name="EMAIL" /> ilə daxil olmalı olacaqsınız. Bu, təşkilatınızın siyasətlərinə uyğunluğu təmin edir.</translation>
 <translation id="8433638294851456451">Buradan Android telefonunuza nömrə göndərmək üçün hər iki cihazda Chrome'a daxil olun.</translation>
 <translation id="8451192282033883849">Hesabınızı <ph name="MANAGER_NAME" /> idarə edir. Administratorunuz bu Chrome brauzer profilini və onun əlfəcinlər, tarixçə və parollar kimi datasını görə və redaktə edə bilər.</translation>
 <translation id="8496177819998570653">Google Parol Meneceri</translation>
