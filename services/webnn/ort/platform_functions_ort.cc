@@ -8,7 +8,6 @@
 #include "base/logging.h"
 #include "base/native_library.h"
 #include "base/path_service.h"
-#include "third_party/onnx/proto/onnx.pb.h"
 
 namespace webnn::ort {
 
@@ -39,8 +38,9 @@ PlatformFunctions::PlatformFunctions() {
     return;
   }
 
-  const OrtApi* ort_api =
-      ort_get_api_base_proc()->GetApi(onnx::Version::IR_VERSION);
+  // ORT_API_VERSION is defined in onnxruntime_c_api.h and must be passed to
+  // `OrtApiBase::OrtApi()`.
+  const OrtApi* ort_api = ort_get_api_base_proc()->GetApi(ORT_API_VERSION);
   if (!ort_api) {
     LOG(ERROR) << "[WebNN] Failed to get OrtApi.";
     return;
