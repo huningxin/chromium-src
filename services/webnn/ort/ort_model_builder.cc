@@ -22,39 +22,52 @@ namespace ort {
 OrtModelBuilder::ModelInfo::ModelInfo() = default;
 OrtModelBuilder::ModelInfo::~ModelInfo() = default;
 
+OrtValueInfo* CreateOrtValueInfo(std::string_view name,
+                                 base::span<const int64_t> shape,
+                                 ONNXTensorElementDataType data_type) {
+  ScopedOrtTensorTypeAndShapeInfo tensor_type_and_shape_info;
+  CHECK_STATUS(GetOrtApi()->CreateTensorTypeAndShapeInfo(
+      tensor_type_and_shape_info.get_pptr()));
+  CHECK_STATUS(GetOrtApi()->SetTensorElementType(
+      tensor_type_and_shape_info.get_ptr(), data_type));
+  CHECK_STATUS(GetOrtApi()->SetDimensions(tensor_type_and_shape_info.get_ptr(),
+                                          shape.data(), shape.size()));
+
+  ScopedOrtTypeInfo type_info;
+  CHECK_STATUS(GetOrtApi()->CreateTensorTypeInfo(
+      tensor_type_and_shape_info.get_ptr(), type_info.get_pptr()));
+
+  OrtValueInfo* value_info;
+  CHECK_STATUS(GetOrtModelBuilderApi()->CreateValueInfo(
+      name.data(), type_info.get_ptr(), &value_info));
+  return value_info;
+}
+
 OrtModelBuilder::OrtModelBuilder(scoped_refptr<AllocatorOrt> allocator)
     : allocator_(std::move(allocator)),
       model_info_(std::make_unique<ModelInfo>()) {
-  CHECK_STATUS(GetOrtGraphApi()->CreateGraph(graph_.get_pptr()));
+  OrtGraph* graph_ptr;
+  CHECK_STATUS(GetOrtModelBuilderApi()->CreateGraph(&graph_ptr));
+  graph_ = graph_ptr;
 }
-OrtModelBuilder::~OrtModelBuilder() = default;
+
+OrtModelBuilder::~OrtModelBuilder() {
+  if (graph_) {
+    // Release the graph if it is not taken by model.
+    GetOrtModelBuilderApi()->ReleaseGraph(graph_);
+  }
+}
 
 void OrtModelBuilder::AddInput(std::string_view name,
                                base::span<const int64_t> shape,
                                ONNXTensorElementDataType data_type) {
-  ScopedOrtShape input_shape;
-  CHECK_STATUS(GetOrtGraphApi()->CreateFixedShape(shape.data(), shape.size(),
-                                                  input_shape.get_pptr()));
-
-  ScopedOrtValueInfo input_info;
-  CHECK_STATUS(GetOrtGraphApi()->CreateTensorValueInfo(
-      name.data(), data_type, input_shape.get_pptr(), input_info.get_pptr()));
-  CHECK_STATUS(
-      GetOrtGraphApi()->AddInput(graph_.get_ptr(), input_info.get_pptr()));
+  inputs_.push_back(CreateOrtValueInfo(name, shape, data_type));
 }
 
 void OrtModelBuilder::AddOutput(std::string_view name,
                                 base::span<const int64_t> shape,
                                 ONNXTensorElementDataType data_type) {
-  ScopedOrtShape output_shape;
-  CHECK_STATUS(GetOrtGraphApi()->CreateFixedShape(shape.data(), shape.size(),
-                                                  output_shape.get_pptr()));
-
-  ScopedOrtValueInfo output_info;
-  CHECK_STATUS(GetOrtGraphApi()->CreateTensorValueInfo(
-      name.data(), data_type, output_shape.get_pptr(), output_info.get_pptr()));
-  CHECK_STATUS(
-      GetOrtGraphApi()->AddOutput(graph_.get_ptr(), output_info.get_pptr()));
+  outputs_.push_back(CreateOrtValueInfo(name, shape, data_type));
 }
 
 void OrtModelBuilder::AddInitializerAsRawData(
@@ -62,20 +75,21 @@ void OrtModelBuilder::AddInitializerAsRawData(
     base::span<const int64_t> shape,
     base::span<const uint8_t> data,
     ONNXTensorElementDataType data_type) {
-  ScopedOrtValue initializer;
-  CHECK_STATUS(GetOrtApi()->CreateTensorAsOrtValue(
-      allocator_->allocator(), shape.data(), shape.size(), data_type,
-      initializer.get_pptr()));
+  OrtValue* initializer = nullptr;
+  CHECK_STATUS(GetOrtApi()->CreateTensorAsOrtValue(allocator_->allocator(),
+                                                   shape.data(), shape.size(),
+                                                   data_type, &initializer));
 
   void* ort_tensor_raw_data = nullptr;
-  CHECK_STATUS(GetOrtApi()->GetTensorMutableData(initializer.get_ptr(),
+  CHECK_STATUS(GetOrtApi()->GetTensorMutableData(initializer,
                                                  &ort_tensor_raw_data));
   CHECK(ort_tensor_raw_data);
   UNSAFE_BUFFERS(
       base::span(static_cast<uint8_t*>(ort_tensor_raw_data), data.size()))
       .copy_from(data);
-  CHECK_STATUS(GetOrtGraphApi()->AddInitializer(graph_.get_ptr(), name.data(),
-                                                initializer.get_pptr()));
+  CHECK_STATUS(GetOrtModelBuilderApi()->AddInitializerToGraph(
+      graph_, name.data(), initializer, /*data_is_external=*/false));
+  // No need to release initializer because graph owns it.
 }
 
 void OrtModelBuilder::AddInitializerAsExternalData(
@@ -86,13 +100,16 @@ void OrtModelBuilder::AddInitializerAsExternalData(
   auto weight = base::HeapArray<uint8_t>::CopiedFrom(data);
   model_info_->external_data.push_back(std::move(weight));
 
-  ScopedOrtValue initializer;
+  OrtValue* initializer = nullptr;
+  // TODO: Use `CreateTensorWithDataAndDeleterAsOrtValue()`.
   CHECK_STATUS(GetOrtApi()->CreateTensorWithDataAsOrtValue(
       allocator_->memory_info(), model_info_->external_data.back().data(),
       model_info_->external_data.back().size(), shape.data(), shape.size(),
-      data_type, initializer.get_pptr()));
-  CHECK_STATUS(GetOrtGraphApi()->AddInitializer(graph_.get_ptr(), name.data(),
-                                                initializer.get_pptr()));
+      data_type, &initializer));
+  CHECK_STATUS(GetOrtModelBuilderApi()->AddInitializerToGraph(
+      graph_, name.data(), initializer,
+      /*data_is_external=*/true));
+  // No need to release initializer because graph owns it.
 }
 
 void OrtModelBuilder::CreateAttribute(ScopedOrtOpAttr& attribute,
@@ -136,26 +153,36 @@ void OrtModelBuilder::AddNode(std::string_view op_type,
                               std::string_view node_name,
                               base::span<const char*> input_names,
                               base::span<const char*> output_names,
-                              base::span<OrtOpAttr**> attributes) {
-  ScopedOrtNode node;
-  CHECK_STATUS(GetOrtGraphApi()->CreateNode(
+                              base::span<OrtOpAttr*> attributes) {
+  OrtNode* node;
+  CHECK_STATUS(GetOrtModelBuilderApi()->CreateNode(
       op_type.data(), kOrtDomainName, node_name.data(), input_names.data(),
       input_names.size(), output_names.data(), output_names.size(),
-      attributes.data(), attributes.size(), node.get_pptr()));
-  CHECK_STATUS(GetOrtGraphApi()->AddNode(graph_.get_ptr(), node.get_pptr()));
+      attributes.data(), attributes.size(), &node));
+  CHECK_STATUS(GetOrtModelBuilderApi()->AddNodeToGraph(graph_, node));
+  // No need to release node because graph owns it.
 }
 
 std::unique_ptr<OrtModelBuilder::ModelInfo>
 OrtModelBuilder::BuildAndTakeModelInfo() {
+  CHECK_STATUS(GetOrtModelBuilderApi()->SetGraphInputs(graph_, inputs_.data(),
+                                                       inputs_.size()));
+  CHECK_STATUS(GetOrtModelBuilderApi()->SetGraphOutputs(graph_, outputs_.data(),
+                                                        outputs_.size()));
+  // No need to release input/output `OrtValueInfo`s because `SetGraphInputs()`
+  // and `SetGraphOutputs()` would take ownership.
+
   std::vector<const char*> domain_names = {kOrtDomainName};
   std::vector<int32_t> opset_versions = {kOrtOpsetVersion};
 
-  CHECK_STATUS(GetOrtGraphApi()->CreateModel(
+  CHECK_STATUS(GetOrtModelBuilderApi()->CreateModel(
       domain_names.data(), opset_versions.data(), domain_names.size(),
       model_info_->model.get_pptr()));
 
-  CHECK_STATUS(GetOrtGraphApi()->AddGraph(model_info_->model.get_ptr(),
-                                          graph_.get_pptr()));
+  CHECK_STATUS(GetOrtModelBuilderApi()->AddGraphToModel(
+      model_info_->model.get_ptr(), graph_));
+  // Model owns graph.
+  graph_ = nullptr;
 
   return std::move(model_info_);
 }
