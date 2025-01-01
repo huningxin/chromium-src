@@ -30,7 +30,7 @@ class OrtModelBuilder final {
     ModelInfo& operator=(const ModelInfo&) = delete;
     ~ModelInfo();
 
-    ScopedOrtModel model;
+    ScopedOrtModelPtr model;
 
     // TODO: Consider reusing constant operands instead of copying them to
     // `external_data`.
@@ -68,7 +68,7 @@ class OrtModelBuilder final {
                                       base::span<const int64_t>,
                                       base::span<const float>,
                                       base::span<const char*>>;
-  void CreateAttribute(ScopedOrtOpAttr& attribute,
+  void CreateAttribute(ScopedOrtOpAttrPtr& attribute,
                        std::string_view name,
                        OrtOpAttrData data);
 
@@ -83,10 +83,10 @@ class OrtModelBuilder final {
  private:
   scoped_refptr<AllocatorOrt> allocator_;
 
-  std::vector<OrtValueInfo*> inputs_;
-  std::vector<OrtValueInfo*> outputs_;
+  std::vector<ScopedOrtValueInfoPtr> inputs_;
+  std::vector<ScopedOrtValueInfoPtr> outputs_;
 
-  raw_ptr<OrtGraph> graph_;
+  ScopedOrtGraphPtr graph_;
 
   std::unique_ptr<ModelInfo> model_info_;
 };

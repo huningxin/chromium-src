@@ -134,7 +134,7 @@ GraphImplOrt::CreateAndBuildOnBackgroundThread(
   OrtSession* session;
   const OrtEnv* env = allocator->env();
   OrtStatus* status = GetOrtModelBuilderApi()->CreateSessionFromModel(
-      env, result->model_info->model.get_ptr(), session_options, &session);
+      env, result->model_info->model, session_options, &session);
   ort_api->ReleaseSessionOptions(session_options);
 
   if (status != NULL) {
