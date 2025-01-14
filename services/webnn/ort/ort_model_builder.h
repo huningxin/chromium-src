@@ -89,6 +89,7 @@ class OrtModelBuilder final {
   std::vector<ScopedOrtValueInfoPtr> inputs_;
   std::vector<ScopedOrtValueInfoPtr> outputs_;
 
+  ScopedOrtMemoryInfoPtr memory_info_;
   ScopedOrtGraphPtr graph_;
 
   std::unique_ptr<ModelInfo> model_info_;

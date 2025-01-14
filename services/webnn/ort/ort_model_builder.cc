@@ -48,6 +48,9 @@ ScopedOrtValueInfoPtr CreateOrtValueInfo(std::string_view name,
 
 OrtModelBuilder::OrtModelBuilder()
     : model_info_(std::make_unique<ModelInfo>()) {
+  // WebNN constants are in CPU memory.
+  CHECK_STATUS(GetOrtApi()->CreateCpuMemoryInfo(
+      OrtDeviceAllocator, OrtMemTypeDefault, memory_info_.GetAddressOf()));
   CHECK_STATUS(GetOrtModelBuilderApi()->CreateGraph(graph_.GetAddressOf()));
 }
 
@@ -116,14 +119,10 @@ void OrtModelBuilder::AddInitializerAsExternalData(
   auto weight = base::HeapArray<uint8_t>::CopiedFrom(data);
   model_info_->external_data.push_back(std::move(weight));
 
-  ScopedOrtMemoryInfoPtr memory_info;
-  CHECK_STATUS(GetOrtApi()->CreateCpuMemoryInfo(
-      OrtDeviceAllocator, OrtMemTypeDefault, memory_info.GetAddressOf()));
-
   // TODO(https://github.com/shiyi9801/chromium/issues/45): Use
   // `CreateTensorWithDataAndDeleterAsOrtValue()`.
   CHECK_STATUS(GetOrtApi()->CreateTensorWithDataAsOrtValue(
-      memory_info, model_info_->external_data.back().data(),
+      memory_info_, model_info_->external_data.back().data(),
       model_info_->external_data.back().size(), shape.data(), shape.size(),
       data_type, initializer.GetAddressOf()));
 
