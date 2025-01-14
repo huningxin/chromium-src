@@ -257,10 +257,11 @@ void WebNNContextProviderImpl::CreateWebNNContext(
     OrtStatus* status = ort_api->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "WebNN",
                                            env.GetAddressOf());
     if (status) {
-      std::string msg = ort_api->GetErrorMessage(status);
-      ort_api->ReleaseStatus(status);
+      std::string_view msg = ort_api->GetErrorMessage(status);
       LOG(ERROR) << "[WebNN] Failed to create an ONNX Runtime environment: "
                  << msg;
+      ort_api->ReleaseStatus(status);
+
       std::move(callback).Run(ToError<mojom::CreateContextResult>(
           mojom::Error::Code::kNotSupportedError,
           "Failed to create a WebNN context."));

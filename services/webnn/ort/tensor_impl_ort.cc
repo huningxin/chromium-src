@@ -29,9 +29,9 @@ TensorImplOrt::Create(
   // support allocator for other devices.
   OrtStatus* status = ort_api->GetAllocatorWithDefaultOptions(&allocator);
   if (status) {
-    std::string msg = ort_api->GetErrorMessage(status);
-    ort_api->ReleaseStatus(status);
+    std::string_view msg = ort_api->GetErrorMessage(status);
     LOG(ERROR) << "[WebNN] Failed to get default allocator: " << msg;
+    ort_api->ReleaseStatus(status);
     return base::unexpected(mojom::Error::New(mojom::Error::Code::kUnknownError,
                                               "Failed to create tensor."));
   }
@@ -48,9 +48,9 @@ TensorImplOrt::Create(
                                            ort_shape.size(), ort_data_type,
                                            tensor.GetAddressOf());
   if (status) {
-    std::string msg = ort_api->GetErrorMessage(status);
-    ort_api->ReleaseStatus(status);
+    std::string_view msg = ort_api->GetErrorMessage(status);
     LOG(ERROR) << "[WebNN] Failed to create tensor: " << msg;
+    ort_api->ReleaseStatus(status);
     return base::unexpected(mojom::Error::New(mojom::Error::Code::kUnknownError,
                                               "Failed to create tensor."));
   }
