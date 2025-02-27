@@ -335,6 +335,7 @@ static const char* const kSwitchNames[] = {
     switches::kWebNNOrtUseOpenvino,
     switches::kWebNNOrtDisableCpuFallback,
     switches::kWebNNOrtOVGpuPrecision,
+    switches::kWebNNOrtUseOVModelCache,
 #endif
 };
 
