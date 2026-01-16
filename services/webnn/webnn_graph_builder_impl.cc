@@ -242,12 +242,15 @@ webnn::Conv2dAttributes ConvertToConv2dAttributes(
           GetMojoOperand(operands, conv2d.input_operand_id);
       CHECK(input);
       CHECK_EQ(input->descriptor.Rank(), 4u);
-      const uint32_t input_channels = input->descriptor.shape()[3];
+      // TODO(ningxin): Support dynamic dimension.
+      const uint32_t input_channels =
+          std::get<uint32_t>(input->descriptor.shape()[3]);
       const auto* const output =
           GetMojoOperand(operands, conv2d.output_operand_id);
       CHECK(output);
       CHECK_EQ(output->descriptor.Rank(), 4u);
-      const uint32_t output_channels = output->descriptor.shape()[3];
+      const uint32_t output_channels =
+          std::get<uint32_t>(output->descriptor.shape()[3]);
       // Depthwise conv2d is "options.groups == input_channels ==
       // output_channels".
       const bool depthwise = webnn::IsDepthwiseConv2d(
@@ -340,15 +343,15 @@ webnn::ConvTranspose2dAttributes ConvertToConvTranspose2dAttributes(
   switch (context_properties.input_operand_layout) {
     case webnn::InputOperandLayout::kNchw:
       // "channelsFirst": [batches, input_channels, height, width]
-      output_sizes.height = output->descriptor.shape()[2];
-      output_sizes.width = output->descriptor.shape()[3];
+      output_sizes.height = std::get<uint32_t>(output->descriptor.shape()[2]);
+      output_sizes.width = std::get<uint32_t>(output->descriptor.shape()[3]);
       component_attributes.filter_layout =
           ConvTranspose2dFilterOperandLayout::kIohw;
       break;
     case webnn::InputOperandLayout::kNhwc:
       // "channelsLast": [batches, height, width, input_channels]
-      output_sizes.height = output->descriptor.shape()[1];
-      output_sizes.width = output->descriptor.shape()[2];
+      output_sizes.height = std::get<uint32_t>(output->descriptor.shape()[1]);
+      output_sizes.width = std::get<uint32_t>(output->descriptor.shape()[2]);
       component_attributes.filter_layout =
           ConvTranspose2dFilterOperandLayout::kOhwi;
       break;
@@ -402,14 +405,14 @@ webnn::Pool2dAttributes ConvertToPool2dAttributes(
   CHECK_EQ(output->descriptor.Rank(), 4u);
   switch (component_attributes.layout) {
     case webnn::InputOperandLayout::kNchw:
-      component_attributes.output_sizes =
-          webnn::Size2d<uint32_t>{.height = output->descriptor.shape()[2],
-                                  .width = output->descriptor.shape()[3]};
+      component_attributes.output_sizes = webnn::Size2d<uint32_t>{
+          .height = std::get<uint32_t>(output->descriptor.shape()[2]),
+          .width = std::get<uint32_t>(output->descriptor.shape()[3])};
       break;
     case webnn::InputOperandLayout::kNhwc:
-      component_attributes.output_sizes =
-          webnn::Size2d<uint32_t>{.height = output->descriptor.shape()[1],
-                                  .width = output->descriptor.shape()[2]};
+      component_attributes.output_sizes = webnn::Size2d<uint32_t>{
+          .height = std::get<uint32_t>(output->descriptor.shape()[1]),
+          .width = std::get<uint32_t>(output->descriptor.shape()[2])};
       break;
   }
   component_attributes.label = pool2d.label;
@@ -1260,13 +1263,16 @@ bool OperationValidationContext::ValidateElementWiseBinary(
     return false;
   }
 
-  auto dims_output =
-      BroadcastShapes(a->descriptor.shape(), b->descriptor.shape());
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  auto dims_output = BroadcastShapes(ToUint32Vector(a->descriptor.shape()),
+                                     ToUint32Vector(b->descriptor.shape()));
   if (!dims_output) {
     // The input shapes are not broadcastable.
     return false;
   }
-  if (!std::ranges::equal(output->descriptor.shape(), dims_output.value())) {
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  if (!std::ranges::equal(ToUint32Vector(output->descriptor.shape()),
+                          dims_output.value())) {
     // The output shape is not expected.
     return false;
   }
@@ -1384,7 +1390,8 @@ bool OperationValidationContext::ValidateExpand(const mojom::Expand& expand,
 
   const base::expected<OperandDescriptor, std::string> validated_output =
       ValidateExpandAndInferOutput(*context_properties_, input->descriptor,
-                                   output->descriptor.shape(), expand.label);
+                                   output->descriptor.GetStaticShape(),
+                                   expand.label);
   if (!validated_output.has_value()) {
     return false;
   }
@@ -2207,7 +2214,8 @@ bool OperationValidationContext::ValidateResample2d(
   if (resample2d.scales) {
     scales_or_sizes = resample2d.scales.value();
   } else {
-    sizes = {output_dimensions[axes[0]], output_dimensions[axes[1]]};
+    sizes = {std::get<uint32_t>(output->descriptor.shape()[axes[0]]),
+             std::get<uint32_t>(output->descriptor.shape()[axes[1]])};
     scales_or_sizes = sizes;
   }
 
@@ -2431,7 +2439,8 @@ bool OperationValidationContext::ValidateSplit(const mojom::Split& split,
     if (split.axis >= output->descriptor.Rank()) {
       return false;
     }
-    splits.push_back(output->descriptor.shape()[split.axis]);
+    splits.push_back(
+        std::get<uint32_t>(output->descriptor.shape()[split.axis]));
   }
 
   const base::expected<std::vector<OperandDescriptor>, std::string>
@@ -2769,10 +2778,10 @@ TransposePendingPermutation(
     for (size_t i = 0; i < rank; ++i) {
       inverse_permutation[permutation[i]] = i;
     }
-    auto& transposed_shape = descriptor.shape();
+    auto transposed_shape = descriptor.GetStaticShape();
     base::FixedArray<uint32_t> original_shape(rank);
     for (size_t i = 0; i < rank; ++i) {
-      original_shape[i] = descriptor.shape()[inverse_permutation[i]];
+      original_shape[i] = descriptor.GetStaticShape()[inverse_permutation[i]];
     }
 
     std::vector<uint32_t> original_strides = CalculateStrides(original_shape);

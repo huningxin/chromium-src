@@ -25,7 +25,7 @@ namespace {
 base::expected<void, std::string> IsValidPermutation(
     base::span<const uint32_t> permutation,
     OperandDataType data_type,
-    base::span<const uint32_t> shape) {
+    base::span<const Dimension> shape) {
   // TODO(crbug.com/428232161): Support sub-byte transposes.
   if (OperandDescriptor::GetBitsPerElement(data_type) < 8u) {
     return base::unexpected(
@@ -47,18 +47,29 @@ base::expected<void, std::string> IsValidPermutation(
   return base::ok();
 }
 
+std::vector<uint32_t> ToUint32Vector(base::span<const Dimension> dimensions) {
+  std::vector<uint32_t> shape;
+  shape.reserve(dimensions.size());
+  for (const auto& dim : dimensions) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    shape.push_back(std::get<uint32_t>(dim));
+  }
+  return shape;
+}
+
 }  // namespace
 
 // static
 base::expected<OperandDescriptor, std::string> OperandDescriptor::Create(
     const ContextProperties& context_properties,
     OperandDataType data_type,
-    base::span<const uint32_t> shape,
+    base::span<const Dimension> shape,
     std::string_view label) {
+  const std::vector<uint32_t> shape_uint32 = ToUint32Vector(shape);
   ASSIGN_OR_RETURN_ERROR_WITH_LABEL_IF_ERROR(
       uint64_t byte_length,
       ValidateAndGetByteLength(OperandDescriptor::GetBitsPerElement(data_type),
-                               shape),
+                               base::span(shape_uint32)),
       label);
 
   if (byte_length > context_properties.tensor_byte_length_limit) {
@@ -73,10 +84,12 @@ base::expected<OperandDescriptor, std::string> OperandDescriptor::Create(
 base::expected<OperandDescriptor, std::string>
 OperandDescriptor::CreateForDeserialization(
     OperandDataType data_type,
-    base::span<const uint32_t> shape,
+    base::span<const Dimension> shape,
     base::span<const uint32_t> pending_permutation) {
-  RETURN_IF_ERROR(ValidateAndGetByteLength(
-      OperandDescriptor::GetBitsPerElement(data_type), shape));
+  const std::vector<uint32_t> shape_uint32 = ToUint32Vector(shape);
+  RETURN_IF_ERROR(
+      ValidateAndGetByteLength(OperandDescriptor::GetBitsPerElement(data_type),
+                               base::span(shape_uint32)));
   if (!pending_permutation.empty()) {
     RETURN_IF_ERROR(IsValidPermutation(pending_permutation, data_type, shape));
   }
@@ -87,7 +100,7 @@ OperandDescriptor::CreateForDeserialization(
 // static
 OperandDescriptor OperandDescriptor::UnsafeCreateForTesting(
     OperandDataType data_type,
-    base::span<const uint32_t> shape,
+    base::span<const Dimension> shape,
     base::span<const uint32_t> pending_permutation) {
   return OperandDescriptor(data_type, base::ToVector(shape),
                            base::ToVector(pending_permutation));
@@ -121,11 +134,11 @@ size_t OperandDescriptor::GetBitsPerElement(OperandDataType data_type) {
 OperandDescriptor::OperandDescriptor(mojo::DefaultConstruct::Tag) {}
 
 OperandDescriptor::OperandDescriptor(OperandDataType data_type,
-                                     std::vector<uint32_t> shape)
+                                     std::vector<Dimension> shape)
     : data_type_(data_type), shape_(std::move(shape)) {}
 
 OperandDescriptor::OperandDescriptor(OperandDataType data_type,
-                                     std::vector<uint32_t> shape,
+                                     std::vector<Dimension> shape,
                                      std::vector<uint32_t> pending_permutation)
     : data_type_(data_type),
       shape_(std::move(shape)),
@@ -155,12 +168,19 @@ size_t OperandDescriptor::PackedByteLength() const {
 size_t OperandDescriptor::NumberOfElements() const {
   // See `PackedByteLength()` for why overflow checks are not needed here.
   return std::accumulate(shape_.begin(), shape_.end(), static_cast<size_t>(1),
-                         std::multiplies());
+                         [](size_t acc, const Dimension& dim) {
+                           // TODO(crbug.com/329482489): Support dynamic shapes.
+                           return acc * std::get<uint32_t>(dim);
+                         });
 }
 
 void OperandDescriptor::SetPendingPermutation(
     base::span<const uint32_t> permutation) {
   CHECK(IsValidPermutation(permutation, data_type_, shape_).has_value());
   pending_permutation_.assign(permutation.begin(), permutation.end());
+}
+
+std::vector<uint32_t> OperandDescriptor::GetStaticShape() const {
+  return ToUint32Vector(shape_);
 }
 }  // namespace webnn

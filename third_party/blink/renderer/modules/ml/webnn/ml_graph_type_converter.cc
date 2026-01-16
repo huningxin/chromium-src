@@ -169,13 +169,13 @@ TypeConverter<blink_mojom::OperandPtr, blink::MLOperand*>::Convert(
 }
 
 // Get height and width of input operand.
-webnn::Size2d<uint32_t> GetInputOperandSize2d(
+webnn::Size2d<webnn::Dimension> GetInputOperandSize2d(
     const blink::MLOperand* input,
     blink::V8MLInputOperandLayout::Enum type) {
   CHECK(input);
   const auto input_shape = input->Shape();
   CHECK_EQ(input_shape.size(), 4u);
-  uint32_t input_height, input_width;
+  webnn::Dimension input_height, input_width;
   switch (type) {
     case blink::V8MLInputOperandLayout::Enum::kNchw:
       // "nchw": [batches, channels, height, width]
@@ -961,8 +961,10 @@ OperationPtr CreatePool2dOperation(const OperandToIdMap& operand_to_id_map,
       pool2d->PositionalInputs()[0].Get(), options->layout().AsEnum());
   // The dimensions of the sliding window are the height and width of input
   // operand if they are not supplied by user.
-  uint32_t window_height = input_size.height;
-  uint32_t window_width = input_size.width;
+  // TODO(ningxin): support dynamic window dimensions when input size is
+  // dynamic.
+  uint32_t window_height = std::get<uint32_t>(input_size.height);
+  uint32_t window_width = std::get<uint32_t>(input_size.width);
   if (options->hasWindowDimensions()) {
     auto& window_dimensions = options->windowDimensions();
     CHECK_EQ(window_dimensions.size(), 2u);

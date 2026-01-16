@@ -37,6 +37,42 @@ void AppendVectorOfNumbers(const std::vector<T>& vector,
   builder.AppendRange(vector, ", ");
 }
 
+void AppendDimensions(const std::vector<webnn::Dimension>& vector,
+                      StringBuilder& builder) {
+  for (size_t i = 0; i < vector.size(); ++i) {
+    if (i > 0) {
+      builder.Append(", ");
+    }
+    const auto& dim = vector[i];
+    if (std::holds_alternative<uint32_t>(dim)) {
+      builder.AppendNumber(std::get<uint32_t>(dim));
+    } else {
+      builder.Append("?");
+    }
+  }
+}
+
+bool IsShapeCompatible(const std::vector<uint32_t>& actual_shape,
+                       const std::vector<webnn::Dimension>& expected_shape) {
+  if (actual_shape.size() != expected_shape.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < actual_shape.size(); ++i) {
+    if (std::holds_alternative<uint32_t>(expected_shape[i])) {
+      if (actual_shape[i] != std::get<uint32_t>(expected_shape[i])) {
+        return false;
+      }
+    } else {
+      const auto& dynamic_dim =
+          std::get<webnn::DynamicDimension>(expected_shape[i]);
+      if (actual_shape[i] > dynamic_dim.max_size) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 base::expected<void, String> ValidateNamedMLTensors(
     const MLContext* context,
     const MLNamedTensors& named_tensors,
@@ -62,14 +98,14 @@ base::expected<void, String> ValidateNamedMLTensors(
           tensor->dataType().AsCStr(), name.Utf8().c_str(),
           V8MLOperandDataType(ToBlinkDataType(info->data_type())).AsCStr()));
     }
-    if (tensor->Shape() != info->shape()) {
+    if (!IsShapeCompatible(tensor->Shape(), info->shape())) {
       StringBuilder message;
       message.Append("The shape [");
       AppendVectorOfNumbers(tensor->Shape(), message);
       message.Append("], of the MLTensor with name \"");
       message.Append(name);
       message.Append("\" doesn't match the expected shape: [");
-      AppendVectorOfNumbers(info->shape(), message);
+      AppendDimensions(info->shape(), message);
       message.Append("]");
       return base::unexpected(message.ToString());
     }

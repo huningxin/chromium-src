@@ -59,6 +59,7 @@ class MLTensor;
 class MLTransposeOptions;
 class MLTriangularOptions;
 class MLOperand;
+class MLInputOperandDescriptor;
 class MLOperandDescriptor;
 class ScriptState;
 
@@ -97,7 +98,7 @@ class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
   // ml_graph_builder.idl
   MLOperand* input(ScriptState* script_state,
                    String name,
-                   const MLOperandDescriptor* desc,
+                   const MLInputOperandDescriptor* desc,
                    ExceptionState& exception_state);
   MLOperand* constant(ScriptState* script_state,
                       const MLOperandDescriptor* desc,

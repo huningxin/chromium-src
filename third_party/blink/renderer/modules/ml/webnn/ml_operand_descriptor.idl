@@ -21,3 +21,13 @@ dictionary MLOperandDescriptor {
   required MLOperandDataType dataType;
   required sequence<[EnforceRange] unsigned long> shape;
 };
+
+dictionary MLNamedRangeDimension {
+  required DOMString name;
+  required [EnforceRange] unsigned long maxSize;
+};
+
+dictionary MLInputOperandDescriptor {
+  required MLOperandDataType dataType;
+  required sequence<([EnforceRange] unsigned long or MLNamedRangeDimension)> shape;
+};

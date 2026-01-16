@@ -781,6 +781,11 @@ base::expected<void, std::string> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
                  uint32_t rank,
                  std::string_view label);
 
+// TODO(crbug.com/329482489): This is a temporary helper to convert Dimension to
+// uint32_t until validation supports dynamic shapes.
+std::vector<uint32_t> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
+    ToUint32Vector(base::span<const Dimension> dimensions);
+
 // Validate the creation of an MLTensor given `descriptor`.
 base::expected<void, std::string> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
     ValidateTensor(const ContextProperties& context_properties,
@@ -793,6 +798,11 @@ base::expected<void, std::string> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
 std::optional<std::vector<uint32_t>> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
     BroadcastShapes(base::span<const uint32_t> dims_lhs,
                     base::span<const uint32_t> dims_rhs,
+                    bool bidirectional = true);
+
+std::optional<std::vector<Dimension>> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
+    BroadcastShapes(base::span<const Dimension> dims_lhs,
+                    base::span<const Dimension> dims_rhs,
                     bool bidirectional = true);
 
 // Calculate the output size for convTranspose2d based on WebNN spec:

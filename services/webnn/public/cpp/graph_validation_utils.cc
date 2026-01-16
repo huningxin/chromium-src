@@ -31,6 +31,16 @@
 
 namespace webnn {
 
+std::vector<uint32_t> ToUint32Vector(base::span<const Dimension> dimensions) {
+  std::vector<uint32_t> shape;
+  shape.reserve(dimensions.size());
+  for (const auto& dim : dimensions) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    shape.push_back(std::get<uint32_t>(dim));
+  }
+  return shape;
+}
+
 namespace {
 
 // The error message labels for corresponding operands.
@@ -167,23 +177,25 @@ Conv2dInputOutputInfo GetConv2dInputInfo(
     const std::string& label,
     const OperandDescriptor& input,
     const Conv2dAttributesBase& attributes) {
-  const std::vector<uint32_t>& input_shape = input.shape();
+  const std::vector<Dimension>& input_shape = input.shape();
   // The input layout option specifies the layout format of the input tensor.
   uint32_t batches, channels, height, width;
   switch (attributes.input_layout) {
     case InputOperandLayout::kNchw:
       // "nchw": [batches, input_channels, height, width]
-      batches = input_shape[0];
-      channels = input_shape[1];
-      height = input_shape[2];
-      width = input_shape[3];
+      // TODO(crbug.com/329482489): Support dynamic shapes.
+      batches = std::get<uint32_t>(input_shape[0]);
+      channels = std::get<uint32_t>(input_shape[1]);
+      height = std::get<uint32_t>(input_shape[2]);
+      width = std::get<uint32_t>(input_shape[3]);
       break;
     case InputOperandLayout::kNhwc:
       // "nhwc": [batches, height, width, input_channels]
-      batches = input_shape[0];
-      height = input_shape[1];
-      width = input_shape[2];
-      channels = input_shape[3];
+      // TODO(crbug.com/329482489): Support dynamic shapes.
+      batches = std::get<uint32_t>(input_shape[0]);
+      height = std::get<uint32_t>(input_shape[1]);
+      width = std::get<uint32_t>(input_shape[2]);
+      channels = std::get<uint32_t>(input_shape[3]);
       break;
   }
 
@@ -204,7 +216,9 @@ ValidateConv2dBiasAndCreateOutputOperand(
   const std::string& label = attributes.label;
   // Validate bias operand if it is present.
   if (attributes.bias_operand) {
-    if (attributes.bias_operand->shape()[0] != output_info.channels) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (std::get<uint32_t>(attributes.bias_operand->shape()[0]) !=
+        output_info.channels) {
       return base::unexpected(ErrorWithLabel(
           label, base::StringPrintf("The bias shape should be [%u].",
                                     output_info.channels)));
@@ -216,7 +230,7 @@ ValidateConv2dBiasAndCreateOutputOperand(
   }
 
   // The input layout option specifies the layout format of the output tensor.
-  std::array<uint32_t, 4> output_shape;
+  std::vector<Dimension> output_shape;
   switch (attributes.input_layout) {
     case InputOperandLayout::kNchw:
       // "nchw": [batches, output_channels, height, width]
@@ -235,19 +249,19 @@ ValidateConv2dBiasAndCreateOutputOperand(
 }
 
 // Validate the axes and infer output for reduce operations.
-base::expected<std::vector<uint32_t>, std::string>
-ValidateReduceAxesAndInferOutput(base::span<const uint32_t> input_dimensions,
+base::expected<std::vector<Dimension>, std::string>
+ValidateReduceAxesAndInferOutput(base::span<const Dimension> input_dimensions,
                                  base::span<const uint32_t> axes,
                                  bool keep_dimensions,
                                  std::string_view label) {
   auto input_rank = static_cast<uint32_t>(input_dimensions.size());
   RETURN_IF_ERROR(ValidateAxes(axes, input_rank, label));
 
-  std::vector<uint32_t> output_shape;
+  std::vector<Dimension> output_shape;
   if (keep_dimensions) {
     output_shape.assign(input_dimensions.begin(), input_dimensions.end());
     for (auto axis : axes) {
-      output_shape[axis] = 1;
+      output_shape[axis] = uint32_t(1);
     }
   } else {
     for (size_t i = 0; i < input_rank; i++) {
@@ -266,7 +280,7 @@ base::expected<void, std::string> ValidateRecurrentNetworkOperand(
     base::span<const uint32_t> expected_shape,
     OperandDataType input_data_type,
     std::string_view label) {
-  if (!std::ranges::equal(operand.shape(), expected_shape)) {
+  if (!std::ranges::equal(ToUint32Vector(operand.shape()), expected_shape)) {
     return base::unexpected(ErrorWithLabel(
         label,
         base::StringPrintf("The %s operand shape is invalid.", operand_name)));
@@ -299,7 +313,8 @@ ValidateNormalizationOperandIsCompatibleWithInput(
              " operand: the data type doesn't match the input data type."})));
   }
 
-  if (operand.shape()[0] != input_size_on_axis) {
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  if (std::get<uint32_t>(operand.shape()[0]) != input_size_on_axis) {
     return base::unexpected(ErrorWithLabel(
         label,
         base::StrCat({"For ", argument_name,
@@ -454,7 +469,7 @@ base::expected<OperandDescriptor, std::string> ValidateArgMinMaxAndInferOutput(
                                          .arg_min_max_output.data_types)));
   }
 
-  ASSIGN_OR_RETURN(std::vector<uint32_t> output_shape,
+  ASSIGN_OR_RETURN(std::vector<Dimension> output_shape,
                    ValidateReduceAxesAndInferOutput(
                        input.shape(), std::array<uint32_t, 1>{axis},
                        keep_dimensions, label));
@@ -488,7 +503,9 @@ ValidateBatchNormalizationAndInferOutput(
         "of the input tensor."));
   }
 
-  uint32_t input_size_on_axis = input.shape()[attributes.axis];
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  uint32_t input_size_on_axis =
+      std::get<uint32_t>(input.shape()[attributes.axis]);
   // Validate mean operand.
   if (!context_properties.data_type_limits.batch_normalization_mean.Supports(
           mean)) {
@@ -606,7 +623,7 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
         "tensor."));
   }
 
-  const std::vector<uint32_t>& first_input_shape = inputs[0].shape();
+  const std::vector<Dimension>& first_input_shape = inputs[0].shape();
   const auto output_type = inputs[0].data_type();
   // The loop skips the first input to avoid repeated checks.
   for (size_t i = 1; i < inputs.size(); ++i) {
@@ -642,13 +659,16 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
   // sizes of the same dimension.
   auto axis_size = base::MakeCheckedNum<uint32_t>(0);
   for (auto& input : inputs) {
-    axis_size += input.shape()[axis];
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    axis_size += std::get<uint32_t>(input.shape()[axis]);
   }
-  std::vector<uint32_t> output_shape = first_input_shape;
-  if (!axis_size.AssignIfValid(&output_shape[axis])) {
+  std::vector<Dimension> output_shape = first_input_shape;
+  uint32_t axis_dim;
+  if (!axis_size.AssignIfValid(&axis_dim)) {
     return base::unexpected(
         ErrorWithLabel(label, "The concatenated dimension size is too large."));
   }
+  output_shape[axis] = axis_dim;
 
   return OperandDescriptor::Create(context_properties, output_type,
                                    output_shape, label);
@@ -692,7 +712,7 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
     }
   }
 
-  const std::vector<uint32_t>& filter_shape = filter.shape();
+  const std::vector<uint32_t> filter_shape = ToUint32Vector(filter.shape());
   uint32_t filter_height, filter_width, output_channels, filter_input_channels;
   // The conv2d filter layout specifies the filter layout format.
   switch (attributes.filter_layout) {
@@ -801,7 +821,7 @@ ValidateConvTranspose2dAndInferOutput(
     }
   }
 
-  const std::vector<uint32_t>& filter_shape = filter.shape();
+  const std::vector<uint32_t> filter_shape = ToUint32Vector(filter.shape());
   uint32_t input_channels, filter_height, filter_width, filter_output_channels;
   // The conv2d filter layout specifies the filter layout format.
   switch (attributes.filter_layout) {
@@ -942,9 +962,9 @@ ValidateCumulativeSumAndInferOutput(const ContextProperties& context_properties,
 // input.
 base::expected<void, std::string>
 ValidateScaleZeroPointOperandShapeIsCompatibleWithInput(
-    base::span<const uint32_t> input_shape,
-    base::span<const uint32_t> scale_shape,
-    base::span<const uint32_t> zero_point_shape,
+    base::span<const Dimension> input_shape,
+    base::span<const Dimension> scale_shape,
+    base::span<const Dimension> zero_point_shape,
     std::string_view label) {
   // Check whether `scale_shape` is a subsample of `input_shape`.
   if (scale_shape.size() != input_shape.size()) {
@@ -953,8 +973,9 @@ ValidateScaleZeroPointOperandShapeIsCompatibleWithInput(
   }
 
   for (size_t i = 0; i < scale_shape.size(); ++i) {
-    auto scale_dim = scale_shape[i];
-    auto input_dim = input_shape[i];
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    auto scale_dim = std::get<uint32_t>(scale_shape[i]);
+    auto input_dim = std::get<uint32_t>(input_shape[i]);
     // The block_size should be an integer where block_size = dim_input /
     // dim_scale along the axis.
     if (input_dim % scale_dim != 0) {
@@ -1085,7 +1106,7 @@ base::expected<OperandDescriptor, std::string> ValidateExpandAndInferOutput(
   }
 
   std::optional<std::vector<uint32_t>> output_shape =
-      BroadcastShapes(input.shape(), new_shape,
+      BroadcastShapes(ToUint32Vector(input.shape()), new_shape,
                       /*bidirectional=*/false);
   if (!output_shape) {
     return base::unexpected(ErrorWithLabel(
@@ -1093,8 +1114,10 @@ base::expected<OperandDescriptor, std::string> ValidateExpandAndInferOutput(
   }
   CHECK(new_shape == *output_shape);
 
-  return OperandDescriptor::Create(context_properties, input.data_type(),
-                                   *output_shape, label);
+  return OperandDescriptor::Create(
+      context_properties, input.data_type(),
+      std::vector<Dimension>(output_shape->begin(), output_shape->end()),
+      label);
 }
 
 base::expected<OperandDescriptor, std::string> ValidateGatherAndInferOutput(
@@ -1132,7 +1155,7 @@ base::expected<OperandDescriptor, std::string> ValidateGatherAndInferOutput(
         ErrorWithLabel(label, "The output rank is too large."));
   }
 
-  std::vector<uint32_t> output_shape;
+  std::vector<Dimension> output_shape;
   output_shape.reserve(checked_output_rank.ValueOrDie());
   for (uint32_t i = 0; i < input.Rank(); ++i) {
     if (i == axis) {
@@ -1192,7 +1215,9 @@ ValidateGatherElementsAndInferOutput(
     if (i == axis) {
       continue;
     }
-    if (input.shape()[i] != indices.shape()[i]) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (std::get<uint32_t>(input.shape()[i]) !=
+        std::get<uint32_t>(indices.shape()[i])) {
       return base::unexpected(
           ErrorWithLabel(label,
                          "Except on the axis dimension, the input and indices "
@@ -1226,7 +1251,9 @@ base::expected<OperandDescriptor, std::string> ValidateGatherNDAndInferOutput(
                    context_properties.data_type_limits.gather_nd_indices)));
   }
 
-  uint32_t indices_last_dimension_size = indices.shape()[indices.Rank() - 1];
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  uint32_t indices_last_dimension_size =
+      std::get<uint32_t>(indices.shape()[indices.Rank() - 1]);
   if (indices_last_dimension_size > input.Rank()) {
     return base::unexpected(ErrorWithLabel(
         label, base::StringPrintf(
@@ -1242,12 +1269,15 @@ base::expected<OperandDescriptor, std::string> ValidateGatherNDAndInferOutput(
         ErrorWithLabel(label, "The output rank is too large."));
   }
 
-  std::vector<uint32_t> output_shape;
+  std::vector<Dimension> output_shape;
   output_shape.reserve(checked_output_rank.ValueOrDie());
-  std::ranges::copy(indices.shape().begin(), indices.shape().end() - 1,
+  const auto& indices_shape = indices.shape();
+  const auto& input_shape = input.shape();
+
+  std::ranges::copy(indices_shape.begin(), indices_shape.end() - 1,
                     std::back_inserter(output_shape));
-  std::ranges::copy(input.shape().begin() + indices_last_dimension_size,
-                    input.shape().end(), std::back_inserter(output_shape));
+  std::ranges::copy(input_shape.begin() + indices_last_dimension_size,
+                    input_shape.end(), std::back_inserter(output_shape));
 
   return OperandDescriptor::Create(context_properties, input.data_type(),
                                    output_shape, label);
@@ -1279,13 +1309,13 @@ base::expected<OperandDescriptor, std::string> ValidateGemmAndInferOutput(
         label, "The data types of first two inputs don't match."));
   }
 
-  std::vector<uint32_t> shape_a = a.shape();
+  std::vector<uint32_t> shape_a = ToUint32Vector(a.shape());
   if (attributes.a_transpose) {
     std::ranges::reverse(shape_a);
   }
   // The second input 2-D tensor with shape [K, N] if bTranspose is false, or
   // [N, K] if bTranspose is true.
-  std::vector<uint32_t> shape_b = b.shape();
+  std::vector<uint32_t> shape_b = ToUint32Vector(b.shape());
   if (attributes.b_transpose) {
     std::ranges::reverse(shape_b);
   }
@@ -1301,7 +1331,7 @@ base::expected<OperandDescriptor, std::string> ValidateGemmAndInferOutput(
             attributes.b_transpose ? "transposed " : "")));
   };
   // The output is 2-D tensor of shape [M, N].
-  std::vector<uint32_t> output_shape = {shape_a[0], shape_b[1]};
+  std::vector<Dimension> output_shape = {shape_a[0], shape_b[1]};
   // The third input tensor c is either a scalar, or of the shape that is
   // unidirectionally broadcastable to the output shape [M, N].
   if (attributes.c_operand) {
@@ -1319,7 +1349,9 @@ base::expected<OperandDescriptor, std::string> ValidateGemmAndInferOutput(
           "The third input data type doesn't match other inputs' data type."));
     }
 
-    if (!BroadcastShapes(attributes.c_operand->shape(), output_shape,
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (!BroadcastShapes(ToUint32Vector(attributes.c_operand->shape()),
+                         ToUint32Vector(output_shape),
                          /*bidirectional=*/false)) {
       return base::unexpected(ErrorWithLabel(
           label,
@@ -1357,13 +1389,14 @@ ValidateGruAndInferOutput(const ContextProperties& context_properties,
                    input, context_properties.data_type_limits.gru_input)));
   }
 
-  const std::vector<uint32_t>& input_dimensions = input.shape();
-  if (input_dimensions[0] != steps) {
+  const std::vector<Dimension>& input_dimensions = input.shape();
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  if (std::get<uint32_t>(input_dimensions[0]) != steps) {
     return base::unexpected(ErrorWithLabel(
         label, "The input dimension[0] must be equal to the steps."));
   }
-  const auto batch_size = input_dimensions[1];
-  const auto input_size = input_dimensions[2];
+  const auto batch_size = std::get<uint32_t>(input_dimensions[1]);
+  const auto input_size = std::get<uint32_t>(input_dimensions[2]);
   auto checked_three_times_hidden_size = base::MakeCheckedNum(hidden_size) * 3;
   uint32_t three_times_hidden_size;
   if (!checked_three_times_hidden_size.AssignIfValid(
@@ -1459,14 +1492,16 @@ ValidateGruAndInferOutput(const ContextProperties& context_properties,
       OperandDescriptor output,
       OperandDescriptor::Create(
           context_properties, input.data_type(),
-          std::array{num_directions, batch_size, hidden_size}, label));
+          std::vector<Dimension>{num_directions, batch_size, hidden_size},
+          label));
   outputs.push_back(std::move(output));
   if (attributes.return_sequence) {
-    ASSIGN_OR_RETURN(
-        OperandDescriptor return_sequence_output,
-        OperandDescriptor::Create(
-            context_properties, input.data_type(),
-            std::array{steps, num_directions, batch_size, hidden_size}, label));
+    ASSIGN_OR_RETURN(OperandDescriptor return_sequence_output,
+                     OperandDescriptor::Create(
+                         context_properties, input.data_type(),
+                         std::vector<Dimension>{steps, num_directions,
+                                                batch_size, hidden_size},
+                         label));
     outputs.push_back(std::move(return_sequence_output));
   }
 
@@ -1494,8 +1529,9 @@ base::expected<OperandDescriptor, std::string> ValidateGruCellAndInferOutput(
                    input, context_properties.data_type_limits.gru_cell_input)));
   }
 
-  const uint32_t batch_size = input.shape()[0];
-  const uint32_t input_size = input.shape()[1];
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  const uint32_t batch_size = std::get<uint32_t>(input.shape()[0]);
+  const uint32_t input_size = std::get<uint32_t>(input.shape()[1]);
   auto checked_three_times_hidden_size = base::MakeCheckedNum(hidden_size) * 3;
   uint32_t three_times_hidden_size;
   if (!checked_three_times_hidden_size.AssignIfValid(
@@ -1580,7 +1616,7 @@ base::expected<OperandDescriptor, std::string> ValidateGruCellAndInferOutput(
         ErrorWithLabel(label, "The number of activations must be 2."));
   }
 
-  std::array<uint32_t, 2> output_shape{batch_size, hidden_size};
+  std::vector<Dimension> output_shape{batch_size, hidden_size};
   return OperandDescriptor::Create(context_properties, input.data_type(),
                                    output_shape, label);
 }
@@ -1611,6 +1647,8 @@ ValidateInstanceNormalizationAndInferOutput(
       break;
   }
 
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  uint32_t scale_dim = std::get<uint32_t>(input.shape()[axis]);
   // Validate scale operand.
   if (attributes.scale.has_value()) {
     if (!context_properties.data_type_limits.instance_normalization_scale
@@ -1622,7 +1660,7 @@ ValidateInstanceNormalizationAndInferOutput(
                                         .instance_normalization_scale)));
     }
     RETURN_IF_ERROR(ValidateNormalizationOperandIsCompatibleWithInput(
-        attributes.scale.value(), input.data_type(), input.shape()[axis], label,
+        attributes.scale.value(), input.data_type(), scale_dim, label,
         kScaleParam));
   }
 
@@ -1636,7 +1674,7 @@ ValidateInstanceNormalizationAndInferOutput(
                                                .instance_normalization_scale)));
     }
     RETURN_IF_ERROR(ValidateNormalizationOperandIsCompatibleWithInput(
-        attributes.bias.value(), input.data_type(), input.shape()[axis], label,
+        attributes.bias.value(), input.data_type(), scale_dim, label,
         kBiasParam));
   }
 
@@ -1664,7 +1702,7 @@ ValidateLayerNormalizationAndInferOutput(
   // duplication.
   RETURN_IF_ERROR(ValidateAxes(axes, input.Rank(), label));
 
-  const std::vector<uint32_t>& input_dimensions = input.shape();
+  const std::vector<uint32_t> input_dimensions = ToUint32Vector(input.shape());
 
   // The dimensions for layerNormalization to reduce along.
   std::vector<uint32_t> reduction_dimensions;
@@ -1681,7 +1719,8 @@ ValidateLayerNormalizationAndInferOutput(
           "For scale operand: the data type doesn't match the input data "
           "type."));
     }
-    if (attributes.scale->shape() != reduction_dimensions) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (ToUint32Vector(attributes.scale->shape()) != reduction_dimensions) {
       return base::unexpected(ErrorWithLabel(
           label,
           "For scale operand: the shape doesn't match the axis dimensions of "
@@ -1697,7 +1736,8 @@ ValidateLayerNormalizationAndInferOutput(
                          "For bias operand: the data type doesn't match the "
                          "input data type."));
     }
-    if (attributes.bias->shape() != reduction_dimensions) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (ToUint32Vector(attributes.bias->shape()) != reduction_dimensions) {
       return base::unexpected(ErrorWithLabel(
           label,
           "For bias operand: the shape doesn't match the axis dimensions of "
@@ -1741,13 +1781,14 @@ ValidateLstmAndInferOutput(const ContextProperties& context_properties,
   }
 
   const auto& input_dimensions = input.shape();
-  if (input_dimensions[0] != steps) {
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  if (std::get<uint32_t>(input_dimensions[0]) != steps) {
     return base::unexpected(ErrorWithLabel(
         label, "The input dimensions[0] must be equal to the steps."));
   }
 
-  const uint32_t batch_size = input_dimensions[1];
-  const uint32_t input_size = input_dimensions[2];
+  const uint32_t batch_size = std::get<uint32_t>(input_dimensions[1]);
+  const uint32_t input_size = std::get<uint32_t>(input_dimensions[2]);
   const uint32_t direction_count =
       attributes.direction == RecurrentNetworkDirection::kBoth ? 2 : 1;
 
@@ -1870,16 +1911,17 @@ ValidateLstmAndInferOutput(const ContextProperties& context_properties,
       OperandDescriptor output,
       OperandDescriptor::Create(
           context_properties, input.data_type(),
-          std::array{direction_count, batch_size, hidden_size}, label));
+          std::vector<Dimension>{direction_count, batch_size, hidden_size},
+          label));
   outputs.push_back(output);
   outputs.push_back(std::move(output));
   if (attributes.return_sequence) {
-    ASSIGN_OR_RETURN(
-        OperandDescriptor return_sequence_output,
-        OperandDescriptor::Create(
-            context_properties, input.data_type(),
-            std::array{steps, direction_count, batch_size, hidden_size},
-            label));
+    ASSIGN_OR_RETURN(OperandDescriptor return_sequence_output,
+                     OperandDescriptor::Create(
+                         context_properties, input.data_type(),
+                         std::vector<Dimension>{steps, direction_count,
+                                                batch_size, hidden_size},
+                         label));
     outputs.push_back(std::move(return_sequence_output));
   }
 
@@ -1916,8 +1958,9 @@ ValidateLstmCellAndInferOutput(const ContextProperties& context_properties,
             input, context_properties.data_type_limits.lstm_cell_input)));
   }
 
-  const uint32_t batch_size = input.shape()[0];
-  const uint32_t input_size = input.shape()[1];
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  const uint32_t batch_size = std::get<uint32_t>(input.shape()[0]);
+  const uint32_t input_size = std::get<uint32_t>(input.shape()[1]);
 
   // Validate the weight operand.
   if (!context_properties.data_type_limits.lstm_cell_input.Supports(weight)) {
@@ -2028,10 +2071,10 @@ ValidateLstmCellAndInferOutput(const ContextProperties& context_properties,
   std::vector<OperandDescriptor> outputs;
   outputs.reserve(2);
 
-  ASSIGN_OR_RETURN(
-      OperandDescriptor output,
-      OperandDescriptor::Create(context_properties, input.data_type(),
-                                std::array{batch_size, hidden_size}, label));
+  ASSIGN_OR_RETURN(OperandDescriptor output,
+                   OperandDescriptor::Create(
+                       context_properties, input.data_type(),
+                       std::vector<Dimension>{batch_size, hidden_size}, label));
   outputs.push_back(output);
   outputs.push_back(std::move(output));
 
@@ -2060,9 +2103,9 @@ base::expected<OperandDescriptor, std::string> ValidateMatmulAndInferOutput(
         label, "The data types of first two inputs don't match."));
   }
 
-  std::vector<uint32_t> a_dimensions = a.shape();
+  std::vector<uint32_t> a_dimensions = ToUint32Vector(a.shape());
   CHECK_GE(a_dimensions.size(), 2u);
-  std::vector<uint32_t> b_dimensions = b.shape();
+  std::vector<uint32_t> b_dimensions = ToUint32Vector(b.shape());
   CHECK_GE(b_dimensions.size(), 2u);
 
   // The number of columns in the first matrix must be equal to the number of
@@ -2081,7 +2124,7 @@ base::expected<OperandDescriptor, std::string> ValidateMatmulAndInferOutput(
   }
 
   size_t output_rank = std::max(a_dimensions.size(), b_dimensions.size());
-  std::vector<uint32_t> output_dimensions;
+  std::vector<Dimension> output_dimensions;
   // Figure out the output shape by broadcasting all the dimensions except the
   // last two. The output is 2-D tensor of shape [M, N].
   if (a.Rank() > 2 && b.Rank() > 2) {
@@ -2095,15 +2138,18 @@ base::expected<OperandDescriptor, std::string> ValidateMatmulAndInferOutput(
       return base::unexpected(ErrorWithLabel(
           label, "The matmul input shapes are not broadcastable."));
     }
-    output_dimensions = *optional_output_dimensions;
+    output_dimensions.assign(optional_output_dimensions->begin(),
+                             optional_output_dimensions->end());
     output_dimensions.push_back(a_rows);
     output_dimensions.push_back(b_cols);
   } else if (a.Rank() == 2 && b.Rank() == 2) {
     output_dimensions.push_back(a_rows);
     output_dimensions.push_back(b_cols);
   } else {
-    output_dimensions =
+    const std::vector<uint32_t>& larger_dimensions =
         a_dimensions.size() > b_dimensions.size() ? a_dimensions : b_dimensions;
+    output_dimensions.assign(larger_dimensions.begin(),
+                             larger_dimensions.end());
     output_dimensions[output_rank - 2] = a_rows;
     output_dimensions[output_rank - 1] = b_cols;
   }
@@ -2149,19 +2195,21 @@ base::expected<OperandDescriptor, std::string> ValidatePadAndInferOutput(
     }
     case PaddingMode::kReflection: {
       for (size_t i = 0; i < input.Rank(); ++i) {
-        if (beginning_padding[i] >= input.shape()[i]) {
+        // TODO(crbug.com/329482489): Support dynamic shapes.
+        uint32_t input_dim = std::get<uint32_t>(input.shape()[i]);
+        if (beginning_padding[i] >= input_dim) {
           return base::unexpected(ErrorWithLabel(
               label,
               base::StringPrintf("The beginningPadding size (%u) must be less "
                                  "than input size (%u) of dimension (%zu).",
-                                 beginning_padding[i], input.shape()[i], i)));
+                                 beginning_padding[i], input_dim, i)));
         }
-        if (ending_padding[i] >= input.shape()[i]) {
+        if (ending_padding[i] >= input_dim) {
           return base::unexpected(ErrorWithLabel(
               label,
               base::StringPrintf("The endingPadding size (%u) must be less "
                                  "than input size (%u) of dimension (%zu).",
-                                 ending_padding[i], input.shape()[i], i)));
+                                 ending_padding[i], input_dim, i)));
         }
       }
     }
@@ -2171,16 +2219,19 @@ base::expected<OperandDescriptor, std::string> ValidatePadAndInferOutput(
   // Each dimension of the output tensor can be calculated as follow:
   // input_size = input_shape[i];
   // output_size = beginning_padding + input_size + ending_padding.
-  std::vector<uint32_t> output_shape(input.Rank());
+  std::vector<Dimension> output_shape(input.Rank());
   for (size_t i = 0; i < input.Rank(); ++i) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
     auto checked_output_size =
-        base::MakeCheckedNum<uint32_t>(input.shape()[i]) +
+        base::MakeCheckedNum<uint32_t>(std::get<uint32_t>(input.shape()[i])) +
         beginning_padding[i] + ending_padding[i];
-    if (!checked_output_size.AssignIfValid(&output_shape[i])) {
+    uint32_t dim_size;
+    if (!checked_output_size.AssignIfValid(&dim_size)) {
       return base::unexpected(ErrorWithLabel(
           label, base::StringPrintf(
                      "The padding of dimension (%zu) is too large.", i)));
     }
+    output_shape[i] = dim_size;
   }
 
   return OperandDescriptor::Create(context_properties, input.data_type(),
@@ -2210,24 +2261,26 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
         label, NotSupportedInputArgumentError(input, tensor_constraint)));
   }
 
-  const std::vector<uint32_t>& input_shape = input.shape();
+  const std::vector<Dimension>& input_shape = input.shape();
   CHECK_EQ(input_shape.size(), 4u);
   // The layout option specifies the layout format of the input tensor.
   uint32_t input_batches, input_channels, input_height, input_width;
   switch (attributes.layout) {
     case InputOperandLayout::kNchw:
       // "nchw": [batches, channels, height, width]
-      input_batches = input_shape[0];
-      input_channels = input_shape[1];
-      input_height = input_shape[2];
-      input_width = input_shape[3];
+      // TODO(crbug.com/329482489): Support dynamic shapes.
+      input_batches = std::get<uint32_t>(input_shape[0]);
+      input_channels = std::get<uint32_t>(input_shape[1]);
+      input_height = std::get<uint32_t>(input_shape[2]);
+      input_width = std::get<uint32_t>(input_shape[3]);
       break;
     case InputOperandLayout::kNhwc:
       // "nhwc": [batches, height, width, channels]
-      input_batches = input_shape[0];
-      input_height = input_shape[1];
-      input_width = input_shape[2];
-      input_channels = input_shape[3];
+      // TODO(crbug.com/329482489): Support dynamic shapes.
+      input_batches = std::get<uint32_t>(input_shape[0]);
+      input_height = std::get<uint32_t>(input_shape[1]);
+      input_width = std::get<uint32_t>(input_shape[2]);
+      input_channels = std::get<uint32_t>(input_shape[3]);
       break;
   }
 
@@ -2307,7 +2360,7 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
     }
   }
   // The layout option specifies the layout format of the output tensor.
-  std::vector<uint32_t> output_shape;
+  std::vector<Dimension> output_shape;
   switch (attributes.layout) {
     case InputOperandLayout::kNchw:
       // "nchw": [batches, channels, height, width]
@@ -2350,7 +2403,10 @@ base::expected<OperandDescriptor, std::string> ValidatePreluAndInferOutput(
   // TODO(crbug.com/387892103): Use bidirectional broadcasting.
   // BroadcastShape unidirectionally broadcasts slope.dimensions to
   // input.dimensions.
-  if (!BroadcastShapes(slope.shape(), input.shape(), /*bidirectional=*/false)) {
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  if (!BroadcastShapes(ToUint32Vector(slope.shape()),
+                       ToUint32Vector(input.shape()),
+                       /*bidirectional=*/false)) {
     return base::unexpected(ErrorWithLabel(
         label,
         "The shape of slope is not broadcastable to the shape of input."));
@@ -2396,7 +2452,7 @@ base::expected<OperandDescriptor, std::string> ValidateReduceAndInferOutput(
         label, NotSupportedInputArgumentError(input, tensor_constraint)));
   }
 
-  ASSIGN_OR_RETURN(std::vector<uint32_t> output_shape,
+  ASSIGN_OR_RETURN(std::vector<Dimension> output_shape,
                    ValidateReduceAxesAndInferOutput(input.shape(), axes,
                                                     keep_dimensions, label));
 
@@ -2449,7 +2505,7 @@ base::expected<OperandDescriptor, std::string> ValidateResample2dAndInferOutput(
   RETURN_IF_ERROR(ValidateAxes(axes, input.Rank(), label));
 
   // Validate scales or sizes and infer the output.
-  std::vector<uint32_t> output_shape(input.shape());
+  std::vector<Dimension> output_shape = input.shape();
   if (std::holds_alternative<base::span<const float>>(scales_or_sizes)) {
     const auto& scales = std::get<base::span<const float>>(scales_or_sizes);
     if (scales.size() != 2) {
@@ -2461,8 +2517,9 @@ base::expected<OperandDescriptor, std::string> ValidateResample2dAndInferOutput(
           ErrorWithLabel(label, "All scales should be greater than 0."));
     }
 
-    auto output_first_axis =
-        CalculateResample2dOutputSize(input.shape()[axes[0]], scales[0], label);
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    auto output_first_axis = CalculateResample2dOutputSize(
+        std::get<uint32_t>(input.shape()[axes[0]]), scales[0], label);
     if (!output_first_axis.has_value()) {
       return base::unexpected(ErrorWithLabel(
           label, "Failed to calculate the output shape for first axis : " +
@@ -2470,8 +2527,9 @@ base::expected<OperandDescriptor, std::string> ValidateResample2dAndInferOutput(
     }
     output_shape[axes[0]] = output_first_axis.value();
 
-    auto output_second_axis =
-        CalculateResample2dOutputSize(input.shape()[axes[1]], scales[1], label);
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    auto output_second_axis = CalculateResample2dOutputSize(
+        std::get<uint32_t>(input.shape()[axes[1]]), scales[1], label);
     if (!output_second_axis.has_value()) {
       return base::unexpected(ErrorWithLabel(
           label, "Failed to calculate the output shape for second axis: " +
@@ -2619,7 +2677,9 @@ base::expected<OperandDescriptor, std::string> ValidateScatterNDAndInferOutput(
                        "input data type."));
   }
 
-  const uint32_t indices_last_dim_size = indices.shape()[indices.Rank() - 1];
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  const uint32_t indices_last_dim_size =
+      std::get<uint32_t>(indices.shape()[indices.Rank() - 1]);
   if (indices_last_dim_size > input.Rank()) {
     return base::unexpected(ErrorWithLabel(
         label, base::StringPrintf(
@@ -2638,7 +2698,7 @@ base::expected<OperandDescriptor, std::string> ValidateScatterNDAndInferOutput(
         ErrorWithLabel(label, "The expected updates rank is too large."));
   }
 
-  std::vector<uint32_t> expected_updates_shape;
+  std::vector<Dimension> expected_updates_shape;
   expected_updates_shape.reserve(checked_updates_rank.ValueOrDie());
   std::ranges::copy(indices.shape().begin(), indices.shape().end() - 1,
                     std::back_inserter(expected_updates_shape));
@@ -2691,12 +2751,14 @@ base::expected<OperandDescriptor, std::string> ValidateSliceAndInferOutput(
   output_shape.reserve(input_rank);
 
   for (uint32_t i = 0; i < input_rank; ++i) {
-    if (attributes.starts[i] >= input.shape()[i]) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    uint32_t input_dim = std::get<uint32_t>(input.shape()[i]);
+    if (attributes.starts[i] >= input_dim) {
       return base::unexpected(ErrorWithLabel(
           label, base::StringPrintf(
                      "For dimension (%u): the starting index to slice must "
                      "be less than input size (%u).",
-                     i, input.shape()[i])));
+                     i, input_dim)));
     }
 
     // WebNN plans to allow 0 size dimensions and an issue has been filed to
@@ -2728,12 +2790,12 @@ base::expected<OperandDescriptor, std::string> ValidateSliceAndInferOutput(
               i)));
     }
 
-    if (checked_ending_index.ValueOrDie() > input.shape()[i]) {
+    if (checked_ending_index.ValueOrDie() > input_dim) {
       return base::unexpected(ErrorWithLabel(
           label,
           base::StringPrintf("For dimension (%u): the ending index to slice "
                              "must not be greater than input size (%u).",
-                             i, input.shape()[i])));
+                             i, input_dim)));
     }
 
     uint32_t output_size = attributes.sizes[i] / attributes.strides[i] +
@@ -2741,8 +2803,9 @@ base::expected<OperandDescriptor, std::string> ValidateSliceAndInferOutput(
     output_shape.push_back(output_size);
   }
 
-  return OperandDescriptor::Create(context_properties, input.data_type(),
-                                   output_shape, label);
+  return OperandDescriptor::Create(
+      context_properties, input.data_type(),
+      std::vector<Dimension>(output_shape.begin(), output_shape.end()), label);
 }
 
 base::expected<OperandDescriptor, std::string> ValidateSoftmaxAndInferOutput(
@@ -2792,7 +2855,8 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
           ErrorWithLabel(label, "The splits must be greater than zero."));
     }
 
-    if (input.shape()[attributes.axis] % splits != 0) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (std::get<uint32_t>(input.shape()[attributes.axis]) % splits != 0) {
       return base::unexpected(
           ErrorWithLabel(label,
                          "The dimension size of the input tensor along "
@@ -2803,10 +2867,12 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
     for (uint32_t i = 0; i < splits; ++i) {
       // When splits is of type uint32_t, we create splits number of Operands.
       // Each Operand will have the same new_dimensions shape.
-      std::vector<uint32_t> new_dimensions = input.shape();
+      std::vector<uint32_t> new_dimensions = ToUint32Vector(input.shape());
       new_dimensions[attributes.axis] /= splits;
       auto split_descriptor = OperandDescriptor::Create(
-          context_properties, input.data_type(), new_dimensions, label);
+          context_properties, input.data_type(),
+          std::vector<Dimension>(new_dimensions.begin(), new_dimensions.end()),
+          label);
       // `split_descriptor` should always be valid, since it's a subset of the
       // input.
       CHECK(split_descriptor.has_value());
@@ -2824,7 +2890,10 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
 
     base::CheckedNumeric<uint32_t> sum = std::accumulate(
         splits.begin(), splits.end(), base::MakeCheckedNum<uint32_t>(0));
-    if (!sum.IsValid() || sum.ValueOrDie() != input.shape()[attributes.axis]) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (!sum.IsValid() ||
+        sum.ValueOrDie() !=
+            std::get<uint32_t>(input.shape()[attributes.axis])) {
       return base::unexpected(ErrorWithLabel(
           label,
           "The sum of all sizes in splits must be equal to the dimension size "
@@ -2833,10 +2902,12 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
 
     outputs.reserve(splits.size());
     for (uint32_t split : splits) {
-      std::vector<uint32_t> new_dimensions = input.shape();
+      std::vector<uint32_t> new_dimensions = ToUint32Vector(input.shape());
       new_dimensions[attributes.axis] = split;
       auto split_descriptor = OperandDescriptor::Create(
-          context_properties, input.data_type(), new_dimensions, label);
+          context_properties, input.data_type(),
+          std::vector<Dimension>(new_dimensions.begin(), new_dimensions.end()),
+          label);
       // `split_descriptor` should always be valid, since it's a subset of the
       // input.
       CHECK(split_descriptor.has_value());
@@ -2873,16 +2944,18 @@ base::expected<OperandDescriptor, std::string> ValidateTileAndInferOutput(
       return base::unexpected(
           ErrorWithLabel(label, "Any value in repetitions must not be 0."));
     }
-    auto tiled_dim =
-        base::MakeCheckedNum<uint32_t>(repetitions[i]) * input.shape()[i];
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    auto tiled_dim = base::MakeCheckedNum<uint32_t>(repetitions[i]) *
+                     std::get<uint32_t>(input.shape()[i]);
     if (!tiled_dim.AssignIfValid(&output_shape[i])) {
       return base::unexpected(
           ErrorWithLabel(label, "The tiled dimension size is too large."));
     }
   }
 
-  return OperandDescriptor::Create(context_properties, input.data_type(),
-                                   output_shape, label);
+  return OperandDescriptor::Create(
+      context_properties, input.data_type(),
+      std::vector<Dimension>(output_shape.begin(), output_shape.end()), label);
 }
 
 base::expected<OperandDescriptor, std::string> ValidateTransposeAndInferOutput(
@@ -2907,10 +2980,12 @@ base::expected<OperandDescriptor, std::string> ValidateTransposeAndInferOutput(
 
   std::vector<uint32_t> output_shape(input.Rank());
   for (uint32_t i = 0; i < input.Rank(); ++i) {
-    output_shape[i] = input.shape()[permutation[i]];
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    output_shape[i] = std::get<uint32_t>(input.shape()[permutation[i]]);
   }
-  return OperandDescriptor::Create(context_properties, input.data_type(),
-                                   output_shape, label);
+  return OperandDescriptor::Create(
+      context_properties, input.data_type(),
+      std::vector<Dimension>(output_shape.begin(), output_shape.end()), label);
 }
 
 base::expected<OperandDescriptor, std::string> ValidateTriangularAndInferOutput(
@@ -2962,24 +3037,30 @@ base::expected<OperandDescriptor, std::string> ValidateWhereAndInferOutput(
         label, "The data types of trueValue and falseValue don't match."));
   }
 
+  // TODO(crbug.com/329482489): Support dynamic shapes.
   const std::optional<std::vector<uint32_t>> value_shape = BroadcastShapes(
-      true_value.shape(), false_value.shape(), /*bidirectional=*/true);
+      ToUint32Vector(true_value.shape()), ToUint32Vector(false_value.shape()),
+      /*bidirectional=*/true);
   if (!value_shape) {
     return base::unexpected(ErrorWithLabel(
         label,
         "The shapes of trueValue and falseValue are not broadcastable."));
   }
 
-  std::optional<std::vector<uint32_t>> output_shape = BroadcastShapes(
-      condition.shape(), value_shape.value(), /*bidirectional=*/true);
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  std::optional<std::vector<uint32_t>> output_shape =
+      BroadcastShapes(ToUint32Vector(condition.shape()), value_shape.value(),
+                      /*bidirectional=*/true);
   if (!output_shape) {
     return base::unexpected(ErrorWithLabel(
         label,
         "The condition shape is not broadcastable to the shape broadcasted "
         "from trueValue and falseValue."));
   }
-  return OperandDescriptor::Create(context_properties, true_value.data_type(),
-                                   *output_shape, label);
+  return OperandDescriptor::Create(
+      context_properties, true_value.data_type(),
+      std::vector<Dimension>(output_shape->begin(), output_shape->end()),
+      label);
 }
 
 base::expected<void, std::string> ValidateAxes(base::span<const uint32_t> axes,
@@ -3060,6 +3141,62 @@ std::optional<std::vector<uint32_t>> BroadcastShapes(
     // Otherwise, its size is the same as the rhs.
     dims_output[rank_output - i - 1] =
         bidirectional ? std::max(dim_lhs, dim_rhs) : dim_rhs;
+  }
+  return dims_output;
+}
+
+std::optional<std::vector<Dimension>> BroadcastShapes(
+    base::span<const Dimension> dims_lhs,
+    base::span<const Dimension> dims_rhs,
+    bool bidirectional) {
+  // If bidirectional is true, the rank of the output shape is the maximum rank
+  // of the input shapes. Otherwise it is as the same as the rhs' rank.
+  auto rank_lhs = dims_lhs.size(), rank_rhs = dims_rhs.size();
+  if (!bidirectional && rank_lhs > rank_rhs) {
+    return std::nullopt;
+  }
+
+  auto rank_output = bidirectional ? std::max(rank_lhs, rank_rhs) : rank_rhs;
+  std::vector<Dimension> dims_output(rank_output);
+  for (size_t i = 0; i < rank_output; ++i) {
+    Dimension dim_lhs;
+    if (i < rank_lhs) {
+      dim_lhs = dims_lhs[rank_lhs - i - 1];
+    } else {
+      dim_lhs = 1u;
+    }
+
+    Dimension dim_rhs;
+    if (i < rank_rhs) {
+      dim_rhs = dims_rhs[rank_rhs - i - 1];
+    } else {
+      dim_rhs = 1u;
+    }
+
+    // If bidirectional is true, two dimensions are compatible when they are
+    // equal, or one of them is 1. Otherwise, two dimensions are compatible when
+    // they are equal, or the lhs dimension is 1.
+    bool lhs_is_1 = std::holds_alternative<uint32_t>(dim_lhs) &&
+                    std::get<uint32_t>(dim_lhs) == 1;
+    bool rhs_is_1 = std::holds_alternative<uint32_t>(dim_rhs) &&
+                    std::get<uint32_t>(dim_rhs) == 1;
+
+    if (bidirectional) {
+      if (dim_lhs != dim_rhs && !lhs_is_1 && !rhs_is_1) {
+        return std::nullopt;
+      }
+    } else if (dim_lhs != dim_rhs && !lhs_is_1) {
+      return std::nullopt;
+    }
+
+    // If bidirectional is true, for each dimension of the output tensor, its
+    // size is the maximum size along that dimension of the input shapes.
+    // Otherwise, its size is the same as the rhs.
+    if (lhs_is_1) {
+      dims_output[rank_output - i - 1] = dim_rhs;
+    } else {
+      dims_output[rank_output - i - 1] = dim_lhs;
+    }
   }
   return dims_output;
 }

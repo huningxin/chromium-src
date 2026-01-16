@@ -45,12 +45,14 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gru_cell_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gru_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_hard_sigmoid_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_input_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_instance_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_layer_normalization_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_leaky_relu_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_linear_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_lstm_cell_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_lstm_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_named_range_dimension.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operator_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pad_options.h"
@@ -64,6 +66,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_triangular_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_union_mlnamedrangedimension_unsignedlongenforcerange.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer_view.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
@@ -194,6 +197,35 @@ enum class MLGraphOperatorUma {
   kMinValue = kGraphBuilt,
   kMaxValue = kIsInfinite,
 };
+
+std::vector<webnn::Dimension> ToDimensionVector(
+    const Vector<uint32_t>& dimensions) {
+  std::vector<webnn::Dimension> result;
+  result.reserve(dimensions.size());
+  for (uint32_t dimension : dimensions) {
+    result.push_back(dimension);
+  }
+  return result;
+}
+
+std::vector<webnn::Dimension> ToDimensionVector(
+    const HeapVector<
+        Member<V8UnionMLNamedRangeDimensionOrUnsignedLongEnforceRange>>&
+        dimensions) {
+  std::vector<webnn::Dimension> result;
+  result.reserve(dimensions.size());
+  for (const auto& dimension : dimensions) {
+    if (dimension->IsUnsignedLongEnforceRange()) {
+      result.push_back(dimension->GetAsUnsignedLongEnforceRange());
+    } else {
+      CHECK(dimension->IsMLNamedRangeDimension());
+      const auto* named_range = dimension->GetAsMLNamedRangeDimension();
+      result.push_back(webnn::DynamicDimension{named_range->name().Utf8(),
+                                               named_range->maxSize()});
+    }
+  }
+  return result;
+}
 
 using MLGraphOperatorUmaSet = base::EnumSet<MLGraphOperatorUma,
                                             MLGraphOperatorUma::kMinValue,
@@ -1661,13 +1693,13 @@ MLContext* MLGraphBuilder::GetContext() const {
 
 MLOperand* MLGraphBuilder::input(ScriptState* script_state,
                                  String name,
-                                 const MLOperandDescriptor* desc,
+                                 const MLInputOperandDescriptor* desc,
                                  ExceptionState& exception_state) {
   THROW_AND_RETURN_IF_ERROR(ValidateGraphBuilderState(), nullptr);
 
   auto input_operand = MLOperand::ValidateAndCreateInput(
       ml_context_->GetProperties(), this, desc->dataType().AsEnum(),
-      desc->shape(), std::move(name));
+      ToDimensionVector(desc->shape()), std::move(name));
   if (!input_operand.has_value()) {
     exception_state.ThrowTypeError(input_operand.error());
     return nullptr;
@@ -1689,7 +1721,8 @@ MLOperand* MLGraphBuilder::constant(ScriptState* script_state,
       webnn::OperandDescriptor descriptor,
       webnn::OperandDescriptor::Create(
           ml_context_->GetProperties(),
-          FromBlinkDataType(desc->dataType().AsEnum()), desc->shape(),
+          FromBlinkDataType(desc->dataType().AsEnum()),
+          ToDimensionVector(desc->shape()),
           webnn::GetErrorLabelPrefix("constant")));
 
   webnn::OperandDataType data_type = descriptor.data_type();
@@ -1787,9 +1820,10 @@ MLOperand* MLGraphBuilder::constant(
   webnn::OperandDataType data_type = FromBlinkDataType(type.AsEnum());
   ASSIGN_OR_THROW_AND_RETURN_IF_ERROR(
       webnn::OperandDescriptor descriptor,
-      webnn::OperandDescriptor::Create(ml_context_->GetProperties(), data_type,
-                                       /*shape=*/{},
-                                       webnn::GetErrorLabelPrefix("constant")));
+      webnn::OperandDescriptor::Create(
+          ml_context_->GetProperties(), data_type,
+          /*shape=*/std::vector<webnn::Dimension>(),
+          webnn::GetErrorLabelPrefix("constant")));
 
   if (!ml_context_->GetProperties().data_type_limits.constant.Supports(
           descriptor)) {
@@ -2983,7 +3017,8 @@ MLOperand* MLGraphBuilder::reshape(MLOperand* input,
   ASSIGN_OR_THROW_AND_RETURN_IF_ERROR(
       webnn::OperandDescriptor output_descriptor,
       webnn::OperandDescriptor::Create(ml_context_->GetProperties(),
-                                       input->DataType(), output_shape, label));
+                                       input->DataType(),
+                                       ToDimensionVector(output_shape), label));
 
   auto* reshape = MakeGarbageCollected<MLOperator>(
       this, blink_mojom::Operation::Tag::kReshape, options);

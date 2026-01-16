@@ -28,10 +28,20 @@ enum DataType {
   kUint4
 };
 
+struct DynamicDimension {
+  string name;
+  uint32 max_size;
+};
+
+union Dimension {
+  uint32 size;
+  DynamicDimension dynamic_dimension;
+};
+
 // Represents the `MLOperandDescriptor` in the WebIDL definition.
 struct OperandDescriptor {
   DataType data_type;
-  array<uint32> shape;
+  array<Dimension> shape;
   // Permutation that needs to be performed on service side for constant
   // operands.
   array<uint32> pending_permutation;

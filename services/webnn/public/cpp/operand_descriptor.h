@@ -6,9 +6,12 @@
 #define SERVICES_WEBNN_PUBLIC_CPP_OPERAND_DESCRIPTOR_H_
 
 #include <algorithm>
+#include <compare>
 #include <functional>
 #include <numeric>
+#include <string>
 #include <type_traits>
+#include <variant>  // For std::variant
 #include <vector>
 
 #include "base/component_export.h"
@@ -18,6 +21,16 @@
 #include "mojo/public/cpp/bindings/default_construct_tag.h"
 
 namespace webnn {
+
+struct DynamicDimension {
+  std::string name;
+  uint32_t max_size;
+
+  friend constexpr auto operator<=>(const DynamicDimension&,
+                                    const DynamicDimension&) = default;
+};
+
+using Dimension = std::variant<uint32_t, DynamicDimension>;
 
 enum class OperandDataType {
   kFloat32,
@@ -100,21 +113,21 @@ class COMPONENT_EXPORT(WEBNN_PUBLIC_CPP) OperandDescriptor {
   static base::expected<OperandDescriptor, std::string> Create(
       const ContextProperties& context_properties,
       OperandDataType data_type,
-      base::span<const uint32_t> shape,
+      base::span<const Dimension> shape,
       std::string_view label);
 
   // This function is called by `OperandDescriptor` mojom traits that need to be
   // validated tensor size limit later.
   static base::expected<OperandDescriptor, std::string>
   CreateForDeserialization(OperandDataType data_type,
-                           base::span<const uint32_t> shape,
+                           base::span<const Dimension> shape,
                            base::span<const uint32_t> pending_permutation);
 
   // Same as above, but skip validation checks. This may be used to create an
   // invalid descriptor to test that its deserialization fails.
   static OperandDescriptor UnsafeCreateForTesting(
       OperandDataType data_type,
-      base::span<const uint32_t> shape,
+      base::span<const Dimension> shape,
       base::span<const uint32_t> pending_permutation = {});
 
   static size_t GetBitsPerElement(OperandDataType data_type);
@@ -132,7 +145,7 @@ class COMPONENT_EXPORT(WEBNN_PUBLIC_CPP) OperandDescriptor {
   ~OperandDescriptor();
 
   OperandDataType data_type() const { return data_type_; }
-  const std::vector<uint32_t>& shape() const { return shape_; }
+  const std::vector<Dimension>& shape() const { return shape_; }
   const std::vector<uint32_t>& pending_permutation() const {
     return pending_permutation_;
   }
@@ -144,6 +157,8 @@ class COMPONENT_EXPORT(WEBNN_PUBLIC_CPP) OperandDescriptor {
   size_t NumberOfElements() const;
 
   void SetPendingPermutation(base::span<const uint32_t> permutation);
+
+  std::vector<uint32_t> GetStaticShape() const;
 
   friend constexpr auto operator<=>(const OperandDescriptor& lhs,
                                     const OperandDescriptor& rhs) {
@@ -158,13 +173,13 @@ class COMPONENT_EXPORT(WEBNN_PUBLIC_CPP) OperandDescriptor {
   }
 
  private:
-  OperandDescriptor(OperandDataType data_type, std::vector<uint32_t> shape);
+  OperandDescriptor(OperandDataType data_type, std::vector<Dimension> shape);
   OperandDescriptor(OperandDataType data_type,
-                    std::vector<uint32_t> shape,
+                    std::vector<Dimension> shape,
                     std::vector<uint32_t> permutation);
 
   OperandDataType data_type_;
-  std::vector<uint32_t> shape_;
+  std::vector<Dimension> shape_;
   std::vector<uint32_t> pending_permutation_;
 };
 

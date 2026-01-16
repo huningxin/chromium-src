@@ -22,6 +22,7 @@ namespace blink {
 class MLConstantOperand;
 class MLGraphBuilder;
 class MLOperator;
+class V8UnionStringOrUnsignedLong;
 
 class MODULES_EXPORT MLOperand : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
@@ -34,7 +35,7 @@ class MODULES_EXPORT MLOperand : public ScriptWrappable {
       const webnn::ContextProperties& context_properties,
       MLGraphBuilder* builder,
       V8MLOperandDataType::Enum v8_data_type,
-      Vector<uint32_t> shape,
+      std::vector<webnn::Dimension> shape,
       String name);
   // Similar to the methods above, but since we're passed `descriptor` we can
   // skip the validation.
@@ -65,7 +66,7 @@ class MODULES_EXPORT MLOperand : public ScriptWrappable {
   // compared to using the corresponding methods which return blink types.
   const webnn::OperandDescriptor& Descriptor() const;
   webnn::OperandDataType DataType() const;
-  const std::vector<uint32_t>& Shape() const;
+  const std::vector<webnn::Dimension>& Shape() const;
 
   // The total number of elements in the operand. Its value is the product of
   // all values of the shape. For scalar operand, the number of elements is 1.
@@ -79,7 +80,7 @@ class MODULES_EXPORT MLOperand : public ScriptWrappable {
 
   // IDL interface:
   V8MLOperandDataType dataType() const;
-  Vector<uint32_t> shape() const;
+  HeapVector<Member<V8UnionStringOrUnsignedLong>> shape() const;
 
   MLConstantOperand* AsConstantOperand();
 

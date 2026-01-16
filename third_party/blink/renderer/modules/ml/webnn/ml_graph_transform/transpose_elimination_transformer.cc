@@ -323,7 +323,10 @@ void TransposeEliminationTransformer::HandleTranspose(
   }
 
   // Perform the eliminations.
-  auto original_input_shape = context->in_transposes[0]->Inputs()[0]->shape();
+  const auto& input_shape = context->in_transposes[0]->Inputs()[0]->Shape();
+  std::vector<webnn::Dimension> original_input_shape;
+  original_input_shape.insert(original_input_shape.end(), input_shape.begin(),
+                              input_shape.end());
 
   visited_transposes_.insert(transpose);
   for (auto& in_transpose : context->in_transposes) {
