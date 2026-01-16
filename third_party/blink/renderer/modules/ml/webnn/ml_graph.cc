@@ -37,6 +37,51 @@ void AppendVectorOfNumbers(const std::vector<T>& vector,
   builder.AppendRange(vector, ", ");
 }
 
+void AppendDimensions(const std::vector<webnn::Dimension>& vector,
+                      StringBuilder& builder) {
+  for (size_t i = 0; i < vector.size(); ++i) {
+    if (i > 0) {
+      builder.Append(", ");
+    }
+    const auto& dim = vector[i];
+    if (std::holds_alternative<uint32_t>(dim)) {
+      builder.AppendNumber(std::get<uint32_t>(dim));
+    } else {
+      const auto& dynamic_dim = std::get<webnn::DynamicDimension>(dim);
+      builder.Append(String::FromUTF8(dynamic_dim.name));
+      builder.Append(" (maxSize: ");
+      builder.AppendNumber(dynamic_dim.max_size);
+      builder.Append(", minSize: ");
+      builder.AppendNumber(dynamic_dim.min_size);
+      builder.Append(")");
+    }
+  }
+}
+
+bool IsShapeCompatible(const std::vector<uint32_t>& actual_shape,
+                       const std::vector<webnn::Dimension>& expected_shape) {
+  if (actual_shape.size() != expected_shape.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < actual_shape.size(); ++i) {
+    if (std::holds_alternative<uint32_t>(expected_shape[i])) {
+      if (actual_shape[i] != std::get<uint32_t>(expected_shape[i])) {
+        return false;
+      }
+    } else {
+      const auto& dynamic_dim =
+          std::get<webnn::DynamicDimension>(expected_shape[i]);
+      if (actual_shape[i] > dynamic_dim.max_size) {
+        return false;
+      }
+      if (actual_shape[i] < dynamic_dim.min_size) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 base::expected<void, String> ValidateNamedMLTensors(
     const MLContext* context,
     const MLNamedTensors& named_tensors,
@@ -48,6 +93,9 @@ base::expected<void, String> ValidateNamedMLTensors(
         "expectation (%u).",
         named_tensors.size(), expected_named_descriptors.size()));
   }
+
+  HashMap<String, uint32_t> dynamic_dimension_values;
+
   for (const auto& [name, tensor] : named_tensors) {
     if (!expected_named_descriptors.Contains(name)) {
       return base::unexpected(String::Format(
@@ -62,17 +110,40 @@ base::expected<void, String> ValidateNamedMLTensors(
           tensor->dataType().AsCStr(), name.Utf8().c_str(),
           V8MLOperandDataType(ToBlinkDataType(info->data_type())).AsCStr())));
     }
-    if (tensor->Shape() != info->shape()) {
+    if (!IsShapeCompatible(tensor->Shape(), info->shape())) {
       StringBuilder message;
       message.Append("The shape [");
       AppendVectorOfNumbers(tensor->Shape(), message);
       message.Append("], of the MLTensor with name \"");
       message.Append(name);
       message.Append("\" doesn't match the expected shape: [");
-      AppendVectorOfNumbers(info->shape(), message);
+      AppendDimensions(info->shape(), message);
       message.Append("]");
       return base::unexpected(message.ToString());
     }
+
+    const auto& expected_shape = info->shape();
+    const auto& actual_shape = tensor->Shape();
+    // IsShapeCompatible checked the size match.
+    for (size_t i = 0; i < expected_shape.size(); ++i) {
+      if (std::holds_alternative<webnn::DynamicDimension>(expected_shape[i])) {
+        const auto& dynamic_dim =
+            std::get<webnn::DynamicDimension>(expected_shape[i]);
+        String dynamic_name = String::FromUTF8(dynamic_dim.name);
+        uint32_t actual_dim = actual_shape[i];
+
+        auto it = dynamic_dimension_values.find(dynamic_name);
+        if (it != dynamic_dimension_values.end() && it->value != actual_dim) {
+          return base::unexpected(String::Format(
+              "The value (%u) of the dynamic dimension \"%s\" of the MLTensor "
+              "with name \"%s\" doesn't match the previously seen value (%u).",
+              actual_dim, dynamic_name.Utf8().c_str(), name.Utf8().c_str(),
+              it->value));
+        }
+        dynamic_dimension_values.insert(dynamic_name, actual_dim);
+      }
+    }
+
     if (tensor->context() != context) {
       return base::unexpected(String::Format(
           "The context of MLGraph doesn't match the context of the MLTensor "

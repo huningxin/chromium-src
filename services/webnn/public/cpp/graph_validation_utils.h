@@ -520,10 +520,12 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
 // WebIDL here https://www.w3.org/TR/webnn/#api-mlgraphbuilder-expand
 base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
     WEBNN_PUBLIC_CPP)
-    ValidateExpandAndInferOutput(const ContextProperties& context_properties,
-                                 const OperandDescriptor& input,
-                                 base::span<const uint32_t> new_shape,
-                                 std::string_view label);
+    ValidateExpandAndInferOutput(
+        const ContextProperties& context_properties,
+        const OperandDescriptor& input,
+        base::span<const Dimension> new_shape,
+        std::string_view label,
+        base::span<const DynamicDimension> known_dynamic_dims);
 
 // Validate and infer output information of gather operator defined in
 // WebIDL here https://www.w3.org/TR/webnn/#api-mlgraphbuilder-gather
@@ -808,6 +810,19 @@ std::optional<std::vector<uint32_t>> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
     BroadcastShapes(base::span<const uint32_t> dims_lhs,
                     base::span<const uint32_t> dims_rhs,
                     bool bidirectional = true);
+
+std::optional<std::vector<Dimension>> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
+    BroadcastShapes(base::span<const Dimension> dims_lhs,
+                    base::span<const Dimension> dims_rhs,
+                    bool bidirectional = true);
+
+// Unidirectionally broadcast input_shape to new_shape for the expand operation.
+// A static dimension of size 1 can only be expanded to a dynamic dimension if
+// that dynamic dimension is in known_dynamic_dims (from input operands).
+std::optional<std::vector<Dimension>> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
+    ExpandShape(base::span<const Dimension> input_shape,
+                base::span<const Dimension> new_shape,
+                base::span<const DynamicDimension> known_dynamic_dims);
 
 // Calculate the output size for convTranspose2d based on WebNN spec:
 // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-convtranspose2d
