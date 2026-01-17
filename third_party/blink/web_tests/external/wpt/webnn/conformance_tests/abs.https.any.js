@@ -604,8 +604,9 @@ const absTests = [
       'inputs': {
         'absInput': {
           'data': [
-            // int32 range: [/* -(2**31) */ -2147483648, /* 2**31 - 1 */ 2147483647]
-            // abs(-2147483648) would overflow when data type is int32
+            // int32 range: [/* -(2**31) */ -2147483648, /* 2**31 - 1 */
+            // 2147483647] abs(-2147483648) would overflow when data type is
+            // int32
             -2147483647, 0, 2147483646, 2147483647
           ],
           'descriptor': {shape: [1, 2, 2, 1], dataType: 'int32'}
@@ -651,8 +652,59 @@ const absTests = [
         }
       }
     }
+  },
+  {
+    'name': 'abs float32 2D tensor with dynamic shape',
+    'graph': {
+      'inputs': {
+        'absInput': {
+          'data': [-10.0, 20.0, -30.0, 40.0],
+          'shape': [1, 4],
+          'descriptor':
+              {shape: [{'name': 'N', 'maxSize': 5}, 4], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'abs',
+        'arguments': [{'input': 'absInput'}],
+        'outputs': 'absOutput'
+      }],
+      'expectedOutputs': {
+        'absOutput': {
+          'data': [10.0, 20.0, 30.0, 40.0],
+          'shape': [1, 4],
+          'descriptor': {shape: ['N', 4], dataType: 'float32'}
+        }
+      }
+    }
   }
 ];
 
 webnn_conformance_test(
     absTests, buildAndExecuteGraph, getAbsPrecisionTolerance);
+
+promise_test(async t => {
+  const context = await getContext();
+  const builder = new MLGraphBuilder(context);
+  const descriptor = {
+    shape: [{'name': 'N', 'maxSize': 5}, 4],
+    dataType: 'float32'
+  };
+  const inputOperand = builder.input('input', descriptor);
+  const outputOperand = builder.abs(inputOperand);
+  const graph = await builder.build({'output': outputOperand});
+
+  const inputTensor = await context.createTensor({
+    dataType: 'float32',
+    shape: [6, 4],  // Larger than maxSize 5
+    readable: true,
+    writable: true
+  });
+
+  const outputTensor = await context.createTensor(
+      {dataType: 'float32', shape: [6, 4], readable: true, writable: true});
+
+  assert_throws_js(TypeError, () => {
+    context.dispatch(graph, {'input': inputTensor}, {'output': outputTensor});
+  });
+}, 'abs float32 2D tensor with input dimension larger than maxSize');

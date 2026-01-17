@@ -645,13 +645,14 @@ async function prepareInputsForGraph(context, resources) {
   const tensors = await Promise.all(inputOperandNameArray.map((operandName) => {
     const inputOperandResources = resources[operandName];
     const descriptor = inputOperandResources.descriptor;
+    // The descriptor shape might be a dynamic shape, in that case the test case
+    // should provide a concrete shape for the tensor.
+    const shape = inputOperandResources.shape || descriptor.shape;
     const targetDataType =
         descriptor.castedType ? descriptor.castedType : descriptor.dataType;
     const inputBuffer = getTypedArrayData(
-        targetDataType, sizeOfShape(descriptor.shape),
-        inputOperandResources.data);
-    return createTensorWithData(
-        context, targetDataType, descriptor.shape, inputBuffer);
+        targetDataType, sizeOfShape(shape), inputOperandResources.data);
+    return createTensorWithData(context, targetDataType, shape, inputBuffer);
   }));
 
   const inputs = {};
@@ -663,10 +664,14 @@ async function prepareOutputsForGraph(context, resources) {
   const outputOperandNameArray = Object.keys(resources);
   const tensors =
       await Promise.all(outputOperandNameArray.map((operandName) => {
-        const descriptor = resources[operandName].descriptor;
+        const outputOperandResources = resources[operandName];
+        const descriptor = outputOperandResources.descriptor;
+        // The descriptor shape might be a dynamic shape, in that case the test
+        // case should provide a concrete shape for the tensor.
+        const shape = outputOperandResources.shape || descriptor.shape;
         const dataType =
             descriptor.castedType ? descriptor.castedType : descriptor.dataType;
-        return createTensorWithData(context, dataType, descriptor.shape);
+        return createTensorWithData(context, dataType, shape);
       }));
 
   const outputs = {};

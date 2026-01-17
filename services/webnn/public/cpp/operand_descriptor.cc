@@ -47,8 +47,8 @@ base::expected<void, std::string> IsValidPermutation(
   return base::ok();
 }
 
-// Helper to get the static shape from a dimension vector. For dynamic dimensions,
-// it uses the maximum size.
+// Helper to get the static shape from a dimension vector. For dynamic
+// dimensions, it uses the maximum size.
 std::vector<uint32_t> ToUint32Vector(base::span<const Dimension> dimensions) {
   std::vector<uint32_t> shape;
   shape.reserve(dimensions.size());
@@ -178,7 +178,8 @@ size_t OperandDescriptor::NumberOfElements() const {
                              return acc * std::get<uint32_t>(dim);
                            } else {
                              // Use the max size for worst-case calculation.
-                             return acc * std::get<DynamicDimension>(dim).max_size;
+                             return acc *
+                                    std::get<DynamicDimension>(dim).max_size;
                            }
                          });
 }

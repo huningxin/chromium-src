@@ -88,6 +88,9 @@ base::expected<void, String> ValidateNamedMLTensors(
         "expectation (%u).",
         named_tensors.size(), expected_named_descriptors.size()));
   }
+
+  HashMap<String, uint32_t> dynamic_dimension_values;
+
   for (const auto& [name, tensor] : named_tensors) {
     if (!expected_named_descriptors.Contains(name)) {
       return base::unexpected(String::Format(
@@ -113,6 +116,29 @@ base::expected<void, String> ValidateNamedMLTensors(
       message.Append("]");
       return base::unexpected(message.ToString());
     }
+
+    const auto& expected_shape = info->shape();
+    const auto& actual_shape = tensor->Shape();
+    // IsShapeCompatible checked the size match.
+    for (size_t i = 0; i < expected_shape.size(); ++i) {
+      if (std::holds_alternative<webnn::DynamicDimension>(expected_shape[i])) {
+        const auto& dynamic_dim =
+            std::get<webnn::DynamicDimension>(expected_shape[i]);
+        String dynamic_name = String::FromUTF8(dynamic_dim.name);
+        uint32_t actual_dim = actual_shape[i];
+
+        auto it = dynamic_dimension_values.find(dynamic_name);
+        if (it != dynamic_dimension_values.end() && it->value != actual_dim) {
+          return base::unexpected(String::Format(
+              "The value (%u) of the dynamic dimension \"%s\" of the MLTensor "
+              "with name \"%s\" doesn't match the previously seen value (%u).",
+              actual_dim, dynamic_name.Utf8().c_str(), name.Utf8().c_str(),
+              it->value));
+        }
+        dynamic_dimension_values.insert(dynamic_name, actual_dim);
+      }
+    }
+
     if (tensor->context() != context) {
       return base::unexpected(String::Format(
           "The context of MLGraph doesn't match the context of the MLTensor "

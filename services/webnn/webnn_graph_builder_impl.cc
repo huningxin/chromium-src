@@ -1263,16 +1263,13 @@ bool OperationValidationContext::ValidateElementWiseBinary(
     return false;
   }
 
-  // TODO(crbug.com/329482489): Support dynamic shapes.
-  auto dims_output = BroadcastShapes(ToUint32Vector(a->descriptor.shape()),
-                                     ToUint32Vector(b->descriptor.shape()));
+  auto dims_output =
+      BroadcastShapes(a->descriptor.shape(), b->descriptor.shape());
   if (!dims_output) {
     // The input shapes are not broadcastable.
     return false;
   }
-  // TODO(crbug.com/329482489): Support dynamic shapes.
-  if (!std::ranges::equal(ToUint32Vector(output->descriptor.shape()),
-                          dims_output.value())) {
+  if (!std::ranges::equal(output->descriptor.shape(), dims_output.value())) {
     // The output shape is not expected.
     return false;
   }
