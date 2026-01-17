@@ -47,7 +47,11 @@ void AppendDimensions(const std::vector<webnn::Dimension>& vector,
     if (std::holds_alternative<uint32_t>(dim)) {
       builder.AppendNumber(std::get<uint32_t>(dim));
     } else {
-      builder.Append("?");
+      const auto& dynamic_dim = std::get<webnn::DynamicDimension>(dim);
+      builder.Append(String::FromUTF8(dynamic_dim.name));
+      builder.Append(" (maxSize: ");
+      builder.AppendNumber(dynamic_dim.max_size);
+      builder.Append(")");
     }
   }
 }

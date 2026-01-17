@@ -47,12 +47,17 @@ base::expected<void, std::string> IsValidPermutation(
   return base::ok();
 }
 
+// Helper to get the static shape from a dimension vector. For dynamic dimensions,
+// it uses the maximum size.
 std::vector<uint32_t> ToUint32Vector(base::span<const Dimension> dimensions) {
   std::vector<uint32_t> shape;
   shape.reserve(dimensions.size());
   for (const auto& dim : dimensions) {
-    // TODO(crbug.com/329482489): Support dynamic shapes.
-    shape.push_back(std::get<uint32_t>(dim));
+    if (std::holds_alternative<uint32_t>(dim)) {
+      shape.push_back(std::get<uint32_t>(dim));
+    } else {
+      shape.push_back(std::get<DynamicDimension>(dim).max_size);
+    }
   }
   return shape;
 }
@@ -169,8 +174,12 @@ size_t OperandDescriptor::NumberOfElements() const {
   // See `PackedByteLength()` for why overflow checks are not needed here.
   return std::accumulate(shape_.begin(), shape_.end(), static_cast<size_t>(1),
                          [](size_t acc, const Dimension& dim) {
-                           // TODO(crbug.com/329482489): Support dynamic shapes.
-                           return acc * std::get<uint32_t>(dim);
+                           if (std::holds_alternative<uint32_t>(dim)) {
+                             return acc * std::get<uint32_t>(dim);
+                           } else {
+                             // Use the max size for worst-case calculation.
+                             return acc * std::get<DynamicDimension>(dim).max_size;
+                           }
                          });
 }
 
@@ -181,6 +190,12 @@ void OperandDescriptor::SetPendingPermutation(
 }
 
 std::vector<uint32_t> OperandDescriptor::GetStaticShape() const {
-  return ToUint32Vector(shape_);
+  std::vector<uint32_t> static_shape;
+  static_shape.reserve(shape_.size());
+  for (const auto& dim : shape_) {
+    CHECK(std::holds_alternative<uint32_t>(dim));
+    static_shape.push_back(std::get<uint32_t>(dim));
+  }
+  return static_shape;
 }
 }  // namespace webnn
