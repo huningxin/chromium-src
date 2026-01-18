@@ -1128,7 +1128,10 @@ const matmulTests = [
             8869.705078125, 6051.1396484375, 5124.5390625, 12413.8984375
           ],
           // M = 3, N = 5
-          'descriptor': {shape: ['M', 'N'], dataType: 'float32'},
+          'descriptor': {
+            shape: [{'name': 'M', 'maxSize': 5}, {'name': 'N', 'maxSize': 6}],
+            dataType: 'float32'
+          },
           'shape': [3, 5]
         }
       }
@@ -1200,7 +1203,10 @@ const matmulTests = [
             11060.98046875,   10352.16015625,   10515.310546875,
             16153.86328125,   17833.36328125,   15971.80859375
           ],
-          'descriptor': {shape: ['batch', 3, 5], dataType: 'float32'},
+          'descriptor': {
+            shape: [{'name': 'batch', 'maxSize': 5}, 3, 5],
+            dataType: 'float32'
+          },
           'shape': [2, 3, 5]
         }
       }

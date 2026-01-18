@@ -22,7 +22,7 @@ namespace blink {
 class MLConstantOperand;
 class MLGraphBuilder;
 class MLOperator;
-class V8UnionStringOrUnsignedLong;
+class V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange;
 
 class MODULES_EXPORT MLOperand : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
@@ -80,7 +80,8 @@ class MODULES_EXPORT MLOperand : public ScriptWrappable {
 
   // IDL interface:
   V8MLOperandDataType dataType() const;
-  HeapVector<Member<V8UnionStringOrUnsignedLong>> shape() const;
+  HeapVector<Member<V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>>
+  shape() const;
 
   MLConstantOperand* AsConstantOperand();
 

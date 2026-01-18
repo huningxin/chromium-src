@@ -39,6 +39,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_transpose_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_cumulative_sum_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_dynamic_dimension.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_elu_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gather_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_gemm_options.h"
@@ -52,7 +53,6 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_linear_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_lstm_cell_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_lstm_options.h"
-#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_named_range_dimension.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operator_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_pad_options.h"
@@ -66,6 +66,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_split_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_triangular_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_union_mldynamicdimension_unsignedlongenforcerange.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_union_mlnamedrangedimension_unsignedlongenforcerange.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer_view.h"
@@ -210,7 +211,7 @@ std::vector<webnn::Dimension> ToDimensionVector(
 
 std::vector<webnn::Dimension> ToDimensionVector(
     const HeapVector<
-        Member<V8UnionMLNamedRangeDimensionOrUnsignedLongEnforceRange>>&
+        Member<V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>>&
         dimensions) {
   std::vector<webnn::Dimension> result;
   result.reserve(dimensions.size());
@@ -218,10 +219,10 @@ std::vector<webnn::Dimension> ToDimensionVector(
     if (dimension->IsUnsignedLongEnforceRange()) {
       result.push_back(dimension->GetAsUnsignedLongEnforceRange());
     } else {
-      CHECK(dimension->IsMLNamedRangeDimension());
-      const auto* named_range = dimension->GetAsMLNamedRangeDimension();
-      result.push_back(webnn::DynamicDimension{named_range->name().Utf8(),
-                                               named_range->maxSize()});
+      CHECK(dimension->IsMLDynamicDimension());
+      const auto* dynamic_dim = dimension->GetAsMLDynamicDimension();
+      result.push_back(webnn::DynamicDimension{dynamic_dim->name().Utf8(),
+                                               dynamic_dim->maxSize()});
     }
   }
   return result;

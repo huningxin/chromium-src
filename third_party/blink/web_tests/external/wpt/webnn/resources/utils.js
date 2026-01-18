@@ -226,9 +226,35 @@ const assertDescriptorsEquals = (outputOperand, expected) => {
   assert_equals(
       outputOperand.dataType, dataType,
       'actual output dataType should be equal to expected output dataType');
-  assert_array_equals(
-      outputOperand.shape, expected.shape,
-      'actual output shape should be equal to expected output shape');
+  // Compare shape manually to handle dynamic dimension objects
+  const actualShape = outputOperand.shape;
+  const expectedShape = expected.shape;
+  assert_equals(
+      actualShape.length, expectedShape.length,
+      'actual output shape length should be equal to expected output shape length');
+  for (let i = 0; i < actualShape.length; ++i) {
+    const actualDim = actualShape[i];
+    const expectedDim = expectedShape[i];
+    if (typeof actualDim === 'number' && typeof expectedDim === 'number') {
+      assert_equals(
+          actualDim, expectedDim,
+          `actual output shape dimension at index ${
+              i} should be equal to expected`);
+    } else if (
+        typeof actualDim === 'object' && typeof expectedDim === 'object') {
+      assert_equals(
+          actualDim.name, expectedDim.name,
+          `actual dynamic dimension name at index ${i} should match`);
+      assert_equals(
+          actualDim.maxSize, expectedDim.maxSize,
+          `actual dynamic dimension maxSize at index ${i} should match`);
+    } else {
+      assert_true(
+          false,
+          `shape mismatch at index ${i}: expected ${
+              JSON.stringify(expectedDim)} got ${JSON.stringify(actualDim)}`);
+    }
+  }
 };
 
 // ref:

@@ -1021,14 +1021,15 @@ const addTests = [
         'output': {
           'data': [11, 22, 33, 44, 15, 26, 37, 48],
           'shape': [2, 4],
-          'descriptor': {shape: ['batch', 4], dataType: 'float32'}
+          'descriptor':
+              {shape: [{'name': 'batch', 'maxSize': 5}, 4], dataType: 'float32'}
         }
       }
     }
   },
   {
     'name':
-        'add float32 2D tensor broadcasting with dynamic shape (dynamic N broadcast to Dynamic N)',
+        'add float32 2D tensor broadcasting with dynamic shape (dynamic N broadcast to dynamic N)',
     'graph': {
       'inputs': {
         'inputA': {
@@ -1053,7 +1054,8 @@ const addTests = [
         'output': {
           'data': [11, 22, 33, 44],
           'shape': [1, 4],
-          'descriptor': {shape: ['batch', 4], dataType: 'float32'}
+          'descriptor':
+              {shape: [{'name': 'batch', 'maxSize': 5}, 4], dataType: 'float32'}
         }
       }
     }
