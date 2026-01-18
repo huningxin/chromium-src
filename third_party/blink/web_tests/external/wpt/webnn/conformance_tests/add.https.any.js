@@ -1034,18 +1034,14 @@ const addTests = [
         'inputA': {
           'data': [1, 2, 3, 4],
           'shape': [1, 4],
-          'descriptor': {
-            shape: [{'name': 'batch', 'maxSize': 5}, 4],
-            dataType: 'float32'
-          }
+          'descriptor':
+              {shape: [{'name': 'batch', 'maxSize': 5}, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [10, 20, 30, 40],
           'shape': [1, 4],
-          'descriptor': {
-            shape: [{'name': 'batch', 'maxSize': 5}, 4],
-            dataType: 'float32'
-          }
+          'descriptor':
+              {shape: [{'name': 'batch', 'maxSize': 5}, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1080,14 +1076,12 @@ promise_test(async t => {
 promise_test(async t => {
   const context = await getContext();
   const builder = new MLGraphBuilder(context);
-  const inputA = builder.input('inputA', {
-    dataType: 'float32',
-    shape: [{'name': 'batchA', 'maxSize': 5}, 4]
-  });
-  const inputB = builder.input('inputB', {
-    dataType: 'float32',
-    shape: [{'name': 'batchB', 'maxSize': 5}, 4]
-  });
+  const inputA = builder.input(
+      'inputA',
+      {dataType: 'float32', shape: [{'name': 'batchA', 'maxSize': 5}, 4]});
+  const inputB = builder.input(
+      'inputB',
+      {dataType: 'float32', shape: [{'name': 'batchB', 'maxSize': 5}, 4]});
 
   assert_throws_js(TypeError, () => builder.add(inputA, inputB));
 }, 'throw if float32 2D tensor broadcasting with two different dynamic dimensions is not supported');
@@ -1095,35 +1089,21 @@ promise_test(async t => {
 promise_test(async t => {
   const context = await getContext();
   const builder = new MLGraphBuilder(context);
-  const inputA = builder.input('inputA', {
-    dataType: 'float32',
-    shape: [{'name': 'batch', 'maxSize': 5}, 4]
-  });
-  const inputB = builder.input('inputB', {
-    dataType: 'float32',
-    shape: [{'name': 'batch', 'maxSize': 5}, 4]
-  });
+  const inputA = builder.input(
+      'inputA',
+      {dataType: 'float32', shape: [{'name': 'batch', 'maxSize': 5}, 4]});
+  const inputB = builder.input(
+      'inputB',
+      {dataType: 'float32', shape: [{'name': 'batch', 'maxSize': 5}, 4]});
   const output = builder.add(inputA, inputB);
   const graph = await builder.build({'output': output});
 
-  const inputTensorA = await context.createTensor({
-    dataType: 'float32',
-    shape: [2, 4],
-    readable: true,
-    writable: true
-  });
-  const inputTensorB = await context.createTensor({
-    dataType: 'float32',
-    shape: [1, 4],
-    readable: true,
-    writable: true
-  });
-  const outputTensor = await context.createTensor({
-    dataType: 'float32',
-    shape: [2, 4],
-    readable: true,
-    writable: true
-  });
+  const inputTensorA = await context.createTensor(
+      {dataType: 'float32', shape: [2, 4], readable: true, writable: true});
+  const inputTensorB = await context.createTensor(
+      {dataType: 'float32', shape: [1, 4], readable: true, writable: true});
+  const outputTensor = await context.createTensor(
+      {dataType: 'float32', shape: [2, 4], readable: true, writable: true});
 
   assert_throws_js(
       TypeError,

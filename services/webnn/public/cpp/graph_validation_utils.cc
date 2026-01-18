@@ -2103,24 +2103,31 @@ base::expected<OperandDescriptor, std::string> ValidateMatmulAndInferOutput(
         label, "The data types of first two inputs don't match."));
   }
 
-  std::vector<uint32_t> a_dimensions = ToUint32Vector(a.shape());
+  std::vector<webnn::Dimension> a_dimensions = a.shape();
   CHECK_GE(a_dimensions.size(), 2u);
-  std::vector<uint32_t> b_dimensions = ToUint32Vector(b.shape());
+  std::vector<webnn::Dimension> b_dimensions = b.shape();
   CHECK_GE(b_dimensions.size(), 2u);
 
   // The number of columns in the first matrix must be equal to the number of
   // rows in the second matrix.
-  const uint32_t a_cols = a_dimensions[a_dimensions.size() - 1];
-  const uint32_t a_rows = a_dimensions[a_dimensions.size() - 2];
-  const uint32_t b_cols = b_dimensions[b_dimensions.size() - 1];
-  const uint32_t b_rows = b_dimensions[b_dimensions.size() - 2];
+  const webnn::Dimension a_cols = a_dimensions[a_dimensions.size() - 1];
+  const webnn::Dimension a_rows = a_dimensions[a_dimensions.size() - 2];
+  const webnn::Dimension b_cols = b_dimensions[b_dimensions.size() - 1];
+  const webnn::Dimension b_rows = b_dimensions[b_dimensions.size() - 2];
   if (a_cols != b_rows) {
+    auto to_string = [](const webnn::Dimension& dim) -> std::string {
+      if (std::holds_alternative<uint32_t>(dim)) {
+        return base::StringPrintf("%u", std::get<uint32_t>(dim));
+      } else {
+        return std::get<webnn::DynamicDimension>(dim).name;
+      }
+    };
     return base::unexpected(ErrorWithLabel(
         label,
         base::StringPrintf(
-            "The number of columns (%u) in the first matrix isn't equal to "
-            "the number of rows (%u) in the second matrix.",
-            a_cols, b_rows)));
+            "The number of columns (%s) in the first matrix isn't equal to "
+            "the number of rows (%s) in the second matrix.",
+            to_string(a_cols).c_str(), to_string(b_rows).c_str())));
   }
 
   size_t output_rank = std::max(a_dimensions.size(), b_dimensions.size());
@@ -2128,11 +2135,11 @@ base::expected<OperandDescriptor, std::string> ValidateMatmulAndInferOutput(
   // Figure out the output shape by broadcasting all the dimensions except the
   // last two. The output is 2-D tensor of shape [M, N].
   if (a.Rank() > 2 && b.Rank() > 2) {
-    std::vector<uint32_t> sliced_a_dimensions(a_dimensions.begin(),
-                                              a_dimensions.end() - 2);
-    std::vector<uint32_t> sliced_b_dimensions(b_dimensions.begin(),
-                                              b_dimensions.end() - 2);
-    std::optional<std::vector<uint32_t>> optional_output_dimensions =
+    std::vector<webnn::Dimension> sliced_a_dimensions(a_dimensions.begin(),
+                                                      a_dimensions.end() - 2);
+    std::vector<webnn::Dimension> sliced_b_dimensions(b_dimensions.begin(),
+                                                      b_dimensions.end() - 2);
+    std::optional<std::vector<webnn::Dimension>> optional_output_dimensions =
         BroadcastShapes(sliced_a_dimensions, sliced_b_dimensions, true);
     if (!optional_output_dimensions) {
       return base::unexpected(ErrorWithLabel(
@@ -2146,7 +2153,7 @@ base::expected<OperandDescriptor, std::string> ValidateMatmulAndInferOutput(
     output_dimensions.push_back(a_rows);
     output_dimensions.push_back(b_cols);
   } else {
-    const std::vector<uint32_t>& larger_dimensions =
+    const std::vector<webnn::Dimension>& larger_dimensions =
         a_dimensions.size() > b_dimensions.size() ? a_dimensions : b_dimensions;
     output_dimensions.assign(larger_dimensions.begin(),
                              larger_dimensions.end());
