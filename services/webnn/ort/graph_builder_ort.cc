@@ -161,6 +161,17 @@ constexpr base::cstring_view kInserted = "Inserted";
 constexpr base::cstring_view kToEmulate = "ToEmulate";
 constexpr base::cstring_view kUnderscore = "_";
 
+std::vector<uint32_t> ToUint32Vector(
+    const std::vector<webnn::Dimension>& dimensions) {
+  std::vector<uint32_t> result;
+  result.reserve(dimensions.size());
+  for (const auto& dimension : dimensions) {
+    CHECK(std::holds_alternative<uint32_t>(dimension));
+    result.push_back(std::get<uint32_t>(dimension));
+  }
+  return result;
+}
+
 std::string GetOperandName(std::string_view name, OperandId id) {
   return base::JoinString({name, base::NumberToString(id.value())},
                           kUnderscore);

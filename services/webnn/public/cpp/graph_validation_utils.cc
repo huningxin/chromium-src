@@ -30,17 +30,6 @@
 #include "services/webnn/public/cpp/webnn_errors.h"
 
 namespace webnn {
-
-std::vector<uint32_t> ToUint32Vector(base::span<const Dimension> dimensions) {
-  std::vector<uint32_t> shape;
-  shape.reserve(dimensions.size());
-  for (const auto& dim : dimensions) {
-    // TODO(crbug.com/329482489): Support dynamic shapes.
-    shape.push_back(std::get<uint32_t>(dim));
-  }
-  return shape;
-}
-
 namespace {
 
 // The error message labels for corresponding operands.
@@ -67,6 +56,29 @@ static constexpr char kUpdatesParam[] = "updates";
 static constexpr char kVarianceParam[] = "variance";
 static constexpr char kWeightParam[] = "weight";
 static constexpr char kZeroPointParam[] = "zeroPoint";
+
+// Helper to get the static size or the max size of a dynamic dimension.
+uint32_t GetDimensionSize(const Dimension& dimension) {
+  if (std::holds_alternative<uint32_t>(dimension)) {
+    return std::get<uint32_t>(dimension);
+  }
+  return std::get<DynamicDimension>(dimension).max_size;
+}
+
+// Helper to convert Dimension vector to uint32_t vector, return nullopt if any
+// dimensions are dynamic.
+std::optional<std::vector<uint32_t>> ToUint32Vector(
+    base::span<const Dimension> dimensions) {
+  std::vector<uint32_t> shape;
+  shape.reserve(dimensions.size());
+  for (const auto& dim : dimensions) {
+    if (!std::holds_alternative<uint32_t>(dim)) {
+      return std::nullopt;
+    }
+    shape.push_back(std::get<uint32_t>(dim));
+  }
+  return shape;
+}
 
 // Validate and calculate the output spatial dimensions of conv2d given
 // input sizes, filter sizes, padding, strides and dilations.
@@ -164,43 +176,47 @@ ValidateAndCalculateConvTranspose2dOutputSizes(
                           .width = output_width.value()};
 }
 
+// Channels should be static dimension.
 struct Conv2dInputOutputInfo {
-  uint32_t batches;
+  Dimension batches;
   uint32_t channels;
-  uint32_t height;
-  uint32_t width;
+  Dimension height;
+  Dimension width;
 };
 
 // Get the input info of 2-D direct and transposed convolution
 // operation given input operand and attributes.
-Conv2dInputOutputInfo GetConv2dInputInfo(
+base::expected<Conv2dInputOutputInfo, std::string> GetConv2dInputInfo(
     const std::string& label,
     const OperandDescriptor& input,
     const Conv2dAttributesBase& attributes) {
   const std::vector<Dimension>& input_shape = input.shape();
   // The input layout option specifies the layout format of the input tensor.
-  uint32_t batches, channels, height, width;
+  Dimension batches, channels, height, width;
   switch (attributes.input_layout) {
     case InputOperandLayout::kNchw:
       // "nchw": [batches, input_channels, height, width]
-      // TODO(crbug.com/329482489): Support dynamic shapes.
-      batches = std::get<uint32_t>(input_shape[0]);
-      channels = std::get<uint32_t>(input_shape[1]);
-      height = std::get<uint32_t>(input_shape[2]);
-      width = std::get<uint32_t>(input_shape[3]);
+      batches = input_shape[0];
+      channels = input_shape[1];
+      height = input_shape[2];
+      width = input_shape[3];
       break;
     case InputOperandLayout::kNhwc:
       // "nhwc": [batches, height, width, input_channels]
-      // TODO(crbug.com/329482489): Support dynamic shapes.
-      batches = std::get<uint32_t>(input_shape[0]);
-      height = std::get<uint32_t>(input_shape[1]);
-      width = std::get<uint32_t>(input_shape[2]);
-      channels = std::get<uint32_t>(input_shape[3]);
+      batches = input_shape[0];
+      height = input_shape[1];
+      width = input_shape[2];
+      channels = input_shape[3];
       break;
   }
 
+  if (std::holds_alternative<DynamicDimension>(channels)) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic input channels is not supported."));
+  }
+
   return Conv2dInputOutputInfo{.batches = batches,
-                               .channels = channels,
+                               .channels = std::get<uint32_t>(channels),
                                .height = height,
                                .width = width};
 }
@@ -216,7 +232,12 @@ ValidateConv2dBiasAndCreateOutputOperand(
   const std::string& label = attributes.label;
   // Validate bias operand if it is present.
   if (attributes.bias_operand) {
-    // TODO(crbug.com/329482489): Support dynamic shapes.
+    CHECK_EQ(attributes.bias_operand->shape().size(), 1u);
+    if (!std::holds_alternative<uint32_t>(
+            attributes.bias_operand->shape()[0])) {
+      return base::unexpected(
+          ErrorWithLabel(label, "Dynamic bias shape is not supported."));
+    }
     if (std::get<uint32_t>(attributes.bias_operand->shape()[0]) !=
         output_info.channels) {
       return base::unexpected(ErrorWithLabel(
@@ -280,7 +301,13 @@ base::expected<void, std::string> ValidateRecurrentNetworkOperand(
     base::span<const uint32_t> expected_shape,
     OperandDataType input_data_type,
     std::string_view label) {
-  if (!std::ranges::equal(ToUint32Vector(operand.shape()), expected_shape)) {
+  auto shape = ToUint32Vector(operand.shape());
+  if (!shape) {
+    return base::unexpected(ErrorWithLabel(
+        label,
+        base::StringPrintf("Dynamic shape is not supported for input.")));
+  }
+  if (!std::ranges::equal(*shape, expected_shape)) {
     return base::unexpected(ErrorWithLabel(
         label,
         base::StringPrintf("The %s operand shape is invalid.", operand_name)));
@@ -686,8 +713,8 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
         label, NotSupportedInputArgumentError(
                    input, context_properties.data_type_limits.conv2d_input)));
   }
-  Conv2dInputOutputInfo input_info =
-      GetConv2dInputInfo(label, input, attributes);
+  ASSIGN_OR_RETURN(Conv2dInputOutputInfo input_info,
+                   GetConv2dInputInfo(label, input, attributes));
 
   // Validate filter operand.
   if (!context_properties.data_type_limits.conv2d_input.Supports(filter)) {
@@ -712,37 +739,47 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
     }
   }
 
-  const std::vector<uint32_t> filter_shape = ToUint32Vector(filter.shape());
-  uint32_t filter_height, filter_width, output_channels, filter_input_channels;
+  for (const auto& dim : filter.shape()) {
+    if (std::holds_alternative<DynamicDimension>(dim)) {
+      return base::unexpected(
+          ErrorWithLabel(label, "Dynamic shape is not supported for filter."));
+    }
+  }
+  auto filter_shape = ToUint32Vector(filter.shape());
+  if (!filter_shape) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for filter."));
+  }
+  uint32_t filter_height, filter_width, filter_input_channels, output_channels;
   // The conv2d filter layout specifies the filter layout format.
   switch (attributes.filter_layout) {
     case Conv2dFilterOperandLayout::kHwio:
       // "hwio": [height, width, input_channels/groups, output_channels]
-      filter_height = filter_shape[0];
-      filter_width = filter_shape[1];
-      filter_input_channels = filter_shape[2];
-      output_channels = filter_shape[3];
+      filter_height = (*filter_shape)[0];
+      filter_width = (*filter_shape)[1];
+      filter_input_channels = (*filter_shape)[2];
+      output_channels = (*filter_shape)[3];
       break;
     case Conv2dFilterOperandLayout::kOhwi:
       // "ohwi": [output_channels, height, width, input_channels/groups]
-      output_channels = filter_shape[0];
-      filter_height = filter_shape[1];
-      filter_width = filter_shape[2];
-      filter_input_channels = filter_shape[3];
+      output_channels = (*filter_shape)[0];
+      filter_height = (*filter_shape)[1];
+      filter_width = (*filter_shape)[2];
+      filter_input_channels = (*filter_shape)[3];
       break;
     case Conv2dFilterOperandLayout::kIhwo:
       // "ihwo": [input_channels/groups, height, width, output_channels]
-      filter_input_channels = filter_shape[0];
-      filter_height = filter_shape[1];
-      filter_width = filter_shape[2];
-      output_channels = filter_shape[3];
+      filter_input_channels = (*filter_shape)[0];
+      filter_height = (*filter_shape)[1];
+      filter_width = (*filter_shape)[2];
+      output_channels = (*filter_shape)[3];
       break;
     case Conv2dFilterOperandLayout::kOihw:
       // "oihw": [output_channels, input_channels/groups, height, width]
-      output_channels = filter_shape[0];
-      filter_input_channels = filter_shape[1];
-      filter_height = filter_shape[2];
-      filter_width = filter_shape[3];
+      output_channels = (*filter_shape)[0];
+      filter_input_channels = (*filter_shape)[1];
+      filter_height = (*filter_shape)[2];
+      filter_width = (*filter_shape)[3];
       break;
   }
 
@@ -763,16 +800,32 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
   ASSIGN_OR_RETURN(
       Size2d<double> output_sizes,
       ValidateAndCalculateConv2dOutputSizes(
-          input_info.height, input_info.width, filter_height, filter_width,
-          attributes.padding, attributes.strides, attributes.dilations, label));
+          GetDimensionSize(input_info.height),
+          GetDimensionSize(input_info.width), GetDimensionSize(filter_height),
+          GetDimensionSize(filter_width), attributes.padding,
+          attributes.strides, attributes.dilations, label));
 
   uint32_t output_height = base::ClampFloor<uint32_t>(output_sizes.height);
   uint32_t output_width = base::ClampFloor<uint32_t>(output_sizes.width);
 
+  Dimension output_height_dim, output_width_dim;
+  if (std::holds_alternative<uint32_t>(input_info.height)) {
+    output_height_dim = output_height;
+  } else {
+    output_height_dim =
+        DynamicDimension{.name = "?", .max_size = output_height};
+  }
+
+  if (std::holds_alternative<uint32_t>(input_info.width)) {
+    output_width_dim = output_width;
+  } else {
+    output_width_dim = DynamicDimension{.name = "?", .max_size = output_width};
+  }
+
   Conv2dInputOutputInfo output_info{.batches = input_info.batches,
                                     .channels = output_channels,
-                                    .height = output_height,
-                                    .width = output_width};
+                                    .height = output_height_dim,
+                                    .width = output_width_dim};
   return ValidateConv2dBiasAndCreateOutputOperand(context_properties, input,
                                                   attributes, output_info);
 }
@@ -793,7 +846,8 @@ ValidateConvTranspose2dAndInferOutput(
             input,
             context_properties.data_type_limits.conv_transpose2d_input)));
   }
-  const auto input_info = GetConv2dInputInfo(label, input, attributes);
+  ASSIGN_OR_RETURN(Conv2dInputOutputInfo input_info,
+                   GetConv2dInputInfo(label, input, attributes));
 
   // Validate filter operand.
   if (!context_properties.data_type_limits.conv_transpose2d_input.Supports(
@@ -821,30 +875,34 @@ ValidateConvTranspose2dAndInferOutput(
     }
   }
 
-  const std::vector<uint32_t> filter_shape = ToUint32Vector(filter.shape());
+  auto filter_shape = ToUint32Vector(filter.shape());
+  if (!filter_shape) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for filter."));
+  }
   uint32_t input_channels, filter_height, filter_width, filter_output_channels;
   // The conv2d filter layout specifies the filter layout format.
   switch (attributes.filter_layout) {
     case ConvTranspose2dFilterOperandLayout::kIohw:
       // "iohw": [input_channels, output_channels/groups, height, width]
-      input_channels = filter_shape[0];
-      filter_output_channels = filter_shape[1];
-      filter_height = filter_shape[2];
-      filter_width = filter_shape[3];
+      input_channels = (*filter_shape)[0];
+      filter_output_channels = (*filter_shape)[1];
+      filter_height = (*filter_shape)[2];
+      filter_width = (*filter_shape)[3];
       break;
     case ConvTranspose2dFilterOperandLayout::kHwoi:
       // "hwoi": [height, width, output_channels/groups, input_channels]
-      filter_height = filter_shape[0];
-      filter_width = filter_shape[1];
-      filter_output_channels = filter_shape[2];
-      input_channels = filter_shape[3];
+      filter_height = (*filter_shape)[0];
+      filter_width = (*filter_shape)[1];
+      filter_output_channels = (*filter_shape)[2];
+      input_channels = (*filter_shape)[3];
       break;
     case ConvTranspose2dFilterOperandLayout::kOhwi:
       // "ohwi": [output_channels/groups, height, width, input_channels]
-      filter_output_channels = filter_shape[0];
-      filter_height = filter_shape[1];
-      filter_width = filter_shape[2];
-      input_channels = filter_shape[3];
+      filter_output_channels = (*filter_shape)[0];
+      filter_height = (*filter_shape)[1];
+      filter_width = (*filter_shape)[2];
+      input_channels = (*filter_shape)[3];
       break;
   }
   // Validate groups, input channels and calculate output channels.
@@ -868,6 +926,13 @@ ValidateConvTranspose2dAndInferOutput(
   // Validate and calculate output sizes.
   uint32_t output_height, output_width;
   if (attributes.output_sizes) {
+    if (std::holds_alternative<DynamicDimension>(input_info.height) ||
+        std::holds_alternative<DynamicDimension>(input_info.width)) {
+      return base::unexpected(
+          ErrorWithLabel(label,
+                         "Dynamic input sizes are not supported when "
+                         "output_sizes are present."));
+    }
     const auto& output_sizes = attributes.output_sizes;
     output_height = output_sizes->height;
     output_width = output_sizes->width;
@@ -879,7 +944,8 @@ ValidateConvTranspose2dAndInferOutput(
     ASSIGN_OR_RETURN(
         Size2d<uint32_t> calculated_output_sizes,
         ValidateAndCalculateConvTranspose2dOutputSizes(
-            input_info.height, input_info.width, filter_height, filter_width,
+            std::get<uint32_t>(input_info.height),
+            std::get<uint32_t>(input_info.width), filter_height, filter_width,
             attributes.padding, strides, attributes.dilations,
             // According to WebNN spec:
             // https://webmachinelearning.github.io/webnn/#dom-mlconvtranspose2doptions-outputsizes
@@ -915,17 +981,32 @@ ValidateConvTranspose2dAndInferOutput(
     ASSIGN_OR_RETURN(
         Size2d<uint32_t> output_sizes,
         ValidateAndCalculateConvTranspose2dOutputSizes(
-            input_info.height, input_info.width, filter_height, filter_width,
+            GetDimensionSize(input_info.height),
+            GetDimensionSize(input_info.width), filter_height, filter_width,
             attributes.padding, attributes.strides, attributes.dilations,
             attributes.output_padding, label));
     output_height = output_sizes.height;
     output_width = output_sizes.width;
   }
 
+  Dimension output_height_dim, output_width_dim;
+  if (std::holds_alternative<uint32_t>(input_info.height)) {
+    output_height_dim = output_height;
+  } else {
+    output_height_dim =
+        DynamicDimension{.name = "?", .max_size = output_height};
+  }
+
+  if (std::holds_alternative<uint32_t>(input_info.width)) {
+    output_width_dim = output_width;
+  } else {
+    output_width_dim = DynamicDimension{.name = "?", .max_size = output_width};
+  }
+
   Conv2dInputOutputInfo output_info{.batches = input_info.batches,
                                     .channels = output_channels,
-                                    .height = output_height,
-                                    .width = output_width};
+                                    .height = output_height_dim,
+                                    .width = output_width_dim};
   return ValidateConv2dBiasAndCreateOutputOperand(context_properties, input,
                                                   attributes, output_info);
 }
@@ -1105,9 +1186,14 @@ base::expected<OperandDescriptor, std::string> ValidateExpandAndInferOutput(
                    context_properties.data_type_limits.expand_input.ranks)));
   }
 
+  auto input_shape = ToUint32Vector(input.shape());
+  if (!input_shape) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for input."));
+  }
+
   std::optional<std::vector<uint32_t>> output_shape =
-      BroadcastShapes(ToUint32Vector(input.shape()), new_shape,
-                      /*bidirectional=*/false);
+      BroadcastShapes(*input_shape, new_shape, /*bidirectional=*/false);
   if (!output_shape) {
     return base::unexpected(ErrorWithLabel(
         label, "The input shape is not broadcastable to the new shape."));
@@ -1309,29 +1395,37 @@ base::expected<OperandDescriptor, std::string> ValidateGemmAndInferOutput(
         label, "The data types of first two inputs don't match."));
   }
 
-  std::vector<uint32_t> shape_a = ToUint32Vector(a.shape());
+  auto shape_a = ToUint32Vector(a.shape());
+  if (!shape_a) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for a."));
+  }
   if (attributes.a_transpose) {
-    std::ranges::reverse(shape_a);
+    std::ranges::reverse(*shape_a);
   }
   // The second input 2-D tensor with shape [K, N] if bTranspose is false, or
   // [N, K] if bTranspose is true.
-  std::vector<uint32_t> shape_b = ToUint32Vector(b.shape());
+  auto shape_b = ToUint32Vector(b.shape());
+  if (!shape_b) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for b."));
+  }
   if (attributes.b_transpose) {
-    std::ranges::reverse(shape_b);
+    std::ranges::reverse(*shape_b);
   }
   // The number of columns in the first matrix must be equal to the number of
   // rows in the second matrix.
-  if (shape_a[1] != shape_b[0]) {
+  if ((*shape_a)[1] != (*shape_b)[0]) {
     return base::unexpected(ErrorWithLabel(
         label,
         base::StringPrintf(
             "The number of columns (%u) in the %sfirst matrix isn't equal to "
             "the number of rows (%u) in the %ssecond matrix.",
-            shape_a[1], attributes.a_transpose ? "transposed " : "", shape_b[0],
-            attributes.b_transpose ? "transposed " : "")));
+            (*shape_a)[1], attributes.a_transpose ? "transposed " : "",
+            (*shape_b)[0], attributes.b_transpose ? "transposed " : "")));
   };
   // The output is 2-D tensor of shape [M, N].
-  std::vector<Dimension> output_shape = {shape_a[0], shape_b[1]};
+  std::vector<Dimension> output_shape = {(*shape_a)[0], (*shape_b)[1]};
   // The third input tensor c is either a scalar, or of the shape that is
   // unidirectionally broadcastable to the output shape [M, N].
   if (attributes.c_operand) {
@@ -1350,8 +1444,14 @@ base::expected<OperandDescriptor, std::string> ValidateGemmAndInferOutput(
     }
 
     // TODO(crbug.com/329482489): Support dynamic shapes.
-    if (!BroadcastShapes(ToUint32Vector(attributes.c_operand->shape()),
-                         ToUint32Vector(output_shape),
+    auto c_shape = ToUint32Vector(attributes.c_operand->shape());
+    if (!c_shape) {
+      return base::unexpected(
+          ErrorWithLabel(label, "Dynamic shape is not supported for c."));
+    }
+    auto output_shape_uint32 = ToUint32Vector(output_shape);
+    CHECK(output_shape_uint32);
+    if (!BroadcastShapes(*c_shape, *output_shape_uint32,
                          /*bidirectional=*/false)) {
       return base::unexpected(ErrorWithLabel(
           label,
@@ -1702,14 +1802,18 @@ ValidateLayerNormalizationAndInferOutput(
   // duplication.
   RETURN_IF_ERROR(ValidateAxes(axes, input.Rank(), label));
 
-  const std::vector<uint32_t> input_dimensions = ToUint32Vector(input.shape());
+  const auto input_dimensions = ToUint32Vector(input.shape());
+  if (!input_dimensions) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for input."));
+  }
 
   // The dimensions for layerNormalization to reduce along.
   std::vector<uint32_t> reduction_dimensions;
   reduction_dimensions.reserve(axes.size());
   std::ranges::transform(
       axes, std::back_inserter(reduction_dimensions),
-      [&input_dimensions](uint32_t axis) { return input_dimensions[axis]; });
+      [&input_dimensions](uint32_t axis) { return (*input_dimensions)[axis]; });
 
   // Validate the scale operand.
   if (attributes.scale.has_value()) {
@@ -1720,7 +1824,12 @@ ValidateLayerNormalizationAndInferOutput(
           "type."));
     }
     // TODO(crbug.com/329482489): Support dynamic shapes.
-    if (ToUint32Vector(attributes.scale->shape()) != reduction_dimensions) {
+    auto scale_shape = ToUint32Vector(attributes.scale->shape());
+    if (!scale_shape) {
+      return base::unexpected(
+          ErrorWithLabel(label, "Dynamic shape is not supported for scale."));
+    }
+    if (*scale_shape != reduction_dimensions) {
       return base::unexpected(ErrorWithLabel(
           label,
           "For scale operand: the shape doesn't match the axis dimensions of "
@@ -1737,7 +1846,12 @@ ValidateLayerNormalizationAndInferOutput(
                          "input data type."));
     }
     // TODO(crbug.com/329482489): Support dynamic shapes.
-    if (ToUint32Vector(attributes.bias->shape()) != reduction_dimensions) {
+    auto bias_shape = ToUint32Vector(attributes.bias->shape());
+    if (!bias_shape) {
+      return base::unexpected(
+          ErrorWithLabel(label, "Dynamic shape is not supported for bias."));
+    }
+    if (!bias_shape || *bias_shape != reduction_dimensions) {
       return base::unexpected(ErrorWithLabel(
           label,
           "For bias operand: the shape doesn't match the axis dimensions of "
@@ -2411,8 +2525,17 @@ base::expected<OperandDescriptor, std::string> ValidatePreluAndInferOutput(
   // BroadcastShape unidirectionally broadcasts slope.dimensions to
   // input.dimensions.
   // TODO(crbug.com/329482489): Support dynamic shapes.
-  if (!BroadcastShapes(ToUint32Vector(slope.shape()),
-                       ToUint32Vector(input.shape()),
+  auto slope_shape_opt = ToUint32Vector(slope.shape());
+  if (!slope_shape_opt) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for slope."));
+  }
+  auto input_shape_opt = ToUint32Vector(input.shape());
+  if (!input_shape_opt) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for input."));
+  }
+  if (!BroadcastShapes(*slope_shape_opt, *input_shape_opt,
                        /*bidirectional=*/false)) {
     return base::unexpected(ErrorWithLabel(
         label,
@@ -2874,7 +2997,12 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
     for (uint32_t i = 0; i < splits; ++i) {
       // When splits is of type uint32_t, we create splits number of Operands.
       // Each Operand will have the same new_dimensions shape.
-      std::vector<uint32_t> new_dimensions = ToUint32Vector(input.shape());
+      auto new_dimensions_opt = ToUint32Vector(input.shape());
+      if (!new_dimensions_opt) {
+        return base::unexpected(
+            ErrorWithLabel(label, "Dynamic shape is not supported for input."));
+      }
+      std::vector<uint32_t> new_dimensions = *new_dimensions_opt;
       new_dimensions[attributes.axis] /= splits;
       auto split_descriptor = OperandDescriptor::Create(
           context_properties, input.data_type(),
@@ -2909,7 +3037,12 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
 
     outputs.reserve(splits.size());
     for (uint32_t split : splits) {
-      std::vector<uint32_t> new_dimensions = ToUint32Vector(input.shape());
+      auto new_dimensions_opt = ToUint32Vector(input.shape());
+      if (!new_dimensions_opt) {
+        return base::unexpected(
+            ErrorWithLabel(label, "Dynamic input shape is not supported."));
+      }
+      std::vector<uint32_t> new_dimensions = *new_dimensions_opt;
       new_dimensions[attributes.axis] = split;
       auto split_descriptor = OperandDescriptor::Create(
           context_properties, input.data_type(),
@@ -3045,9 +3178,19 @@ base::expected<OperandDescriptor, std::string> ValidateWhereAndInferOutput(
   }
 
   // TODO(crbug.com/329482489): Support dynamic shapes.
-  const std::optional<std::vector<uint32_t>> value_shape = BroadcastShapes(
-      ToUint32Vector(true_value.shape()), ToUint32Vector(false_value.shape()),
-      /*bidirectional=*/true);
+  const auto true_value_shape = ToUint32Vector(true_value.shape());
+  if (!true_value_shape) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for trueValue."));
+  }
+  const auto false_value_shape = ToUint32Vector(false_value.shape());
+  if (!false_value_shape) {
+    return base::unexpected(ErrorWithLabel(
+        label, "Dynamic shape is not supported for falseValue."));
+  }
+  const std::optional<std::vector<uint32_t>> value_shape =
+      BroadcastShapes(*true_value_shape, *false_value_shape,
+                      /*bidirectional=*/true);
   if (!value_shape) {
     return base::unexpected(ErrorWithLabel(
         label,
@@ -3055,8 +3198,13 @@ base::expected<OperandDescriptor, std::string> ValidateWhereAndInferOutput(
   }
 
   // TODO(crbug.com/329482489): Support dynamic shapes.
+  const auto condition_shape = ToUint32Vector(condition.shape());
+  if (!condition_shape) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic shape is not supported for condition."));
+  }
   std::optional<std::vector<uint32_t>> output_shape =
-      BroadcastShapes(ToUint32Vector(condition.shape()), value_shape.value(),
+      BroadcastShapes(*condition_shape, value_shape.value(),
                       /*bidirectional=*/true);
   if (!output_shape) {
     return base::unexpected(ErrorWithLabel(

@@ -781,11 +781,6 @@ base::expected<void, std::string> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
                  uint32_t rank,
                  std::string_view label);
 
-// TODO(crbug.com/329482489): This is a temporary helper to convert Dimension to
-// uint32_t until validation supports dynamic shapes.
-std::vector<uint32_t> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
-    ToUint32Vector(base::span<const Dimension> dimensions);
-
 // Validate the creation of an MLTensor given `descriptor`.
 base::expected<void, std::string> COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
     ValidateTensor(const ContextProperties& context_properties,
