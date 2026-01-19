@@ -956,24 +956,14 @@ OperationPtr CreatePool2dOperation(const OperandToIdMap& operand_to_id_map,
   CHECK_EQ(dilations.size(), 2u);
   pool2d_mojo->dilations = Size2d::New(dilations[0], dilations[1]);
 
-  // Get height and width of input for calculating padding.
-  auto input_size = mojo::GetInputOperandSize2d(
-      pool2d->PositionalInputs()[0].Get(), options->layout().AsEnum());
   // The dimensions of the sliding window are the height and width of input
   // operand if they are not supplied by user.
-  // TODO(ningxin): support dynamic window dimensions when input size is
-  // dynamic.
-  uint32_t window_height = std::get<uint32_t>(input_size.height);
-  uint32_t window_width = std::get<uint32_t>(input_size.width);
   if (options->hasWindowDimensions()) {
     auto& window_dimensions = options->windowDimensions();
     CHECK_EQ(window_dimensions.size(), 2u);
-    window_height = window_dimensions[0];
-    window_width = window_dimensions[1];
+    pool2d_mojo->window_dimensions =
+        Size2d::New(window_dimensions[0], window_dimensions[1]);
   }
-
-  pool2d_mojo->window_dimensions = Size2d::New(window_height, window_width);
-
   // Set the padding from WebNN explicit padding that is in
   // [beginning_height, ending_height, beginning_width, ending_width],
   // default to 0.

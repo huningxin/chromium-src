@@ -1240,7 +1240,8 @@ const getPoolingOperatorsPrecisionTolerance =
   let inputShape;
   const inputIndex = args[0][Object.keys(args[0])[0]];
   if (inputs[inputIndex]) {
-    inputShape = inputs[inputIndex].descriptor.shape;
+    inputShape =
+        inputs[inputIndex].shape || inputs[inputIndex].descriptor.shape;
   } else {
     inputShape = intermediateOperands[inputIndex].shape;
   }

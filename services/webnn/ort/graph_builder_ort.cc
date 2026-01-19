@@ -161,6 +161,15 @@ constexpr base::cstring_view kInserted = "Inserted";
 constexpr base::cstring_view kToEmulate = "ToEmulate";
 constexpr base::cstring_view kUnderscore = "_";
 
+// Helper to get the static size or the max size of a dynamic dimension.
+uint32_t GetDimensionSize(const webnn::Dimension& dimension) {
+  if (std::holds_alternative<uint32_t>(dimension)) {
+    return std::get<uint32_t>(dimension);
+  }
+  return std::get<webnn::DynamicDimension>(dimension).max_size;
+}
+
+// Helper to check and get the static shape from a dimension vector.
 std::vector<uint32_t> ToUint32Vector(
     const std::vector<webnn::Dimension>& dimensions) {
   std::vector<uint32_t> result;
@@ -2526,6 +2535,38 @@ void GraphBuilderOrt::AddMatMulOperation(const mojom::Matmul& matmul) {
 }
 
 void GraphBuilderOrt::AddPool2dOperation(const mojom::Pool2d& pool2d) {
+  if (!pool2d.window_dimensions) {
+    base::cstring_view op_type;
+    std::vector<ScopedOrtOpAttr> attributes;
+    const OperandDescriptor& input_descriptor =
+        GetOperand(pool2d.input_operand_id).descriptor;
+    const DataTypeLimits& data_type_limits =
+        context_properties_.data_type_limits;
+    switch (pool2d.kind) {
+      case mojom::Pool2d::Kind::kAveragePool2d:
+        CHECK(data_type_limits.average_pool2d_input.Supports(input_descriptor));
+        op_type = "GlobalAveragePool";
+        break;
+      case mojom::Pool2d::Kind::kL2Pool2d:
+        CHECK(data_type_limits.l2_pool2d_input.Supports(input_descriptor));
+        op_type = "GlobalLpPool";
+        attributes.push_back(
+            model_editor_.CreateAttribute(kAttrP, static_cast<int64_t>(2)));
+        break;
+      case mojom::Pool2d::Kind::kMaxPool2d:
+        CHECK(data_type_limits.max_pool2d_input.Supports(input_descriptor));
+        op_type = "GlobalMaxPool";
+        break;
+    }
+    const std::string node_name = GenerateNodeName(pool2d.label);
+    const std::string input = GetOperandNameById(pool2d.input_operand_id);
+    const std::string output = GetOperandNameById(pool2d.output_operand_id);
+    std::array<const char*, 1> inputs = {input.c_str()};
+    std::array<const char*, 1> outputs = {output.c_str()};
+    model_editor_.AddNode(op_type, node_name, inputs, outputs, attributes);
+    return;
+  }
+
   std::vector<ScopedOrtOpAttr> attributes;
 
   std::array<int64_t, 2> dilations = {
@@ -2557,14 +2598,13 @@ void GraphBuilderOrt::AddPool2dOperation(const mojom::Pool2d& pool2d) {
   // Calculate the ceil_mode.
   const OperandDescriptor& input_descriptor =
       GetOperand(pool2d.input_operand_id).descriptor;
-  const std::vector<uint32_t> input_shape =
-      ToUint32Vector(input_descriptor.shape());
-  const std::vector<uint32_t> output_shape =
-      ToUint32Vector(GetOperand(pool2d.output_operand_id).descriptor.shape());
+  const std::vector<webnn::Dimension>& input_shape = input_descriptor.shape();
+  const std::vector<webnn::Dimension>& output_shape =
+      GetOperand(pool2d.output_operand_id).descriptor.shape();
 
   CHECK_EQ(context_properties_.input_operand_layout, InputOperandLayout::kNchw);
-  uint32_t input_height = input_shape[2];
-  uint32_t output_height = output_shape[2];
+  uint32_t input_height = GetDimensionSize(input_shape[2]);
+  uint32_t output_height = GetDimensionSize(output_shape[2]);
   const auto float_output_height = CalculateConv2dOutputSize(
       input_height, pool2d.window_dimensions->height,
       pool2d.padding->beginning->height, pool2d.padding->ending->height,

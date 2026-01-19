@@ -388,8 +388,10 @@ webnn::Pool2dAttributes ConvertToPool2dAttributes(
     const mojom::Operand* output) {
   webnn::Pool2dAttributes component_attributes;
   auto& window_dimensions = pool2d.window_dimensions;
-  component_attributes.window_dimensions = webnn::Size2d<uint32_t>{
-      .height = window_dimensions->height, .width = window_dimensions->width};
+  if (window_dimensions) {
+    component_attributes.window_dimensions = webnn::Size2d<uint32_t>{
+        .height = window_dimensions->height, .width = window_dimensions->width};
+  }
   auto& mojo_padding = pool2d.padding;
   component_attributes.padding = webnn::Padding2d{
       .beginning =
@@ -405,14 +407,20 @@ webnn::Pool2dAttributes ConvertToPool2dAttributes(
   CHECK_EQ(output->descriptor.Rank(), 4u);
   switch (component_attributes.layout) {
     case webnn::InputOperandLayout::kNchw:
-      component_attributes.output_sizes = webnn::Size2d<uint32_t>{
-          .height = std::get<uint32_t>(output->descriptor.shape()[2]),
-          .width = std::get<uint32_t>(output->descriptor.shape()[3])};
+      if (std::holds_alternative<uint32_t>(output->descriptor.shape()[2]) &&
+          std::holds_alternative<uint32_t>(output->descriptor.shape()[3])) {
+        component_attributes.output_sizes = webnn::Size2d<uint32_t>{
+            .height = std::get<uint32_t>(output->descriptor.shape()[2]),
+            .width = std::get<uint32_t>(output->descriptor.shape()[3])};
+      }
       break;
     case webnn::InputOperandLayout::kNhwc:
-      component_attributes.output_sizes = webnn::Size2d<uint32_t>{
-          .height = std::get<uint32_t>(output->descriptor.shape()[1]),
-          .width = std::get<uint32_t>(output->descriptor.shape()[2])};
+      if (std::holds_alternative<uint32_t>(output->descriptor.shape()[1]) &&
+          std::holds_alternative<uint32_t>(output->descriptor.shape()[2])) {
+        component_attributes.output_sizes = webnn::Size2d<uint32_t>{
+            .height = std::get<uint32_t>(output->descriptor.shape()[1]),
+            .width = std::get<uint32_t>(output->descriptor.shape()[2])};
+      }
       break;
   }
   component_attributes.label = pool2d.label;

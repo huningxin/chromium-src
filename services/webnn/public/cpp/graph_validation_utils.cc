@@ -2441,108 +2441,128 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
         label, NotSupportedInputArgumentError(input, tensor_constraint)));
   }
 
-  auto input_shape = ToUint32Vector(input.shape());
-  if (!input_shape) {
-    return base::unexpected(
-        ErrorWithLabel(label, "Dynamic input is not supported."));
-  }
-  CHECK_EQ(input_shape->size(), 4u);
+  CHECK_EQ(input.shape().size(), 4u);
   // The layout option specifies the layout format of the input tensor.
-  uint32_t input_batches, input_channels, input_height, input_width;
+  Dimension input_batches, input_channels, input_height, input_width;
   switch (attributes.layout) {
     case InputOperandLayout::kNchw:
       // "nchw": [batches, channels, height, width]
-      // TODO(crbug.com/329482489): Support dynamic shapes.
-      input_batches = (*input_shape)[0];
-      input_channels = (*input_shape)[1];
-      input_height = (*input_shape)[2];
-      input_width = (*input_shape)[3];
+      input_batches = input.shape()[0];
+      input_channels = input.shape()[1];
+      input_height = input.shape()[2];
+      input_width = input.shape()[3];
       break;
     case InputOperandLayout::kNhwc:
       // "nhwc": [batches, height, width, channels]
-      // TODO(crbug.com/329482489): Support dynamic shapes.
-      input_batches = (*input_shape)[0];
-      input_height = (*input_shape)[1];
-      input_width = (*input_shape)[2];
-      input_channels = (*input_shape)[3];
+      input_batches = input.shape()[0];
+      input_height = input.shape()[1];
+      input_width = input.shape()[2];
+      input_channels = input.shape()[3];
       break;
   }
 
-  // Validate windowDimensions and get its values. If not present, the window
-  // dimensions are assumed to be the height and width dimensions of the input
-  // shape.
-  uint32_t window_height = input_height;
-  uint32_t window_width = input_width;
+  // Validate windowDimensions and get its values. If not present, assume global
+  // pool2d operation and the output sizes are 1x1.
+  Dimension output_height = uint32_t{1};
+  Dimension output_width = uint32_t{1};
   if (attributes.window_dimensions) {
     if (attributes.window_dimensions->height == 0 ||
         attributes.window_dimensions->width == 0) {
       return base::unexpected(ErrorWithLabel(
           label, "All window dimensions should be greater than 0."));
     }
-    window_height = attributes.window_dimensions->height;
-    window_width = attributes.window_dimensions->width;
-  }
+    uint32_t window_height = attributes.window_dimensions->height;
+    uint32_t window_width = attributes.window_dimensions->width;
 
-  // Reuse ValidateAndCalculateConv2dOutputSizes to calculate pool2d output
-  // sizes.
-  ASSIGN_OR_RETURN(
-      Size2d<double> output_sizes,
-      ValidateAndCalculateConv2dOutputSizes(
-          input_height, input_width, window_height, window_width,
-          attributes.padding, attributes.strides, attributes.dilations, label));
+    // Reuse ValidateAndCalculateConv2dOutputSizes to calculate pool2d output
+    // sizes.
+    ASSIGN_OR_RETURN(
+        Size2d<double> output_sizes,
+        ValidateAndCalculateConv2dOutputSizes(
+            GetDimensionSize(input_height), GetDimensionSize(input_width),
+            window_height, window_width, attributes.padding, attributes.strides,
+            attributes.dilations, label));
 
-  const uint32_t floor_output_height =
-      base::ClampFloor<uint32_t>(output_sizes.height);
-  const uint32_t ceil_output_height =
-      base::ClampCeil<uint32_t>(output_sizes.height);
-  const uint32_t floor_output_width =
-      base::ClampFloor<uint32_t>(output_sizes.width);
-  const uint32_t ceil_output_width =
-      base::ClampCeil<uint32_t>(output_sizes.width);
+    const uint32_t floor_output_height =
+        base::ClampFloor<uint32_t>(output_sizes.height);
+    const uint32_t ceil_output_height =
+        base::ClampCeil<uint32_t>(output_sizes.height);
+    const uint32_t floor_output_width =
+        base::ClampFloor<uint32_t>(output_sizes.width);
+    const uint32_t ceil_output_width =
+        base::ClampCeil<uint32_t>(output_sizes.width);
 
-  uint32_t output_height, output_width;
-  if (attributes.output_sizes) {
-    auto& output_size = attributes.output_sizes.value();
-    if (output_size.height == 0 || output_size.width == 0) {
-      return base::unexpected(
-          ErrorWithLabel(label, "All output sizes should be greater than 0."));
-    }
-    uint32_t user_output_height = output_size.height;
-    uint32_t user_output_width = output_size.width;
+    if (attributes.output_sizes) {
+      if (!std::holds_alternative<uint32_t>(input_height) ||
+          !std::holds_alternative<uint32_t>(input_width)) {
+        return base::unexpected(
+            ErrorWithLabel(label,
+                           "Dyanmic input sizes is not supported when output "
+                           "sizes is present"));
+      }
+      auto& output_size = attributes.output_sizes.value();
+      if (output_size.height == 0 || output_size.width == 0) {
+        return base::unexpected(ErrorWithLabel(
+            label, "All output sizes should be greater than 0."));
+      }
+      uint32_t user_output_height = output_size.height;
+      uint32_t user_output_width = output_size.width;
 
-    // Check whether the user supplied output sizes is either floor or ceil
-    // rounding of the calculated output sizes. The backend implementation
-    // should check whether the indicated rounding type is supported.
-    if ((user_output_height == floor_output_height &&
-         user_output_width == floor_output_width) ||
-        (user_output_height == ceil_output_height &&
-         user_output_width == ceil_output_width)) {
-      output_height = user_output_height;
-      output_width = user_output_width;
+      // Check whether the user supplied output sizes is either floor or ceil
+      // rounding of the calculated output sizes. The backend implementation
+      // should check whether the indicated rounding type is supported.
+      if ((user_output_height == floor_output_height &&
+           user_output_width == floor_output_width) ||
+          (user_output_height == ceil_output_height &&
+           user_output_width == ceil_output_width)) {
+        output_height = user_output_height;
+        output_width = user_output_width;
+      } else {
+        return base::unexpected(ErrorWithLabel(
+            label,
+            (floor_output_height == ceil_output_height &&
+             floor_output_width == ceil_output_width)
+                ? base::StringPrintf("The output sizes should be [%u, %u].",
+                                     floor_output_height, floor_output_width)
+                : base::StringPrintf(
+                      "The output sizes should be either [%u, %u] or [%u, %u].",
+                      floor_output_height, floor_output_width,
+                      ceil_output_height, ceil_output_width)));
+      }
     } else {
-      return base::unexpected(ErrorWithLabel(
-          label,
-          (floor_output_height == ceil_output_height &&
-           floor_output_width == ceil_output_width)
-              ? base::StringPrintf("The output sizes should be [%u, %u].",
-                                   floor_output_height, floor_output_width)
-              : base::StringPrintf(
-                    "The output sizes should be either [%u, %u] or [%u, %u].",
-                    floor_output_height, floor_output_width, ceil_output_height,
-                    ceil_output_width)));
-    }
-  } else {
-    switch (attributes.rounding_type) {
-      case RoundingType::kFloor:
-        output_height = floor_output_height;
-        output_width = floor_output_width;
-        break;
-      case RoundingType::kCeil:
-        output_height = ceil_output_height;
-        output_width = ceil_output_width;
-        break;
+      switch (attributes.rounding_type) {
+        case RoundingType::kFloor:
+          if (std::holds_alternative<uint32_t>(input_height)) {
+            output_height = floor_output_height;
+          } else {
+            output_height =
+                DynamicDimension{.name = "?", .max_size = floor_output_height};
+          }
+          if (std::holds_alternative<uint32_t>(input_width)) {
+            output_width = floor_output_width;
+          } else {
+            output_width =
+                DynamicDimension{.name = "?", .max_size = floor_output_width};
+          }
+          break;
+        case RoundingType::kCeil:
+          if (std::holds_alternative<uint32_t>(input_height)) {
+            output_height = ceil_output_height;
+          } else {
+            output_height =
+                DynamicDimension{.name = "?", .max_size = ceil_output_height};
+          }
+          if (std::holds_alternative<uint32_t>(input_width)) {
+            output_width = ceil_output_width;
+          } else {
+            output_width =
+                DynamicDimension{.name = "?", .max_size = ceil_output_width};
+          }
+          break;
+      }
     }
   }
+
   // The layout option specifies the layout format of the output tensor.
   std::vector<Dimension> output_shape;
   switch (attributes.layout) {

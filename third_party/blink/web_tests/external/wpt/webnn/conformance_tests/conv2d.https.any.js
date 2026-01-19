@@ -2112,8 +2112,7 @@ const conv2dTests = [
     }
   },
   {
-    'name':
-        'conv2d float32 4D (dynamic batch, height, width)',
+    'name': 'conv2d float32 4D (dynamic batch, height, width)',
     'graph': {
       'inputs': {
         'conv2dInput': {
@@ -2129,7 +2128,10 @@ const conv2dTests = [
             0.21529443562030792
           ],
           'descriptor': {
-            shape: [{name: 'batch', maxSize: 10}, 1, {name: 'height', maxSize: 10}, {name: 'width', maxSize: 10}],
+            shape: [
+              {name: 'batch', maxSize: 10}, 1, {name: 'height', maxSize: 10},
+              {name: 'width', maxSize: 10}
+            ],
             dataType: 'float32'
           },
           'shape': [1, 1, 5, 5]
@@ -2158,10 +2160,8 @@ const conv2dTests = [
           'shape': [1, 1, 3, 3],
           'descriptor': {
             shape: [
-              {name: 'batch', maxSize: 10},
-              1,
-              {name: "?", maxSize: 8},
-              {name: "?", maxSize: 8}
+              {name: 'batch', maxSize: 10}, 1, {name: '?', maxSize: 8},
+              {name: '?', maxSize: 8}
             ],
             dataType: 'float32'
           }
