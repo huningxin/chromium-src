@@ -2262,6 +2262,11 @@ bool OperationValidationContext::ValidateReshape(const mojom::Reshape& reshape,
     return false;
   }
 
+  if (input->descriptor.HasDynamicShape() ||
+      output->descriptor.HasDynamicShape()) {
+    return false;
+  }
+
   if (input->descriptor.NumberOfElements() !=
       output->descriptor.NumberOfElements()) {
     // The output shape is not expected.

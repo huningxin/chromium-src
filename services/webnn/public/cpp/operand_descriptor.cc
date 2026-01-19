@@ -190,6 +190,12 @@ void OperandDescriptor::SetPendingPermutation(
   pending_permutation_.assign(permutation.begin(), permutation.end());
 }
 
+bool OperandDescriptor::HasDynamicShape() const {
+  return std::ranges::any_of(shape_, [](const Dimension& dim) {
+    return std::holds_alternative<DynamicDimension>(dim);
+  });
+}
+
 std::vector<uint32_t> OperandDescriptor::GetStaticShape() const {
   std::vector<uint32_t> static_shape;
   static_shape.reserve(shape_.size());

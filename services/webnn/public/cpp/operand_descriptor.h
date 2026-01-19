@@ -158,6 +158,7 @@ class COMPONENT_EXPORT(WEBNN_PUBLIC_CPP) OperandDescriptor {
 
   void SetPendingPermutation(base::span<const uint32_t> permutation);
 
+  bool HasDynamicShape() const;
   // Returns the shape as a vector of uint32_t.
   // CHECKs if any of the dimensions are dynamic.
   std::vector<uint32_t> GetStaticShape() const;

@@ -2979,6 +2979,12 @@ MLOperand* MLGraphBuilder::reshape(MLOperand* input,
     return nullptr;
   }
 
+  if (input->Descriptor().HasDynamicShape()) {
+    exception_state.ThrowTypeError(
+        BuildErrorMessage(label, "Dynamic input is not supported."));
+    return nullptr;
+  }
+
   // Setting the initial number of elements to 1 would cover the 0-D scalar with
   // empty dimensions.
   base::CheckedNumeric<size_t> checked_newshape_number_of_elements = 1;
@@ -3001,6 +3007,7 @@ MLOperand* MLGraphBuilder::reshape(MLOperand* input,
     return nullptr;
   }
   DCHECK_NE(newshape_number_of_elements, size_t(0));
+
   // The number of elements implied by new shape must be the same as the
   // number of elements in the input tensor.
   if (input->NumberOfElements() != newshape_number_of_elements) {
