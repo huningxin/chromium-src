@@ -62,8 +62,11 @@ class MLOperand;
 class MLInputOperandDescriptor;
 class MLOperandDescriptor;
 class ScriptState;
+class V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange;
 
 typedef HeapVector<std::pair<String, Member<MLOperand>>> MLNamedOperands;
+typedef V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange MLDimension;
+typedef HeapVector<Member<MLDimension>> MLDynamicShape;
 
 class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
@@ -446,7 +449,7 @@ class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
                   ExceptionState& exception_state);
 
   MLOperand* reshape(MLOperand* input,
-                     const Vector<uint32_t>& new_shape,
+                     const MLDynamicShape& new_shape,
                      MLOperatorOptions* options,
                      ExceptionState& exception_state);
 

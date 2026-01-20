@@ -2767,10 +2767,115 @@ void GraphBuilderOrt::AddReshapeOperation(const mojom::Reshape& reshape) {
   CHECK(context_properties_.data_type_limits.reshape_input.Supports(
       GetOperand(reshape.input_operand_id).descriptor));
 
-  const std::vector<uint32_t> output_shape =
-      ToUint32Vector(GetOperand(reshape.output_operand_id).descriptor.shape());
+  const OperandDescriptor& input_descriptor =
+      GetOperand(reshape.input_operand_id).descriptor;
+  const OperandDescriptor& output_descriptor =
+      GetOperand(reshape.output_operand_id).descriptor;
+  const std::vector<webnn::Dimension>& output_shape = output_descriptor.shape();
 
-  AddReshapeNode(node_name, input, output, output_shape);
+  // Check if output shape contains any dynamic dimensions.
+  bool has_dynamic_dims =
+      std::ranges::any_of(output_shape, [](const webnn::Dimension& dim) {
+        return std::holds_alternative<DynamicDimension>(dim);
+      });
+
+  if (!has_dynamic_dims) {
+    // All dimensions are static, use the simple path.
+    AddReshapeNode(node_name, input, output, ToUint32Vector(output_shape));
+    return;
+  }
+
+  // Output shape has dynamic dimensions. Build the shape tensor at runtime
+  // using Shape and Gather operators.
+
+  // Step 1: Get the input shape at runtime using Shape operator.
+  const std::string input_shape_name = GenerateOperandName();
+  {
+    std::array<const char*, 1> shape_inputs = {input.c_str()};
+    std::array<const char*, 1> shape_outputs = {input_shape_name.c_str()};
+    const std::string shape_node_name = GenerateNodeName(base::JoinString(
+        {kInserted, "Shape", kToEmulate, reshape.label}, kUnderscore));
+    model_editor_.AddNode("Shape", shape_node_name, shape_inputs,
+                          shape_outputs);
+  }
+
+  // Step 2: For each dimension in output shape, either use a constant (for
+  // static dims) or gather from input shape (for dynamic dims).
+  std::vector<std::string> dimension_names;
+  dimension_names.reserve(output_shape.size());
+
+  // Build a mapping from input shape to find dynamic dimensions.
+  const std::vector<webnn::Dimension>& input_shape = input_descriptor.shape();
+
+  for (const auto& dim : output_shape) {
+    if (std::holds_alternative<uint32_t>(dim)) {
+      // Static dimension: create a 1-D constant with shape [1].
+      uint32_t static_value = std::get<uint32_t>(dim);
+      std::array<int64_t, 1> value_array = {static_cast<int64_t>(static_value)};
+      std::string const_name = Create1DInitializer<int64_t>(value_array);
+      dimension_names.push_back(std::move(const_name));
+    } else {
+      // Dynamic dimension: find its index in input shape and gather it.
+      CHECK(std::holds_alternative<DynamicDimension>(dim));
+
+      // Find the index of this dynamic dimension in the input shape.
+      auto it = std::ranges::find(input_shape, dim);
+      CHECK(it != input_shape.end())
+          << "Dynamic dimension not found in input shape";
+      int64_t input_axis = std::distance(input_shape.begin(), it);
+
+      // Create a Gather node to extract this dimension from input shape.
+      // Use axis=0 since input_shape is 1-D, and indices as a 1-D tensor with
+      // shape [1] to get output shape [1].
+      const std::string gather_output = GenerateOperandName();
+      std::array<int64_t, 1> indices_array = {input_axis};
+      const std::string indices_const =
+          Create1DInitializer<int64_t>(indices_array);
+
+      std::array<const char*, 2> gather_inputs = {input_shape_name.c_str(),
+                                                  indices_const.c_str()};
+      std::array<const char*, 1> gather_outputs = {gather_output.c_str()};
+      std::array<ScopedOrtOpAttr, 1> gather_attributes = {
+          model_editor_.CreateAttribute(kAttrAxis, static_cast<int64_t>(0))};
+      const std::string gather_node_name = GenerateNodeName(
+          base::JoinString({kInserted, kOpTypeGather, kToEmulate, reshape.label,
+                            base::NumberToString(input_axis)},
+                           kUnderscore));
+      model_editor_.AddNode(kOpTypeGather, gather_node_name, gather_inputs,
+                            gather_outputs, gather_attributes);
+
+      dimension_names.push_back(std::move(gather_output));
+    }
+  }
+
+  // Step 3: Concatenate all dimension values to create the final shape tensor.
+  std::string final_shape_name;
+  if (dimension_names.size() == 1) {
+    // Single dimension, no need to concatenate.
+    final_shape_name = dimension_names[0];
+  } else {
+    // Multiple dimensions, concatenate them.
+    final_shape_name = GenerateOperandName();
+    std::vector<const char*> concat_inputs;
+    concat_inputs.reserve(dimension_names.size());
+    for (const auto& name : dimension_names) {
+      concat_inputs.push_back(name.c_str());
+    }
+    std::array<const char*, 1> concat_outputs = {final_shape_name.c_str()};
+    std::array<ScopedOrtOpAttr, 1> concat_attributes = {
+        model_editor_.CreateAttribute(kAttrAxis, static_cast<int64_t>(0))};
+    const std::string concat_node_name = GenerateNodeName(base::JoinString(
+        {kInserted, kOpTypeConcat, kToEmulate, reshape.label}, kUnderscore));
+    model_editor_.AddNode(kOpTypeConcat, concat_node_name, concat_inputs,
+                          concat_outputs, concat_attributes);
+  }
+
+  // Step 4: Use the constructed shape tensor for the Reshape operation.
+  std::array<const char*, 2> reshape_inputs = {input.c_str(),
+                                               final_shape_name.c_str()};
+  std::array<const char*, 1> reshape_outputs = {output.c_str()};
+  model_editor_.AddNode(kOpTypeReshape, node_name, reshape_inputs,
+                        reshape_outputs);
 }
 
 void GraphBuilderOrt::AddReverseOperation(const mojom::Reverse& reverse) {

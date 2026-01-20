@@ -2262,16 +2262,37 @@ bool OperationValidationContext::ValidateReshape(const mojom::Reshape& reshape,
     return false;
   }
 
-  if (input->descriptor.HasDynamicShape() ||
-      output->descriptor.HasDynamicShape()) {
-    return false;
-  }
-
   if (input->descriptor.NumberOfElements() !=
       output->descriptor.NumberOfElements()) {
     // The output shape is not expected.
     return false;
   }
+
+  // For a dynamic dimension in output shape, validate input shape has it
+  // uniquely.
+  auto available_input_shape = input->descriptor.shape();
+  for (const auto& dim : output->descriptor.shape()) {
+    if (std::holds_alternative<DynamicDimension>(dim)) {
+      auto it = std::find(available_input_shape.begin(),
+                          available_input_shape.end(), dim);
+      if (it == available_input_shape.end()) {
+        // The dynamic dimension is not present in the input shape.
+        return false;
+      }
+      available_input_shape.erase(it);
+    }
+  }
+
+  // If there are remaining dynamic dimensions in the input that weren't used
+  // in the output, we cannot verify the static dimensions match at build time.
+  for (const auto& dim : available_input_shape) {
+    if (std::holds_alternative<DynamicDimension>(dim)) {
+      // Cannot reshape when input has dynamic dimensions that are not
+      // preserved in the output shape.
+      return false;
+    }
+  }
+
   return true;
 }
 

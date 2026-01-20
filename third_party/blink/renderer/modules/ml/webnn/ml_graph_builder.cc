@@ -210,9 +210,7 @@ std::vector<webnn::Dimension> ToDimensionVector(
 }
 
 std::vector<webnn::Dimension> ToDimensionVector(
-    const HeapVector<
-        Member<V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>>&
-        dimensions) {
+    const HeapVector<Member<MLDimension>>& dimensions) {
   std::vector<webnn::Dimension> result;
   result.reserve(dimensions.size());
   for (const auto& dimension : dimensions) {
@@ -226,6 +224,16 @@ std::vector<webnn::Dimension> ToDimensionVector(
     }
   }
   return result;
+}
+
+uint32_t GetDimension(const Member<MLDimension>& dimension) {
+  if (dimension->IsUnsignedLongEnforceRange()) {
+    return dimension->GetAsUnsignedLongEnforceRange();
+  } else {
+    CHECK(dimension->IsMLDynamicDimension());
+    const auto* dynamic_dim = dimension->GetAsMLDynamicDimension();
+    return dynamic_dim->maxSize();
+  }
 }
 
 using MLGraphOperatorUmaSet = base::EnumSet<MLGraphOperatorUma,
@@ -2951,7 +2959,7 @@ MLOperand* MLGraphBuilder::relu(MLOperand* input,
 }
 
 MLOperand* MLGraphBuilder::reshape(MLOperand* input,
-                                   const Vector<uint32_t>& new_shape,
+                                   const MLDynamicShape& new_shape,
                                    MLOperatorOptions* options,
                                    ExceptionState& exception_state) {
   THROW_AND_RETURN_IF_ERROR(ValidateGraphBuilderState(), nullptr);
@@ -2979,25 +2987,17 @@ MLOperand* MLGraphBuilder::reshape(MLOperand* input,
     return nullptr;
   }
 
-  if (input->Descriptor().HasDynamicShape()) {
-    exception_state.ThrowTypeError(
-        BuildErrorMessage(label, "Dynamic input is not supported."));
-    return nullptr;
-  }
-
   // Setting the initial number of elements to 1 would cover the 0-D scalar with
   // empty dimensions.
   base::CheckedNumeric<size_t> checked_newshape_number_of_elements = 1;
-  Vector<uint32_t> output_shape(new_shape.size());
   for (wtf_size_t i = 0; i < new_shape.size(); ++i) {
-    auto dim = new_shape[i];
+    auto dim = GetDimension(new_shape[i]);
     if (dim == 0) {
       exception_state.ThrowTypeError(
           BuildErrorMessage(label, "The value of new shape should not be 0."));
       return nullptr;
     }
     checked_newshape_number_of_elements *= dim;
-    output_shape[i] = dim;
   }
   size_t newshape_number_of_elements;
   if (!checked_newshape_number_of_elements.AssignIfValid(
@@ -3026,7 +3026,40 @@ MLOperand* MLGraphBuilder::reshape(MLOperand* input,
       webnn::OperandDescriptor output_descriptor,
       webnn::OperandDescriptor::Create(ml_context_->GetProperties(),
                                        input->DataType(),
-                                       ToDimensionVector(output_shape), label));
+                                       ToDimensionVector(new_shape), label));
+
+  // For a dynamic dimension in output shape, validate input shape has it
+  // uniquely.
+  auto available_input_shape = input->Descriptor().shape();
+  for (const auto& dim : output_descriptor.shape()) {
+    if (std::holds_alternative<webnn::DynamicDimension>(dim)) {
+      auto it = std::find(available_input_shape.begin(),
+                          available_input_shape.end(), dim);
+      if (it == available_input_shape.end()) {
+        const auto& dynamic_dim = std::get<webnn::DynamicDimension>(dim);
+        exception_state.ThrowTypeError(BuildErrorMessage(
+            label, String::Format(
+                       "The dynamic dimension name '%s' with max size %u is "
+                       "not present in the input shape.",
+                       dynamic_dim.name.c_str(), dynamic_dim.max_size)));
+        return nullptr;
+      }
+      available_input_shape.erase(it);
+    }
+  }
+
+  // If there are remaining dynamic dimensions in the input that weren't used
+  // in the output, we cannot verify the static dimensions match at build time.
+  for (const auto& dim : available_input_shape) {
+    if (std::holds_alternative<webnn::DynamicDimension>(dim)) {
+      exception_state.ThrowTypeError(BuildErrorMessage(
+          label,
+          "Cannot reshape when input has dynamic dimensions that are not "
+          "preserved in the output shape, as the static dimension "
+          "compatibility cannot be verified at build time."));
+      return nullptr;
+    }
+  }
 
   auto* reshape = MakeGarbageCollected<MLOperator>(
       this, blink_mojom::Operation::Tag::kReshape, options);

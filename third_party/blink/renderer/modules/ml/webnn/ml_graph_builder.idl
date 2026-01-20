@@ -379,7 +379,7 @@ dictionary MLTriangularOptions : MLOperatorOptions {
 
   [RaisesException] MLOperand relu(MLOperand input, optional MLOperatorOptions options = {});
 
-  [RaisesException] MLOperand reshape(MLOperand input, sequence<[EnforceRange] unsigned long> newShape, optional MLOperatorOptions options = {});
+  [RaisesException] MLOperand reshape(MLOperand input, sequence<MLDimension> newShape, optional MLOperatorOptions options = {});
 
   [RaisesException] MLOperand reverse(MLOperand input, optional MLReverseOptions options = {});
 
