@@ -1116,7 +1116,7 @@ const getGemmPrecisionTolerance =
   let ShapeA;
   const indexA = args[0][Object.keys(args[0])[0]];
   if (inputs[indexA]) {
-    ShapeA = inputs[indexA].descriptor.shape;
+    ShapeA = inputs[indexA].shape || inputs[indexA].descriptor.shape;
   } else {
     ShapeA = intermediateOperands[indexA].shape;
   }

@@ -1413,33 +1413,34 @@ base::expected<OperandDescriptor, std::string> ValidateGemmAndInferOutput(
         label, "The data types of first two inputs don't match."));
   }
 
-  if (a.HasDynamicShape()) {
-    return base::unexpected(
-        ErrorWithLabel(label, "Dynamic shape is not supported for a."));
-  }
-  auto shape_a = ToUint32Vector(a.shape());
+  auto shape_a = a.shape();
   if (attributes.a_transpose) {
     std::ranges::reverse(shape_a);
   }
   // The second input 2-D tensor with shape [K, N] if bTranspose is false, or
   // [N, K] if bTranspose is true.
-  if (b.HasDynamicShape()) {
-    return base::unexpected(
-        ErrorWithLabel(label, "Dynamic shape is not supported for b."));
-  }
-  auto shape_b = ToUint32Vector(b.shape());
+  auto shape_b = b.shape();
   if (attributes.b_transpose) {
     std::ranges::reverse(shape_b);
   }
   // The number of columns in the first matrix must be equal to the number of
   // rows in the second matrix.
   if (shape_a[1] != shape_b[0]) {
+    auto to_string = [](const webnn::Dimension& dim) -> std::string {
+      if (std::holds_alternative<uint32_t>(dim)) {
+        return base::StringPrintf("%u", std::get<uint32_t>(dim));
+      } else {
+        return std::get<webnn::DynamicDimension>(dim).name;
+      }
+    };
     return base::unexpected(ErrorWithLabel(
         label,
         base::StringPrintf(
-            "The number of columns (%u) in the %sfirst matrix isn't equal to "
-            "the number of rows (%u) in the %ssecond matrix.",
-            shape_a[1], attributes.a_transpose ? "transposed " : "", shape_b[0],
+            "The number of columns (%s) in the %sfirst matrix isn't equal to "
+            "the number of rows (%s) in the %ssecond matrix.",
+            to_string(shape_a[1]).c_str(),
+            attributes.a_transpose ? "transposed " : "",
+            to_string(shape_b[0]).c_str(),
             attributes.b_transpose ? "transposed " : "")));
   };
   // The output is 2-D tensor of shape [M, N].
@@ -1461,14 +1462,8 @@ base::expected<OperandDescriptor, std::string> ValidateGemmAndInferOutput(
           "The third input data type doesn't match other inputs' data type."));
     }
 
-    // TODO(crbug.com/329482489): Support dynamic shapes.
-    if (attributes.c_operand->HasDynamicShape()) {
-      return base::unexpected(
-          ErrorWithLabel(label, "Dynamic shape is not supported for c."));
-    }
-    auto c_shape = ToUint32Vector(attributes.c_operand->shape());
-    auto output_shape_uint32 = ToUint32Vector(output_shape);
-    if (!BroadcastShapes(c_shape, output_shape_uint32,
+    auto c_shape = attributes.c_operand->shape();
+    if (!BroadcastShapes(c_shape, output_shape,
                          /*bidirectional=*/false)) {
       return base::unexpected(ErrorWithLabel(
           label,
