@@ -32,6 +32,10 @@ struct DynamicDimension {
 
 using Dimension = std::variant<uint32_t, DynamicDimension>;
 
+// Helper to get the static size or the max size of a dynamic dimension.
+uint32_t COMPONENT_EXPORT(WEBNN_PUBLIC_CPP)
+    GetStaticOrMaxSize(const Dimension& dimension);
+
 enum class OperandDataType {
   kFloat32,
   kFloat16,
@@ -113,6 +117,13 @@ class COMPONENT_EXPORT(WEBNN_PUBLIC_CPP) OperandDescriptor {
   static base::expected<OperandDescriptor, std::string> Create(
       const ContextProperties& context_properties,
       OperandDataType data_type,
+      base::span<const uint32_t> shape,
+      std::string_view label);
+
+  // Creates a valid `OperandDescriptor` with dynamic dimensions.
+  static base::expected<OperandDescriptor, std::string> Create(
+      const ContextProperties& context_properties,
+      OperandDataType data_type,
       base::span<const Dimension> shape,
       std::string_view label);
 
@@ -161,7 +172,7 @@ class COMPONENT_EXPORT(WEBNN_PUBLIC_CPP) OperandDescriptor {
   bool HasDynamicShape() const;
   // Returns the shape as a vector of uint32_t.
   // CHECKs if any of the dimensions are dynamic.
-  std::vector<uint32_t> GetStaticShape() const;
+  std::vector<uint32_t> StaticShapeOrDie() const;
 
   friend constexpr auto operator<=>(const OperandDescriptor& lhs,
                                     const OperandDescriptor& rhs) {

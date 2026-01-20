@@ -43,7 +43,7 @@ class COMPONENT_EXPORT(WEBNN_SERVICE) WebNNTensorImpl
 
   OperandDataType data_type() const { return descriptor_.data_type(); }
   const std::vector<uint32_t> shape() const {
-    return descriptor_.GetStaticShape();
+    return descriptor_.StaticShapeOrDie();
   }
   MLTensorUsage usage() const { return usage_; }
 

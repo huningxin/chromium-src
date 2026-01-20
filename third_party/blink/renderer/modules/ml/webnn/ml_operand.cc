@@ -120,24 +120,19 @@ wtf_size_t MLOperand::Rank() const {
   return static_cast<wtf_size_t>(descriptor_.Rank());
 }
 
-HeapVector<Member<V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>>
-MLOperand::shape() const {
-  HeapVector<Member<V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>>
-      result;
+MLDynamicShape MLOperand::shape() const {
+  MLDynamicShape result;
   result.ReserveInitialCapacity(descriptor_.shape().size());
   for (const auto& dim : descriptor_.shape()) {
     if (std::holds_alternative<uint32_t>(dim)) {
-      result.push_back(MakeGarbageCollected<
-                       V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>(
-          std::get<uint32_t>(dim)));
+      result.push_back(
+          MakeGarbageCollected<MLDimension>(std::get<uint32_t>(dim)));
     } else {
       const auto& dynamic_dim = std::get<webnn::DynamicDimension>(dim);
       auto* v8_dynamic_dim = MLDynamicDimension::Create();
       v8_dynamic_dim->setName(String::FromUTF8(dynamic_dim.name));
       v8_dynamic_dim->setMaxSize(dynamic_dim.max_size);
-      result.push_back(MakeGarbageCollected<
-                       V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>(
-          v8_dynamic_dim));
+      result.push_back(MakeGarbageCollected<MLDimension>(v8_dynamic_dim));
     }
   }
   return result;

@@ -80,7 +80,7 @@ V8MLOperandDataType MLTensor::dataType() const {
 }
 
 Vector<uint32_t> MLTensor::shape() const {
-  return Vector<uint32_t>(descriptor_.GetStaticShape());
+  return Vector<uint32_t>(descriptor_.StaticShapeOrDie());
 }
 
 GPUDevice* MLTensor::gpuDevice() const {
@@ -115,7 +115,7 @@ webnn::OperandDataType MLTensor::DataType() const {
 }
 
 const std::vector<uint32_t> MLTensor::Shape() const {
-  return descriptor_.GetStaticShape();
+  return descriptor_.StaticShapeOrDie();
 }
 
 const webnn::MLTensorUsage& MLTensor::Usage() const {

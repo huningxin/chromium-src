@@ -14,6 +14,7 @@
 #include "third_party/blink/renderer/modules/modules_export.h"
 #include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
 #include "third_party/blink/renderer/platform/heap/collection_support/heap_hash_set.h"
+#include "third_party/blink/renderer/platform/heap/collection_support/heap_vector.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/visitor.h"
 
@@ -23,6 +24,9 @@ class MLConstantOperand;
 class MLGraphBuilder;
 class MLOperator;
 class V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange;
+
+typedef V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange MLDimension;
+typedef HeapVector<Member<MLDimension>> MLDynamicShape;
 
 class MODULES_EXPORT MLOperand : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
@@ -80,8 +84,7 @@ class MODULES_EXPORT MLOperand : public ScriptWrappable {
 
   // IDL interface:
   V8MLOperandDataType dataType() const;
-  HeapVector<Member<V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>>
-  shape() const;
+  MLDynamicShape shape() const;
 
   MLConstantOperand* AsConstantOperand();
 

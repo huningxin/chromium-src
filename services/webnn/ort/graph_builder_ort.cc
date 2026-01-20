@@ -161,26 +161,6 @@ constexpr base::cstring_view kInserted = "Inserted";
 constexpr base::cstring_view kToEmulate = "ToEmulate";
 constexpr base::cstring_view kUnderscore = "_";
 
-// Helper to get the static size or the max size of a dynamic dimension.
-uint32_t GetDimensionSize(const webnn::Dimension& dimension) {
-  if (std::holds_alternative<uint32_t>(dimension)) {
-    return std::get<uint32_t>(dimension);
-  }
-  return std::get<webnn::DynamicDimension>(dimension).max_size;
-}
-
-// Helper to check and get the static shape from a dimension vector.
-std::vector<uint32_t> ToUint32Vector(
-    const std::vector<webnn::Dimension>& dimensions) {
-  std::vector<uint32_t> result;
-  result.reserve(dimensions.size());
-  for (const auto& dimension : dimensions) {
-    CHECK(std::holds_alternative<uint32_t>(dimension));
-    result.push_back(std::get<uint32_t>(dimension));
-  }
-  return result;
-}
-
 std::string GetOperandName(std::string_view name, OperandId id) {
   return base::JoinString({name, base::NumberToString(id.value())},
                           kUnderscore);
@@ -944,8 +924,7 @@ void GraphBuilderOrt::AddBatchNormalizationOperation(
   const OperandDescriptor& input_descriptor =
       GetOperand(batch_normalization.input_operand_id).descriptor;
   const OperandDataType input_data_type = input_descriptor.data_type();
-  const std::vector<uint32_t> input_shape =
-      ToUint32Vector(input_descriptor.shape());
+  const std::vector<uint32_t> input_shape = input_descriptor.StaticShapeOrDie();
   // ONNX BatchNormalization expects NCHW layout, channel is at index 1. In
   // addition it also accepts single dimension input of size N in which case C
   // is assumed to be 1.
@@ -1051,25 +1030,25 @@ void GraphBuilderOrt::AddConv2dOperation(const mojom::Conv2d& conv2d) {
       // information is not missing. Since the `pads` attribute has already been
       // set, there is no need to set `output_size` attribute.
       // https://onnx.ai/onnx/operators/onnx__ConvTranspose.html#attributes
-      const std::vector<uint32_t> input_shape = ToUint32Vector(
-          GetOperand(conv2d.input_operand_id).descriptor.shape());
-      const std::vector<uint32_t> filter_shape = ToUint32Vector(
-          GetOperand(conv2d.filter_operand_id).descriptor.shape());
-      const std::vector<uint32_t> output_shape = ToUint32Vector(
-          GetOperand(conv2d.output_operand_id).descriptor.shape());
+      const std::vector<webnn::Dimension> input_shape =
+          GetOperand(conv2d.input_operand_id).descriptor.shape();
+      const std::vector<webnn::Dimension> filter_shape =
+          GetOperand(conv2d.filter_operand_id).descriptor.shape();
+      const std::vector<webnn::Dimension> output_shape =
+          GetOperand(conv2d.output_operand_id).descriptor.shape();
       // Since ONNX Runtime uses nchw input layout and oihw filter layout，
       // input/filter/output_shape[2] and input/filter/output_shape[3] are used
       // here to access the height and width dimensions of the
       // input/filter/output_shape tensor shape.
       std::array<int64_t, 2> input_size = {
-          base::checked_cast<int64_t>(input_shape[2]),
-          base::checked_cast<int64_t>(input_shape[3])};
+          base::checked_cast<int64_t>(GetStaticOrMaxSize(input_shape[2])),
+          base::checked_cast<int64_t>(GetStaticOrMaxSize(input_shape[3]))};
       std::array<int64_t, 2> filter_size = {
-          base::checked_cast<int64_t>(filter_shape[2]),
-          base::checked_cast<int64_t>(filter_shape[3])};
+          base::checked_cast<int64_t>(GetStaticOrMaxSize(filter_shape[2])),
+          base::checked_cast<int64_t>(GetStaticOrMaxSize(filter_shape[3]))};
       std::array<int64_t, 2> output_size = {
-          base::checked_cast<int64_t>(output_shape[2]),
-          base::checked_cast<int64_t>(output_shape[3])};
+          base::checked_cast<int64_t>(GetStaticOrMaxSize(output_shape[2])),
+          base::checked_cast<int64_t>(GetStaticOrMaxSize(output_shape[3]))};
 
       int64_t output_padding_height = CalculateOutputPaddingSize(
           input_size[0], filter_size[0], strides[0], dilations[0], pads[0],
@@ -1128,10 +1107,10 @@ void GraphBuilderOrt::AddDequantizeOrQuantizeLinearOperation(
   std::string output = GetOperandNameById(operation.output_operand_id);
 
   const std::vector<uint32_t> input_shape =
-      ToUint32Vector(GetOperand(operation.input_operand_id).descriptor.shape());
+      GetOperand(operation.input_operand_id).descriptor.StaticShapeOrDie();
   // ZeroPoint has the same shape as the scale.
   const std::vector<uint32_t> scale_zero_point_shape =
-      ToUint32Vector(GetOperand(operation.scale_operand_id).descriptor.shape());
+      GetOperand(operation.scale_operand_id).descriptor.StaticShapeOrDie();
   CHECK_EQ(scale_zero_point_shape.size(), input_shape.size());
 
   std::optional<int64_t> axis;
@@ -1561,7 +1540,7 @@ void GraphBuilderOrt::AddExpandOperation(const mojom::Expand& expand) {
       GetOperand(expand.input_operand_id).descriptor));
 
   const std::vector<uint32_t> output_shape =
-      ToUint32Vector(GetOperand(expand.output_operand_id).descriptor.shape());
+      GetOperand(expand.output_operand_id).descriptor.StaticShapeOrDie();
 
   AddExpandNode(node_name, input, output, output_shape);
 }
@@ -1600,7 +1579,8 @@ void GraphBuilderOrt::AddGatherOperation(const T& operation,
   // ORT CPU EP to throw a runtime error.
   std::string clamped_indices = ClampIndices(
       indices, GetOperand(operation.indices_operand_id).descriptor.data_type(),
-      ToUint32Vector(GetOperand(operation.input_operand_id).descriptor.shape())
+      GetOperand(operation.input_operand_id)
+          .descriptor.StaticShapeOrDie()
           .at(operation.axis));
 
   std::array<const char*, 2> inputs = {input.c_str(), clamped_indices.c_str()};
@@ -1635,9 +1615,9 @@ void GraphBuilderOrt::AddGatherNDOperation(const mojom::GatherND& gather_nd) {
 
   // Clamp the indices operand to prevent out-of-bounds reading which will cause
   // ORT CPU EP to throw a runtime error.
-  std::string clamped_indices = ClampGatherNDIndices(
-      int64_indices, ToUint32Vector(input_descriptor.shape()),
-      ToUint32Vector(indices_descriptor.shape()));
+  std::string clamped_indices =
+      ClampGatherNDIndices(int64_indices, input_descriptor.StaticShapeOrDie(),
+                           indices_descriptor.StaticShapeOrDie());
 
   std::array<const char*, 2> inputs = {input.c_str(), clamped_indices.c_str()};
   std::array<const char*, 1> outputs = {output.c_str()};
@@ -1724,7 +1704,7 @@ void GraphBuilderOrt::AddGruOperation(const GruType& gru) {
     // the input shape to be [seq_length, batch_size, input_size]. For
     // gruCell, `seq_length` is equal to 1.
     const std::vector<uint32_t> input_shape =
-        ToUint32Vector(input_descriptor.shape());
+        input_descriptor.StaticShapeOrDie();
     CHECK_EQ(input_shape.size(), 2u);
     input = CreateReshapeNode(input, {1, input_shape[0], input_shape[1]});
 
@@ -1732,7 +1712,7 @@ void GraphBuilderOrt::AddGruOperation(const GruType& gru) {
     // the weight shape to be [num_directions, 3*hidden_size, input_size].
     // For gruCell, `num_directions` is equal to 1.
     const std::vector<uint32_t> weight_shape =
-        ToUint32Vector(weight_descriptor.shape());
+        weight_descriptor.StaticShapeOrDie();
     CHECK_EQ(weight_shape.size(), 2u);
     weight = CreateReshapeNode(weight, {1, weight_shape[0], weight_shape[1]});
 
@@ -1740,7 +1720,7 @@ void GraphBuilderOrt::AddGruOperation(const GruType& gru) {
     // requires the recurrent weight shape to be [num_directions,
     // 3*hidden_size, hidden_size]. For gruCell, `num_directions` is equal to 1.
     const std::vector<uint32_t> recurrent_weight_shape =
-        ToUint32Vector(recurrent_weight_descriptor.shape());
+        recurrent_weight_descriptor.StaticShapeOrDie();
     CHECK_EQ(recurrent_weight_shape.size(), 2u);
     recurrent_weight = CreateReshapeNode(
         recurrent_weight,
@@ -1831,8 +1811,8 @@ void GraphBuilderOrt::AddGruOperation(const GruType& gru) {
     }
   } else {
     hidden_state = GetOperandNameById(gru.hidden_state_operand_id);
-    const std::vector<uint32_t> hidden_state_shape = ToUint32Vector(
-        GetOperand(gru.hidden_state_operand_id).descriptor.shape());
+    const std::vector<uint32_t> hidden_state_shape =
+        GetOperand(gru.hidden_state_operand_id).descriptor.StaticShapeOrDie();
     CHECK_EQ(hidden_state_shape.size(), 2u);
     // Reshape the hiddenState into a 3-D tensor, since the GRU of ONNX requires
     // the "initial_h" shape to be [num_directions, batch_size, hidden_size].
@@ -1883,7 +1863,7 @@ void GraphBuilderOrt::AddGruOperation(const GruType& gru) {
     // hidden_size] back to a 2-D tensor, since the gruCell of WebNN requires
     // the output shape to be [batchSize, hiddenSize].
     const std::vector<uint32_t> output_shape =
-        ToUint32Vector(GetOperand(gru.output_operand_id).descriptor.shape());
+        GetOperand(gru.output_operand_id).descriptor.StaticShapeOrDie();
     CHECK_EQ(output_shape.size(), 2u);
     InsertReshapeNode(output_hidden, GetOperandNameById(gru.output_operand_id),
                       output_shape);
@@ -1928,8 +1908,7 @@ void GraphBuilderOrt::AddInstanceNormalizationOperation(
   const OperandDescriptor& input_descriptor =
       GetOperand(instance_normalization.input_operand_id).descriptor;
   const OperandDataType input_data_type = input_descriptor.data_type();
-  const std::vector<uint32_t> input_shape =
-      ToUint32Vector(input_descriptor.shape());
+  const std::vector<uint32_t> input_shape = input_descriptor.StaticShapeOrDie();
   // ONNX InstanceNormalization expects NCHW layout, channel is at index 1.
   CHECK_EQ(input_shape.size(), 4u);
   uint32_t input_channels = input_shape[1];
@@ -1993,8 +1972,7 @@ void GraphBuilderOrt::AddLayerNormalizationOperation(
   std::array<const char*, 1> outputs = {output.c_str()};
   const OperandDataType input_data_type = input_descriptor.data_type();
   auto axes = layer_normalization.axes;
-  const std::vector<uint32_t> input_shape =
-      ToUint32Vector(input_descriptor.shape());
+  const std::vector<uint32_t> input_shape = input_descriptor.StaticShapeOrDie();
   // ONNX LayerNormalization doesn't support empty axes because it requires to
   // set the first normalization dimension.
   // https://onnx.ai/onnx/operators/onnx__LayerNormalization.html#attributes
@@ -2295,7 +2273,7 @@ void GraphBuilderOrt::AddLstmOperation(const LstmType& lstm) {
     // the input shape to be [seq_length, batch_size, input_size]. For
     // lstmCell, `seq_length` is equal to 1.
     const std::vector<uint32_t> input_shape =
-        ToUint32Vector(input_descriptor.shape());
+        input_descriptor.StaticShapeOrDie();
     CHECK_EQ(input_shape.size(), 2u);
     input = CreateReshapeNode(input, {1, input_shape[0], input_shape[1]});
 
@@ -2303,7 +2281,7 @@ void GraphBuilderOrt::AddLstmOperation(const LstmType& lstm) {
     // the weight shape to be [num_directions, 4*hidden_size, input_size].
     // For lstmCell, `num_directions` is equal to 1.
     const std::vector<uint32_t> weight_shape =
-        ToUint32Vector(weight_descriptor.shape());
+        weight_descriptor.StaticShapeOrDie();
     CHECK_EQ(weight_shape.size(), 2u);
     weight = CreateReshapeNode(weight, {1, weight_shape[0], weight_shape[1]});
 
@@ -2312,7 +2290,7 @@ void GraphBuilderOrt::AddLstmOperation(const LstmType& lstm) {
     // 4*hidden_size, hidden_size]. For lstmCell, `num_directions` is equal
     // to 1.
     const std::vector<uint32_t> recurrent_weight_shape =
-        ToUint32Vector(recurrent_weight_descriptor.shape());
+        recurrent_weight_descriptor.StaticShapeOrDie();
     CHECK_EQ(recurrent_weight_shape.size(), 2u);
     recurrent_weight = CreateReshapeNode(
         recurrent_weight,
@@ -2427,9 +2405,9 @@ void GraphBuilderOrt::AddLstmOperation(const LstmType& lstm) {
     // requires the "initial_h"/"initial_c" shape to be [num_directions,
     // batch_size, hidden_size]. For lstmCell, `num_directions` is equal to 1.
     const std::vector<uint32_t> hidden_state_shape =
-        ToUint32Vector(hidden_state_descriptor.shape());
+        hidden_state_descriptor.StaticShapeOrDie();
     const std::vector<uint32_t> cell_state_shape =
-        ToUint32Vector(cell_state_descriptor.shape());
+        cell_state_descriptor.StaticShapeOrDie();
     hidden_state = CreateReshapeNode(
         hidden_state, {1, hidden_state_shape[0], hidden_state_shape[1]});
     cell_state = CreateReshapeNode(
@@ -2453,7 +2431,7 @@ void GraphBuilderOrt::AddLstmOperation(const LstmType& lstm) {
       // requires the peephole_weight shape to be [num_directions,
       // 3*hidden_size]. For lstmCell, `num_directions` is equal to 1.
       const std::vector<uint32_t> peephole_weight_shape =
-          ToUint32Vector(peephole_weight_descriptor.shape());
+          peephole_weight_descriptor.StaticShapeOrDie();
       peephole_weight =
           CreateReshapeNode(peephole_weight, {1, peephole_weight_shape[0]});
     }
@@ -2501,8 +2479,8 @@ void GraphBuilderOrt::AddLstmOperation(const LstmType& lstm) {
     // Reshape the output_hidden and output_cell back to 2-D tensors, since the
     // LSTM of WebNN requires the "output_h"/"output_c" shape to be
     // [batch_size, hidden_size].
-    const std::vector<uint32_t> output_shape = ToUint32Vector(
-        GetOperand(lstm.output_operand_ids[0]).descriptor.shape());
+    const std::vector<uint32_t> output_shape =
+        GetOperand(lstm.output_operand_ids[0]).descriptor.StaticShapeOrDie();
     CHECK_EQ(output_shape.size(), 2u);
     InsertReshapeNode(output_hidden,
                       GetOperandNameById(lstm.output_operand_ids[0]),
@@ -2603,8 +2581,8 @@ void GraphBuilderOrt::AddPool2dOperation(const mojom::Pool2d& pool2d) {
       GetOperand(pool2d.output_operand_id).descriptor.shape();
 
   CHECK_EQ(context_properties_.input_operand_layout, InputOperandLayout::kNchw);
-  uint32_t input_height = GetDimensionSize(input_shape[2]);
-  uint32_t output_height = GetDimensionSize(output_shape[2]);
+  uint32_t input_height = GetStaticOrMaxSize(input_shape[2]);
+  uint32_t output_height = GetStaticOrMaxSize(output_shape[2]);
   const auto float_output_height = CalculateConv2dOutputSize(
       input_height, pool2d.window_dimensions->height,
       pool2d.padding->beginning->height, pool2d.padding->ending->height,
@@ -2742,8 +2720,8 @@ void GraphBuilderOrt::AddResample2dOperation(
     scales_data.at(resample2d.axes[1]) = resample2d.scales->at(1);
     scales = Create1DInitializer<float>(scales_data);
   } else {
-    sizes = CreateInt64InitializerForUint32Array(ToUint32Vector(
-        GetOperand(resample2d.output_operand_id).descriptor.shape()));
+    sizes = CreateInt64InitializerForUint32Array(
+        GetOperand(resample2d.output_operand_id).descriptor.StaticShapeOrDie());
   }
 
   std::string mode;
@@ -2771,17 +2749,11 @@ void GraphBuilderOrt::AddReshapeOperation(const mojom::Reshape& reshape) {
       GetOperand(reshape.input_operand_id).descriptor;
   const OperandDescriptor& output_descriptor =
       GetOperand(reshape.output_operand_id).descriptor;
-  const std::vector<webnn::Dimension>& output_shape = output_descriptor.shape();
 
-  // Check if output shape contains any dynamic dimensions.
-  bool has_dynamic_dims =
-      std::ranges::any_of(output_shape, [](const webnn::Dimension& dim) {
-        return std::holds_alternative<DynamicDimension>(dim);
-      });
-
-  if (!has_dynamic_dims) {
+  if (!output_descriptor.HasDynamicShape()) {
     // All dimensions are static, use the simple path.
-    AddReshapeNode(node_name, input, output, ToUint32Vector(output_shape));
+    AddReshapeNode(node_name, input, output,
+                   output_descriptor.StaticShapeOrDie());
     return;
   }
 
@@ -2801,6 +2773,7 @@ void GraphBuilderOrt::AddReshapeOperation(const mojom::Reshape& reshape) {
 
   // Step 2: For each dimension in output shape, either use a constant (for
   // static dims) or gather from input shape (for dynamic dims).
+  const std::vector<webnn::Dimension>& output_shape = output_descriptor.shape();
   std::vector<std::string> dimension_names;
   dimension_names.reserve(output_shape.size());
 
@@ -2972,9 +2945,9 @@ void GraphBuilderOrt::AddScatterNDOperation(
 
   // Clamp the indices operand to prevent out-of-bounds writing which will cause
   // ORT CPU EP to throw a runtime error.
-  std::string clamped_indices = ClampGatherNDIndices(
-      int64_indices, ToUint32Vector(input_descriptor.shape()),
-      ToUint32Vector(indices_descriptor.shape()));
+  std::string clamped_indices =
+      ClampGatherNDIndices(int64_indices, input_descriptor.StaticShapeOrDie(),
+                           indices_descriptor.StaticShapeOrDie());
 
   std::array<const char*, 3> inputs = {input.c_str(), clamped_indices.c_str(),
                                        updates.c_str()};
@@ -3087,10 +3060,8 @@ void GraphBuilderOrt::AddPreluOperation(const mojom::Prelu& prelu) {
       GetOperand(prelu.slope_operand_id).descriptor;
   CHECK(data_type_limits.prelu_input.Supports(slope_descriptor));
 
-  const std::vector<uint32_t> input_shape =
-      ToUint32Vector(input_descriptor.shape());
-  const std::vector<uint32_t> slope_shape =
-      ToUint32Vector(slope_descriptor.shape());
+  const std::vector<uint32_t> input_shape = input_descriptor.StaticShapeOrDie();
+  const std::vector<uint32_t> slope_shape = slope_descriptor.StaticShapeOrDie();
   // ONNX Prelu requires slope's shape to be unidirectionally broadcastable to
   // input when the shape of slope is smaller than the input. While WebNN allows
   // input and slope to be bidirectionally broadcastable.
@@ -3116,8 +3087,8 @@ void GraphBuilderOrt::AddSplitOperation(const mojom::Split& split) {
   // https://onnx.ai/onnx/operators/onnx__Split.html#inputs
   base::FixedArray<uint32_t> split_sizes(output_count);
   for (size_t i = 0; i < output_count; i++) {
-    const std::vector<uint32_t> output_shape = ToUint32Vector(
-        GetOperand(split.output_operand_ids[i]).descriptor.shape());
+    const std::vector<uint32_t> output_shape =
+        GetOperand(split.output_operand_ids[i]).descriptor.StaticShapeOrDie();
     CHECK_LT(split.axis, output_shape.size());
     split_sizes[i] = output_shape[split.axis];
   }
@@ -3502,21 +3473,6 @@ std::unique_ptr<ModelEditor::ModelInfo> GraphBuilderOrt::BuildModel() {
   }
 
   return model_editor_.BuildAndTakeModelInfo();
-}
-
-std::vector<uint32_t> ToUint32Vector(base::span<const webnn::Dimension> shape) {
-  std::vector<uint32_t> result;
-  result.reserve(shape.size());
-  for (const auto& dim : shape) {
-    if (std::holds_alternative<uint32_t>(dim)) {
-      result.push_back(std::get<uint32_t>(dim));
-    } else {
-      // For dynamic dimension, usage 0 for now as it doesn't affect the model
-      // compilation. And we might need to support dynamic dimension later.
-      result.push_back(0);
-    }
-  }
-  return result;
 }
 
 }  // namespace webnn::ort

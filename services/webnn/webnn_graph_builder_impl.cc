@@ -1393,9 +1393,13 @@ bool OperationValidationContext::ValidateExpand(const mojom::Expand& expand,
     return false;
   }
 
+  if (output->descriptor.HasDynamicShape()) {
+    // The output shape must be static.
+    return false;
+  }
   const base::expected<OperandDescriptor, std::string> validated_output =
       ValidateExpandAndInferOutput(*context_properties_, input->descriptor,
-                                   output->descriptor.GetStaticShape(),
+                                   output->descriptor.StaticShapeOrDie(),
                                    expand.label);
   if (!validated_output.has_value()) {
     return false;
@@ -2809,10 +2813,10 @@ TransposePendingPermutation(
     for (size_t i = 0; i < rank; ++i) {
       inverse_permutation[permutation[i]] = i;
     }
-    auto transposed_shape = descriptor.GetStaticShape();
+    auto transposed_shape = descriptor.StaticShapeOrDie();
     base::FixedArray<uint32_t> original_shape(rank);
     for (size_t i = 0; i < rank; ++i) {
-      original_shape[i] = descriptor.GetStaticShape()[inverse_permutation[i]];
+      original_shape[i] = descriptor.StaticShapeOrDie()[inverse_permutation[i]];
     }
 
     std::vector<uint32_t> original_strides = CalculateStrides(original_shape);

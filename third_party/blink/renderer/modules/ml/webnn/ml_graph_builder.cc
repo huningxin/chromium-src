@@ -226,7 +226,7 @@ std::vector<webnn::Dimension> ToDimensionVector(
   return result;
 }
 
-uint32_t GetDimension(const Member<MLDimension>& dimension) {
+uint32_t GetStaticOrMaxSize(const Member<MLDimension>& dimension) {
   if (dimension->IsUnsignedLongEnforceRange()) {
     return dimension->GetAsUnsignedLongEnforceRange();
   } else {
@@ -2991,7 +2991,7 @@ MLOperand* MLGraphBuilder::reshape(MLOperand* input,
   // empty dimensions.
   base::CheckedNumeric<size_t> checked_newshape_number_of_elements = 1;
   for (wtf_size_t i = 0; i < new_shape.size(); ++i) {
-    auto dim = GetDimension(new_shape[i]);
+    auto dim = GetStaticOrMaxSize(new_shape[i]);
     if (dim == 0) {
       exception_state.ThrowTypeError(
           BuildErrorMessage(label, "The value of new shape should not be 0."));

@@ -57,26 +57,6 @@ static constexpr char kVarianceParam[] = "variance";
 static constexpr char kWeightParam[] = "weight";
 static constexpr char kZeroPointParam[] = "zeroPoint";
 
-// Helper to get the static size or the max size of a dynamic dimension.
-uint32_t GetDimensionSize(const Dimension& dimension) {
-  if (std::holds_alternative<uint32_t>(dimension)) {
-    return std::get<uint32_t>(dimension);
-  }
-  return std::get<DynamicDimension>(dimension).max_size;
-}
-
-// Helper to check and get the static shape from a dimension vector.
-std::vector<uint32_t> ToUint32Vector(
-    const std::vector<webnn::Dimension>& dimensions) {
-  std::vector<uint32_t> result;
-  result.reserve(dimensions.size());
-  for (const auto& dimension : dimensions) {
-    CHECK(std::holds_alternative<uint32_t>(dimension));
-    result.push_back(std::get<uint32_t>(dimension));
-  }
-  return result;
-}
-
 // Validate and calculate the output spatial dimensions of conv2d given
 // input sizes, filter sizes, padding, strides and dilations.
 // Return the calculated output sizes in double precision floating point number
@@ -266,19 +246,19 @@ ValidateConv2dBiasAndCreateOutputOperand(
 }
 
 // Validate the axes and infer output for reduce operations.
-base::expected<std::vector<Dimension>, std::string>
-ValidateReduceAxesAndInferOutput(base::span<const Dimension> input_dimensions,
+base::expected<std::vector<uint32_t>, std::string>
+ValidateReduceAxesAndInferOutput(base::span<const uint32_t> input_dimensions,
                                  base::span<const uint32_t> axes,
                                  bool keep_dimensions,
                                  std::string_view label) {
   auto input_rank = static_cast<uint32_t>(input_dimensions.size());
   RETURN_IF_ERROR(ValidateAxes(axes, input_rank, label));
 
-  std::vector<Dimension> output_shape;
+  std::vector<uint32_t> output_shape;
   if (keep_dimensions) {
     output_shape.assign(input_dimensions.begin(), input_dimensions.end());
     for (auto axis : axes) {
-      output_shape[axis] = uint32_t(1);
+      output_shape[axis] = 1;
     }
   } else {
     for (size_t i = 0; i < input_rank; i++) {
@@ -300,9 +280,10 @@ base::expected<void, std::string> ValidateRecurrentNetworkOperand(
   if (operand.HasDynamicShape()) {
     return base::unexpected(ErrorWithLabel(
         label,
-        base::StringPrintf("Dynamic shape is not supported for input.")));
+        base::StringPrintf("For %s: dynamic shape is not supported for input.",
+                           operand_name)));
   }
-  auto shape = ToUint32Vector(operand.shape());
+  auto shape = operand.StaticShapeOrDie();
   if (!std::ranges::equal(shape, expected_shape)) {
     return base::unexpected(ErrorWithLabel(
         label,
@@ -497,9 +478,14 @@ base::expected<OperandDescriptor, std::string> ValidateArgMinMaxAndInferOutput(
                                          .arg_min_max_output.data_types)));
   }
 
-  ASSIGN_OR_RETURN(std::vector<Dimension> output_shape,
+  if (input.HasDynamicShape()) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic input shape is not supported."));
+  }
+
+  ASSIGN_OR_RETURN(std::vector<uint32_t> output_shape,
                    ValidateReduceAxesAndInferOutput(
-                       input.shape(), std::array<uint32_t, 1>{axis},
+                       input.StaticShapeOrDie(), std::array<uint32_t, 1>{axis},
                        keep_dimensions, label));
 
   return OperandDescriptor::Create(context_properties, output_data_type,
@@ -641,6 +627,14 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
     }
   }
 
+  for (auto& input : inputs) {
+    // TODO(crbug.com/329482489): Support dynamic shapes.
+    if (input.HasDynamicShape()) {
+      return base::unexpected(
+          ErrorWithLabel(label, "Dynamic input shape is not supported."));
+    }
+  }
+
   const auto first_input_rank = inputs[0].Rank();
   // According to WebNN spec:
   // https://www.w3.org/TR/webnn/#dom-mlgraphbuilder-concat-inputs-axis-axis,
@@ -655,7 +649,7 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
         "tensor."));
   }
 
-  const std::vector<Dimension>& first_input_shape = inputs[0].shape();
+  const std::vector<uint32_t> first_input_shape = inputs[0].StaticShapeOrDie();
   const auto output_type = inputs[0].data_type();
   // The loop skips the first input to avoid repeated checks.
   for (size_t i = 1; i < inputs.size(); ++i) {
@@ -675,7 +669,8 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
     // must have the same shape, except for the size of the dimension to
     // concatenate on.
     for (size_t dim = 0; dim < first_input_rank; ++dim) {
-      if (dim == axis || inputs[i].shape()[dim] == first_input_shape[dim]) {
+      if (dim == axis || std::get<uint32_t>(inputs[i].shape()[dim]) ==
+                             first_input_shape[dim]) {
         continue;
       }
       return base::unexpected(ErrorWithLabel(
@@ -691,14 +686,9 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
   // sizes of the same dimension.
   auto axis_size = base::MakeCheckedNum<uint32_t>(0);
   for (auto& input : inputs) {
-    // TODO(crbug.com/329482489): Support dynamic shapes.
-    if (input.HasDynamicShape()) {
-      return base::unexpected(
-          ErrorWithLabel(label, "Dynamic shape is not supported for input."));
-    }
     axis_size += std::get<uint32_t>(input.shape()[axis]);
   }
-  std::vector<Dimension> output_shape = first_input_shape;
+  std::vector<uint32_t> output_shape = first_input_shape;
   uint32_t axis_dim;
   if (!axis_size.AssignIfValid(&axis_dim)) {
     return base::unexpected(
@@ -752,7 +742,7 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for filter."));
   }
-  auto filter_shape = ToUint32Vector(filter.shape());
+  auto filter_shape = filter.StaticShapeOrDie();
 
   uint32_t filter_height, filter_width, filter_input_channels, output_channels;
   // The conv2d filter layout specifies the filter layout format.
@@ -804,10 +794,10 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
   ASSIGN_OR_RETURN(
       Size2d<double> output_sizes,
       ValidateAndCalculateConv2dOutputSizes(
-          GetDimensionSize(input_info.height),
-          GetDimensionSize(input_info.width), GetDimensionSize(filter_height),
-          GetDimensionSize(filter_width), attributes.padding,
-          attributes.strides, attributes.dilations, label));
+          GetStaticOrMaxSize(input_info.height),
+          GetStaticOrMaxSize(input_info.width),
+          GetStaticOrMaxSize(filter_height), GetStaticOrMaxSize(filter_width),
+          attributes.padding, attributes.strides, attributes.dilations, label));
 
   uint32_t output_height = base::ClampFloor<uint32_t>(output_sizes.height);
   uint32_t output_width = base::ClampFloor<uint32_t>(output_sizes.width);
@@ -883,7 +873,7 @@ ValidateConvTranspose2dAndInferOutput(
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for filter."));
   }
-  auto filter_shape = ToUint32Vector(filter.shape());
+  auto filter_shape = filter.StaticShapeOrDie();
   uint32_t input_channels, filter_height, filter_width, filter_output_channels;
   // The conv2d filter layout specifies the filter layout format.
   switch (attributes.filter_layout) {
@@ -985,8 +975,8 @@ ValidateConvTranspose2dAndInferOutput(
     ASSIGN_OR_RETURN(
         Size2d<uint32_t> output_sizes,
         ValidateAndCalculateConvTranspose2dOutputSizes(
-            GetDimensionSize(input_info.height),
-            GetDimensionSize(input_info.width), filter_height, filter_width,
+            GetStaticOrMaxSize(input_info.height),
+            GetStaticOrMaxSize(input_info.width), filter_height, filter_width,
             attributes.padding, attributes.strides, attributes.dilations,
             attributes.output_padding, label));
     output_height = output_sizes.height;
@@ -1047,9 +1037,9 @@ ValidateCumulativeSumAndInferOutput(const ContextProperties& context_properties,
 // input.
 base::expected<void, std::string>
 ValidateScaleZeroPointOperandShapeIsCompatibleWithInput(
-    base::span<const Dimension> input_shape,
-    base::span<const Dimension> scale_shape,
-    base::span<const Dimension> zero_point_shape,
+    base::span<const uint32_t> input_shape,
+    base::span<const uint32_t> scale_shape,
+    base::span<const uint32_t> zero_point_shape,
     std::string_view label) {
   // Check whether `scale_shape` is a subsample of `input_shape`.
   if (scale_shape.size() != input_shape.size()) {
@@ -1058,14 +1048,8 @@ ValidateScaleZeroPointOperandShapeIsCompatibleWithInput(
   }
 
   for (size_t i = 0; i < scale_shape.size(); ++i) {
-    // TODO(crbug.com/329482489): Support dynamic shapes.
-    if (!std::holds_alternative<uint32_t>(scale_shape[i]) ||
-        !std::holds_alternative<uint32_t>(input_shape[i])) {
-      return base::unexpected(
-          ErrorWithLabel(label, "Dynamic shapes are not supported."));
-    }
-    auto scale_dim = std::get<uint32_t>(scale_shape[i]);
-    auto input_dim = std::get<uint32_t>(input_shape[i]);
+    auto scale_dim = scale_shape[i];
+    auto input_dim = input_shape[i];
     // The block_size should be an integer where block_size = dim_input /
     // dim_scale along the axis.
     if (input_dim % scale_dim != 0) {
@@ -1090,8 +1074,14 @@ ValidateDequantizeLinearAndInferOutput(
     const OperandDescriptor& zero_point,
     std::string_view label) {
   // Validate scale and zero_point operands.
+  if (input.HasDynamicShape() || scale.HasDynamicShape() ||
+      zero_point.HasDynamicShape()) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic input shape is not supported."));
+  }
   RETURN_IF_ERROR(ValidateScaleZeroPointOperandShapeIsCompatibleWithInput(
-      input.shape(), scale.shape(), zero_point.shape(), label));
+      input.StaticShapeOrDie(), scale.StaticShapeOrDie(),
+      zero_point.StaticShapeOrDie(), label));
 
   if (!context_properties.data_type_limits.dequantize_linear_input.Supports(
           input)) {
@@ -1137,9 +1127,15 @@ ValidateQuantizeLinearAndInferOutput(
     const OperandDescriptor& scale,
     const OperandDescriptor& zero_point,
     std::string_view label) {
+  if (input.HasDynamicShape() || scale.HasDynamicShape() ||
+      zero_point.HasDynamicShape()) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic input shape is not supported."));
+  }
   // Validate scale and zero_point operands.
   RETURN_IF_ERROR(ValidateScaleZeroPointOperandShapeIsCompatibleWithInput(
-      input.shape(), scale.shape(), zero_point.shape(), label));
+      input.StaticShapeOrDie(), scale.StaticShapeOrDie(),
+      zero_point.StaticShapeOrDie(), label));
 
   if (!context_properties.data_type_limits.quantize_linear_input.Supports(
           input)) {
@@ -1199,7 +1195,7 @@ base::expected<OperandDescriptor, std::string> ValidateExpandAndInferOutput(
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for input."));
   }
-  auto input_shape = ToUint32Vector(input.shape());
+  auto input_shape = input.StaticShapeOrDie();
 
   std::optional<std::vector<uint32_t>> output_shape =
       BroadcastShapes(input_shape, new_shape, /*bidirectional=*/false);
@@ -1241,6 +1237,11 @@ base::expected<OperandDescriptor, std::string> ValidateGatherAndInferOutput(
         label, NotSupportedArgumentError(
                    kIndicesParam, indices,
                    context_properties.data_type_limits.gather_indices)));
+  }
+
+  if (input.HasDynamicShape() || indices.HasDynamicShape()) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic input shape is not supported."));
   }
 
   auto checked_output_rank =
@@ -1352,9 +1353,9 @@ base::expected<OperandDescriptor, std::string> ValidateGatherNDAndInferOutput(
   }
 
   // TODO(crbug.com/329482489): Support dynamic shapes.
-  if (!std::holds_alternative<uint32_t>(indices.shape()[indices.Rank() - 1])) {
+  if (input.HasDynamicShape() || indices.HasDynamicShape()) {
     return base::unexpected(
-        ErrorWithLabel(label, "Dynamic shape is not supported for indices."));
+        ErrorWithLabel(label, "Dynamic shape is not supported."));
   }
   uint32_t indices_last_dimension_size =
       std::get<uint32_t>(indices.shape()[indices.Rank() - 1]);
@@ -1506,7 +1507,7 @@ ValidateGruAndInferOutput(const ContextProperties& context_properties,
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic input is not supported."));
   }
-  const std::vector<uint32_t> input_dimensions = ToUint32Vector(input.shape());
+  const std::vector<uint32_t> input_dimensions = input.StaticShapeOrDie();
   if (input_dimensions[0] != steps) {
     return base::unexpected(ErrorWithLabel(
         label, "The input dimension[0] must be equal to the steps."));
@@ -1768,9 +1769,9 @@ ValidateInstanceNormalizationAndInferOutput(
   }
 
   // TODO(crbug.com/329482489): Support dynamic shapes.
-  if (!std::holds_alternative<uint32_t>(input.shape()[axis])) {
+  if (input.HasDynamicShape()) {
     return base::unexpected(
-        ErrorWithLabel(label, "Dynamic input is not supported."));
+        ErrorWithLabel(label, "Dynamic input shape is not supported."));
   }
   uint32_t scale_dim = std::get<uint32_t>(input.shape()[axis]);
   // Validate scale operand.
@@ -1830,7 +1831,7 @@ ValidateLayerNormalizationAndInferOutput(
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for input."));
   }
-  const auto input_dimensions = ToUint32Vector(input.shape());
+  const auto input_dimensions = input.StaticShapeOrDie();
 
   // The dimensions for layerNormalization to reduce along.
   std::vector<uint32_t> reduction_dimensions;
@@ -1852,7 +1853,7 @@ ValidateLayerNormalizationAndInferOutput(
       return base::unexpected(
           ErrorWithLabel(label, "Dynamic shape is not supported for scale."));
     }
-    auto scale_shape = ToUint32Vector(attributes.scale->shape());
+    auto scale_shape = attributes.scale->StaticShapeOrDie();
     if (scale_shape != reduction_dimensions) {
       return base::unexpected(ErrorWithLabel(
           label,
@@ -1874,7 +1875,7 @@ ValidateLayerNormalizationAndInferOutput(
       return base::unexpected(
           ErrorWithLabel(label, "Dynamic shape is not supported for bias."));
     }
-    auto bias_shape = ToUint32Vector(attributes.bias->shape());
+    auto bias_shape = attributes.bias->StaticShapeOrDie();
     if (bias_shape != reduction_dimensions) {
       return base::unexpected(ErrorWithLabel(
           label,
@@ -1923,7 +1924,7 @@ ValidateLstmAndInferOutput(const ContextProperties& context_properties,
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic input is not supported."));
   }
-  const auto input_dimensions = ToUint32Vector(input.shape());
+  const auto input_dimensions = input.StaticShapeOrDie();
   if (input_dimensions[0] != steps) {
     return base::unexpected(ErrorWithLabel(
         label, "The input dimensions[0] must be equal to the steps."));
@@ -2457,7 +2458,7 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
     ASSIGN_OR_RETURN(
         Size2d<double> output_sizes,
         ValidateAndCalculateConv2dOutputSizes(
-            GetDimensionSize(input_height), GetDimensionSize(input_width),
+            GetStaticOrMaxSize(input_height), GetStaticOrMaxSize(input_width),
             window_height, window_width, attributes.padding, attributes.strides,
             attributes.dilations, label));
 
@@ -2590,12 +2591,12 @@ base::expected<OperandDescriptor, std::string> ValidatePreluAndInferOutput(
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for slope."));
   }
-  auto slope_shape = ToUint32Vector(slope.shape());
+  auto slope_shape = slope.StaticShapeOrDie();
   if (input.HasDynamicShape()) {
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for input."));
   }
-  auto input_shape = ToUint32Vector(input.shape());
+  auto input_shape = input.StaticShapeOrDie();
   if (!BroadcastShapes(slope_shape, input_shape,
                        /*bidirectional=*/false)) {
     return base::unexpected(ErrorWithLabel(
@@ -2643,9 +2644,13 @@ base::expected<OperandDescriptor, std::string> ValidateReduceAndInferOutput(
         label, NotSupportedInputArgumentError(input, tensor_constraint)));
   }
 
-  ASSIGN_OR_RETURN(std::vector<Dimension> output_shape,
-                   ValidateReduceAxesAndInferOutput(input.shape(), axes,
-                                                    keep_dimensions, label));
+  if (input.HasDynamicShape()) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic input is not supported."));
+  }
+  ASSIGN_OR_RETURN(std::vector<uint32_t> output_shape,
+                   ValidateReduceAxesAndInferOutput(
+                       input.StaticShapeOrDie(), axes, keep_dimensions, label));
 
   return OperandDescriptor::Create(context_properties, input.data_type(),
                                    output_shape, label);
@@ -2695,6 +2700,12 @@ base::expected<OperandDescriptor, std::string> ValidateResample2dAndInferOutput(
   }
   RETURN_IF_ERROR(ValidateAxes(axes, input.Rank(), label));
 
+  // TODO(crbug.com/329482489): Support dynamic shapes.
+  if (input.HasDynamicShape()) {
+    return base::unexpected(
+        ErrorWithLabel(label, "Dynamic input shape is not supported."));
+  }
+
   // Validate scales or sizes and infer the output.
   std::vector<Dimension> output_shape = input.shape();
   if (std::holds_alternative<base::span<const float>>(scales_or_sizes)) {
@@ -2708,11 +2719,6 @@ base::expected<OperandDescriptor, std::string> ValidateResample2dAndInferOutput(
           ErrorWithLabel(label, "All scales should be greater than 0."));
     }
 
-    // TODO(crbug.com/329482489): Support dynamic shapes.
-    if (input.HasDynamicShape()) {
-      return base::unexpected(
-          ErrorWithLabel(label, "Dyanmic input is not supported."));
-    }
     auto output_first_axis = CalculateResample2dOutputSize(
         std::get<uint32_t>(input.shape()[axes[0]]), scales[0], label);
     if (!output_first_axis.has_value()) {
@@ -2722,7 +2728,6 @@ base::expected<OperandDescriptor, std::string> ValidateResample2dAndInferOutput(
     }
     output_shape[axes[0]] = output_first_axis.value();
 
-    // TODO(crbug.com/329482489): Support dynamic shapes.
     auto output_second_axis = CalculateResample2dOutputSize(
         std::get<uint32_t>(input.shape()[axes[1]]), scales[1], label);
     if (!output_second_axis.has_value()) {
@@ -3076,7 +3081,7 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
     for (uint32_t i = 0; i < splits; ++i) {
       // When splits is of type uint32_t, we create splits number of Operands.
       // Each Operand will have the same new_dimensions shape.
-      std::vector<uint32_t> new_dimensions = ToUint32Vector(input.shape());
+      std::vector<uint32_t> new_dimensions = input.StaticShapeOrDie();
       new_dimensions[attributes.axis] /= splits;
       auto split_descriptor = OperandDescriptor::Create(
           context_properties, input.data_type(),
@@ -3110,7 +3115,7 @@ ValidateSplitAndInferOutput(const ContextProperties& context_properties,
 
     outputs.reserve(splits.size());
     for (uint32_t split : splits) {
-      std::vector<uint32_t> new_dimensions = ToUint32Vector(input.shape());
+      std::vector<uint32_t> new_dimensions = input.StaticShapeOrDie();
       new_dimensions[attributes.axis] = split;
       auto split_descriptor = OperandDescriptor::Create(
           context_properties, input.data_type(),
@@ -3260,12 +3265,12 @@ base::expected<OperandDescriptor, std::string> ValidateWhereAndInferOutput(
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for trueValue."));
   }
-  const auto true_value_shape = ToUint32Vector(true_value.shape());
+  const auto true_value_shape = true_value.StaticShapeOrDie();
   if (false_value.HasDynamicShape()) {
     return base::unexpected(ErrorWithLabel(
         label, "Dynamic shape is not supported for falseValue."));
   }
-  const auto false_value_shape = ToUint32Vector(false_value.shape());
+  const auto false_value_shape = false_value.StaticShapeOrDie();
   const std::optional<std::vector<uint32_t>> value_shape =
       BroadcastShapes(true_value_shape, false_value_shape,
                       /*bidirectional=*/true);
@@ -3280,7 +3285,7 @@ base::expected<OperandDescriptor, std::string> ValidateWhereAndInferOutput(
     return base::unexpected(
         ErrorWithLabel(label, "Dynamic shape is not supported for condition."));
   }
-  const auto condition_shape = ToUint32Vector(condition.shape());
+  const auto condition_shape = condition.StaticShapeOrDie();
   std::optional<std::vector<uint32_t>> output_shape =
       BroadcastShapes(condition_shape, value_shape.value(),
                       /*bidirectional=*/true);
