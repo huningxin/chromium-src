@@ -224,6 +224,26 @@ class GraphBuilderOrt {
                          base::cstring_view output,
                          base::span<const uint32_t> shape);
 
+  void AddUnsqueezeNode(base::cstring_view node_name,
+                        base::cstring_view input,
+                        base::cstring_view output,
+                        base::span<const int64_t> axes);
+  std::string CreateUnsqueezeNode(base::cstring_view input,
+                                  base::span<const int64_t> axes);
+  void InsertUnsqueezeNode(base::cstring_view input,
+                           base::cstring_view output,
+                           base::span<const int64_t> axes);
+
+  void AddSqueezeNode(base::cstring_view node_name,
+                      base::cstring_view input,
+                      base::cstring_view output,
+                      base::span<const int64_t> axes);
+  std::string CreateSqueezeNode(base::cstring_view input,
+                                base::span<const int64_t> axes);
+  void InsertSqueezeNode(base::cstring_view input,
+                         base::cstring_view output,
+                         base::span<const int64_t> axes);
+
   void AddSliceNode(base::cstring_view node_name,
                     base::cstring_view input,
                     base::cstring_view output,

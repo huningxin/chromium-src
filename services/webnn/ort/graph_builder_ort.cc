@@ -99,6 +99,8 @@ constexpr base::cstring_view kOpTypeResize = "Resize";
 constexpr base::cstring_view kOpTypeReshape = "Reshape";
 constexpr base::cstring_view kOpTypeScatterElements = "ScatterElements";
 constexpr base::cstring_view kOpTypeShape = "Shape";
+constexpr base::cstring_view kOpTypeSqueeze = "Squeeze";
+constexpr base::cstring_view kOpTypeUnsqueeze = "Unsqueeze";
 constexpr base::cstring_view kOpTypeScatterND = "ScatterND";
 constexpr base::cstring_view kOpTypeSigmoid = "Sigmoid";
 constexpr base::cstring_view kOpTypeSlice = "Slice";
@@ -921,6 +923,63 @@ void GraphBuilderOrt::InsertReshapeNode(base::cstring_view input,
   AddReshapeNode(node_name, input, output, shape);
 }
 
+void GraphBuilderOrt::AddUnsqueezeNode(base::cstring_view node_name,
+                                       base::cstring_view input,
+                                       base::cstring_view output,
+                                       base::span<const int64_t> axes) {
+  // ONNX Unsqueeze op's `axes` is an operand of data type int64.
+  const std::string axes_operand = Create1DInitializer<int64_t>(axes);
+
+  std::array<const char*, 2> inputs = {input.c_str(), axes_operand.c_str()};
+  std::array<const char*, 1> outputs = {output.c_str()};
+
+  model_editor_.AddNode(kOpTypeUnsqueeze, node_name, inputs, outputs);
+}
+
+std::string GraphBuilderOrt::CreateUnsqueezeNode(
+    base::cstring_view input,
+    base::span<const int64_t> axes) {
+  const std::string output = GenerateOperandName();
+  InsertUnsqueezeNode(input, output, axes);
+  return output;
+}
+
+void GraphBuilderOrt::InsertUnsqueezeNode(base::cstring_view input,
+                                          base::cstring_view output,
+                                          base::span<const int64_t> axes) {
+  const std::string node_name = GenerateNodeName(
+      base::JoinString({kInserted, kOpTypeUnsqueeze}, kUnderscore));
+  AddUnsqueezeNode(node_name, input, output, axes);
+}
+
+void GraphBuilderOrt::AddSqueezeNode(base::cstring_view node_name,
+                                     base::cstring_view input,
+                                     base::cstring_view output,
+                                     base::span<const int64_t> axes) {
+  // ONNX Squeeze op's `axes` is an operand of data type int64.
+  const std::string axes_operand = Create1DInitializer<int64_t>(axes);
+
+  std::array<const char*, 2> inputs = {input.c_str(), axes_operand.c_str()};
+  std::array<const char*, 1> outputs = {output.c_str()};
+
+  model_editor_.AddNode(kOpTypeSqueeze, node_name, inputs, outputs);
+}
+
+std::string GraphBuilderOrt::CreateSqueezeNode(base::cstring_view input,
+                                               base::span<const int64_t> axes) {
+  const std::string output = GenerateOperandName();
+  InsertSqueezeNode(input, output, axes);
+  return output;
+}
+
+void GraphBuilderOrt::InsertSqueezeNode(base::cstring_view input,
+                                        base::cstring_view output,
+                                        base::span<const int64_t> axes) {
+  const std::string node_name = GenerateNodeName(
+      base::JoinString({kInserted, kOpTypeSqueeze}, kUnderscore));
+  AddSqueezeNode(node_name, input, output, axes);
+}
+
 void GraphBuilderOrt::AddSliceNode(base::cstring_view node_name,
                                    base::cstring_view input,
                                    base::cstring_view output,
@@ -1322,6 +1381,7 @@ void GraphBuilderOrt::AddBatchNormalizationOperation(
   const OperandDescriptor& input_descriptor =
       GetOperand(batch_normalization.input_operand_id).descriptor;
   const OperandDataType input_data_type = input_descriptor.data_type();
+  const std::vector<Dimension>& input_shape = input_descriptor.shape();
   // ONNX BatchNormalization expects NCHW layout, channel is at index 1. In
   // addition it also accepts single dimension input of size N in which case C
   // is assumed to be 1.
@@ -1334,17 +1394,15 @@ void GraphBuilderOrt::AddBatchNormalizationOperation(
   Dimension input_channels = uint32_t{1};
 
   if (needs_reshape_for_1d) {
-    // Reshape 1D [C] -> 2D [1, C] for ONNX BatchNorm.
-
+    // Unsqueeze 1D [C] -> 2D [1, C] for ONNX BatchNorm by adding dimension at
+    // axis 0.
     input_channels = input_shape[0];
-    input =
-        CreateReshapeNode(input, {1, static_cast<uint32_t>(input_channels)});
+    std::array<int64_t, 1> unsqueeze_axes = {0};
+    input = CreateUnsqueezeNode(input, unsqueeze_axes);
   } else if (input_shape.size() > 1) {
     // For multi-dimensional inputs, channel is at index 1 (NCHW layout).
     input_channels = input_shape[1];
   }
-
-  std::vector<uint32_t> scale_and_bias_shape = {input_channels};
 
   // ONNX BatchNormalization requires 5 inputs: input, scale, bias, mean and
   // variance. WebNN allows optional scale/bias, so create default ones if not
@@ -1361,7 +1419,8 @@ void GraphBuilderOrt::AddBatchNormalizationOperation(
       scale = CreateOneInitializer(input_data_type, scale_and_bias_shape);
     } else {
       // Dynamic channel dimension: create scale at runtime with channel axis.
-      std::array<uint32_t, 1> channel_axis = {1};
+      std::array<uint32_t, 1> channel_axis = {
+          static_cast<uint32_t>(needs_reshape_for_1d ? 0 : 1)};
       scale = CreateInitializerWithInputShapeAndDataTypeForFloat(
           batch_normalization.input_operand_id, 1.0f, channel_axis);
     }
@@ -1377,7 +1436,8 @@ void GraphBuilderOrt::AddBatchNormalizationOperation(
       bias = CreateZeroInitializer(input_data_type, scale_and_bias_shape);
     } else {
       // Dynamic channel dimension: create bias at runtime with channel axis.
-      std::array<uint32_t, 1> channel_axis = {1};
+      std::array<uint32_t, 1> channel_axis = {
+          static_cast<uint32_t>(needs_reshape_for_1d ? 0 : 1)};
       bias = CreateInitializerWithInputShapeAndDataTypeForFloat(
           batch_normalization.input_operand_id, 0.0f, channel_axis);
     }
@@ -1398,10 +1458,11 @@ void GraphBuilderOrt::AddBatchNormalizationOperation(
   model_editor_.AddNode(kOpTypeBatchNormalization, node_name, inputs, outputs,
                         attributes);
 
-  // Reshape output back from 2D [1, C] -> 1D [C] for 1D inputs.
+  // Squeeze output back from 2D [1, C] -> 1D [C] for 1D inputs by removing
+  // dimension at axis 0.
   if (needs_reshape_for_1d) {
-    InsertReshapeNode(batchnorm_output, output,
-                      {static_cast<uint32_t>(input_channels)});
+    std::array<int64_t, 1> squeeze_axes = {0};
+    InsertSqueezeNode(batchnorm_output, output, squeeze_axes);
   }
 }
 

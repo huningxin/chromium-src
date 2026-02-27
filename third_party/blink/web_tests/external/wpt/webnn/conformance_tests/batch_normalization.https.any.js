@@ -72,6 +72,60 @@ const batchNormTests = [
   },
   {
     'name':
+        'batchNormalization float32 1D tensor with dynamic shape options.axis=0 (concrete shape [6])',
+    'graph': {
+      'inputs': {
+        'bnInput': {
+          'data': [
+            -41.30733108520508, 64.08863830566406, -63.376670837402344,
+            -46.790367126464844, 83.02227020263672, -80.08049011230469
+          ],
+          'shape': [6],
+          'descriptor':
+              {shape: [{'name': 'C', 'maxSize': 10}], dataType: 'float32'}
+        },
+        'bnMean': {
+          'data': [
+            -7.814267635345459, -95.64129638671875, 38.15440368652344,
+            -55.95203399658203, -87.86500549316406, -41.63645553588867
+          ],
+          'shape': [6],
+          'descriptor':
+              {shape: [{'name': 'C', 'maxSize': 10}], dataType: 'float32'},
+        },
+        'bnVariance': {
+          'data': [
+            60.31186294555664, 26.43260383605957, 53.275634765625,
+            40.146121978759766, 59.41098403930664, 35.99981689453125
+          ],
+          'shape': [6],
+          'descriptor':
+              {shape: [{'name': 'C', 'maxSize': 10}], dataType: 'float32'},
+        }
+      },
+      'operators': [{
+        'name': 'batchNormalization',
+        'arguments': [
+          {'input': 'bnInput'}, {'mean': 'bnMean'}, {'variance': 'bnVariance'},
+          {'options': {'axis': 0}}
+        ],
+        'outputs': 'bnOutput'
+      }],
+      'expectedOutputs': {
+        'bnOutput': {
+          'data': [
+            -4.312741756439209, 31.068212509155273, -13.910240173339844,
+            1.4459478855133057, 22.170541763305664, -6.407354354858398
+          ],
+          'shape': [6],
+          'descriptor':
+              {shape: [{'name': 'C', 'maxSize': 10}], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
         'batchNormalization float32 2D tensor (mean and variance are non-constant) default options',
     'graph': {
       'inputs': {
