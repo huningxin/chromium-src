@@ -2618,3 +2618,58 @@ const subgraphTests = [
 
 webnn_conformance_test(
     subgraphTests, buildAndExecuteGraph, getPrecisionTolerance);
+
+// Test dynamic shapes: concat output's dynamic dimension is used as a shape
+// reference in reshape and expand, exercising the path where expand's target
+// shape contains a dynamic dimension that comes from a non-graph-input operand
+// (i.e. the expand input itself, after reshape).
+if (navigator.ml !== undefined) {
+  promise_test(async () => {
+    const context = await navigator.ml.createContext();
+    const builder = new MLGraphBuilder(context);
+
+    // 'a' has a dynamic batch dimension; 'b' has a static shape.
+    const a = builder.input(
+        'a', {dataType: 'float32', shape: [{name: 'batch', maxSize: 3}, 2]});
+    const b = builder.input('b', {dataType: 'float32', shape: [1, 2]});
+
+    // c.shape = [batch+1, 2] at graph construction time; shape[0] is dynamic.
+    const c = builder.concat([a, b], 0);
+
+    // Reshape c into [1, c.shape[0], 1, c.shape[1]].
+    const d = builder.reshape(c, [1, c.shape[0], 1, c.shape[1]]);
+
+    // Expand d to [3, d.shape[1], 3, d.shape[3]].
+    // d.shape[1] is the dynamic concat dimension; d.shape[3] is static 2.
+    const e = builder.expand(d, [3, d.shape[1], 3, d.shape[3]]);
+
+    const graph = await builder.build({e});
+
+    // Dispatch with batch=1: a=[1,2], b=[1,2].
+    const aTensor = await context.createTensor(
+        {dataType: 'float32', shape: [1, 2], writable: true});
+    const bTensor = await context.createTensor(
+        {dataType: 'float32', shape: [1, 2], writable: true});
+    // e shape at dispatch: [3, 2, 3, 2] = 36 elements.
+    const eTensor = await context.createTensor(
+        {dataType: 'float32', shape: [3, 2, 3, 2], readable: true});
+
+    context.writeTensor(aTensor, new Float32Array(2).fill(1));
+    context.writeTensor(bTensor, new Float32Array(2).fill(2));
+    context.dispatch(graph, {a: aTensor, b: bTensor}, {e: eTensor});
+    const eData = await context.readTensor(eTensor);
+    const result = new Float32Array(eData);
+
+    // d has shape [1, 2, 1, 2]:
+    //   d[0, 0, 0, :] = [1, 1]  (from row 0 of c, which came from a)
+    //   d[0, 1, 0, :] = [2, 2]  (from row 1 of c, which came from b)
+    // Expanding [1, 2, 1, 2] -> [3, 2, 3, 2] broadcasts axes 0 and 2,
+    // so e[i, j, k, :] = d[0, j, 0, :] for all i in [0,2], k in [0,2].
+    // This yields 3 repetitions of [1,1,1,1,1,1, 2,2,2,2,2,2].
+    const expected = new Float32Array([
+      1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1,
+      2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
+    ]);
+    assert_array_equals(result, expected);
+  }, 'concat + reshape + expand with dynamic dimension from non-input operand shape');
+}

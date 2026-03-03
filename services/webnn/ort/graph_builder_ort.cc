@@ -740,6 +740,7 @@ void GraphBuilderOrt::AddExpandNode(
     base::cstring_view input,
     base::cstring_view output,
     base::span<const Dimension> shape,
+    base::span<const Dimension> input_shape,
     const base::flat_map<DynamicDimension, DynamicDimensionInfo>&
         known_dynamic_dims) {
   // Output shape has dynamic dimensions. Build the shape tensor at runtime
@@ -763,43 +764,54 @@ void GraphBuilderOrt::AddExpandNode(
       std::string const_name = Create1DInitializer<int64_t>(value_array);
       dimension_names.push_back(std::move(const_name));
     } else {
-      // Dynamic dimension: look it up in known_dynamic_dims and gather from the
-      // corresponding input operand shape.
+      // Dynamic dimension: first check if it comes from the expand input tensor
+      // shape, then fall back to known_dynamic_dims.
       CHECK(std::holds_alternative<DynamicDimension>(dim));
       const auto& dynamic_dim = std::get<DynamicDimension>(dim);
 
-      // Look up the dynamic dimension info.
-      auto it = known_dynamic_dims.find(dynamic_dim);
-      CHECK(it != known_dynamic_dims.end())
-          << "Dynamic dimension '" << dynamic_dim.name
-          << "' (max_size=" << dynamic_dim.max_size
-          << ", min_size=" << dynamic_dim.min_size
-          << ") not found in known_dynamic_dims";
+      std::string source_operand_name;
+      int64_t axis;
 
-      const DynamicDimensionInfo& dyn_dim_info = it->second;
+      // First check if the dynamic dimension is present in the expand input's
+      // shape.
+      auto input_shape_it = std::ranges::find(input_shape, dim);
+      if (input_shape_it != input_shape.end()) {
+        // Dynamic dimension comes from the expand input tensor itself.
+        source_operand_name = std::string(input);
+        axis = static_cast<int64_t>(
+            std::distance(input_shape.begin(), input_shape_it));
+      } else {
+        // Fall back to known_dynamic_dims.
+        auto it = known_dynamic_dims.find(dynamic_dim);
+        CHECK(it != known_dynamic_dims.end())
+            << "Dynamic dimension '" << dynamic_dim.name
+            << "' (max_size=" << dynamic_dim.max_size
+            << ", min_size=" << dynamic_dim.min_size
+            << ") not found in input shape or known_dynamic_dims";
+        const DynamicDimensionInfo& dyn_dim_info = it->second;
+        source_operand_name = dyn_dim_info.input_operand_name;
+        axis = static_cast<int64_t>(dyn_dim_info.axis);
+      }
 
       // Create Shape node for this input operand if not already created.
       std::string input_shape_name;
-      auto shape_it = input_to_shape_map.find(dyn_dim_info.input_operand_name);
+      auto shape_it = input_to_shape_map.find(source_operand_name);
       if (shape_it != input_to_shape_map.end()) {
         input_shape_name = shape_it->second;
       } else {
         input_shape_name = GenerateOperandName();
-        std::array<const char*, 1> shape_inputs = {
-            dyn_dim_info.input_operand_name.c_str()};
+        std::array<const char*, 1> shape_inputs = {source_operand_name.c_str()};
         std::array<const char*, 1> shape_outputs = {input_shape_name.c_str()};
         const std::string shape_node_name = GenerateNodeName(base::JoinString(
             {kInserted, "Shape", kToEmulate, node_name}, kUnderscore));
         model_editor_.AddNode("Shape", shape_node_name, shape_inputs,
                               shape_outputs);
-        input_to_shape_map[dyn_dim_info.input_operand_name] = input_shape_name;
+        input_to_shape_map[source_operand_name] = input_shape_name;
       }
 
-      int64_t axis = static_cast<int64_t>(dyn_dim_info.axis);
-
-      // Create a Gather node to extract this dimension from input shape.
-      // Use axis=0 since input_shape is 1-D, and indices as a 1-D tensor with
-      // shape [1] to get output shape [1].
+      // Create a Gather node to extract this dimension from the Shape output.
+      // Use axis=0 since the Shape output is 1-D, and indices as a 1-D tensor
+      // with shape [1] to get output shape [1].
       const std::string gather_output = GenerateOperandName();
       std::array<int64_t, 1> indices_array = {axis};
       const std::string indices_const =
@@ -2043,8 +2055,11 @@ void GraphBuilderOrt::AddExpandOperation(const mojom::Expand& expand) {
 
   const std::vector<Dimension>& output_shape =
       GetOperand(expand.output_operand_id).descriptor.shape();
+  const std::vector<Dimension>& expand_input_shape =
+      GetOperand(expand.input_operand_id).descriptor.shape();
 
-  AddExpandNode(node_name, input, output, output_shape, known_dynamic_dims_);
+  AddExpandNode(node_name, input, output, output_shape, expand_input_shape,
+                known_dynamic_dims_);
 }
 
 void GraphBuilderOrt::AddConcatOperation(const mojom::Concat& concat) {

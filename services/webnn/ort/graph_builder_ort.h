@@ -198,6 +198,7 @@ class GraphBuilderOrt {
       base::cstring_view input,
       base::cstring_view output,
       base::span<const Dimension> shape,
+      base::span<const Dimension> input_shape,
       const base::flat_map<DynamicDimension, DynamicDimensionInfo>&
           known_dynamic_dims);
   std::string CreateExpandNode(base::cstring_view input,
