@@ -350,6 +350,11 @@ class GraphBuilderOrt {
   void AddTriangularOperation(const mojom::Triangular& triangular);
   void AddWhereOperation(const mojom::Where& where);
 
+  // Registers any dynamic dimensions on `operand_id` into `known_dynamic_dims_`
+  // so that subsequent operations (e.g. expand) can look them up as Shape
+  // sources. Called from BuildModel() after each non-expand operation is added.
+  void RegisterOperandDynamicDims(OperandId operand_id);
+
   base::expected<std::unique_ptr<ModelEditor::ModelInfo>, mojom::ErrorPtr>
   BuildModel();
 

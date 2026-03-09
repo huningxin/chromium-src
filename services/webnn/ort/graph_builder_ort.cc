@@ -390,26 +390,12 @@ GraphBuilderOrt::GraphBuilderOrt(
       context_properties_(std::move(context_properties)),
       batched_matmul_k_dimension_limit_(
           std::move(batched_matmul_k_dimension_limit)) {
-  // Collect dynamic dimensions from all graph input operands.
+  // Register dynamic dimensions from graph input operands. Dynamic dims that
+  // first appear on intermediate operands (e.g. the output of concat) are
+  // registered lazily in BuildModel() as each operation is processed, so that
+  // only operands that have already been produced are used as Shape sources.
   for (OperandId input_operand_id : graph_info_->input_operands) {
-    const mojom::Operand& input_operand = GetOperand(input_operand_id);
-    const std::string input_operand_name = GetOperandNameById(input_operand_id);
-    const std::vector<Dimension>& input_shape =
-        input_operand.descriptor.shape();
-
-    for (size_t axis = 0; axis < input_shape.size(); ++axis) {
-      if (std::holds_alternative<DynamicDimension>(input_shape[axis])) {
-        const DynamicDimension& dynamic_dim =
-            std::get<DynamicDimension>(input_shape[axis]);
-        // Only add if not already present (same dynamic dimension might appear
-        // in multiple inputs at different axes, we use the first occurrence).
-        if (!known_dynamic_dims_.contains(dynamic_dim)) {
-          known_dynamic_dims_[dynamic_dim] =
-              DynamicDimensionInfo{.input_operand_name = input_operand_name,
-                                   .axis = static_cast<uint32_t>(axis)};
-        }
-      }
-    }
+    RegisterOperandDynamicDims(input_operand_id);
   }
 }
 
@@ -3955,6 +3941,144 @@ void GraphBuilderOrt::AddWhereOperation(const mojom::Where& where) {
   model_editor_.AddNode(kOpTypeWhere, node_name, inputs, outputs);
 }
 
+// Returns the output operand IDs for `operation`.
+// Expand outputs are excluded: expand derives its output shape *from*
+// known_dynamic_dims_, so registering the expand output as a shape source
+// would require inserting a Shape node before the expand itself, creating a
+// cycle in the ORT graph.
+std::vector<OperandId> GetOperationOutputOperandIds(
+    const mojom::Operation& operation) {
+  switch (operation.which()) {
+    case mojom::Operation::Tag::kExpand:
+      return {};
+    // Operations with multiple output operand IDs.
+    case mojom::Operation::Tag::kGru: {
+      const auto& ids = operation.get_gru()->output_operand_ids;
+      return {ids.begin(), ids.end()};
+    }
+    case mojom::Operation::Tag::kLstm: {
+      const auto& ids = operation.get_lstm()->output_operand_ids;
+      return {ids.begin(), ids.end()};
+    }
+    case mojom::Operation::Tag::kLstmCell: {
+      const auto& ids = operation.get_lstm_cell()->output_operand_ids;
+      return {ids.begin(), ids.end()};
+    }
+    case mojom::Operation::Tag::kSplit: {
+      const auto& ids = operation.get_split()->output_operand_ids;
+      return {ids.begin(), ids.end()};
+    }
+    // All remaining operations have a single output_operand_id.
+    case mojom::Operation::Tag::kArgMinMax:
+      return {operation.get_arg_min_max()->output_operand_id};
+    case mojom::Operation::Tag::kBatchNormalization:
+      return {operation.get_batch_normalization()->output_operand_id};
+    case mojom::Operation::Tag::kClamp:
+      return {operation.get_clamp()->output_operand_id};
+    case mojom::Operation::Tag::kConcat:
+      return {operation.get_concat()->output_operand_id};
+    case mojom::Operation::Tag::kConv2d:
+      return {operation.get_conv2d()->output_operand_id};
+    case mojom::Operation::Tag::kCumulativeSum:
+      return {operation.get_cumulative_sum()->output_operand_id};
+    case mojom::Operation::Tag::kDequantizeLinear:
+      return {operation.get_dequantize_linear()->output_operand_id};
+    case mojom::Operation::Tag::kElu:
+      return {operation.get_elu()->output_operand_id};
+    case mojom::Operation::Tag::kElementWiseBinary:
+      return {operation.get_element_wise_binary()->output_operand_id};
+    case mojom::Operation::Tag::kElementWiseUnary:
+      return {operation.get_element_wise_unary()->output_operand_id};
+    case mojom::Operation::Tag::kGather:
+      return {operation.get_gather()->output_operand_id};
+    case mojom::Operation::Tag::kGatherElements:
+      return {operation.get_gather_elements()->output_operand_id};
+    case mojom::Operation::Tag::kGatherNd:
+      return {operation.get_gather_nd()->output_operand_id};
+    case mojom::Operation::Tag::kGelu:
+      return {operation.get_gelu()->output_operand_id};
+    case mojom::Operation::Tag::kGemm:
+      return {operation.get_gemm()->output_operand_id};
+    case mojom::Operation::Tag::kGruCell:
+      return {operation.get_gru_cell()->output_operand_id};
+    case mojom::Operation::Tag::kHardSigmoid:
+      return {operation.get_hard_sigmoid()->output_operand_id};
+    case mojom::Operation::Tag::kHardSwish:
+      return {operation.get_hard_swish()->output_operand_id};
+    case mojom::Operation::Tag::kInstanceNormalization:
+      return {operation.get_instance_normalization()->output_operand_id};
+    case mojom::Operation::Tag::kLayerNormalization:
+      return {operation.get_layer_normalization()->output_operand_id};
+    case mojom::Operation::Tag::kLeakyRelu:
+      return {operation.get_leaky_relu()->output_operand_id};
+    case mojom::Operation::Tag::kLinear:
+      return {operation.get_linear()->output_operand_id};
+    case mojom::Operation::Tag::kMatmul:
+      return {operation.get_matmul()->output_operand_id};
+    case mojom::Operation::Tag::kPad:
+      return {operation.get_pad()->output_operand_id};
+    case mojom::Operation::Tag::kPool2d:
+      return {operation.get_pool2d()->output_operand_id};
+    case mojom::Operation::Tag::kPrelu:
+      return {operation.get_prelu()->output_operand_id};
+    case mojom::Operation::Tag::kQuantizeLinear:
+      return {operation.get_quantize_linear()->output_operand_id};
+    case mojom::Operation::Tag::kRelu:
+      return {operation.get_relu()->output_operand_id};
+    case mojom::Operation::Tag::kReduce:
+      return {operation.get_reduce()->output_operand_id};
+    case mojom::Operation::Tag::kResample2d:
+      return {operation.get_resample2d()->output_operand_id};
+    case mojom::Operation::Tag::kReshape:
+      return {operation.get_reshape()->output_operand_id};
+    case mojom::Operation::Tag::kReverse:
+      return {operation.get_reverse()->output_operand_id};
+    case mojom::Operation::Tag::kScatterElements:
+      return {operation.get_scatter_elements()->output_operand_id};
+    case mojom::Operation::Tag::kScatterNd:
+      return {operation.get_scatter_nd()->output_operand_id};
+    case mojom::Operation::Tag::kSlice:
+      return {operation.get_slice()->output_operand_id};
+    case mojom::Operation::Tag::kSigmoid:
+      return {operation.get_sigmoid()->output_operand_id};
+    case mojom::Operation::Tag::kSoftmax:
+      return {operation.get_softmax()->output_operand_id};
+    case mojom::Operation::Tag::kSoftplus:
+      return {operation.get_softplus()->output_operand_id};
+    case mojom::Operation::Tag::kSoftsign:
+      return {operation.get_softsign()->output_operand_id};
+    case mojom::Operation::Tag::kTanh:
+      return {operation.get_tanh()->output_operand_id};
+    case mojom::Operation::Tag::kTile:
+      return {operation.get_tile()->output_operand_id};
+    case mojom::Operation::Tag::kTranspose:
+      return {operation.get_transpose()->output_operand_id};
+    case mojom::Operation::Tag::kTriangular:
+      return {operation.get_triangular()->output_operand_id};
+    case mojom::Operation::Tag::kWhere:
+      return {operation.get_where()->output_operand_id};
+  }
+}
+
+void GraphBuilderOrt::RegisterOperandDynamicDims(OperandId operand_id) {
+  const mojom::Operand& operand = GetOperand(operand_id);
+  const std::string operand_name = GetOperandNameById(operand_id);
+  const std::vector<Dimension>& shape = operand.descriptor.shape();
+  for (size_t axis = 0; axis < shape.size(); ++axis) {
+    if (std::holds_alternative<DynamicDimension>(shape[axis])) {
+      const DynamicDimension& dynamic_dim =
+          std::get<DynamicDimension>(shape[axis]);
+      // First occurrence wins; input operands (registered in the constructor)
+      // are always preferred as sources.
+      if (!known_dynamic_dims_.contains(dynamic_dim)) {
+        known_dynamic_dims_[dynamic_dim] =
+            DynamicDimensionInfo{.input_operand_name = operand_name,
+                                 .axis = static_cast<uint32_t>(axis)};
+      }
+    }
+  }
+}
+
 base::expected<std::unique_ptr<ModelEditor::ModelInfo>, mojom::ErrorPtr>
 GraphBuilderOrt::BuildModel() {
   for (OperandId input_id : graph_info_->input_operands) {
@@ -4219,6 +4343,14 @@ GraphBuilderOrt::BuildModel() {
         AddWhereOperation(*operation->get_where());
         break;
       }
+    }
+    // Register any dynamic dimensions introduced by this operation's output
+    // operands so that subsequent operations (e.g. expand) can use them as
+    // Shape sources. Expand outputs are excluded by
+    // GetOperationOutputOperandIds to prevent Shape-before-Expand cycles in the
+    // ORT graph.
+    for (OperandId output_id : GetOperationOutputOperandIds(*operation)) {
+      RegisterOperandDynamicDims(output_id);
     }
   }
 

@@ -12,11 +12,17 @@
 #include "base/component_export.h"
 #include "base/containers/enum_set.h"
 #include "base/containers/span.h"
+#include "base/functional/function_ref.h"
 #include "base/types/expected.h"
 #include "services/webnn/public/cpp/context_properties.h"
 #include "services/webnn/public/cpp/operand_descriptor.h"
 
 namespace webnn {
+
+// Callback used to allocate a unique name for each newly-inferred dynamic
+// dimension. Callers (e.g. MLGraphBuilder) provide an implementation that
+// integrates name generation with their own deduplication bookkeeping.
+using DynamicDimensionNameGenerator = base::FunctionRef<std::string()>;
 
 // Represents the `MLConv2dFilterOperandLayout` that specifies the layout format
 // of the filter tensor. O is output channels, I is input channels / groups, H
@@ -448,7 +454,8 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
     ValidateConcatAndInferOutput(const ContextProperties& context_properties,
                                  const std::vector<OperandDescriptor>& input,
                                  const uint32_t axis,
-                                 std::string_view label);
+                                 std::string_view label,
+                                 DynamicDimensionNameGenerator name_gen);
 
 // Validate and calculate the output spatial dimensions of conv2d given
 // input sizes, filter sizes, padding, strides and dilations.
@@ -471,7 +478,8 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
     ValidateConv2dAndInferOutput(const ContextProperties& context_properties,
                                  const OperandDescriptor& input,
                                  const OperandDescriptor& filter,
-                                 const Conv2dAttributes& attributes);
+                                 const Conv2dAttributes& attributes,
+                                 DynamicDimensionNameGenerator name_gen);
 
 // Validate and infer output information of 2-D transposed convolution operator
 // defined in WebIDL here
@@ -482,7 +490,8 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
         const ContextProperties& context_properties,
         const OperandDescriptor& input,
         const OperandDescriptor& filter,
-        const ConvTranspose2dAttributes& attributes);
+        const ConvTranspose2dAttributes& attributes,
+        DynamicDimensionNameGenerator name_gen);
 
 // Validate and infer output information of cumulativeSum operator defined in
 // WebIDL here https://www.w3.org/TR/webnn/#api-mlgraphbuilder-cumulativesum
@@ -662,7 +671,8 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
     ValidatePool2dAndInferOutput(const ContextProperties& context_properties,
                                  const OperandDescriptor& input,
                                  const Pool2dAttributes& attributes,
-                                 Pool2dKind kind);
+                                 Pool2dKind kind,
+                                 DynamicDimensionNameGenerator name_gen);
 
 // Validate prelu operator defined in WebIDL here:
 // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-prelu

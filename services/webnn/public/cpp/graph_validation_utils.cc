@@ -551,7 +551,8 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
     const ContextProperties& context_properties,
     const std::vector<OperandDescriptor>& inputs,
     const uint32_t axis,
-    std::string_view label) {
+    std::string_view label,
+    DynamicDimensionNameGenerator name_gen) {
   if (inputs.empty()) {
     return base::unexpected(
         ErrorWithLabel(label, "The inputs should not be empty."));
@@ -632,7 +633,7 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
   uint32_t axis_size_value = axis_size.ValueOrDie();
   uint32_t axis_min_size_value = axis_min_size.ValueOrDie();
   if (has_dynamic_size) {
-    output_shape[axis] = DynamicDimension{.name = "?",
+    output_shape[axis] = DynamicDimension{.name = name_gen(),
                                           .max_size = axis_size_value,
                                           .min_size = axis_min_size_value};
   } else {
@@ -687,7 +688,8 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
     const ContextProperties& context_properties,
     const OperandDescriptor& input,
     const OperandDescriptor& filter,
-    const Conv2dAttributes& attributes) {
+    const Conv2dAttributes& attributes,
+    DynamicDimensionNameGenerator name_gen) {
   const std::string& label = attributes.label;
   // Validate input operand.
   if (!context_properties.data_type_limits.conv2d_input.Supports(input)) {
@@ -800,15 +802,17 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
   if (std::holds_alternative<uint32_t>(input_info.height)) {
     output_height_dim = output_height;
   } else {
-    output_height_dim = DynamicDimension{
-        .name = "?", .max_size = output_height, .min_size = output_min_height};
+    output_height_dim = DynamicDimension{.name = name_gen(),
+                                         .max_size = output_height,
+                                         .min_size = output_min_height};
   }
 
   if (std::holds_alternative<uint32_t>(input_info.width)) {
     output_width_dim = output_width;
   } else {
-    output_width_dim = DynamicDimension{
-        .name = "?", .max_size = output_width, .min_size = output_min_width};
+    output_width_dim = DynamicDimension{.name = name_gen(),
+                                        .max_size = output_width,
+                                        .min_size = output_min_width};
   }
 
   Conv2dInputOutputInfo output_info{.batches = input_info.batches,
@@ -824,7 +828,8 @@ ValidateConvTranspose2dAndInferOutput(
     const ContextProperties& context_properties,
     const OperandDescriptor& input,
     const OperandDescriptor& filter,
-    const ConvTranspose2dAttributes& attributes) {
+    const ConvTranspose2dAttributes& attributes,
+    DynamicDimensionNameGenerator name_gen) {
   // Validate input operand.
   const std::string& label = attributes.label;
   if (!context_properties.data_type_limits.conv_transpose2d_input.Supports(
@@ -992,15 +997,17 @@ ValidateConvTranspose2dAndInferOutput(
   if (std::holds_alternative<uint32_t>(input_info.height)) {
     output_height_dim = output_height;
   } else {
-    output_height_dim = DynamicDimension{
-        .name = "?", .max_size = output_height, .min_size = output_min_height};
+    output_height_dim = DynamicDimension{.name = name_gen(),
+                                         .max_size = output_height,
+                                         .min_size = output_min_height};
   }
 
   if (std::holds_alternative<uint32_t>(input_info.width)) {
     output_width_dim = output_width;
   } else {
-    output_width_dim = DynamicDimension{
-        .name = "?", .max_size = output_width, .min_size = output_min_width};
+    output_width_dim = DynamicDimension{.name = name_gen(),
+                                        .max_size = output_width,
+                                        .min_size = output_min_width};
   }
 
   Conv2dInputOutputInfo output_info{.batches = input_info.batches,
@@ -2367,7 +2374,8 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
     const ContextProperties& context_properties,
     const OperandDescriptor& input,
     const Pool2dAttributes& attributes,
-    Pool2dKind kind) {
+    Pool2dKind kind,
+    DynamicDimensionNameGenerator name_gen) {
   const std::string& label = attributes.label;
   // Validate input operand and set its sizes.
   const SupportedTensors& tensor_constraint = [&](Pool2dKind kind) {
@@ -2497,14 +2505,14 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
             output_height = floor_output_height;
           } else {
             output_height =
-                DynamicDimension{.name = "?",
+                DynamicDimension{.name = name_gen(),
                                  .max_size = floor_output_height,
                                  .min_size = floor_output_min_height};
           }
           if (std::holds_alternative<uint32_t>(input_width)) {
             output_width = floor_output_width;
           } else {
-            output_width = DynamicDimension{.name = "?",
+            output_width = DynamicDimension{.name = name_gen(),
                                             .max_size = floor_output_width,
                                             .min_size = floor_output_min_width};
           }
@@ -2514,14 +2522,14 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
             output_height = ceil_output_height;
           } else {
             output_height =
-                DynamicDimension{.name = "?",
+                DynamicDimension{.name = name_gen(),
                                  .max_size = ceil_output_height,
                                  .min_size = ceil_output_min_height};
           }
           if (std::holds_alternative<uint32_t>(input_width)) {
             output_width = ceil_output_width;
           } else {
-            output_width = DynamicDimension{.name = "?",
+            output_width = DynamicDimension{.name = name_gen(),
                                             .max_size = ceil_output_width,
                                             .min_size = ceil_output_min_width};
           }

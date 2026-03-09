@@ -49,6 +49,18 @@ namespace webnn {
 
 namespace {
 
+// Returns the names of dynamic dimensions from `descriptor` in order.
+std::vector<std::string> GetDynamicDimensionNames(
+    const OperandDescriptor& descriptor) {
+  std::vector<std::string> names;
+  for (const Dimension& dim : descriptor.shape()) {
+    if (std::holds_alternative<DynamicDimension>(dim)) {
+      names.push_back(std::get<DynamicDimension>(dim).name);
+    }
+  }
+  return names;
+}
+
 #if BUILDFLAG(BUILD_TFLITE_WITH_XNNPACK)
 // Use XNNPACK to accelerate TransposePendingPermutation.
 BASE_FEATURE(kWebNNUseXNNPackForConstantTransposeFolding,
@@ -667,13 +679,18 @@ class OperationValidationContext {
     operand_to_dependent_operations_.reserve(operands.size());
     operand_to_producing_operation_.reserve(operands.size());
 
-    // Collect dynamic dimensions from input operands for expand validation.
-    for (OperandId operand_id : this->processed_operands_) {
-      const mojom::Operand* operand = GetMojoOperand(operand_id);
-      if (operand && operand->kind == mojom::Operand::Kind::kInput) {
-        for (const auto& dim : operand->descriptor.shape()) {
-          if (std::holds_alternative<DynamicDimension>(dim)) {
-            known_dynamic_dims_.push_back(std::get<DynamicDimension>(dim));
+    // Collect dynamic dimensions from all operands for expand validation.
+    for (size_t i = 0; i < operands.size(); ++i) {
+      const mojom::Operand* operand = operands[i].get();
+      if (!operand) {
+        continue;
+      }
+      for (const auto& dim : operand->descriptor.shape()) {
+        if (std::holds_alternative<DynamicDimension>(dim)) {
+          const auto& dyn = std::get<DynamicDimension>(dim);
+          if (std::ranges::find(known_dynamic_dims_, dyn) ==
+              known_dynamic_dims_.end()) {
+            known_dynamic_dims_.push_back(dyn);
           }
         }
       }
@@ -1042,9 +1059,17 @@ bool OperationValidationContext::ValidateConcat(const mojom::Concat& concat,
     inputs.push_back(input->descriptor);
   }
 
+  std::vector<std::string> concat_dyn_names =
+      GetDynamicDimensionNames(output->descriptor);
+  size_t concat_dim_idx = 0;
   const base::expected<OperandDescriptor, std::string> validated_output =
-      ValidateConcatAndInferOutput(*context_properties_, inputs, concat.axis,
-                                   concat.label);
+      ValidateConcatAndInferOutput(
+          *context_properties_, inputs, concat.axis, concat.label,
+          [&concat_dyn_names, &concat_dim_idx] {
+            return concat_dim_idx < concat_dyn_names.size()
+                       ? concat_dyn_names[concat_dim_idx++]
+                       : std::string();
+          });
   if (!validated_output.has_value()) {
     return false;
   }
@@ -1099,18 +1124,34 @@ bool OperationValidationContext::ValidateConv2d(const mojom::Conv2d& conv2d,
       validated_output;
   switch (conv2d.kind) {
     case mojom::Conv2d::Kind::kDirect: {
+      std::vector<std::string> conv2d_dyn_names =
+          GetDynamicDimensionNames(output->descriptor);
+      size_t conv2d_dim_idx = 0;
       validated_output = ValidateConv2dAndInferOutput(
           *context_properties_, input->descriptor, filter->descriptor,
           ConvertToConv2dAttributes(*context_properties_, operands_, conv2d,
-                                    std::move(bias_operand)));
+                                    std::move(bias_operand)),
+          [&conv2d_dyn_names, &conv2d_dim_idx] {
+            return conv2d_dim_idx < conv2d_dyn_names.size()
+                       ? conv2d_dyn_names[conv2d_dim_idx++]
+                       : std::string();
+          });
       break;
     }
 
     case mojom::Conv2d::Kind::kTransposed: {
+      std::vector<std::string> convt_dyn_names =
+          GetDynamicDimensionNames(output->descriptor);
+      size_t convt_dim_idx = 0;
       validated_output = ValidateConvTranspose2dAndInferOutput(
           *context_properties_, input->descriptor, filter->descriptor,
           ConvertToConvTranspose2dAttributes(*context_properties_, operands_,
-                                             conv2d, std::move(bias_operand)));
+                                             conv2d, std::move(bias_operand)),
+          [&convt_dyn_names, &convt_dim_idx] {
+            return convt_dim_idx < convt_dyn_names.size()
+                       ? convt_dyn_names[convt_dim_idx++]
+                       : std::string();
+          });
       break;
     }
   }
@@ -2109,11 +2150,19 @@ bool OperationValidationContext::ValidatePool2d(const mojom::Pool2d& pool2d,
   if (output->descriptor.Rank() != 4) {
     return false;
   }
+  std::vector<std::string> pool2d_dyn_names =
+      GetDynamicDimensionNames(output->descriptor);
+  size_t pool2d_dim_idx = 0;
   const base::expected<OperandDescriptor, std::string> validated_output =
       ValidatePool2dAndInferOutput(
           *context_properties_, input->descriptor,
           ConvertToPool2dAttributes(*context_properties_, pool2d, output),
-          FromMojoPool2dType(pool2d.kind));
+          FromMojoPool2dType(pool2d.kind),
+          [&pool2d_dyn_names, &pool2d_dim_idx] {
+            return pool2d_dim_idx < pool2d_dyn_names.size()
+                       ? pool2d_dyn_names[pool2d_dim_idx++]
+                       : std::string();
+          });
   if (!validated_output.has_value()) {
     return false;
   }

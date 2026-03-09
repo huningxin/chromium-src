@@ -1107,7 +1107,8 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidatePool2dAndInferOutput(
           context_properties, input->Descriptor(), pool2d_attributes.value(),
-          FromMojoPool2dKind(kind)));
+          FromMojoPool2dKind(kind),
+          [builder] { return builder->AllocateDynamicDimensionName(); }));
 
   // Create pool2d operator and its output operand. Connect the pool2d operator
   // to its input and output operands.
@@ -1117,6 +1118,7 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
   MLOperand* output =
       MLOperand::CreateOutput(builder, std::move(output_descriptor), pool2d);
   pool2d->Connect({input}, {output});
+  builder->RegisterOutputDynamicDimensions(output->Descriptor());
   return output;
 }
 
@@ -1639,6 +1641,94 @@ void FoldReshapableConstants(blink_mojom::GraphInfo& graph_info) {
   }
 }
 
+// Validates that every dynamic dimension in an expand output is present in
+// some other operand's shape within the graph's compute flow (i.e., it
+// originates from a graph input or an upstream operator output). Constants are
+// excluded since they always have static shapes.
+base::expected<void, String> ValidateExpandDynamicDimensions(
+    const MLNamedOperands& named_outputs) {
+  // BFS to collect all operators reachable from named_outputs, mirroring the
+  // traversal in BuildWebNNGraphInfo.
+  HeapDeque<Member<const MLOperator>> operators_queue;
+  HeapHashSet<Member<const MLOperator>> visited_operators;
+  for (const auto& [name, operand] : named_outputs) {
+    const MLOperator* op = operand->Operator();
+    if (op && !visited_operators.Contains(op)) {
+      visited_operators.insert(op);
+      operators_queue.push_back(op);
+    }
+  }
+
+  // Collect dynamic dimension names from all operands in the graph except
+  // expand outputs: graph inputs and outputs of non-expand operators.
+  HashSet<String> graph_dynamic_dim_names;
+  auto collect_dims = [&](const MLOperand* operand) {
+    for (const auto& dim : operand->Descriptor().shape()) {
+      if (std::holds_alternative<webnn::DynamicDimension>(dim)) {
+        graph_dynamic_dim_names.insert(
+            String::FromUTF8(std::get<webnn::DynamicDimension>(dim).name));
+      }
+    }
+  };
+
+  // Collect dims from named output operands produced by non-expand ops.
+  for (const auto& [name, operand] : named_outputs) {
+    if (operand->Operator() &&
+        operand->Operator()->Kind() != blink_mojom::Operation::Tag::kExpand) {
+      collect_dims(operand);
+    }
+  }
+
+  while (!operators_queue.empty()) {
+    const MLOperator* current_operator = operators_queue.TakeFirst();
+    for (const MLOperand* input : current_operator->Inputs()) {
+      // Collect dims from graph inputs and intermediate operands. Constants
+      // cannot have dynamic dimensions so they are skipped.
+      if (input->Kind() != blink_mojom::Operand::Kind::kConstant) {
+        collect_dims(input);
+      }
+      if (input->Kind() == blink_mojom::Operand::Kind::kOutput) {
+        const MLOperator* op = input->Operator();
+        if (op && !visited_operators.Contains(op)) {
+          visited_operators.insert(op);
+          operators_queue.push_back(op);
+        }
+      }
+    }
+    // Collect dims from outputs of non-expand operators.
+    if (current_operator->Kind() != blink_mojom::Operation::Tag::kExpand) {
+      for (const MLOperand* output : current_operator->Outputs()) {
+        collect_dims(output);
+      }
+    }
+  }
+
+  // Validate each expand op's output dynamic dimensions against the collected
+  // set.
+  for (const MLOperator* current_operator : visited_operators) {
+    if (current_operator->Kind() != blink_mojom::Operation::Tag::kExpand) {
+      continue;
+    }
+    const MLOperand* expand_output = current_operator->Outputs()[0];
+    const std::string label = current_operator->Options()->label().Utf8();
+    for (const auto& dim : expand_output->Descriptor().shape()) {
+      if (std::holds_alternative<webnn::DynamicDimension>(dim)) {
+        const auto& dyn_dim = std::get<webnn::DynamicDimension>(dim);
+        if (!graph_dynamic_dim_names.Contains(String::FromUTF8(dyn_dim.name))) {
+          return base::unexpected(BuildErrorMessage(
+              label, String::Format(
+                         "Dynamic dimension \"%s\" in the expand output is not "
+                         "present in the expand input shape or any upstream "
+                         "operand shape within this graph.",
+                         dyn_dim.name.c_str())));
+        }
+      }
+    }
+  }
+
+  return base::ok();
+}
+
 }  // namespace
 
 // static
@@ -1688,6 +1778,33 @@ ExecutionContext* MLGraphBuilder::GetExecutionContext() const {
 
 MLContext* MLGraphBuilder::GetContext() const {
   return ml_context_.Get();
+}
+
+std::string MLGraphBuilder::AllocateDynamicDimensionName() {
+  std::string name;
+  do {
+    name = "?" + std::to_string(next_dynamic_dim_id_++);
+  } while (known_dynamic_dimensions_.Contains(String::FromUTF8(name)));
+  return name;
+}
+
+void MLGraphBuilder::RegisterOutputDynamicDimensions(
+    const webnn::OperandDescriptor& descriptor) {
+  for (const webnn::Dimension& dim : descriptor.shape()) {
+    if (std::holds_alternative<webnn::DynamicDimension>(dim)) {
+      const auto& dyn = std::get<webnn::DynamicDimension>(dim);
+      String name = String::FromUTF8(dyn.name);
+      auto result = known_dynamic_dimensions_.insert(name, dyn);
+      if (!result.is_new_entry) {
+        // An existing entry means this dimension was propagated from an input.
+        // Its constraints must match — a mismatch is a logic error in our
+        // inference code, not a user error.
+        const auto& existing = result.stored_value->value;
+        DCHECK_EQ(existing.min_size, dyn.min_size);
+        DCHECK_EQ(existing.max_size, dyn.max_size);
+      }
+    }
+  }
 }
 
 MLOperand* MLGraphBuilder::input(ScriptState* script_state,
@@ -2028,11 +2145,13 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
   ASSIGN_OR_THROW_AND_RETURN_IF_ERROR(
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidateConcatAndInferOutput(
-          ml_context_->GetProperties(), input_component_operands, axis, label));
+          ml_context_->GetProperties(), input_component_operands, axis, label,
+          [this] { return AllocateDynamicDimensionName(); }));
 
   auto* concat = MakeGarbageCollected<MLConcatOperator>(this, axis, options);
   MLOperand* output =
       MLOperand::CreateOutput(this, std::move(output_descriptor), concat);
+  RegisterOutputDynamicDimensions(output->Descriptor());
 
   concat->Connect(inputs, {output});
   return output;
@@ -2123,7 +2242,8 @@ MLOperand* MLGraphBuilder::conv2d(MLOperand* input,
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidateConv2dAndInferOutput(
           ml_context_->GetProperties(), input->Descriptor(),
-          filter->Descriptor(), conv2d_attributes.value()));
+          filter->Descriptor(), conv2d_attributes.value(),
+          [this] { return AllocateDynamicDimensionName(); }));
 
   // Create conv2d operator and its output operand. Connect the conv2d operator
   // to its input and output operands.
@@ -2132,6 +2252,7 @@ MLOperand* MLGraphBuilder::conv2d(MLOperand* input,
       /*sub_type=*/blink_mojom::Conv2d::Kind::kDirect);
   MLOperand* output =
       MLOperand::CreateOutput(this, std::move(output_descriptor), conv2d);
+  RegisterOutputDynamicDimensions(output->Descriptor());
   conv2d->Connect(std::move(inputs), {output});
   return output;
 }
@@ -2158,7 +2279,8 @@ MLOperand* MLGraphBuilder::convTranspose2d(MLOperand* input,
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidateConvTranspose2dAndInferOutput(
           ml_context_->GetProperties(), input->Descriptor(),
-          filter->Descriptor(), convTranspose2d_attributes.value()));
+          filter->Descriptor(), convTranspose2d_attributes.value(),
+          [this] { return AllocateDynamicDimensionName(); }));
 
   // Create convTranspose2d operator and its output operand. Connect the
   // convTranspose2d operator to its input and output operands.
@@ -2167,6 +2289,7 @@ MLOperand* MLGraphBuilder::convTranspose2d(MLOperand* input,
       /*sub_type=*/blink_mojom::Conv2d::Kind::kTransposed);
   MLOperand* output = MLOperand::CreateOutput(
       this, std::move(output_descriptor), convTranspose2d);
+  RegisterOutputDynamicDimensions(output->Descriptor());
   convTranspose2d->Connect(std::move(inputs), {output});
   return output;
 }
@@ -3580,6 +3703,10 @@ ScriptPromise<MLGraph> MLGraphBuilder::build(ScriptState* script_state,
     // *constraint)` once we fix the `webnn::OperandDescriptor`.
     CHECK(operand->Descriptor() == *constraint);
   }
+
+  scoped_trace.AddStep("ValidateExpandDynamicDimensions");
+  THROW_AND_RETURN_TYPE_IF_ERROR(ValidateExpandDynamicDimensions(named_outputs),
+                                 ScriptPromise<MLGraph>());
 
   scoped_trace.AddStep("BuildWebNNGraphInfo");
   blink_mojom::GraphInfoPtr graph_info =
