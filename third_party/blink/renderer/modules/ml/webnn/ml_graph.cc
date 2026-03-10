@@ -9,6 +9,10 @@
 #include "services/webnn/public/mojom/webnn_graph.mojom-blink.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_device_type.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_dynamic_dimension.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_input_operand_descriptor.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operand_descriptor.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_union_mldynamicdimension_unsignedlongenforcerange.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/typed_arrays/dom_array_buffer_view.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
@@ -217,6 +221,55 @@ void MLGraph::destroy() {
 
 Vector<V8MLDeviceType> MLGraph::devices() const {
   return devices_;
+}
+
+namespace {
+
+MLInputOperandDescriptor* MakeInputOperandDescriptor(
+    const webnn::OperandDescriptor& descriptor) {
+  auto* desc = MLInputOperandDescriptor::Create();
+  desc->setDataType(ToBlinkDataType(descriptor.data_type()));
+  HeapVector<Member<V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>> shape;
+  for (const auto& dim : descriptor.shape()) {
+    if (std::holds_alternative<uint32_t>(dim)) {
+      shape.push_back(MakeGarbageCollected<
+                      V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>(
+          std::get<uint32_t>(dim)));
+    } else {
+      const auto& dynamic_dim = std::get<webnn::DynamicDimension>(dim);
+      auto* dyn = MLDynamicDimension::Create();
+      dyn->setName(String::FromUTF8(dynamic_dim.name));
+      dyn->setMaxSize(dynamic_dim.max_size);
+      dyn->setMinSize(dynamic_dim.min_size);
+      shape.push_back(
+          MakeGarbageCollected<
+              V8UnionMLDynamicDimensionOrUnsignedLongEnforceRange>(dyn));
+    }
+  }
+  desc->setShape(std::move(shape));
+  return desc;
+}
+
+}  // namespace
+
+HeapVector<std::pair<String, Member<MLInputOperandDescriptor>>>
+MLGraph::inputs() const {
+  HeapVector<std::pair<String, Member<MLInputOperandDescriptor>>> result;
+  for (const auto& [name, descriptor] : input_constraints_) {
+    CHECK(descriptor.has_value());
+    result.emplace_back(name, MakeInputOperandDescriptor(*descriptor));
+  }
+  return result;
+}
+
+HeapVector<std::pair<String, Member<MLInputOperandDescriptor>>>
+MLGraph::outputs() const {
+  HeapVector<std::pair<String, Member<MLInputOperandDescriptor>>> result;
+  for (const auto& [name, descriptor] : output_constraints_) {
+    CHECK(descriptor.has_value());
+    result.emplace_back(name, MakeInputOperandDescriptor(*descriptor));
+  }
+  return result;
 }
 
 const MLGraph::NamedOperandDescriptors& MLGraph::GetInputConstraints() const {
