@@ -617,14 +617,23 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
   // sizes of the same dimension.
   auto axis_size = base::CheckedNumeric<uint32_t>(0);
   auto axis_min_size = base::CheckedNumeric<uint32_t>(0);
-  bool has_dynamic_size = false;
+  uint32_t dynamic_dim_count = 0;
+  uint32_t static_size_sum = 0;
+  std::string single_dynamic_dim_name;
   for (auto& input : inputs) {
-    if (std::holds_alternative<DynamicDimension>(input.shape()[axis])) {
-      has_dynamic_size = true;
+    const Dimension& dim = input.shape()[axis];
+    if (std::holds_alternative<DynamicDimension>(dim)) {
+      ++dynamic_dim_count;
+      if (dynamic_dim_count == 1) {
+        single_dynamic_dim_name = std::get<DynamicDimension>(dim).name;
+      }
+    } else {
+      static_size_sum += std::get<uint32_t>(dim);
     }
-    axis_size += GetStaticOrMaxSize(input.shape()[axis]);
-    axis_min_size += GetStaticOrMinSize(input.shape()[axis]);
+    axis_size += GetStaticOrMaxSize(dim);
+    axis_min_size += GetStaticOrMinSize(dim);
   }
+  const bool has_dynamic_size = dynamic_dim_count > 0;
   std::vector<Dimension> output_shape = first_input_shape;
   if (!axis_size.IsValid()) {
     return base::unexpected(
@@ -633,7 +642,19 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
   uint32_t axis_size_value = axis_size.ValueOrDie();
   uint32_t axis_min_size_value = axis_min_size.ValueOrDie();
   if (has_dynamic_size) {
-    output_shape[axis] = DynamicDimension{.name = name_gen(),
+    // Special case: exactly one dynamic dimension concatenated with static
+    // dimension(s). Derive the output name from the dynamic dim's name to
+    // preserve semantic meaning, e.g. "sequence_length" + 1 =>
+    // "sequence_length+1".
+    std::string output_dim_name;
+    if (dynamic_dim_count == 1 && static_size_sum > 0) {
+      output_dim_name =
+          base::StrCat({single_dynamic_dim_name, "+",
+                        base::StringPrintf("%u", static_size_sum)});
+    } else {
+      output_dim_name = name_gen();
+    }
+    output_shape[axis] = DynamicDimension{.name = std::move(output_dim_name),
                                           .max_size = axis_size_value,
                                           .min_size = axis_min_size_value};
   } else {
