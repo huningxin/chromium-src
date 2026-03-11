@@ -570,7 +570,7 @@ const tests = [
     filter: {dataType: 'float32', shape: [1, 1, 3, 3]},
     output: {
       dataType: 'float32',
-      shape: [1, 1, {name: '?', maxSize: 7, minSize: 5}, 5]
+      shape: [1, 1, {name: 'H+2', maxSize: 7, minSize: 5}, 5]
     }
   },
   {
@@ -582,7 +582,7 @@ const tests = [
     filter: {dataType: 'float32', shape: [1, 1, 3, 3]},
     output: {
       dataType: 'float32',
-      shape: [1, 1, 5, {name: '?', maxSize: 7, minSize: 5}]
+      shape: [1, 1, 5, {name: 'W+2', maxSize: 7, minSize: 5}]
     }
   },
   {
@@ -602,8 +602,8 @@ const tests = [
     output: {
       dataType: 'float32',
       shape: [
-        1, 1, {name: '?', maxSize: 11, minSize: 7},
-        {name: '?', maxSize: 11, minSize: 7}
+        1, 1, {name: 'H+6', maxSize: 11, minSize: 7},
+        {name: 'W+6', maxSize: 11, minSize: 7}
       ]
     }
   },
@@ -624,8 +624,8 @@ const tests = [
     output: {
       dataType: 'float32',
       shape: [
-        1, 1, {name: '?', maxSize: 5, minSize: 3},
-        {name: '?', maxSize: 5, minSize: 3}
+        1, 1, {name: 'H', maxSize: 5, minSize: 3},
+        {name: 'W', maxSize: 5, minSize: 3}
       ]
     }
   },
@@ -647,8 +647,8 @@ const tests = [
     output: {
       dataType: 'float32',
       shape: [
-        1, 1, {name: '?', maxSize: 9, minSize: 5},
-        {name: '?', maxSize: 9, minSize: 5}
+        1, 1, {name: 'H+4', maxSize: 9, minSize: 5},
+        {name: 'W+4', maxSize: 9, minSize: 5}
       ]
     }
   },
@@ -671,8 +671,8 @@ const tests = [
       dataType: 'float32',
       shape: [
         {name: 'N', maxSize: 4, minSize: 1},
-        {name: '?', maxSize: 7, minSize: 5},
-        {name: '?', maxSize: 7, minSize: 5}, 1
+        {name: 'H+2', maxSize: 7, minSize: 5},
+        {name: 'W+2', maxSize: 7, minSize: 5}, 1
       ]
     }
   },

@@ -454,8 +454,7 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
     ValidateConcatAndInferOutput(const ContextProperties& context_properties,
                                  const std::vector<OperandDescriptor>& input,
                                  const uint32_t axis,
-                                 std::string_view label,
-                                 DynamicDimensionNameGenerator name_gen);
+                                 std::string_view label);
 
 // Validate and calculate the output spatial dimensions of conv2d given
 // input sizes, filter sizes, padding, strides and dilations.
@@ -478,8 +477,7 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
     ValidateConv2dAndInferOutput(const ContextProperties& context_properties,
                                  const OperandDescriptor& input,
                                  const OperandDescriptor& filter,
-                                 const Conv2dAttributes& attributes,
-                                 DynamicDimensionNameGenerator name_gen);
+                                 const Conv2dAttributes& attributes);
 
 // Validate and infer output information of 2-D transposed convolution operator
 // defined in WebIDL here
@@ -490,8 +488,7 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
         const ContextProperties& context_properties,
         const OperandDescriptor& input,
         const OperandDescriptor& filter,
-        const ConvTranspose2dAttributes& attributes,
-        DynamicDimensionNameGenerator name_gen);
+        const ConvTranspose2dAttributes& attributes);
 
 // Validate and infer output information of cumulativeSum operator defined in
 // WebIDL here https://www.w3.org/TR/webnn/#api-mlgraphbuilder-cumulativesum
@@ -671,8 +668,7 @@ base::expected<OperandDescriptor, std::string> COMPONENT_EXPORT(
     ValidatePool2dAndInferOutput(const ContextProperties& context_properties,
                                  const OperandDescriptor& input,
                                  const Pool2dAttributes& attributes,
-                                 Pool2dKind kind,
-                                 DynamicDimensionNameGenerator name_gen);
+                                 Pool2dKind kind);
 
 // Validate prelu operator defined in WebIDL here:
 // https://www.w3.org/TR/webnn/#api-mlgraphbuilder-prelu

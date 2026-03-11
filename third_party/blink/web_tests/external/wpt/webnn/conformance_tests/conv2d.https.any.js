@@ -2160,8 +2160,8 @@ const conv2dTests = [
           'shape': [1, 1, 3, 3],
           'descriptor': {
             shape: [
-              {name: 'batch', maxSize: 10}, 1, {name: '?', maxSize: 8},
-              {name: '?', maxSize: 8}
+              {name: 'batch', maxSize: 10}, 1, {name: 'height-2', maxSize: 8},
+              {name: 'width-2', maxSize: 8}
             ],
             dataType: 'float32'
           }

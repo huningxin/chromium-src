@@ -1107,8 +1107,7 @@ MLOperand* BuildPool2d(MLGraphBuilder* builder,
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidatePool2dAndInferOutput(
           context_properties, input->Descriptor(), pool2d_attributes.value(),
-          FromMojoPool2dKind(kind),
-          [builder] { return builder->AllocateDynamicDimensionName(); }));
+          FromMojoPool2dKind(kind)));
 
   // Create pool2d operator and its output operand. Connect the pool2d operator
   // to its input and output operands.
@@ -1780,14 +1779,6 @@ MLContext* MLGraphBuilder::GetContext() const {
   return ml_context_.Get();
 }
 
-std::string MLGraphBuilder::AllocateDynamicDimensionName() {
-  std::string name;
-  do {
-    name = "?" + std::to_string(next_dynamic_dim_id_++);
-  } while (known_dynamic_dimensions_.Contains(String::FromUTF8(name)));
-  return name;
-}
-
 void MLGraphBuilder::RegisterOutputDynamicDimensions(
     const webnn::OperandDescriptor& descriptor) {
   for (const webnn::Dimension& dim : descriptor.shape()) {
@@ -2145,8 +2136,7 @@ MLOperand* MLGraphBuilder::concat(const HeapVector<Member<MLOperand>>& inputs,
   ASSIGN_OR_THROW_AND_RETURN_IF_ERROR(
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidateConcatAndInferOutput(
-          ml_context_->GetProperties(), input_component_operands, axis, label,
-          [this] { return AllocateDynamicDimensionName(); }));
+          ml_context_->GetProperties(), input_component_operands, axis, label));
 
   auto* concat = MakeGarbageCollected<MLConcatOperator>(this, axis, options);
   MLOperand* output =
@@ -2242,8 +2232,7 @@ MLOperand* MLGraphBuilder::conv2d(MLOperand* input,
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidateConv2dAndInferOutput(
           ml_context_->GetProperties(), input->Descriptor(),
-          filter->Descriptor(), conv2d_attributes.value(),
-          [this] { return AllocateDynamicDimensionName(); }));
+          filter->Descriptor(), conv2d_attributes.value()));
 
   // Create conv2d operator and its output operand. Connect the conv2d operator
   // to its input and output operands.
@@ -2279,8 +2268,7 @@ MLOperand* MLGraphBuilder::convTranspose2d(MLOperand* input,
       webnn::OperandDescriptor output_descriptor,
       webnn::ValidateConvTranspose2dAndInferOutput(
           ml_context_->GetProperties(), input->Descriptor(),
-          filter->Descriptor(), convTranspose2d_attributes.value(),
-          [this] { return AllocateDynamicDimensionName(); }));
+          filter->Descriptor(), convTranspose2d_attributes.value()));
 
   // Create convTranspose2d operator and its output operand. Connect the
   // convTranspose2d operator to its input and output operands.

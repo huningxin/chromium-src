@@ -96,7 +96,7 @@ const tests = [
     axis: 1,
     output: {
       dataType: 'float32',
-      shape: [2, {name: '?', maxSize: 18, minSize: 3}, 3]
+      shape: [2, {name: 'N+M', maxSize: 18, minSize: 3}, 3]
     }
   },
   {
@@ -128,7 +128,7 @@ const tests = [
     axis: 1,
     output: {
       dataType: 'float32',
-      shape: [2, {name: '?', maxSize: 14, minSize: 5}, 3]
+      shape: [2, {name: 'N+4', maxSize: 14, minSize: 5}, 3]
     }
   },
 ];

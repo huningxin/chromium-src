@@ -32,6 +32,25 @@ namespace webnn {
 
 namespace {
 
+// Derives an output dynamic dimension name from the input dimension name and
+// the change in max size.  Examples:
+//   "height", 10 -> 7  =>  "height-3"
+//   "height", 10 -> 13 =>  "height+3"
+//   "height", 10 -> 10 =>  "height"
+std::string DerivedDynamicDimName(const std::string& input_name,
+                                  uint32_t input_max,
+                                  uint32_t output_max) {
+  if (output_max == input_max) {
+    return input_name;
+  }
+  if (output_max > input_max) {
+    return base::StrCat(
+        {input_name, "+", base::StringPrintf("%u", output_max - input_max)});
+  }
+  return base::StrCat(
+      {input_name, "-", base::StringPrintf("%u", input_max - output_max)});
+}
+
 // The error message labels for corresponding operands.
 static constexpr char kBiasParam[] = "bias";
 static constexpr char kCellStateParam[] = "cellState";
@@ -551,8 +570,7 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
     const ContextProperties& context_properties,
     const std::vector<OperandDescriptor>& inputs,
     const uint32_t axis,
-    std::string_view label,
-    DynamicDimensionNameGenerator name_gen) {
+    std::string_view label) {
   if (inputs.empty()) {
     return base::unexpected(
         ErrorWithLabel(label, "The inputs should not be empty."));
@@ -618,17 +636,16 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
   auto axis_size = base::CheckedNumeric<uint32_t>(0);
   auto axis_min_size = base::CheckedNumeric<uint32_t>(0);
   uint32_t dynamic_dim_count = 0;
-  uint32_t static_size_sum = 0;
-  std::string single_dynamic_dim_name;
+  std::vector<std::string> dim_name_parts;
+  dim_name_parts.reserve(inputs.size());
   for (auto& input : inputs) {
     const Dimension& dim = input.shape()[axis];
     if (std::holds_alternative<DynamicDimension>(dim)) {
       ++dynamic_dim_count;
-      if (dynamic_dim_count == 1) {
-        single_dynamic_dim_name = std::get<DynamicDimension>(dim).name;
-      }
+      dim_name_parts.push_back(std::get<DynamicDimension>(dim).name);
     } else {
-      static_size_sum += std::get<uint32_t>(dim);
+      dim_name_parts.push_back(
+          base::StringPrintf("%u", std::get<uint32_t>(dim)));
     }
     axis_size += GetStaticOrMaxSize(dim);
     axis_min_size += GetStaticOrMinSize(dim);
@@ -642,18 +659,12 @@ base::expected<OperandDescriptor, std::string> ValidateConcatAndInferOutput(
   uint32_t axis_size_value = axis_size.ValueOrDie();
   uint32_t axis_min_size_value = axis_min_size.ValueOrDie();
   if (has_dynamic_size) {
-    // Special case: exactly one dynamic dimension concatenated with static
-    // dimension(s). Derive the output name from the dynamic dim's name to
-    // preserve semantic meaning, e.g. "sequence_length" + 1 =>
-    // "sequence_length+1".
-    std::string output_dim_name;
-    if (dynamic_dim_count == 1 && static_size_sum > 0) {
-      output_dim_name =
-          base::StrCat({single_dynamic_dim_name, "+",
-                        base::StringPrintf("%u", static_size_sum)});
-    } else {
-      output_dim_name = name_gen();
-    }
+    // Build the output dim name as the sorted sum of all dimension names/values
+    // along the concat axis to preserve semantic meaning and ensure
+    // concat('a', 'b') == concat('b', 'a'), e.g.
+    // "batch" + "sequence_length" + 1 => "1+batch+sequence_length".
+    std::ranges::sort(dim_name_parts);
+    std::string output_dim_name = base::JoinString(dim_name_parts, "+");
     output_shape[axis] = DynamicDimension{.name = std::move(output_dim_name),
                                           .max_size = axis_size_value,
                                           .min_size = axis_min_size_value};
@@ -709,8 +720,7 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
     const ContextProperties& context_properties,
     const OperandDescriptor& input,
     const OperandDescriptor& filter,
-    const Conv2dAttributes& attributes,
-    DynamicDimensionNameGenerator name_gen) {
+    const Conv2dAttributes& attributes) {
   const std::string& label = attributes.label;
   // Validate input operand.
   if (!context_properties.data_type_limits.conv2d_input.Supports(input)) {
@@ -823,17 +833,21 @@ base::expected<OperandDescriptor, std::string> ValidateConv2dAndInferOutput(
   if (std::holds_alternative<uint32_t>(input_info.height)) {
     output_height_dim = output_height;
   } else {
-    output_height_dim = DynamicDimension{.name = name_gen(),
-                                         .max_size = output_height,
-                                         .min_size = output_min_height};
+    const auto& in_h = std::get<DynamicDimension>(input_info.height);
+    output_height_dim = DynamicDimension{
+        .name = DerivedDynamicDimName(in_h.name, in_h.max_size, output_height),
+        .max_size = output_height,
+        .min_size = output_min_height};
   }
 
   if (std::holds_alternative<uint32_t>(input_info.width)) {
     output_width_dim = output_width;
   } else {
-    output_width_dim = DynamicDimension{.name = name_gen(),
-                                        .max_size = output_width,
-                                        .min_size = output_min_width};
+    const auto& in_w = std::get<DynamicDimension>(input_info.width);
+    output_width_dim = DynamicDimension{
+        .name = DerivedDynamicDimName(in_w.name, in_w.max_size, output_width),
+        .max_size = output_width,
+        .min_size = output_min_width};
   }
 
   Conv2dInputOutputInfo output_info{.batches = input_info.batches,
@@ -849,8 +863,7 @@ ValidateConvTranspose2dAndInferOutput(
     const ContextProperties& context_properties,
     const OperandDescriptor& input,
     const OperandDescriptor& filter,
-    const ConvTranspose2dAttributes& attributes,
-    DynamicDimensionNameGenerator name_gen) {
+    const ConvTranspose2dAttributes& attributes) {
   // Validate input operand.
   const std::string& label = attributes.label;
   if (!context_properties.data_type_limits.conv_transpose2d_input.Supports(
@@ -1018,17 +1031,21 @@ ValidateConvTranspose2dAndInferOutput(
   if (std::holds_alternative<uint32_t>(input_info.height)) {
     output_height_dim = output_height;
   } else {
-    output_height_dim = DynamicDimension{.name = name_gen(),
-                                         .max_size = output_height,
-                                         .min_size = output_min_height};
+    const auto& in_h = std::get<DynamicDimension>(input_info.height);
+    output_height_dim = DynamicDimension{
+        .name = DerivedDynamicDimName(in_h.name, in_h.max_size, output_height),
+        .max_size = output_height,
+        .min_size = output_min_height};
   }
 
   if (std::holds_alternative<uint32_t>(input_info.width)) {
     output_width_dim = output_width;
   } else {
-    output_width_dim = DynamicDimension{.name = name_gen(),
-                                        .max_size = output_width,
-                                        .min_size = output_min_width};
+    const auto& in_w = std::get<DynamicDimension>(input_info.width);
+    output_width_dim = DynamicDimension{
+        .name = DerivedDynamicDimName(in_w.name, in_w.max_size, output_width),
+        .max_size = output_width,
+        .min_size = output_min_width};
   }
 
   Conv2dInputOutputInfo output_info{.batches = input_info.batches,
@@ -2395,8 +2412,7 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
     const ContextProperties& context_properties,
     const OperandDescriptor& input,
     const Pool2dAttributes& attributes,
-    Pool2dKind kind,
-    DynamicDimensionNameGenerator name_gen) {
+    Pool2dKind kind) {
   const std::string& label = attributes.label;
   // Validate input operand and set its sizes.
   const SupportedTensors& tensor_constraint = [&](Pool2dKind kind) {
@@ -2525,34 +2541,44 @@ base::expected<OperandDescriptor, std::string> ValidatePool2dAndInferOutput(
           if (std::holds_alternative<uint32_t>(input_height)) {
             output_height = floor_output_height;
           } else {
-            output_height =
-                DynamicDimension{.name = name_gen(),
-                                 .max_size = floor_output_height,
-                                 .min_size = floor_output_min_height};
+            const auto& in_h = std::get<DynamicDimension>(input_height);
+            output_height = DynamicDimension{
+                .name = DerivedDynamicDimName(in_h.name, in_h.max_size,
+                                              floor_output_height),
+                .max_size = floor_output_height,
+                .min_size = floor_output_min_height};
           }
           if (std::holds_alternative<uint32_t>(input_width)) {
             output_width = floor_output_width;
           } else {
-            output_width = DynamicDimension{.name = name_gen(),
-                                            .max_size = floor_output_width,
-                                            .min_size = floor_output_min_width};
+            const auto& in_w = std::get<DynamicDimension>(input_width);
+            output_width = DynamicDimension{
+                .name = DerivedDynamicDimName(in_w.name, in_w.max_size,
+                                              floor_output_width),
+                .max_size = floor_output_width,
+                .min_size = floor_output_min_width};
           }
           break;
         case RoundingType::kCeil:
           if (std::holds_alternative<uint32_t>(input_height)) {
             output_height = ceil_output_height;
           } else {
-            output_height =
-                DynamicDimension{.name = name_gen(),
-                                 .max_size = ceil_output_height,
-                                 .min_size = ceil_output_min_height};
+            const auto& in_h = std::get<DynamicDimension>(input_height);
+            output_height = DynamicDimension{
+                .name = DerivedDynamicDimName(in_h.name, in_h.max_size,
+                                              ceil_output_height),
+                .max_size = ceil_output_height,
+                .min_size = ceil_output_min_height};
           }
           if (std::holds_alternative<uint32_t>(input_width)) {
             output_width = ceil_output_width;
           } else {
-            output_width = DynamicDimension{.name = name_gen(),
-                                            .max_size = ceil_output_width,
-                                            .min_size = ceil_output_min_width};
+            const auto& in_w = std::get<DynamicDimension>(input_width);
+            output_width = DynamicDimension{
+                .name = DerivedDynamicDimName(in_w.name, in_w.max_size,
+                                              ceil_output_width),
+                .max_size = ceil_output_width,
+                .min_size = ceil_output_min_width};
           }
           break;
       }

@@ -533,16 +533,9 @@ class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
 
   void OnConnectionError();
 
-  // Generates a unique name for a newly-inferred dynamic dimension.
-  // The name is reserved for this builder; the dimension is registered with
-  // its actual constraints by RegisterOutputDynamicDimensions once the full
-  // output descriptor has been computed.
-  std::string AllocateDynamicDimensionName();
-
   // Registers all DynamicDimension entries in `descriptor` into
-  // `known_dynamic_dimensions_`. Generated dims (from
-  // AllocateDynamicDimensionName) are new entries; propagated input dims are
-  // already present and DCHECKed for matching constraints.
+  // `known_dynamic_dimensions_`. Propagated input dims are already present
+  // and DCHECKed for matching constraints; newly derived dims are new entries.
   void RegisterOutputDynamicDimensions(
       const webnn::OperandDescriptor& descriptor);
 
@@ -589,9 +582,6 @@ class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
   // Store all dynamic dimensions from created inputs for validation.
   // Maps dimension name to its DynamicDimension (with min_size and max_size).
   HashMap<String, webnn::DynamicDimension> known_dynamic_dimensions_;
-
-  // Per-instance counter for generating unique dynamic dimension names.
-  uint32_t next_dynamic_dim_id_ = 0;
 };
 
 }  // namespace blink
