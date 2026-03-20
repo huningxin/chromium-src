@@ -6,6 +6,7 @@ import("//build/buildflag_header.gni")
 import("//mojo/public/tools/fuzzers/mojolpm.gni")
 import("//services/on_device_model/on_device_model.gni")
 import("//services/webnn/features.gni")
+import("//testing/libfuzzer/fuzzer_test.gni")
 import("//third_party/protobuf/proto_library.gni")
 import("//third_party/tflite/features.gni")
 
@@ -310,6 +311,31 @@ source_set("tests") {
       "//ui/gl/init",
     ]
   }
+}
+
+test("webnn_graph_impl_fuzz_test") {
+  testonly = true
+
+  sources = [
+    "webnn_graph_impl_fuzz_test.cc",
+    "webnn_test_utils.cc",
+    "webnn_test_utils.h",
+  ]
+
+  fuzztests = [ "WebNNGraphImplFuzzTest.SingleOpConv2d" ]
+
+  deps = [
+    ":buildflags",
+    ":webnn_service",
+    ":webnn_test_support",
+    "//base",
+    "//base/test:test_support",
+    "//mojo/public/cpp/bindings",
+    "//mojo/public/cpp/test_support:test_utils",
+    "//services/webnn/public/mojom",
+    "//testing/gtest",
+    "//third_party/fuzztest:fuzztest_gtest_main",
+  ]
 }
 
 mojolpm_fuzzer_test("webnn_graph_mojolpm_fuzzer") {
