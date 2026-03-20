@@ -317,6 +317,7 @@ test("webnn_graph_impl_fuzz_test") {
   testonly = true
 
   sources = [
+    "webnn_fuzztest_main.cc",
     "webnn_graph_impl_fuzz_test.cc",
     "webnn_test_utils.cc",
     "webnn_test_utils.h",
@@ -334,7 +335,7 @@ test("webnn_graph_impl_fuzz_test") {
     "//mojo/public/cpp/test_support:test_utils",
     "//services/webnn/public/mojom",
     "//testing/gtest",
-    "//third_party/fuzztest:fuzztest_gtest_main",
+    "//third_party/fuzztest:init_fuzztest",
   ]
 }
 

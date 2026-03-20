@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -184,7 +185,6 @@ class GlobalFuzzEnvironment {
 
     at_exit_manager_ = std::make_unique<base::AtExitManager>();
 
-    base::CommandLine::Init(0, nullptr);
     TestTimeouts::Initialize();
     mojo::core::Init();
 
@@ -341,7 +341,7 @@ void PrintConv2dParams(Conv2dParams params) {
 
 void WebNNGraphImplFuzzTest::SingleOpConv2d(Conv2dParams params,
                                             uint8_t seed_for_data) {
-  PrintConv2dParams(params);
+  // PrintConv2dParams(params);
 
   InputOperandLayout input_layout = context_properties_.input_operand_layout;
 
@@ -468,22 +468,22 @@ auto AnyConv2dKind() {
 auto AnyConv2dParams() {
   return fuzztest::StructOf<Conv2dParams>(
       AnyOperandDataType(), AnyConv2dKind(),
-      fuzztest::InRange<uint32_t>(1, 32767),  // b
-      fuzztest::InRange<uint32_t>(1, 32767),  // ic
-      fuzztest::InRange<uint32_t>(1, 32767),  // ih
-      fuzztest::InRange<uint32_t>(1, 32767),  // iw
-      fuzztest::InRange<uint32_t>(1, 32767),  // oc
-      fuzztest::InRange<uint32_t>(1, 32767),  // fh
-      fuzztest::InRange<uint32_t>(1, 32767),  // fw
-      fuzztest::InRange<uint32_t>(0, 32767),  // b_pad_h
-      fuzztest::InRange<uint32_t>(0, 32767),  // b_pad_w
-      fuzztest::InRange<uint32_t>(0, 32767),  // e_pad_h
-      fuzztest::InRange<uint32_t>(0, 32767),  // e_pad_w
-      fuzztest::InRange<uint32_t>(1, 32767),  // stride_h
-      fuzztest::InRange<uint32_t>(1, 32767),  // stride_w
-      fuzztest::InRange<uint32_t>(1, 32767),  // dilation_h
-      fuzztest::InRange<uint32_t>(1, 32767),  // dilation_w
-      fuzztest::InRange<uint32_t>(1, 32767),  // groups
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // b
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // ic
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // ih
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // iw
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // oc
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // fh
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // fw
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // b_pad_h
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // b_pad_w
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // e_pad_h
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // e_pad_w
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // stride_h
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // stride_w
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // dilation_h
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // dilation_w
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // groups
       fuzztest::Arbitrary<bool>(),            // is_input_constant
       fuzztest::Arbitrary<bool>(),            // is_filter_constant
       fuzztest::Arbitrary<bool>()             // is_bias_constant
@@ -513,6 +513,29 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpConv2d)
                   false,
                   true,
                   true},
-                 1}});
+                 1},
+                // {{OperandDataType::kFloat16,
+                //   mojom::Conv2d::Kind::kDirect,
+                //   1,
+                //   3,
+                //   224,
+                //   224,
+                //   64,
+                //   7,
+                //   7,
+                //   3,
+                //   268435459,
+                //   3,
+                //   3,
+                //   1,
+                //   6040,
+                //   1,
+                //   1,
+                //   1,
+                //   false,
+                //   true,
+                //   false},
+                //  1},
+                });
 
 }  // namespace webnn::test
