@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <array>
 #include <limits>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <vector>
@@ -319,6 +321,27 @@ struct GemmParams {
   bool is_c_constant;
 };
 
+struct DequantizeLinearParams {
+  OperandDataType input_data_type;
+  OperandDataType scale_data_type;
+  uint32_t rank;
+  uint32_t input_dim0;
+  uint32_t input_dim1;
+  uint32_t input_dim2;
+  uint32_t input_dim3;
+  uint32_t input_dim4;
+  uint32_t input_dim5;
+  uint32_t scale_seed_dim0;
+  uint32_t scale_seed_dim1;
+  uint32_t scale_seed_dim2;
+  uint32_t scale_seed_dim3;
+  uint32_t scale_seed_dim4;
+  uint32_t scale_seed_dim5;
+  bool is_input_constant;
+  bool is_scale_constant;
+  bool is_zero_point_constant;
+};
+
 struct Conv2dParams {
   OperandDataType data_type;
   mojom::Conv2d::Kind conv2d_kind;
@@ -349,6 +372,8 @@ class WebNNGraphImplFuzzTest
   void SingleOpConv2d(Conv2dParams params, uint8_t seed_for_data);
   void SingleOpPool2d(Pool2dParams params, uint8_t seed_for_data);
   void SingleOpGemm(GemmParams params, uint8_t seed_for_data);
+  void SingleOpDequantizeLinear(DequantizeLinearParams params,
+                                uint8_t seed_for_data);
 };
 
 struct BuildConv2dAttributes {
@@ -587,6 +612,10 @@ void WebNNGraphImplFuzzTest::SingleOpPool2d(Pool2dParams params,
 
 void WebNNGraphImplFuzzTest::SingleOpGemm(GemmParams params,
                                           uint8_t seed_for_data) {
+  // The backend may elide C when beta is zero; keep graph inputs consistent by
+  // not wiring C in that case.
+  const bool has_effective_c = params.has_c && params.beta != 0.0f;
+
   std::vector<uint32_t> a_dims = params.a_transpose
                                      ? std::vector<uint32_t>{params.k, params.m}
                                      : std::vector<uint32_t>{params.m, params.k};
@@ -608,7 +637,7 @@ void WebNNGraphImplFuzzTest::SingleOpGemm(GemmParams params,
   attr.b_transpose = params.b_transpose;
 
   std::optional<OperandDescriptor> c_desc;
-  if (params.has_c) {
+  if (has_effective_c) {
     std::vector<uint32_t> c_dims;
     switch (params.c_shape_kind % 3) {
       case 0:
@@ -664,7 +693,7 @@ void WebNNGraphImplFuzzTest::SingleOpGemm(GemmParams params,
     named_inputs.insert({"b", b_data});
   }
 
-  if (params.has_c && c_desc.has_value()) {
+  if (has_effective_c && c_desc.has_value()) {
     c_data.emplace(c_desc->PackedByteLength(), seed_for_data);
     if (params.is_c_constant) {
       c_id = builder.BuildConstant(c_desc->shape(), c_desc->data_type(),
@@ -696,6 +725,113 @@ void WebNNGraphImplFuzzTest::SingleOpGemm(GemmParams params,
   GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
 }
 
+void WebNNGraphImplFuzzTest::SingleOpDequantizeLinear(
+    DequantizeLinearParams params,
+    uint8_t seed_for_data) {
+  uint32_t rank = std::min(params.rank, 6u);
+  if (rank == 0) {
+    return;
+  }
+
+  const std::array<uint32_t, 6> input_dims_all = {
+      params.input_dim0, params.input_dim1, params.input_dim2,
+      params.input_dim3, params.input_dim4, params.input_dim5};
+  const std::array<uint32_t, 6> scale_seed_dims_all = {
+      params.scale_seed_dim0, params.scale_seed_dim1, params.scale_seed_dim2,
+      params.scale_seed_dim3, params.scale_seed_dim4, params.scale_seed_dim5};
+
+  std::vector<uint32_t> input_dims;
+  std::vector<uint32_t> scale_dims;
+  input_dims.reserve(rank);
+  scale_dims.reserve(rank);
+  for (uint32_t i = 0; i < rank; ++i) {
+    uint32_t input_dim = input_dims_all[i];
+    uint32_t scale_seed_dim = scale_seed_dims_all[i];
+    uint32_t scale_dim = std::gcd(input_dim, scale_seed_dim);
+    if (scale_dim == 0) {
+      return;
+    }
+    input_dims.push_back(input_dim);
+    scale_dims.push_back(scale_dim);
+  }
+
+  ASSIGN_OR_RETURN_VOID(auto input_desc, OperandDescriptor::Create(
+                                         context_properties_,
+                                         params.input_data_type, input_dims,
+                                         ""));
+  ASSIGN_OR_RETURN_VOID(auto scale_desc, OperandDescriptor::Create(
+                                         context_properties_,
+                                         params.scale_data_type, scale_dims,
+                                         ""));
+  ASSIGN_OR_RETURN_VOID(auto zero_point_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.input_data_type,
+                                                  scale_dims, ""));
+
+  auto output_desc_result = ValidateDequantizeLinearAndInferOutput(
+      context_properties_, input_desc, scale_desc, zero_point_desc, "");
+  if (!output_desc_result.has_value()) {
+    return;
+  }
+  auto& output_desc = output_desc_result.value();
+
+  mojo::AssociatedRemote<mojom::WebNNGraphBuilder> remote =
+      BindNewGraphBuilderRemote();
+  GraphInfoBuilder builder(remote);
+
+  std::vector<uint8_t> input_data(input_desc.PackedByteLength(), seed_for_data);
+  std::vector<uint8_t> scale_data(scale_desc.PackedByteLength(), seed_for_data);
+  std::vector<uint8_t> zero_point_data(zero_point_desc.PackedByteLength(),
+                                       seed_for_data);
+
+  OperandId input_id;
+  OperandId scale_id;
+  OperandId zero_point_id;
+
+  base::flat_map<std::string, base::span<const uint8_t>> named_inputs;
+
+  if (params.is_input_constant) {
+    input_id = builder.BuildConstant(input_desc.shape(), input_desc.data_type(),
+                                     base::as_byte_span(input_data));
+  } else {
+    input_id =
+        builder.BuildInput("input", input_desc.shape(), input_desc.data_type());
+    named_inputs.insert({"input", input_data});
+  }
+
+  if (params.is_scale_constant) {
+    scale_id = builder.BuildConstant(scale_desc.shape(), scale_desc.data_type(),
+                                     base::as_byte_span(scale_data));
+  } else {
+    scale_id =
+        builder.BuildInput("scale", scale_desc.shape(), scale_desc.data_type());
+    named_inputs.insert({"scale", scale_data});
+  }
+
+  if (params.is_zero_point_constant) {
+    zero_point_id = builder.BuildConstant(zero_point_desc.shape(),
+                                          zero_point_desc.data_type(),
+                                          base::as_byte_span(zero_point_data));
+  } else {
+    zero_point_id = builder.BuildInput("zero_point", zero_point_desc.shape(),
+                                       zero_point_desc.data_type());
+    named_inputs.insert({"zero_point", zero_point_data});
+  }
+
+  OperandId output_id = builder.BuildOutput("output", output_desc.shape(),
+                                            output_desc.data_type());
+
+  builder.BuildDequantizeLinear(input_id, scale_id, zero_point_id, output_id);
+
+  if (!builder.IsValidGraphForTesting(context_properties_)) {
+    return;
+  }
+  BuildAndCompute(context(), std::move(remote), builder.TakeGraphInfo(),
+                  std::move(named_inputs));
+
+  GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
+}
+
 auto AnyOperandDataType() {
   return fuzztest::ElementOf<OperandDataType>(
       {OperandDataType::kFloat32, OperandDataType::kFloat16,
@@ -708,6 +844,17 @@ auto AnyOperandDataType() {
 auto AnyConv2dKind() {
   return fuzztest::ElementOf<mojom::Conv2d::Kind>(
       {mojom::Conv2d::Kind::kDirect, mojom::Conv2d::Kind::kTransposed});
+}
+
+auto AnyDequantizeLinearInputDataType() {
+  return fuzztest::ElementOf<OperandDataType>(
+      {OperandDataType::kInt8, OperandDataType::kUint8,
+       OperandDataType::kInt4, OperandDataType::kUint4});
+}
+
+auto AnyDequantizeLinearScaleDataType() {
+  return fuzztest::ElementOf<OperandDataType>(
+      {OperandDataType::kFloat32, OperandDataType::kFloat16});
 }
 
 auto AnyConv2dParams() {
@@ -806,6 +953,28 @@ auto AnyGemmParams() {
   );
 }
 
+auto AnyDequantizeLinearParams() {
+  return fuzztest::StructOf<DequantizeLinearParams>(
+      AnyDequantizeLinearInputDataType(), AnyDequantizeLinearScaleDataType(),
+      fuzztest::InRange<uint32_t>(1, 6),  // rank
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim0
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim1
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim2
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim3
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim4
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim5
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // scale_seed_dim0
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // scale_seed_dim1
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // scale_seed_dim2
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // scale_seed_dim3
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // scale_seed_dim4
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // scale_seed_dim5
+      fuzztest::Arbitrary<bool>(),  // is_input_constant
+      fuzztest::Arbitrary<bool>(),  // is_scale_constant
+      fuzztest::Arbitrary<bool>()   // is_zero_point_constant
+  );
+}
+
 auto AnyPool2dParams() {
   return fuzztest::StructOf<Pool2dParams>(
       AnyOperandDataType(), AnyPool2dKind(),
@@ -860,6 +1029,28 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpGemm)
                   0,
                   1.0f,
                   1.0f,
+                  false,
+                  false,
+                  false},
+                 1}});
+
+FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpDequantizeLinear)
+    .WithDomains(AnyDequantizeLinearParams(), fuzztest::Arbitrary<uint8_t>())
+    .WithSeeds({{{OperandDataType::kInt8,
+                  OperandDataType::kFloat32,
+      3,
+                  3,
+                  2,
+                  5,
+      1,
+      1,
+      1,
+                  1,
+                  1,
+                  5,
+      1,
+      1,
+      1,
                   false,
                   false,
                   false},
