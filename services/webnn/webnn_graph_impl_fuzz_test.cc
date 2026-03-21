@@ -282,6 +282,26 @@ WebNNGraphImplFuzzTestBase::BindNewGraphBuilderRemote() {
   return remote;
 }
 
+struct Pool2dParams {
+  OperandDataType data_type;
+  Pool2dKind pool2d_kind;
+  uint32_t b;
+  uint32_t c;
+  uint32_t ih;
+  uint32_t iw;
+  uint32_t wh;
+  uint32_t ww;
+  uint32_t b_pad_h;
+  uint32_t b_pad_w;
+  uint32_t e_pad_h;
+  uint32_t e_pad_w;
+  uint32_t stride_h;
+  uint32_t stride_w;
+  uint32_t dilation_h;
+  uint32_t dilation_w;
+  bool is_input_constant;
+};
+
 struct Conv2dParams {
   OperandDataType data_type;
   mojom::Conv2d::Kind conv2d_kind;
@@ -310,6 +330,7 @@ class WebNNGraphImplFuzzTest
     : public fuzztest::PerFuzzTestFixtureAdapter<WebNNGraphImplFuzzTestBase> {
  public:
   void SingleOpConv2d(Conv2dParams params, uint8_t seed_for_data);
+  void SingleOpPool2d(Pool2dParams params, uint8_t seed_for_data);
 };
 
 struct BuildConv2dAttributes {
@@ -451,6 +472,93 @@ void WebNNGraphImplFuzzTest::SingleOpConv2d(Conv2dParams params,
   GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
 }
 
+mojom::Pool2d::Kind ToMojomPool2dKind(Pool2dKind kind) {
+  switch (kind) {
+    case Pool2dKind::kAverage:
+      return mojom::Pool2d::Kind::kAveragePool2d;
+    case Pool2dKind::kL2:
+      return mojom::Pool2d::Kind::kL2Pool2d;
+    case Pool2dKind::kMax:
+      return mojom::Pool2d::Kind::kMaxPool2d;
+  }
+}
+
+struct BuildPool2dAttributes {
+  std::vector<uint32_t> window_dimensions;
+  std::vector<uint32_t> padding;
+  std::vector<uint32_t> strides;
+  std::vector<uint32_t> dilations;
+};
+
+void WebNNGraphImplFuzzTest::SingleOpPool2d(Pool2dParams params,
+                                            uint8_t seed_for_data) {
+  InputOperandLayout input_layout = context_properties_.input_operand_layout;
+
+  std::vector<uint32_t> input_dims;
+  if (input_layout == InputOperandLayout::kNchw) {
+    input_dims = {params.b, params.c, params.ih, params.iw};
+  } else {
+    input_dims = {params.b, params.ih, params.iw, params.c};
+  }
+
+  ASSIGN_OR_RETURN_VOID(auto input_desc, OperandDescriptor::Create(
+                                             context_properties_,
+                                             params.data_type, input_dims, ""));
+
+  Pool2dAttributes attr;
+  attr.window_dimensions = Size2d<uint32_t>{.height = params.wh,
+                                            .width = params.ww};
+  attr.padding.beginning = {params.b_pad_h, params.b_pad_w};
+  attr.padding.ending = {params.e_pad_h, params.e_pad_w};
+  attr.strides = {params.stride_h, params.stride_w};
+  attr.dilations = {params.dilation_h, params.dilation_w};
+  attr.layout = input_layout;
+
+  auto output_desc_result = ValidatePool2dAndInferOutput(
+      context_properties_, input_desc, attr, params.pool2d_kind);
+  if (!output_desc_result.has_value()) {
+    return;
+  }
+  auto& output_desc = output_desc_result.value();
+
+  mojo::AssociatedRemote<mojom::WebNNGraphBuilder> remote =
+      BindNewGraphBuilderRemote();
+  GraphInfoBuilder builder(remote);
+
+  OperandId input_id;
+  std::vector<uint8_t> input_data(input_desc.PackedByteLength(), seed_for_data);
+
+  base::flat_map<std::string, base::span<const uint8_t>> named_inputs;
+  if (params.is_input_constant) {
+    input_id = builder.BuildConstant(input_desc.shape(), input_desc.data_type(),
+                                     base::as_byte_span(input_data));
+  } else {
+    input_id =
+        builder.BuildInput("input", input_desc.shape(), input_desc.data_type());
+    named_inputs.insert({"input", input_data});
+  }
+
+  OperandId output_id = builder.BuildOutput("output", output_desc.shape(),
+                                            output_desc.data_type());
+
+  BuildPool2dAttributes pool2d_attr;
+  pool2d_attr.window_dimensions = {params.wh, params.ww};
+  pool2d_attr.padding = {params.b_pad_h, params.e_pad_h, params.b_pad_w,
+                         params.e_pad_w};
+  pool2d_attr.strides = {params.stride_h, params.stride_w};
+  pool2d_attr.dilations = {params.dilation_h, params.dilation_w};
+  builder.BuildPool2d(ToMojomPool2dKind(params.pool2d_kind), input_id,
+                      output_id, pool2d_attr);
+
+  if (!builder.IsValidGraphForTesting(context_properties_)) {
+    return;
+  }
+  BuildAndCompute(context(), std::move(remote), builder.TakeGraphInfo(),
+                  std::move(named_inputs));
+
+  GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
+}
+
 auto AnyOperandDataType() {
   return fuzztest::ElementOf<OperandDataType>(
       {OperandDataType::kFloat32, OperandDataType::kFloat16,
@@ -537,5 +645,52 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpConv2d)
                 //   false},
                 //  1},
                 });
+
+auto AnyPool2dKind() {
+  return fuzztest::ElementOf<Pool2dKind>(
+      {Pool2dKind::kAverage, Pool2dKind::kL2, Pool2dKind::kMax});
+}
+
+auto AnyPool2dParams() {
+  return fuzztest::StructOf<Pool2dParams>(
+      AnyOperandDataType(), AnyPool2dKind(),
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // b
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // c
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // ih
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // iw
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // wh
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // ww
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // b_pad_h
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // b_pad_w
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // e_pad_h
+      fuzztest::InRange<uint32_t>(0, std::numeric_limits<int32_t>::max()),  // e_pad_w
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // stride_h
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // stride_w
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // dilation_h
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // dilation_w
+      fuzztest::Arbitrary<bool>()             // is_input_constant
+  );
+}
+
+FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpPool2d)
+    .WithDomains(AnyPool2dParams(), fuzztest::Arbitrary<uint8_t>())
+    .WithSeeds({{{OperandDataType::kFloat32,
+                  Pool2dKind::kMax,
+                  1,
+                  3,
+                  4,
+                  4,
+                  2,
+                  2,
+                  0,
+                  0,
+                  0,
+                  0,
+                  2,
+                  2,
+                  1,
+                  1,
+                  false},
+                 1}});
 
 }  // namespace webnn::test
