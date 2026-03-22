@@ -342,6 +342,27 @@ struct DequantizeLinearParams {
   bool is_zero_point_constant;
 };
 
+struct ScatterElementsParams {
+  OperandDataType data_type;
+  uint32_t rank;
+  uint32_t axis;
+  uint32_t input_dim0;
+  uint32_t input_dim1;
+  uint32_t input_dim2;
+  uint32_t input_dim3;
+  uint32_t input_dim4;
+  uint32_t input_dim5;
+  uint32_t indices_dim0;
+  uint32_t indices_dim1;
+  uint32_t indices_dim2;
+  uint32_t indices_dim3;
+  uint32_t indices_dim4;
+  uint32_t indices_dim5;
+  bool is_input_constant;
+  bool is_indices_constant;
+  bool is_updates_constant;
+};
+
 struct Conv2dParams {
   OperandDataType data_type;
   mojom::Conv2d::Kind conv2d_kind;
@@ -374,6 +395,8 @@ class WebNNGraphImplFuzzTest
   void SingleOpGemm(GemmParams params, uint8_t seed_for_data);
   void SingleOpDequantizeLinear(DequantizeLinearParams params,
                                 uint8_t seed_for_data);
+  void SingleOpScatterElements(ScatterElementsParams params,
+                               uint8_t seed_for_data);
 };
 
 struct BuildConv2dAttributes {
@@ -832,6 +855,111 @@ void WebNNGraphImplFuzzTest::SingleOpDequantizeLinear(
   GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
 }
 
+void WebNNGraphImplFuzzTest::SingleOpScatterElements(
+    ScatterElementsParams params,
+    uint8_t seed_for_data) {
+  uint32_t rank = std::min(params.rank, 6u);
+  if (rank == 0) {
+    return;
+  }
+
+  const uint32_t axis = params.axis % rank;
+  const std::array<uint32_t, 6> input_dims_all = {
+      params.input_dim0, params.input_dim1, params.input_dim2,
+      params.input_dim3, params.input_dim4, params.input_dim5};
+  const std::array<uint32_t, 6> indices_dims_all = {
+      params.indices_dim0, params.indices_dim1, params.indices_dim2,
+      params.indices_dim3, params.indices_dim4, params.indices_dim5};
+
+  std::vector<uint32_t> input_dims;
+  std::vector<uint32_t> indices_dims;
+  input_dims.reserve(rank);
+  indices_dims.reserve(rank);
+  for (uint32_t i = 0; i < rank; ++i) {
+    const uint32_t input_dim = input_dims_all[i];
+    input_dims.push_back(input_dim);
+    indices_dims.push_back(i == axis ? std::min(input_dim, indices_dims_all[i])
+                                     : input_dim);
+  }
+
+  ASSIGN_OR_RETURN_VOID(auto input_desc, OperandDescriptor::Create(
+                                         context_properties_, params.data_type,
+                                         input_dims, ""));
+  ASSIGN_OR_RETURN_VOID(auto indices_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  OperandDataType::kUint32,
+                                                  indices_dims, ""));
+  ASSIGN_OR_RETURN_VOID(auto updates_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.data_type,
+                                                  indices_dims, ""));
+
+  auto output_desc_result = ValidateScatterElementsAndInferOutput(
+      context_properties_, input_desc, indices_desc, updates_desc, axis, "");
+  if (!output_desc_result.has_value()) {
+    return;
+  }
+  auto& output_desc = output_desc_result.value();
+
+  mojo::AssociatedRemote<mojom::WebNNGraphBuilder> remote =
+      BindNewGraphBuilderRemote();
+  GraphInfoBuilder builder(remote);
+
+  std::vector<uint8_t> input_data(input_desc.PackedByteLength(), seed_for_data);
+  std::vector<uint8_t> indices_data(indices_desc.PackedByteLength(),
+                                    seed_for_data);
+  std::vector<uint8_t> updates_data(updates_desc.PackedByteLength(),
+                                    seed_for_data);
+
+  OperandId input_id;
+  OperandId indices_id;
+  OperandId updates_id;
+
+  base::flat_map<std::string, base::span<const uint8_t>> named_inputs;
+  if (params.is_input_constant) {
+    input_id = builder.BuildConstant(input_desc.shape(), input_desc.data_type(),
+                                     base::as_byte_span(input_data));
+  } else {
+    input_id =
+        builder.BuildInput("input", input_desc.shape(), input_desc.data_type());
+    named_inputs.insert({"input", input_data});
+  }
+
+  if (params.is_indices_constant) {
+    indices_id = builder.BuildConstant(indices_desc.shape(),
+                                       indices_desc.data_type(),
+                                       base::as_byte_span(indices_data));
+  } else {
+    indices_id = builder.BuildInput("indices", indices_desc.shape(),
+                                    indices_desc.data_type());
+    named_inputs.insert({"indices", indices_data});
+  }
+
+  if (params.is_updates_constant) {
+    updates_id = builder.BuildConstant(updates_desc.shape(),
+                                       updates_desc.data_type(),
+                                       base::as_byte_span(updates_data));
+  } else {
+    updates_id = builder.BuildInput("updates", updates_desc.shape(),
+                                    updates_desc.data_type());
+    named_inputs.insert({"updates", updates_data});
+  }
+
+  OperandId output_id = builder.BuildOutput("output", output_desc.shape(),
+                                            output_desc.data_type());
+
+  builder.BuildScatterElements(input_id, indices_id, updates_id, output_id,
+                               axis);
+
+  if (!builder.IsValidGraphForTesting(context_properties_)) {
+    return;
+  }
+  BuildAndCompute(context(), std::move(remote), builder.TakeGraphInfo(),
+                  std::move(named_inputs));
+
+  GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
+}
+
 auto AnyOperandDataType() {
   return fuzztest::ElementOf<OperandDataType>(
       {OperandDataType::kFloat32, OperandDataType::kFloat16,
@@ -855,6 +983,29 @@ auto AnyDequantizeLinearInputDataType() {
 auto AnyDequantizeLinearScaleDataType() {
   return fuzztest::ElementOf<OperandDataType>(
       {OperandDataType::kFloat32, OperandDataType::kFloat16});
+}
+
+auto AnyScatterElementsParams() {
+  return fuzztest::StructOf<ScatterElementsParams>(
+      AnyOperandDataType(),
+      fuzztest::InRange<uint32_t>(1, 6),  // rank
+      fuzztest::InRange<uint32_t>(0, 5),  // axis
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim0
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim1
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim2
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim3
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim4
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // input_dim5
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // indices_dim0
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // indices_dim1
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // indices_dim2
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // indices_dim3
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // indices_dim4
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // indices_dim5
+      fuzztest::Arbitrary<bool>(),  // is_input_constant
+      fuzztest::Arbitrary<bool>(),  // is_indices_constant
+      fuzztest::Arbitrary<bool>()   // is_updates_constant
+  );
 }
 
 auto AnyConv2dParams() {
@@ -1038,19 +1189,41 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpDequantizeLinear)
     .WithDomains(AnyDequantizeLinearParams(), fuzztest::Arbitrary<uint8_t>())
     .WithSeeds({{{OperandDataType::kInt8,
                   OperandDataType::kFloat32,
-      3,
+                  3,
                   3,
                   2,
                   5,
-      1,
-      1,
-      1,
+                  1,
+                  1,
+                  1,
                   1,
                   1,
                   5,
-      1,
-      1,
-      1,
+                  1,
+                  1,
+                  1,
+                  false,
+                  false,
+                  false},
+                 1}});
+
+FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpScatterElements)
+    .WithDomains(AnyScatterElementsParams(), fuzztest::Arbitrary<uint8_t>())
+    .WithSeeds({{{OperandDataType::kFloat32,
+                  2,
+                  0,
+                  3,
+                  3,
+                  1,
+                  1,
+                  1,
+                  1,
+                  2,
+                  3,
+                  1,
+                  1,
+                  1,
+                  1,
                   false,
                   false,
                   false},
