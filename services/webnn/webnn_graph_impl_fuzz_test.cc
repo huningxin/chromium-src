@@ -363,6 +363,19 @@ struct ScatterElementsParams {
   bool is_updates_constant;
 };
 
+struct LstmParams {
+  OperandDataType data_type;
+  uint32_t steps;
+  uint32_t batch_size;
+  uint32_t input_size;
+  uint32_t hidden_size;
+  bool return_sequence;
+  bool bidirectional;
+  bool is_input_constant;
+  bool is_weight_constant;
+  bool is_recurrent_weight_constant;
+};
+
 struct Conv2dParams {
   OperandDataType data_type;
   mojom::Conv2d::Kind conv2d_kind;
@@ -397,6 +410,7 @@ class WebNNGraphImplFuzzTest
                                 uint8_t seed_for_data);
   void SingleOpScatterElements(ScatterElementsParams params,
                                uint8_t seed_for_data);
+  void SingleOpLstm(LstmParams params, uint8_t seed_for_data);
 };
 
 struct BuildConv2dAttributes {
@@ -960,6 +974,142 @@ void WebNNGraphImplFuzzTest::SingleOpScatterElements(
   GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
 }
 
+RecurrentNetworkDirection ToDirection(bool bidirectional) {
+  return bidirectional ? RecurrentNetworkDirection::kBoth
+                       : RecurrentNetworkDirection::kForward;
+}
+
+mojom::RecurrentNetworkDirection ToMojomDirection(bool bidirectional) {
+  return bidirectional ? mojom::RecurrentNetworkDirection::kBoth
+                       : mojom::RecurrentNetworkDirection::kForward;
+}
+
+struct BuildLstmAttributes {
+  std::optional<OperandId> bias_operand_id;
+  std::optional<OperandId> recurrent_bias_operand_id;
+  std::optional<OperandId> peephole_weight_operand_id;
+  std::optional<OperandId> initial_hidden_state_operand_id;
+  std::optional<OperandId> initial_cell_state_operand_id;
+  bool return_sequence;
+  mojom::RecurrentNetworkDirection direction;
+  mojom::LstmWeightLayout layout;
+  std::vector<mojom::RecurrentNetworkActivation> activations;
+};
+
+void WebNNGraphImplFuzzTest::SingleOpLstm(LstmParams params,
+                                          uint8_t seed_for_data) {
+  if (params.hidden_size > std::numeric_limits<uint32_t>::max() / 4) {
+    return;
+  }
+
+  const uint32_t direction_count = params.bidirectional ? 2u : 1u;
+  const uint32_t four_hidden_size = 4u * params.hidden_size;
+
+  std::vector<uint32_t> input_dims = {params.steps, params.batch_size,
+                                      params.input_size};
+  std::vector<uint32_t> weight_dims = {direction_count, four_hidden_size,
+                                       params.input_size};
+  std::vector<uint32_t> recurrent_weight_dims = {direction_count,
+                                                 four_hidden_size,
+                                                 params.hidden_size};
+
+  ASSIGN_OR_RETURN_VOID(auto input_desc, OperandDescriptor::Create(
+                                         context_properties_, params.data_type,
+                                         input_dims, ""));
+  ASSIGN_OR_RETURN_VOID(auto weight_desc, OperandDescriptor::Create(
+                                          context_properties_, params.data_type,
+                                          weight_dims, ""));
+  ASSIGN_OR_RETURN_VOID(auto recurrent_weight_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.data_type,
+                                                  recurrent_weight_dims, ""));
+
+  LstmAttributes attr;
+  attr.activation_count = 3;
+  attr.return_sequence = params.return_sequence;
+  attr.direction = ToDirection(params.bidirectional);
+
+  auto output_desc_result = ValidateLstmAndInferOutput(
+      context_properties_, input_desc, weight_desc, recurrent_weight_desc,
+      params.steps, params.hidden_size, attr);
+  if (!output_desc_result.has_value()) {
+    return;
+  }
+  auto& output_descs = output_desc_result.value();
+
+  mojo::AssociatedRemote<mojom::WebNNGraphBuilder> remote =
+      BindNewGraphBuilderRemote();
+  GraphInfoBuilder builder(remote);
+
+  std::vector<uint8_t> input_data(input_desc.PackedByteLength(), seed_for_data);
+  std::vector<uint8_t> weight_data(weight_desc.PackedByteLength(),
+                                   seed_for_data);
+  std::vector<uint8_t> recurrent_weight_data(
+      recurrent_weight_desc.PackedByteLength(), seed_for_data);
+
+  OperandId input_id;
+  OperandId weight_id;
+  OperandId recurrent_weight_id;
+
+  base::flat_map<std::string, base::span<const uint8_t>> named_inputs;
+  if (params.is_input_constant) {
+    input_id = builder.BuildConstant(input_desc.shape(), input_desc.data_type(),
+                                     base::as_byte_span(input_data));
+  } else {
+    input_id =
+        builder.BuildInput("input", input_desc.shape(), input_desc.data_type());
+    named_inputs.insert({"input", input_data});
+  }
+
+  if (params.is_weight_constant) {
+    weight_id = builder.BuildConstant(weight_desc.shape(), weight_desc.data_type(),
+                                      base::as_byte_span(weight_data));
+  } else {
+    weight_id =
+        builder.BuildInput("weight", weight_desc.shape(), weight_desc.data_type());
+    named_inputs.insert({"weight", weight_data});
+  }
+
+  if (params.is_recurrent_weight_constant) {
+    recurrent_weight_id = builder.BuildConstant(
+        recurrent_weight_desc.shape(), recurrent_weight_desc.data_type(),
+        base::as_byte_span(recurrent_weight_data));
+  } else {
+    recurrent_weight_id =
+        builder.BuildInput("recurrent_weight", recurrent_weight_desc.shape(),
+                           recurrent_weight_desc.data_type());
+    named_inputs.insert({"recurrent_weight", recurrent_weight_data});
+  }
+
+  std::vector<OperandId> output_ids;
+  output_ids.reserve(output_descs.size());
+  for (size_t i = 0; i < output_descs.size(); ++i) {
+    output_ids.push_back(builder.BuildOutput("output" + std::to_string(i),
+                                             output_descs[i].shape(),
+                                             output_descs[i].data_type()));
+  }
+
+  BuildLstmAttributes lstm_attr;
+  lstm_attr.return_sequence = params.return_sequence;
+  lstm_attr.direction = ToMojomDirection(params.bidirectional);
+  lstm_attr.layout = mojom::LstmWeightLayout::kIofg;
+  lstm_attr.activations = {mojom::RecurrentNetworkActivation::kSigmoid,
+                           mojom::RecurrentNetworkActivation::kTanh,
+                           mojom::RecurrentNetworkActivation::kTanh};
+
+  builder.BuildLstm(input_id, weight_id, recurrent_weight_id,
+                    std::move(output_ids), params.steps, params.hidden_size,
+                    lstm_attr);
+
+  if (!builder.IsValidGraphForTesting(context_properties_)) {
+    return;
+  }
+  BuildAndCompute(context(), std::move(remote), builder.TakeGraphInfo(),
+                  std::move(named_inputs));
+
+  GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
+}
+
 auto AnyOperandDataType() {
   return fuzztest::ElementOf<OperandDataType>(
       {OperandDataType::kFloat32, OperandDataType::kFloat16,
@@ -985,6 +1135,11 @@ auto AnyDequantizeLinearScaleDataType() {
       {OperandDataType::kFloat32, OperandDataType::kFloat16});
 }
 
+auto AnyLstmDataType() {
+  return fuzztest::ElementOf<OperandDataType>(
+      {OperandDataType::kFloat32, OperandDataType::kFloat16});
+}
+
 auto AnyScatterElementsParams() {
   return fuzztest::StructOf<ScatterElementsParams>(
       AnyOperandDataType(),
@@ -1005,6 +1160,21 @@ auto AnyScatterElementsParams() {
       fuzztest::Arbitrary<bool>(),  // is_input_constant
       fuzztest::Arbitrary<bool>(),  // is_indices_constant
       fuzztest::Arbitrary<bool>()   // is_updates_constant
+  );
+}
+
+auto AnyLstmParams() {
+  return fuzztest::StructOf<LstmParams>(
+      AnyLstmDataType(),
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // steps
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // batch_size
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // input_size
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // hidden_size
+      fuzztest::Arbitrary<bool>(),  // return_sequence
+      fuzztest::Arbitrary<bool>(),  // bidirectional
+      fuzztest::Arbitrary<bool>(),  // is_input_constant
+      fuzztest::Arbitrary<bool>(),  // is_weight_constant
+      fuzztest::Arbitrary<bool>()   // is_recurrent_weight_constant
   );
 }
 
@@ -1224,6 +1394,20 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpScatterElements)
                   1,
                   1,
                   1,
+                  false,
+                  false,
+                  false},
+                 1}});
+
+FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpLstm)
+    .WithDomains(AnyLstmParams(), fuzztest::Arbitrary<uint8_t>())
+    .WithSeeds({{{OperandDataType::kFloat32,
+                  2,
+                  1,
+                  3,
+                  4,
+                  true,
+                  true,
                   false,
                   false,
                   false},
