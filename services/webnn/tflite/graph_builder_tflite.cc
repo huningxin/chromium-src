@@ -4167,6 +4167,41 @@ auto GraphBuilderTflite::SerializeConv2d(const mojom::Conv2d& conv2d)
       CanFuseQuantizeAndGetOutput(conv2d, activation_output_operand_id);
   const bool fuse_dequantize = quantized_output.has_value();
 
+  // Ruy (used by TFLite for quantized GEMM) packs the im2col/col2im matrix
+  // into blocks, rounding rows/cols up to kernel tile sizes (up to 16 on
+  // AVX-512). It computes pointer offsets as `packed_stride * block_col` using
+  // int32_t arithmetic (see ruy/pack_x86.h). If the product overflows int32_t,
+  // the offset wraps negative, causing an out-of-bounds write.
+  if (fuse_dequantize) {
+    constexpr int32_t kMaxKernelBlockSize = 16;
+    base::CheckedNumeric<int32_t> gemm_rows;
+    base::CheckedNumeric<int32_t> gemm_cols;
+    if (conv2d.kind == mojom::Conv2d::Kind::kDirect) {
+      // im2col GEMM: rows = input_channels * fh * fw,
+      //              cols = batch * output_h * output_w.
+      gemm_rows = base::CheckedNumeric<int32_t>(input_channels) *
+                  filter_size2d.height * filter_size2d.width;
+      gemm_cols = base::CheckedNumeric<int32_t>(input_shape[0]) *
+                  output_shape[1] * output_shape[2];
+    } else {
+      // col2im GEMM: rows = fh * fw * output_channels,
+      //              cols = input_h * input_w.
+      gemm_rows = base::CheckedNumeric<int32_t>(filter_size2d.height) *
+                  filter_size2d.width * output_channels;
+      gemm_cols = base::CheckedNumeric<int32_t>(input_size2d.height) *
+                  input_size2d.width;
+    }
+    const base::CheckedNumeric<int32_t> packed_flat_size =
+        ((gemm_rows + kMaxKernelBlockSize - 1) &
+         ~(kMaxKernelBlockSize - 1)) *
+        ((gemm_cols + kMaxKernelBlockSize - 1) &
+         ~(kMaxKernelBlockSize - 1));
+    if (!packed_flat_size.IsValid()) {
+      return base::unexpected(
+          "Conv2d im2col/col2im matrix is too large for the TFLite runtime.");
+    }
+  }
+
   ASSIGN_OR_RETURN(const TensorInfo& input_tensor_info,
                    SerializeInputTensorInfo(
                        conv2d.input_operand_id, /*quantize_params=*/0,
