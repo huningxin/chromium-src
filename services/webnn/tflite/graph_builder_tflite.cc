@@ -4168,10 +4168,16 @@ auto GraphBuilderTflite::SerializeConv2d(const mojom::Conv2d& conv2d)
   const bool fuse_dequantize = quantized_output.has_value();
 
   // Ruy (used by TFLite for quantized GEMM) packs the im2col/col2im matrix
-  // into blocks, rounding rows/cols up to kernel tile sizes (up to 16 on
-  // AVX-512). It computes pointer offsets as `packed_stride * block_col` using
-  // int32_t arithmetic (see ruy/pack_x86.h). If the product overflows int32_t,
-  // the offset wraps negative, causing an out-of-bounds write.
+  // into blocks, rounding rows/cols up to kernel tile sizes (e.g. up to 16 on
+  // AVX-512), see:
+  // https://source.chromium.org/chromium/chromium/src/+/main:third_party/ruy/src/ruy/create_trmul_params.h;l=42;drc=20b5eb06ebc29c30a5ed460b658fe48d1afc119e
+  // It then computes pointer offsets as `packed_stride * block_col` using
+  // int32_t arithmetic, see:
+  // https://source.chromium.org/chromium/chromium/src/+/main:third_party/ruy/src/ruy/pack_x86.h;l=98;drc=6c292a6e91cd3dab6059334d60c09fb5c7d1a94e
+  // If the product overflows int32_t, the offset wraps negative, causing an
+  // out-of-bounds write in `Pack8bitColMajorForAvx2` or
+  // `Pack8bitRowMajorForAvx2`:
+  // https://source.chromium.org/chromium/chromium/src/+/main:third_party/ruy/src/ruy/pack_avx2_fma.cc;l=546;drc=23c1350a5eb632830a9ece307987fdd6816893f1
   if (fuse_dequantize) {
     constexpr int32_t kMaxKernelBlockSize = 16;
     base::CheckedNumeric<int32_t> gemm_rows;
@@ -4192,10 +4198,8 @@ auto GraphBuilderTflite::SerializeConv2d(const mojom::Conv2d& conv2d)
                   input_size2d.width;
     }
     const base::CheckedNumeric<int32_t> packed_flat_size =
-        ((gemm_rows + kMaxKernelBlockSize - 1) &
-         ~(kMaxKernelBlockSize - 1)) *
-        ((gemm_cols + kMaxKernelBlockSize - 1) &
-         ~(kMaxKernelBlockSize - 1));
+        ((gemm_rows + kMaxKernelBlockSize - 1) & ~(kMaxKernelBlockSize - 1)) *
+        ((gemm_cols + kMaxKernelBlockSize - 1) & ~(kMaxKernelBlockSize - 1));
     if (!packed_flat_size.IsValid()) {
       return base::unexpected(
           "Conv2d im2col/col2im matrix is too large for the TFLite runtime.");
