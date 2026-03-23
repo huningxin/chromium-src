@@ -378,6 +378,7 @@ struct LstmParams {
 
 struct QDQConv2dParams {
   OperandDataType quantized_type;
+  mojom::Conv2d::Kind conv2d_kind;
   uint32_t b;
   uint32_t ic;
   uint32_t ih;
@@ -393,6 +394,7 @@ struct QDQConv2dParams {
   uint32_t stride_w;
   uint32_t dilation_h;
   uint32_t dilation_w;
+  uint32_t groups;
   uint32_t quantization_shape_kind;
   uint32_t channel_block_size_seed;
   bool is_input_constant;
@@ -1142,15 +1144,23 @@ void WebNNGraphImplFuzzTest::SubgraphQDQConv2d(QDQConv2dParams params,
     return;
   }
 
+  // For kTransposed, groups must be 1 (TFLite backend limitation).
+  const uint32_t groups =
+      params.conv2d_kind == mojom::Conv2d::Kind::kDirect ? params.groups : 1;
+  if (params.ic % groups != 0 || params.oc % groups != 0) {
+    return;
+  }
+  const uint32_t filter_ic = params.ic / groups;
+
   InputOperandLayout input_layout = context_properties_.input_operand_layout;
   std::vector<uint32_t> input_q_dims;
   std::vector<uint32_t> filter_q_dims;
   if (input_layout == InputOperandLayout::kNchw) {
     input_q_dims = {params.b, params.ic, params.ih, params.iw};
-    filter_q_dims = {params.oc, params.ic, params.fh, params.fw};
+    filter_q_dims = {params.oc, filter_ic, params.fh, params.fw};
   } else {
     input_q_dims = {params.b, params.ih, params.iw, params.ic};
-    filter_q_dims = {params.oc, params.fh, params.fw, params.ic};
+    filter_q_dims = {params.oc, params.fh, params.fw, filter_ic};
   }
 
   ASSIGN_OR_RETURN_VOID(auto input_q_desc,
@@ -1248,23 +1258,44 @@ void WebNNGraphImplFuzzTest::SubgraphQDQConv2d(QDQConv2dParams params,
     return;
   }
 
-  Conv2dAttributes conv_attr;
-  conv_attr.padding.beginning = {params.b_pad_h, params.b_pad_w};
-  conv_attr.padding.ending = {params.e_pad_h, params.e_pad_w};
-  conv_attr.strides = {params.stride_h, params.stride_w};
-  conv_attr.dilations = {params.dilation_h, params.dilation_w};
-  conv_attr.groups = 1;
-  conv_attr.input_layout = input_layout;
-  conv_attr.bias_operand = bias_desc_result.value();
-  if (input_layout == InputOperandLayout::kNhwc) {
-    conv_attr.filter_layout = Conv2dFilterOperandLayout::kOhwi;
-  } else {
-    conv_attr.filter_layout = Conv2dFilterOperandLayout::kOihw;
-  }
-
-  auto conv_output_desc_result = ValidateConv2dAndInferOutput(
-      context_properties_, input_desc_result.value(), filter_desc_result.value(),
-      conv_attr);
+  auto validate_conv = [&]() -> base::expected<OperandDescriptor, std::string> {
+    if (params.conv2d_kind == mojom::Conv2d::Kind::kDirect) {
+      Conv2dAttributes conv_attr;
+      conv_attr.padding.beginning = {params.b_pad_h, params.b_pad_w};
+      conv_attr.padding.ending = {params.e_pad_h, params.e_pad_w};
+      conv_attr.strides = {params.stride_h, params.stride_w};
+      conv_attr.dilations = {params.dilation_h, params.dilation_w};
+      conv_attr.groups = groups;
+      conv_attr.input_layout = input_layout;
+      conv_attr.bias_operand = bias_desc_result.value();
+      if (input_layout == InputOperandLayout::kNhwc) {
+        conv_attr.filter_layout = Conv2dFilterOperandLayout::kOhwi;
+      } else {
+        conv_attr.filter_layout = Conv2dFilterOperandLayout::kOihw;
+      }
+      return ValidateConv2dAndInferOutput(
+          context_properties_, input_desc_result.value(),
+          filter_desc_result.value(), conv_attr);
+    } else {
+      ConvTranspose2dAttributes conv_attr;
+      conv_attr.padding.beginning = {params.b_pad_h, params.b_pad_w};
+      conv_attr.padding.ending = {params.e_pad_h, params.e_pad_w};
+      conv_attr.strides = {params.stride_h, params.stride_w};
+      conv_attr.dilations = {1, 1};
+      conv_attr.groups = 1;
+      conv_attr.input_layout = input_layout;
+      conv_attr.bias_operand = bias_desc_result.value();
+      if (input_layout == InputOperandLayout::kNhwc) {
+        conv_attr.filter_layout = ConvTranspose2dFilterOperandLayout::kOhwi;
+      } else {
+        conv_attr.filter_layout = ConvTranspose2dFilterOperandLayout::kIohw;
+      }
+      return ValidateConvTranspose2dAndInferOutput(
+          context_properties_, input_desc_result.value(),
+          filter_desc_result.value(), conv_attr);
+    }
+  };
+  auto conv_output_desc_result = validate_conv();
   if (!conv_output_desc_result.has_value()) {
     return;
   }
@@ -1415,9 +1446,12 @@ void WebNNGraphImplFuzzTest::SubgraphQDQConv2d(QDQConv2dParams params,
   conv2d_attr.padding = {params.b_pad_h, params.e_pad_h, params.b_pad_w,
                          params.e_pad_w};
   conv2d_attr.strides = {params.stride_h, params.stride_w};
-  conv2d_attr.dilations = {params.dilation_h, params.dilation_w};
-  conv2d_attr.groups = 1;
-  builder.BuildConv2d(mojom::Conv2d::Kind::kDirect, input_deq_id, filter_deq_id,
+  conv2d_attr.dilations =
+      params.conv2d_kind == mojom::Conv2d::Kind::kDirect
+          ? std::vector<uint32_t>{params.dilation_h, params.dilation_w}
+          : std::vector<uint32_t>{1, 1};
+  conv2d_attr.groups = groups;
+  builder.BuildConv2d(params.conv2d_kind, input_deq_id, filter_deq_id,
                       conv_output_id, conv2d_attr, bias_deq_id);
 
   OperandId quantized_output_id =
@@ -1512,6 +1546,7 @@ auto AnyLstmParams() {
 auto AnyQDQConv2dParams() {
   return fuzztest::StructOf<QDQConv2dParams>(
       AnyQDQConv2dQuantizedType(),
+      AnyConv2dKind(),
       fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // b
       fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // ic
       fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // ih
@@ -1527,6 +1562,7 @@ auto AnyQDQConv2dParams() {
       fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // stride_w
       fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // dilation_h
       fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // dilation_w
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // groups
       fuzztest::InRange<uint32_t>(0, 3),  // quantization_shape_kind
       fuzztest::InRange<uint32_t>(1, std::numeric_limits<int16_t>::max()),  // channel_block_size_seed
       fuzztest::Arbitrary<bool>(),  // is_input_constant
@@ -1773,6 +1809,7 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpLstm)
 FUZZ_TEST_F(WebNNGraphImplFuzzTest, SubgraphQDQConv2d)
     .WithDomains(AnyQDQConv2dParams(), fuzztest::Arbitrary<uint8_t>())
     .WithSeeds({{{OperandDataType::kInt8,
+                  mojom::Conv2d::Kind::kDirect,
                   1,
                   3,
                   8,
@@ -1788,11 +1825,60 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SubgraphQDQConv2d)
                   1,
                   1,
                   1,
+                  1,
                   2,
                   2,
                   false,
                   false,
                   false},
+                 1},
+                {{OperandDataType::kUint8,
+                  mojom::Conv2d::Kind::kTransposed,
+                  1,
+                  4,
+                  8,
+                  8,
+                  3,
+                  3,
+                  3,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  1,
+                  false,
+                  false,
+                  false},
+                 1},
+                {{OperandDataType::kInt8,
+                  mojom::Conv2d::Kind::kDirect,
+                  1,
+                  6,
+                  8,
+                  8,
+                  4,
+                  3,
+                  3,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  2,
+                  0,
+                  1,
+                  false,
+                  true,
+                  true},
                  1}});
 
 }  // namespace webnn::test
