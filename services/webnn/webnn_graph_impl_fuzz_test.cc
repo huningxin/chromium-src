@@ -398,6 +398,20 @@ struct QDQPool2dParams {
   bool is_input_constant;
 };
 
+struct QDQGemmParams {
+  OperandDataType quantized_type;
+  uint32_t m;
+  uint32_t k;
+  uint32_t n;
+  bool a_transpose;
+  bool b_transpose;
+  bool has_c;
+  uint32_t c_shape_kind;
+  bool is_a_constant;
+  bool is_b_constant;
+  bool is_c_constant;
+};
+
 struct QDQConv2dParams {
   OperandDataType quantized_type;
   mojom::Conv2d::Kind conv2d_kind;
@@ -461,6 +475,7 @@ class WebNNGraphImplFuzzTest
   void SingleOpLstm(LstmParams params, uint8_t seed_for_data);
   void SubgraphQDQConv2d(QDQConv2dParams params, uint8_t seed_for_data);
   void SubgraphQDQPool2d(QDQPool2dParams params, uint8_t seed_for_data);
+  void SubgraphQDQGemm(QDQGemmParams params, uint8_t seed_for_data);
 };
 
 struct BuildConv2dAttributes {
@@ -1351,6 +1366,275 @@ void WebNNGraphImplFuzzTest::SubgraphQDQPool2d(QDQPool2dParams params,
   GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
 }
 
+void WebNNGraphImplFuzzTest::SubgraphQDQGemm(QDQGemmParams params,
+                                              uint8_t seed_for_data) {
+  if (params.quantized_type != OperandDataType::kInt8 &&
+      params.quantized_type != OperandDataType::kUint8) {
+    return;
+  }
+
+  const bool has_effective_c = params.has_c;
+
+  std::vector<uint32_t> a_q_dims = params.a_transpose
+                                       ? std::vector<uint32_t>{params.k, params.m}
+                                       : std::vector<uint32_t>{params.m, params.k};
+  std::vector<uint32_t> b_q_dims = params.b_transpose
+                                       ? std::vector<uint32_t>{params.n, params.k}
+                                       : std::vector<uint32_t>{params.k, params.n};
+
+  ASSIGN_OR_RETURN_VOID(auto a_q_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.quantized_type,
+                                                  a_q_dims, ""));
+  ASSIGN_OR_RETURN_VOID(auto b_q_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.quantized_type,
+                                                  b_q_dims, ""));
+
+  // Scale/zero-point are per-tensor (scalar broadcast) for gemm inputs.
+  std::vector<uint32_t> a_scale_shape(a_q_dims.size(), 1u);
+  std::vector<uint32_t> b_scale_shape(b_q_dims.size(), 1u);
+
+  ASSIGN_OR_RETURN_VOID(auto a_scale_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  OperandDataType::kFloat32,
+                                                  a_scale_shape, ""));
+  ASSIGN_OR_RETURN_VOID(auto a_zero_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.quantized_type,
+                                                  a_scale_shape, ""));
+  ASSIGN_OR_RETURN_VOID(auto b_scale_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  OperandDataType::kFloat32,
+                                                  b_scale_shape, ""));
+  ASSIGN_OR_RETURN_VOID(auto b_zero_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.quantized_type,
+                                                  b_scale_shape, ""));
+
+  auto a_desc_result = ValidateDequantizeLinearAndInferOutput(
+      context_properties_, a_q_desc, a_scale_desc, a_zero_desc, "");
+  if (!a_desc_result.has_value()) {
+    return;
+  }
+  auto b_desc_result = ValidateDequantizeLinearAndInferOutput(
+      context_properties_, b_q_desc, b_scale_desc, b_zero_desc, "");
+  if (!b_desc_result.has_value()) {
+    return;
+  }
+
+  GemmAttributes attr;
+  attr.alpha = 1.0f;
+  attr.beta = 1.0f;
+  attr.a_transpose = params.a_transpose;
+  attr.b_transpose = params.b_transpose;
+
+  std::optional<OperandDescriptor> c_q_desc;
+  std::optional<OperandDescriptor> c_scale_desc;
+  std::optional<OperandDescriptor> c_zero_desc;
+  std::optional<OperandDescriptor> c_desc_result;
+  if (has_effective_c) {
+    std::vector<uint32_t> c_q_dims;
+    switch (params.c_shape_kind % 3) {
+      case 0:
+        c_q_dims = {params.n};
+        break;
+      case 1:
+        c_q_dims = {1, params.n};
+        break;
+      case 2:
+        c_q_dims = {params.m, params.n};
+        break;
+    }
+    // The c operand must be int32 for quantized gemm fusion.
+    ASSIGN_OR_RETURN_VOID(c_q_desc,
+                          OperandDescriptor::Create(context_properties_,
+                                                    OperandDataType::kInt32,
+                                                    c_q_dims, ""));
+    std::vector<uint32_t> c_scale_shape(c_q_dims.size(), 1u);
+    ASSIGN_OR_RETURN_VOID(
+        c_scale_desc,
+        OperandDescriptor::Create(context_properties_,
+                                  OperandDataType::kFloat32, c_scale_shape,
+                                  ""));
+    ASSIGN_OR_RETURN_VOID(
+        c_zero_desc,
+        OperandDescriptor::Create(context_properties_, OperandDataType::kInt32,
+                                  c_scale_shape, ""));
+    auto c_deq_result = ValidateDequantizeLinearAndInferOutput(
+        context_properties_, *c_q_desc, *c_scale_desc, *c_zero_desc, "");
+    if (!c_deq_result.has_value()) {
+      return;
+    }
+    c_desc_result = c_deq_result.value();
+    attr.c_operand = *c_desc_result;
+  }
+
+  auto gemm_output_desc_result = ValidateGemmAndInferOutput(
+      context_properties_, a_desc_result.value(), b_desc_result.value(), attr);
+  if (!gemm_output_desc_result.has_value()) {
+    return;
+  }
+  auto& gemm_output_desc = gemm_output_desc_result.value();
+
+  // Output quantization: per-tensor.
+  std::vector<uint32_t> output_scale_shape(gemm_output_desc.shape().size(),
+                                           1u);
+  ASSIGN_OR_RETURN_VOID(auto output_scale_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  OperandDataType::kFloat32,
+                                                  output_scale_shape, ""));
+  ASSIGN_OR_RETURN_VOID(auto output_zero_desc,
+                        OperandDescriptor::Create(context_properties_,
+                                                  params.quantized_type,
+                                                  output_scale_shape, ""));
+
+  auto quantized_output_desc_result = ValidateQuantizeLinearAndInferOutput(
+      context_properties_, gemm_output_desc, output_scale_desc,
+      output_zero_desc, "");
+  if (!quantized_output_desc_result.has_value()) {
+    return;
+  }
+  auto& quantized_output_desc = quantized_output_desc_result.value();
+
+  if (a_q_desc.PackedByteLength() > (1u << 20) ||
+      b_q_desc.PackedByteLength() > (1u << 20)) {
+    return;
+  }
+
+  mojo::AssociatedRemote<mojom::WebNNGraphBuilder> remote =
+      BindNewGraphBuilderRemote();
+  GraphInfoBuilder builder(remote);
+
+  std::vector<uint8_t> a_q_data(a_q_desc.PackedByteLength(), seed_for_data);
+  std::vector<uint8_t> b_q_data(b_q_desc.PackedByteLength(), seed_for_data);
+
+  std::vector<float> a_scale_data(
+      a_scale_desc.PackedByteLength() / sizeof(float), 0.5f);
+  std::vector<float> b_scale_data(
+      b_scale_desc.PackedByteLength() / sizeof(float), 0.25f);
+  std::vector<float> output_scale_data(
+      output_scale_desc.PackedByteLength() / sizeof(float), 0.125f);
+
+  std::vector<uint8_t> a_zero_data(a_zero_desc.PackedByteLength(), 0);
+  std::vector<uint8_t> b_zero_data(b_zero_desc.PackedByteLength(), 0);
+  std::vector<uint8_t> output_zero_data(output_zero_desc.PackedByteLength(),
+                                        0);
+
+  OperandId a_q_id;
+  OperandId b_q_id;
+
+  base::flat_map<std::string, base::span<const uint8_t>> named_inputs;
+  if (params.is_a_constant) {
+    a_q_id = builder.BuildConstant(a_q_desc.shape(), a_q_desc.data_type(),
+                                   base::as_byte_span(a_q_data));
+  } else {
+    a_q_id = builder.BuildInput("a_q", a_q_desc.shape(),
+                                a_q_desc.data_type());
+    named_inputs.insert({"a_q", a_q_data});
+  }
+  if (params.is_b_constant) {
+    b_q_id = builder.BuildConstant(b_q_desc.shape(), b_q_desc.data_type(),
+                                   base::as_byte_span(b_q_data));
+  } else {
+    b_q_id = builder.BuildInput("b_q", b_q_desc.shape(),
+                                b_q_desc.data_type());
+    named_inputs.insert({"b_q", b_q_data});
+  }
+
+  OperandId a_scale_id =
+      builder.BuildConstant(a_scale_desc.shape(), a_scale_desc.data_type(),
+                            base::as_byte_span(
+                                base::allow_nonunique_obj,
+                                base::span<const float>(a_scale_data)));
+  OperandId a_zero_id =
+      builder.BuildConstant(a_zero_desc.shape(), a_zero_desc.data_type(),
+                            base::as_byte_span(a_zero_data));
+  OperandId b_scale_id = builder.BuildConstant(
+      b_scale_desc.shape(), b_scale_desc.data_type(),
+      base::as_byte_span(base::allow_nonunique_obj,
+               base::span<const float>(b_scale_data)));
+  OperandId b_zero_id = builder.BuildConstant(
+      b_zero_desc.shape(), b_zero_desc.data_type(),
+      base::as_byte_span(b_zero_data));
+  OperandId output_scale_id = builder.BuildConstant(
+      output_scale_desc.shape(), output_scale_desc.data_type(),
+      base::as_byte_span(base::allow_nonunique_obj,
+               base::span<const float>(output_scale_data)));
+  OperandId output_zero_id = builder.BuildConstant(
+      output_zero_desc.shape(), output_zero_desc.data_type(),
+      base::as_byte_span(output_zero_data));
+
+  OperandId a_deq_id = builder.BuildIntermediateOperand(
+      a_desc_result.value().shape(), a_desc_result.value().data_type());
+  OperandId b_deq_id = builder.BuildIntermediateOperand(
+      b_desc_result.value().shape(), b_desc_result.value().data_type());
+
+  builder.BuildDequantizeLinear(a_q_id, a_scale_id, a_zero_id, a_deq_id);
+  builder.BuildDequantizeLinear(b_q_id, b_scale_id, b_zero_id, b_deq_id);
+
+  std::optional<OperandId> c_deq_id;
+  std::vector<uint8_t> c_q_data;
+  if (has_effective_c && c_q_desc.has_value()) {
+    c_q_data.assign(c_q_desc->PackedByteLength(), seed_for_data);
+    std::vector<float> c_scale_data(
+        c_scale_desc->PackedByteLength() / sizeof(float), 0.125f);
+    std::vector<uint8_t> c_zero_data(c_zero_desc->PackedByteLength(), 0);
+
+    OperandId c_q_operand_id;
+    if (params.is_c_constant) {
+      c_q_operand_id =
+          builder.BuildConstant(c_q_desc->shape(), c_q_desc->data_type(),
+                                base::as_byte_span(c_q_data));
+    } else {
+      c_q_operand_id = builder.BuildInput("c_q", c_q_desc->shape(),
+                                          c_q_desc->data_type());
+      named_inputs.insert({"c_q", c_q_data});
+    }
+
+    OperandId c_scale_id = builder.BuildConstant(
+        c_scale_desc->shape(), c_scale_desc->data_type(),
+        base::as_byte_span(base::allow_nonunique_obj,
+                 base::span<const float>(c_scale_data)));
+    OperandId c_zero_id = builder.BuildConstant(
+        c_zero_desc->shape(), c_zero_desc->data_type(),
+        base::as_byte_span(c_zero_data));
+
+    c_deq_id = builder.BuildIntermediateOperand(
+        c_desc_result->shape(), c_desc_result->data_type());
+    builder.BuildDequantizeLinear(c_q_operand_id, c_scale_id, c_zero_id,
+                                  *c_deq_id);
+  }
+
+  OperandId gemm_output_id =
+      builder.BuildIntermediateOperand(gemm_output_desc.shape(),
+                                       gemm_output_desc.data_type());
+
+  BuildGemmAttributes gemm_attr;
+  gemm_attr.c_operand_id = c_deq_id;
+  gemm_attr.alpha = 1.0f;
+  gemm_attr.beta = 1.0f;
+  gemm_attr.a_transpose = params.a_transpose;
+  gemm_attr.b_transpose = params.b_transpose;
+
+  builder.BuildGemm(a_deq_id, b_deq_id, gemm_output_id, gemm_attr);
+
+  OperandId quantized_output_id =
+      builder.BuildOutput("output", quantized_output_desc.shape(),
+                          quantized_output_desc.data_type());
+  builder.BuildQuantizeLinear(gemm_output_id, output_scale_id, output_zero_id,
+                              quantized_output_id);
+
+  if (!builder.IsValidGraphForTesting(context_properties_)) {
+    return;
+  }
+
+  BuildAndCompute(context(), std::move(remote), builder.TakeGraphInfo(),
+                  std::move(named_inputs));
+
+  GetGlobalFuzzEnvironment().GetWebNNTestEnvironment().RunUntilIdle();
+}
+
 void WebNNGraphImplFuzzTest::SubgraphQDQConv2d(QDQConv2dParams params,
                                                uint8_t seed_for_data) {
   if (params.quantized_type != OperandDataType::kInt8 &&
@@ -1887,6 +2171,22 @@ auto AnyQDQPool2dParams() {
   );
 }
 
+auto AnyQDQGemmParams() {
+  return fuzztest::StructOf<QDQGemmParams>(
+      AnyQDQQuantizedType(),
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // m
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // k
+      fuzztest::InRange<uint32_t>(1, std::numeric_limits<int32_t>::max()),  // n
+      fuzztest::Arbitrary<bool>(),          // a_transpose
+      fuzztest::Arbitrary<bool>(),          // b_transpose
+      fuzztest::Arbitrary<bool>(),          // has_c
+      fuzztest::InRange<uint32_t>(0, 3),    // c_shape_kind
+      fuzztest::Arbitrary<bool>(),            // is_a_constant
+      fuzztest::Arbitrary<bool>(),            // is_b_constant
+      fuzztest::Arbitrary<bool>()             // is_c_constant
+  );
+}
+
 auto AnyGemmParams() {
   return fuzztest::StructOf<GemmParams>(
       AnyOperandDataType(),
@@ -2041,6 +2341,33 @@ FUZZ_TEST_F(WebNNGraphImplFuzzTest, SingleOpLstm)
                   true,
                   false,
                   false,
+                  false},
+                 1}});
+
+FUZZ_TEST_F(WebNNGraphImplFuzzTest, SubgraphQDQGemm)
+    .WithDomains(AnyQDQGemmParams(), fuzztest::Arbitrary<uint8_t>())
+    .WithSeeds({{{OperandDataType::kInt8,
+                  2,
+                  3,
+                  4,
+                  false,
+                  false,
+                  true,
+                  0,
+                  false,
+                  false,
+                  false},
+                 1},
+                {{OperandDataType::kUint8,
+                  4,
+                  3,
+                  2,
+                  true,
+                  false,
+                  false,
+                  0,
+                  false,
+                  true,
                   false},
                  1}});
 
