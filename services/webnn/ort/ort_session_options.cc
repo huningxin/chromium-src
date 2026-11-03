@@ -396,7 +396,9 @@ SessionOptions::Create(mojom::CreateContextOptionsPtr context_options,
   // This is set here rather than in CreateBaseSessionOptions because the sink
   // is reachable only where CPU EP kernels can run. Non-CPU kernels leave
   // PrePackedWeights::buffers_ empty and the framework skips the cache for
-  // them, so only CPU kernels can adopt a foreign buffer. This path leaves CPU
+  // them (WebGpuKernel::PrePack, for instance, ignores its prepacked_weights
+  // out-param entirely and keeps packed weights in its own GPU buffers), so
+  // only CPU kernels can adopt a foreign buffer. This path leaves CPU
   // EP fallback enabled (outside the testing switch above), so CPU kernels can
   // execute for every device type and the cache must be disabled.
   //
