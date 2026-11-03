@@ -200,6 +200,15 @@ ScopedOrtSessionOptions CreateBaseSessionOptions(
   // reads past a smaller foreign buffer, disclosing GPU-process heap to web
   // content and/or crashing the GPU process. Disabling prepacking removes the
   // shared-buffer path for every prepacking kernel.
+  //
+  // Note the sink itself is CPU-EP-only: non-CPU kernels leave
+  // PrePackedWeights::buffers_ empty, and the framework skips the cache for
+  // them, so only CPU kernels can adopt a foreign buffer. This config key is
+  // EP-agnostic, however, and also suppresses non-CPU prepacking (e.g. the
+  // WebGPU EP's one-time Conv/ConvTranspose weight transposes). That cost is
+  // accepted here: it buys a single choke point covering every current and
+  // future prepacking CPU kernel, rather than an allowlist that must be
+  // revisited whenever ORT adds one.
   CHECK_STATUS(ort_api->AddSessionConfigEntry(
       session_options.get(),
       /*config_key=*/kOrtSessionOptionsConfigDisablePrepacking,
