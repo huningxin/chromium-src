@@ -245,6 +245,12 @@ void BindToTargetDevice(const OrtApi* ort_api,
   // prepacking happens), so no CPU kernel can adopt a hash-colliding foreign
   // packed buffer. If this entry is ever removed or made conditional, disable
   // prepacking here as well.
+  //
+  // Two further barriers already cover these paths: compile sessions set
+  // kOrtSessionOptionCompileOnly and skip session-state finalization (so they
+  // never prepack at all), and dispatch sessions consume a precompiled
+  // EPContext model whose weights live inside the EP's compiled blob rather
+  // than as ONNX initializers awaiting a CPU kernel's PrePack.
   CHECK_STATUS(ort_api->AddSessionConfigEntry(
       session_options, kOrtSessionOptionsDisableCPUEPFallback, "1"));
 
