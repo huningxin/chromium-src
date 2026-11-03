@@ -490,10 +490,12 @@ scoped_refptr<SessionOptions> SessionOptions::CreateForDispatch(
   // file.
   //
   // This also closes the serialized-prepack channel: ORT can load prepacked
-  // buffers declared in a model's external data and key them by a string the
-  // model supplies (LoadPrepackedWeightsFromFile), adopting them without
-  // validation in released versions. A compromised Compiler process could
-  // otherwise forge such an entry for a CPU kernel to pick up here.
+  // buffers declared alongside a file-backed external initializer and key them
+  // by a string the model supplies (LoadPrepackedWeightsFromFile), adopting
+  // them without validation in released versions. A compromised Compiler
+  // process could otherwise forge such an entry for a CPU kernel to pick up
+  // here. Prepacked blobs cannot ride on in-memory external data; ORT rejects
+  // that explicitly, so only the file path above needs blocking.
   CHECK_STATUS(ort_api->AddSessionConfigEntry(
       session_options.get(),
       kOrtSessionOptionsModelExternalInitializersFileFolderPath,
