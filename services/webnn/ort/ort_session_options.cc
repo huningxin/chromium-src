@@ -189,31 +189,6 @@ ScopedOrtSessionOptions CreateBaseSessionOptions(
       /*config_key=*/kOrtSessionOptionsEnableCastChainElimination,
       /*config_value=*/"1"));
 
-  // Disable ORT's per-session prepacked-weights cache. WebNN passes
-  // page-supplied constant weights (e.g. gru()/lstm() W/R tensors and MatMul
-  // operands) to ORT verbatim as initializers inside the GPU process. ORT keys
-  // that cache by op_type + a MurmurHash3 digest of the packed bytes, with no
-  // shape or size, and prepacking kernels (DeepCpuGruOp/DeepCpuLstmOp,
-  // MatMul, etc.) adopt a cache-hit buffer while retaining their own, possibly
-  // larger, shape. A malicious page can forge two constants with different
-  // shapes but colliding packed-byte digests so that a larger kernel's GEMM
-  // reads past a smaller foreign buffer, disclosing GPU-process heap to web
-  // content and/or crashing the GPU process. Disabling prepacking removes the
-  // shared-buffer path for every prepacking kernel.
-  //
-  // Note the sink itself is CPU-EP-only: non-CPU kernels leave
-  // PrePackedWeights::buffers_ empty, and the framework skips the cache for
-  // them, so only CPU kernels can adopt a foreign buffer. This config key is
-  // EP-agnostic, however, and also suppresses non-CPU prepacking (e.g. the
-  // WebGPU EP's one-time Conv/ConvTranspose weight transposes). That cost is
-  // accepted here: it buys a single choke point covering every current and
-  // future prepacking CPU kernel, rather than an allowlist that must be
-  // revisited whenever ORT adds one.
-  CHECK_STATUS(ort_api->AddSessionConfigEntry(
-      session_options.get(),
-      /*config_key=*/kOrtSessionOptionsConfigDisablePrepacking,
-      /*config_value=*/"1"));
-
   // Only set graph optimization level if user provides a valid input.
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
           switches::kWebNNOrtGraphOptimizationLevel)) {
@@ -261,6 +236,15 @@ void BindToTargetDevice(const OrtApi* ort_api,
 
   // Disable CPU EP fallback to ensure the session lands on the expected EP
   // device.
+  //
+  // SECURITY: this is also what keeps ORT's prepacked-weights cache safe on
+  // these paths, so SessionOptions::Create's
+  // kOrtSessionOptionsConfigDisablePrepacking entry is deliberately not
+  // applied here. ORT fails session initialization if any node is assigned to
+  // the CPU EP, and that check runs before session-state finalization (where
+  // prepacking happens), so no CPU kernel can adopt a hash-colliding foreign
+  // packed buffer. If this entry is ever removed or made conditional, disable
+  // prepacking here as well.
   CHECK_STATUS(ort_api->AddSessionConfigEntry(
       session_options, kOrtSessionOptionsDisableCPUEPFallback, "1"));
 
@@ -382,6 +366,35 @@ SessionOptions::Create(mojom::CreateContextOptionsPtr context_options,
     CHECK_STATUS(ort_api->AddSessionConfigEntry(
         session_options.get(), kOrtSessionOptionsDisableCPUEPFallback, "1"));
   }
+
+  // Disable ORT's per-session prepacked-weights cache. WebNN passes
+  // page-supplied constant weights (e.g. gru()/lstm() W/R tensors and MatMul
+  // operands) to ORT verbatim as initializers inside the GPU process. ORT keys
+  // that cache by op_type + a MurmurHash3 digest of the packed bytes, with no
+  // shape or size, and prepacking kernels (DeepCpuGruOp/DeepCpuLstmOp, MatMul,
+  // etc.) adopt a cache-hit buffer while retaining their own, possibly larger,
+  // shape. A malicious page can forge two constants with different shapes but
+  // colliding packed-byte digests so that a larger kernel's GEMM reads past a
+  // smaller foreign buffer, disclosing GPU-process heap to web content and/or
+  // crashing the GPU process.
+  //
+  // This is set here rather than in CreateBaseSessionOptions because the sink
+  // is reachable only where CPU EP kernels can run. Non-CPU kernels leave
+  // PrePackedWeights::buffers_ empty and the framework skips the cache for
+  // them, so only CPU kernels can adopt a foreign buffer. This path leaves CPU
+  // EP fallback enabled (outside the testing switch above), so CPU kernels can
+  // execute for every device type and the cache must be disabled.
+  //
+  // The config key is EP-agnostic and also suppresses non-CPU prepacking (e.g.
+  // the WebGPU EP's one-time Conv/ConvTranspose weight transposes), which is
+  // why it is not applied to the target-device paths in
+  // CreateSessionOptionsForTargetDevice: those pin a single non-CPU EP and set
+  // kOrtSessionOptionsDisableCPUEPFallback, so they cannot reach the sink and
+  // should not pay that cost.
+  CHECK_STATUS(ort_api->AddSessionConfigEntry(
+      session_options.get(),
+      /*config_key=*/kOrtSessionOptionsConfigDisablePrepacking,
+      /*config_value=*/"1"));
 
   // Apply the testing entries after WebNN and EP defaults. Existing entries
   // cannot be replaced and fail fast with the conflicting key and value.
