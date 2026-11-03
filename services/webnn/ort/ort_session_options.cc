@@ -385,12 +385,14 @@ SessionOptions::Create(mojom::CreateContextOptionsPtr context_options,
   // EP fallback enabled (outside the testing switch above), so CPU kernels can
   // execute for every device type and the cache must be disabled.
   //
-  // The config key is EP-agnostic and also suppresses non-CPU prepacking (e.g.
-  // the WebGPU EP's one-time Conv/ConvTranspose weight transposes), which is
-  // why it is not applied to the target-device paths in
+  // The config key is EP-agnostic and also suppresses non-CPU prepacking,
+  // which is why it is not applied to the target-device paths in
   // CreateSessionOptionsForTargetDevice: those pin a single non-CPU EP and set
   // kOrtSessionOptionsDisableCPUEPFallback, so they cannot reach the sink and
-  // should not pay that cost.
+  // should not pay that cost. For the WebGPU EP in particular the cost is not
+  // just a one-time setup loss: without PrePack its Conv weight transpose runs
+  // per inference instead of once, and its im2col-MatMul Conv path becomes
+  // unreachable, since that layout is only produced by PrePack.
   CHECK_STATUS(ort_api->AddSessionConfigEntry(
       session_options.get(),
       /*config_key=*/kOrtSessionOptionsConfigDisablePrepacking,
