@@ -488,6 +488,12 @@ scoped_refptr<SessionOptions> SessionOptions::CreateForDispatch(
   // Block external initializer file reads. The all-zero volume GUID is never
   // assigned by Windows, so ORT cannot resolve any external data path to a real
   // file.
+  //
+  // This also closes the serialized-prepack channel: ORT can load prepacked
+  // buffers declared in a model's external data and key them by a string the
+  // model supplies (LoadPrepackedWeightsFromFile), adopting them without
+  // validation in released versions. A compromised Compiler process could
+  // otherwise forge such an entry for a CPU kernel to pick up here.
   CHECK_STATUS(ort_api->AddSessionConfigEntry(
       session_options.get(),
       kOrtSessionOptionsModelExternalInitializersFileFolderPath,
