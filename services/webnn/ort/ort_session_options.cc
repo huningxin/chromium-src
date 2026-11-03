@@ -399,6 +399,17 @@ SessionOptions::Create(mojom::CreateContextOptionsPtr context_options,
   // just a one-time setup loss: without PrePack its Conv weight transpose runs
   // per inference instead of once, and its im2col-MatMul Conv path becomes
   // unreachable, since that layout is only produced by PrePack.
+  //
+  // This works around an upstream defect that is fixed, but not yet released:
+  // ORT now validates a cache hit against the buffer the kernel just produced,
+  // comparing sizes and then the bytes themselves
+  // (PrePackedWeights::IsEquivalentTo), so a forged digest collision fails
+  // session initialization instead of being adopted. That landed in
+  // microsoft/onnxruntime commit 6843e5990 ("Validate serialized prepacked
+  // buffers", PR #33499) and is absent from every release up to and including
+  // 1.26.0, where a cache hit is used without any validation. This entry can
+  // be removed once the ORT version loaded by PlatformFunctions contains that
+  // commit.
   CHECK_STATUS(ort_api->AddSessionConfigEntry(
       session_options.get(),
       /*config_key=*/kOrtSessionOptionsConfigDisablePrepacking,
