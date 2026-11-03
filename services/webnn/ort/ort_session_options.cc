@@ -384,6 +384,15 @@ SessionOptions::Create(mojom::CreateContextOptionsPtr context_options,
   // smaller foreign buffer, disclosing GPU-process heap to web content and/or
   // crashing the GPU process.
   //
+  // The buffer count desynchronizes the same way, which is worse: one WebNN
+  // gru() emits a single ONNX GRU whose W packs into one buffer and whose R
+  // packs into two, yet both share the "GRU+<digest>" namespace. On a forged
+  // W/R collision DeepCpuGruOp::UseSharedPrePackedBuffers indexes
+  // prepacked_buffers[1] of a one-element vector and adopts the out-of-bounds
+  // BufferUniquePtr as owning storage, yielding a wild read per time step and
+  // a virtual Free() through a stale IAllocator* at teardown. The kernel is
+  // handed the buffer sizes and ignores them (the parameter is unnamed).
+  //
   // This is set here rather than in CreateBaseSessionOptions because the sink
   // is reachable only where CPU EP kernels can run. Non-CPU kernels leave
   // PrePackedWeights::buffers_ empty and the framework skips the cache for
